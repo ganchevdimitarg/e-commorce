@@ -1,14 +1,14 @@
 package com.concordeu.catalog.product;
 
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.Size;
 import java.math.BigDecimal;
 
 @NoArgsConstructor
+@AllArgsConstructor
+@Builder
 @Setter
 @Getter
 public class ProductDTO {

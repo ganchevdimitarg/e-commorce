@@ -1,5 +1,6 @@
 package com.concordeu.catalog.product;
 
+import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -11,12 +12,11 @@ public class ProductDataValidator {
 
     public boolean isValid(ProductDTO productDTO) {
         return isValidName(productDTO.getName())
-                && isValidDescription(productDTO.getDescription())
-                && isValidPrice(productDTO.getPrice());
+                && isValidDescription(productDTO.getDescription());
     }
 
     private boolean isValidName(String name) {
-        if (name == null
+        if (name.isEmpty()
                 || name.trim().length() < 3
                 || name.trim().length() > 20){
             log.error("The name is not correct!");
@@ -26,19 +26,11 @@ public class ProductDataValidator {
     }
 
     private boolean isValidDescription(String description) {
-        if (description == null
+        if (description.isEmpty()
                 || description.trim().length() < 10
                 || description.trim().length() > 50){
             log.error("The description is not correct!");
             throw new IllegalArgumentException("The description is not correct!");
-        }
-        return true;
-    }
-
-    private boolean isValidPrice(BigDecimal price) {
-        if (price == null){
-            log.error("The price is not correct!");
-            throw new IllegalArgumentException("The price is not correct!");
         }
         return true;
     }

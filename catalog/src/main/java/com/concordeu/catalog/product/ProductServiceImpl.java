@@ -21,7 +21,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public ProductDTO createProduct(ProductDTO productDTO, String categoryName) {
-        if (!validator.isValid(productDTO) && !categoryName.isEmpty()) {
+        if (!validator.isValid(productDTO) || categoryName.isEmpty()) {
             log.debug("The product data is not correct! Try again!");
             throw new IllegalArgumentException("The product data is not correct! Try again!");
         }
