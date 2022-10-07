@@ -18,11 +18,11 @@ import java.util.List;
 @Entity
 @Table(name = "products")
 @Data
-@Builder
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Product extends BasicProduct {
-    @Column(name = "name", nullable = false, unique = true)
+    @Column(name = "name", updatable = false, nullable = false, unique = true)
     @NotEmpty
     @Size(min = 3, max = 20)
     private String name;

@@ -8,7 +8,6 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
-import javax.xml.catalog.Catalog;
 import java.util.List;
 
 @RestController
@@ -37,7 +36,7 @@ public class ProductController {
 
     @GetMapping("/get-products/{category}")
     public ResponseEntity<List<ProductDTO>> getProducts(@PathVariable String category) {
-        return ResponseEntity.ok(productService.getProducts(category));
+        return ResponseEntity.ok(productService.getProductsByCategory(category));
     }
 
    /* @PutMapping("/update-product/{productName}")

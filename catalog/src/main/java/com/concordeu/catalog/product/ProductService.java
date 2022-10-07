@@ -6,9 +6,10 @@ public interface ProductService {
 
     ProductDTO createProduct(ProductDTO productDTO, String category);
 
-    List<ProductDTO> getProducts(String category);
+    List<ProductDTO> getProducts();
+    List<ProductDTO> getProductsByCategory(String category);
 
-    ProductDTO updateProduct(String productName);
+    void updateProduct(String productName, ProductDTO productDTO);
 
     ProductDTO deleteProduct(String productName);
 }
