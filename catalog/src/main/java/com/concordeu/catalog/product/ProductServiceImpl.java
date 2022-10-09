@@ -7,8 +7,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -21,8 +19,8 @@ public class ProductServiceImpl implements ProductService {
     private final ProductMapper productMapper;
 
     @Override
-    public ProductDTO createProduct(ProductDTO productDTO, String categoryName) {
-        checkInputData(productDTO);
+    public ProductDto createProduct(ProductDto productDto, String categoryName) {
+        validator.validateData(productDto, categoryName);
 
         Category category = categoryRepository
                 .findByName(categoryName)
@@ -31,8 +29,14 @@ public class ProductServiceImpl implements ProductService {
                     throw new IllegalArgumentException("No such category: " + categoryName);
                 });
 
-        Product product = productMapper.mapDTOToProduct(productDTO);
+        if (productRepository.findByName(productDto.getName()).isPresent()) {
+            log.error("Product with the name: " + productDto.getName() + " already exists.");
+            throw new IllegalArgumentException("Product with the name: " + productDto.getName() + " already exists.");
+        }
+
+        Product product = productMapper.mapDTOToProduct(productDto);
         product.setCategory(category);
+        product.setInStock(true);
 
         productRepository.saveAndFlush(product);
         log.info("The product "+ product.getName() + " is save successful");
@@ -41,7 +45,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public List<ProductDTO> getProducts() {
+    public List<ProductDto> getProducts() {
 
         List<Product> products = productRepository.findAll();
         log.info("Successful get products");
@@ -50,7 +54,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public List<ProductDTO> getProductsByCategory(String categoryName) {
+    public List<ProductDto> getProductsByCategory(String categoryName) {
         Category category = categoryRepository
                 .findByName(categoryName)
                 .orElseThrow(() -> new IllegalArgumentException("No such category: "+ categoryName));
@@ -62,26 +66,30 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public void updateProduct(String productName, ProductDTO productDTO) {
-        checkInputData(productDTO);
+    public void updateProduct(String productName, ProductDto productDto) {
+        validator.validateData(productDto, productName);
+
+        checkExistenceProduct(productName);
+
         productRepository.update(productName,
-                productDTO.getDescription(),
-                productDTO.getPrice(),
-                productDTO.getCharacteristics(),
-                productDTO.isInStock());
+                productDto.getDescription(),
+                productDto.getPrice(),
+                productDto.getCharacteristics(),
+                productDto.isInStock());
         log.info("The updates were successful on product: " + productName);
     }
 
     @Override
-    public ProductDTO deleteProduct(String productName) {
-        Product product = productRepository.deleteByName(productName);
-        return productMapper.mapProductToDto(product);
+    public void deleteProduct(String productName) {
+        checkExistenceProduct(productName);
+        productRepository.deleteByName(productName);
     }
 
-    private void checkInputData(ProductDTO productDTO) {
-        if (!validator.isValid(productDTO)) {
-            log.debug("The product data is not correct! Try again!");
-            throw new IllegalArgumentException("The product data is not correct! Try again!");
+
+    private void checkExistenceProduct(String productName) {
+        if (productRepository.findByName(productName).isEmpty()) {
+            log.error("Product with the name: " + productName + " does not exists.");
+            throw new IllegalArgumentException("Product with the name: " + productName + " does not exists.");
         }
     }
 }

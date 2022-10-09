@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
+import java.util.List;
 
 @Entity
 @Table(name = "categories")
@@ -18,6 +19,6 @@ import javax.persistence.*;
 public class Category extends BasicProduct {
     @Column(name = "name", nullable = false, unique = true)
     private String name;
-    @OneToOne(mappedBy = "category")
-    private Product product;
+    @OneToMany(mappedBy = "category", cascade = CascadeType.ALL)
+    private List<Product> product;
 }

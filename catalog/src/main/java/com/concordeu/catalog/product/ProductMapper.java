@@ -6,10 +6,10 @@ import java.util.List;
 
 @Mapper(componentModel = "spring")
 public interface ProductMapper {
-    ProductDTO mapProductToDto(Product source);
-    Product mapDTOToProduct(ProductDTO destination);
+    ProductDto mapProductToDto(Product source);
+    Product mapDTOToProduct(ProductDto destination);
 
-    List<Product> mapProductDTOsToProducts(List<ProductDTO> productDTOs);
+    List<Product> mapProductDtosToProducts(List<ProductDto> productDtos);
 
-    List<ProductDTO> mapProductsToDtos(List<Product> productDTOs);
+    List<ProductDto> mapProductsToDtos(List<Product> productDTOs);
 }

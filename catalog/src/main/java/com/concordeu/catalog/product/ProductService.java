@@ -4,12 +4,12 @@ import java.util.List;
 
 public interface ProductService {
 
-    ProductDTO createProduct(ProductDTO productDTO, String category);
+    ProductDto createProduct(ProductDto productDto, String category);
 
-    List<ProductDTO> getProducts();
-    List<ProductDTO> getProductsByCategory(String category);
+    List<ProductDto> getProducts();
+    List<ProductDto> getProductsByCategory(String category);
 
-    void updateProduct(String productName, ProductDTO productDTO);
+    void updateProduct(String productName, ProductDto productDto);
 
-    ProductDTO deleteProduct(String productName);
+    void deleteProduct(String productName);
 }

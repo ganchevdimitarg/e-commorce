@@ -11,7 +11,7 @@ import java.math.BigDecimal;
 @Builder
 @Setter
 @Getter
-public class ProductDTO {
+public class ProductDto {
     @NotEmpty
     @Size(min = 3, max = 20)
     private String name;

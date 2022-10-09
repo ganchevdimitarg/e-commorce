@@ -23,97 +23,130 @@ class ProductDataValidatorTest {
 
     @Test
     void isValidShouldReturnTrueIfAllDataIsCorrect() {
-        ProductDTO productDTO = ProductDTO.builder()
+        ProductDto productDto = ProductDto.builder()
                 .name("mouse")
                 .description("WiFi mouse")
                 .price(BigDecimal.valueOf(54.32))
                 .inStock(true)
                 .build();
 
-        assertThat(testValidator.isValid(productDTO)).isEqualTo(true);
+        assertThat(testValidator.validateData(productDto, "PC")).isEqualTo(true);
     }
 
     @Test
-    void isValidShouldThrowExceptionIfNameMissing() {
-        ProductDTO productDTO = ProductDTO.builder()
+    void isValidShouldThrowExceptionIfProductNameMissing() {
+        ProductDto productDto = ProductDto.builder()
                 .name("")
                 .description("WiFi mouse")
                 .price(BigDecimal.valueOf(54.32))
                 .inStock(true)
                 .build();
 
-        assertThatThrownBy(() -> testValidator.isValid(productDTO))
+        assertThatThrownBy(() -> testValidator.validateData(productDto, "PC"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("The name is not correct!");
     }
 
     @Test
-    void isValidShouldThrowExceptionIfNameLengthIsLessThanThree() {
-        ProductDTO productDTO = ProductDTO.builder()
+    void isValidShouldThrowExceptionIfProductNameLengthIsLessThanThree() {
+        ProductDto productDto = ProductDto.builder()
                 .name("aa")
                 .description("WiFi mouse")
                 .price(BigDecimal.valueOf(54.32))
                 .inStock(true)
                 .build();
 
-        assertThatThrownBy(() -> testValidator.isValid(productDTO))
+        assertThatThrownBy(() -> testValidator.validateData(productDto, "PC"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("The name is not correct!");
     }
 
     @Test
-    void isValidShouldThrowExceptionIfNameLengthIsGreaterThanTwenty() {
-        ProductDTO productDTO = ProductDTO.builder()
+    void isValidShouldThrowExceptionIfProductNameLengthIsGreaterThanTwenty() {
+        ProductDto productDto = ProductDto.builder()
                 .name("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
                 .description("WiFi mouse")
                 .price(BigDecimal.valueOf(54.32))
                 .inStock(true)
                 .build();
 
-        assertThatThrownBy(() -> testValidator.isValid(productDTO))
+        assertThatThrownBy(() -> testValidator.validateData(productDto,"PC"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("The name is not correct!");
     }
 
+
     @Test
     void isValidShouldThrowExceptionIfDescriptionMissing() {
-        ProductDTO productDTO = ProductDTO.builder()
+        ProductDto productDto = ProductDto.builder()
                 .name("mouse")
                 .description("")
                 .price(BigDecimal.valueOf(54.32))
                 .inStock(true)
                 .build();
 
-        assertThatThrownBy(() -> testValidator.isValid(productDTO))
+        assertThatThrownBy(() -> testValidator.validateData(productDto,"PC"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("The description is not correct!");
     }
 
     @Test
-    void isValidShouldThrowExceptionIfNameLengthIsLessThanTen() {
-        ProductDTO productDTO = ProductDTO.builder()
+    void isValidShouldThrowExceptionIfDescriptionLengthIsLessThanTen() {
+        ProductDto productDto = ProductDto.builder()
                 .name("mouse")
                 .description("aaaaa")
                 .price(BigDecimal.valueOf(54.32))
                 .inStock(true)
                 .build();
 
-        assertThatThrownBy(() -> testValidator.isValid(productDTO))
+        assertThatThrownBy(() -> testValidator.validateData(productDto,"PC"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("The description is not correct!");
     }
 
     @Test
-    void isValidShouldThrowExceptionIfNameLengthIsGreaterThanFifty() {
-        ProductDTO productDTO = ProductDTO.builder()
+    void isValidShouldThrowExceptionIfDescriptionLengthIsGreaterThanFifty() {
+        ProductDto productDto = ProductDto.builder()
                 .name("mouse")
                 .description("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
                 .price(BigDecimal.valueOf(54.32))
                 .inStock(true)
                 .build();
 
-        assertThatThrownBy(() -> testValidator.isValid(productDTO))
+        assertThatThrownBy(() -> testValidator.validateData(productDto, "PC"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("The description is not correct!");
     }
+
+    @Test
+    void isValidShouldThrowExceptionIfPriceIsEmpty() {
+        ProductDto productDto = ProductDto.builder()
+                .name("mouse")
+                .description("aaaaaaaaaaaaaaaaaaaaaaaaaa")
+                .price(null)
+                .inStock(true)
+                .build();
+
+        assertThatThrownBy(() -> testValidator.validateData(productDto, "PC"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("The price is not correct!");
+    }
+
+    @Test
+    void isValidShouldThrowExceptionIfSecondParameterIsEmpty() {
+        ProductDto productDto = ProductDto.builder()
+                .name("mouse")
+                .description("aaaaaaaaaaaaaaaaaaaaaaa")
+                .price(BigDecimal.valueOf(54.32))
+                .inStock(true)
+                .build();
+
+        String secParam = "";
+
+        assertThatThrownBy(() -> testValidator.validateData(productDto, secParam))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("No such name: " + secParam);
+    }
+
+
 }

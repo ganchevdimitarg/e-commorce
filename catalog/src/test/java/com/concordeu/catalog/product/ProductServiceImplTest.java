@@ -39,23 +39,24 @@ class ProductServiceImplTest {
 
     @Test
     void createProductShouldCreateNewProduct() {
-        ProductDTO productDTO = ProductDTO.builder()
+        ProductDto productDto = ProductDto.builder()
                 .name("mouse")
                 .description("WiFi mouse USB")
                 .price(BigDecimal.valueOf(54.32))
                 .inStock(true)
                 .build();
 
+        String categoryName = "PC";
 
-        when(validator.isValid(productDTO)).thenReturn(true);
+        when(validator.validateData(productDto, categoryName)).thenReturn(true);
 
-        Category category = Category.builder().name("PC").build();
-        when(categoryRepository.findByName("PC")).thenReturn(Optional.of(category));
+        Category category = Category.builder().name(categoryName).build();
+        when(categoryRepository.findByName(categoryName)).thenReturn(Optional.of(category));
 
         Product product = Product.builder().build();
-        when(productMapper.mapDTOToProduct(productDTO)).thenReturn(product);
+        when(productMapper.mapDTOToProduct(productDto)).thenReturn(product);
 
-        testServer.createProduct(productDTO, "PC");
+        testServer.createProduct(productDto, "PC");
 
         ArgumentCaptor<Product> argument = ArgumentCaptor.forClass(Product.class);
         verify(productRepository).saveAndFlush(argument.capture());
@@ -66,46 +67,55 @@ class ProductServiceImplTest {
     }
 
     @Test
-    void createProductShouldThrowExceptionIncorrectProductData() {
-        ProductDTO productDTO = ProductDTO.builder().build();
+    void createProductShouldThrowExceptionIfProductAlreadyExist() {
+        String productName = "aaaaa";
+        ProductDto productDto = ProductDto.builder().name(productName).build();
+        when(productRepository.findByName(productName)).thenReturn(Optional.of(Product.builder().name(productName).build()));
 
-        assertThatThrownBy(() -> testServer.createProduct(productDTO, "PS"))
+        String categoryName = "PC";
+        when(categoryRepository.findByName(categoryName)).thenReturn(Optional.of(Category.builder().name(categoryName).build()));
+
+        assertThatThrownBy(() -> testServer.createProduct(productDto, categoryName))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("The product data is not correct! Try again!");
+                .hasMessageContaining("Product with the name: " + productDto.getName() + " already exists.");
 
         verify(productRepository, never()).saveAndFlush(any());
     }
 
     @Test
     void createProductShouldThrowExceptionIncorrectCategoryName() {
-        ProductDTO productDTO = ProductDTO.builder()
+        ProductDto productDto = ProductDto.builder()
                 .name("mouse")
                 .description("WiFi mouse")
                 .price(BigDecimal.valueOf(54.32))
                 .inStock(true)
                 .build();
 
-        assertThatThrownBy(() -> testServer.createProduct(productDTO, ""))
+        String categoryName = "";
+
+        assertThatThrownBy(() -> testServer.createProduct(productDto, categoryName))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("The product data is not correct! Try again!");
+                .hasMessageContaining("No such category: " + categoryName);
 
         verify(productRepository, never()).saveAndFlush(any());
     }
 
     @Test
     void createProductShouldThrowExceptionCategoryDoesNotExist() {
-        ProductDTO productDTO = ProductDTO.builder()
+        ProductDto productDto = ProductDto.builder()
                 .name("mouse")
                 .description("WiFi mouse")
                 .price(BigDecimal.valueOf(54.32))
                 .inStock(true)
                 .build();
 
-        when(validator.isValid(productDTO)).thenReturn(true);
+        String categoryName = "PC";
 
-        assertThatThrownBy(() -> testServer.createProduct(productDTO, "PC"))
+        when(validator.validateData(productDto, categoryName)).thenReturn(true);
+
+        assertThatThrownBy(() -> testServer.createProduct(productDto, categoryName))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("No such category: " + "PC");
+                .hasMessageContaining("No such category: " + categoryName);
 
         verify(productRepository, never()).saveAndFlush(any());
     }
@@ -138,25 +148,47 @@ class ProductServiceImplTest {
     }
 
     @Test
-    void updateProduct() {
-        ProductDTO productDto = ProductDTO.builder()
-                .name("aaaaa")
+    void updateProductShouldUpdateDataIfProductExist() {
+        String productName = "aaaaa";
+        ProductDto productDto = ProductDto.builder()
+                .name(productName)
                 .description("aaaaaaaaaaa")
                 .price(BigDecimal.valueOf(0.01))
                 .build();
-        when(validator.isValid(productDto)).thenReturn(true);
-        testServer.updateProduct("aaaaa", productDto);
-        verify(productRepository).update("aaaaa", "aaaaaaaaaaa", BigDecimal.valueOf(0.01), null, false);
+        when(validator.validateData(productDto, productName)).thenReturn(true);
+        when(productRepository.findByName(productName)).thenReturn(Optional.of(Product.builder().name(productName).build()));
+        testServer.updateProduct(productName, productDto);
+        verify(productRepository).update(productName, "aaaaaaaaaaa", BigDecimal.valueOf(0.01), null, false);
     }
 
     @Test
-    void deleteProductShouldDeleteProductByName() {
-        productRepository.saveAndFlush(Product.builder().name("aaaaa").build());
+    void updateProductShouldThrowExceptionIfProductDoesNotExist() {
+        String productName = "aaaaa";
+        ProductDto productDto = ProductDto.builder()
+                .name(productName)
+                .description("aaaaaaaaaaa")
+                .price(BigDecimal.valueOf(0.01))
+                .build();
+        when(validator.validateData(productDto, "bbbbb")).thenReturn(true);
+        assertThatThrownBy(() -> testServer.updateProduct("bbbbb", productDto))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Product with the name: bbbbb does not exists.");
+    }
 
-        testServer.deleteProduct("aaaaa");
-        boolean isExist = productRepository.findByName("aaaaa").isPresent();
+    @Test
+    void deleteProductShouldDeleteProductIfProductExist() {
+        String productName = "aaaaa";
+        when(productRepository.findByName(productName)).thenReturn(Optional.of(Product.builder().name(productName).build()));
 
-        verify(productRepository).deleteByName("aaaaa");
-        assertThat(isExist).isFalse();
+        testServer.deleteProduct(productName);
+
+        verify(productRepository).deleteByName(productName);
+    }
+
+    @Test
+    void deleteProductShouldDeleteIfProductDoesNotExist() {
+        assertThatThrownBy(() -> testServer.deleteProduct("bbbbb"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Product with the name: bbbbb does not exists.");
     }
 }

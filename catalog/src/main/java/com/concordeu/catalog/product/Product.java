@@ -36,8 +36,7 @@ public class Product extends BasicProduct {
     private boolean inStock;
     @Column(name = "characteristics")
     private String characteristics;
-    @OneToOne(cascade = CascadeType.ALL)
-    @JoinColumn(name = "category_id", referencedColumnName = "id")
+    @ManyToOne(fetch = FetchType.LAZY)
     private Category category;
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL)
     private List<Comment> comment;
