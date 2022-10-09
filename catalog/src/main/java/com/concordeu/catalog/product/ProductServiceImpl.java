@@ -66,7 +66,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public void updateProduct(String productName, ProductDto productDto) {
+    public void updateProduct(ProductDto productDto, String productName) {
         validator.validateData(productDto, productName);
 
         checkExistenceProduct(productName);

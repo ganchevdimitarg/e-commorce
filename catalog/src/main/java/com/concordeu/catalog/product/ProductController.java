@@ -45,7 +45,7 @@ public class ProductController {
     public ResponseEntity<ProductDto> updateProduct(@RequestBody ProductDto productDto, @PathVariable String productName) {
         validator.validateData(productDto, productName);
 
-        productService.updateProduct(productName, productDto);
+        productService.updateProduct(productDto, productName);
         log.info("The product has been updated: " + productName);
 
         return ResponseEntity.status(HttpStatus.ACCEPTED).build();
@@ -55,6 +55,6 @@ public class ProductController {
     public ResponseEntity<ProductDto> deleteProduct(@PathVariable String productName) {
         productService.deleteProduct(productName);
 
-        return ResponseEntity.status(HttpStatus.OK).build();
+        return ResponseEntity.status(HttpStatus.ACCEPTED).build();
     }
 }

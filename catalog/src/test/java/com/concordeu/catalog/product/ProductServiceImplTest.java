@@ -157,7 +157,7 @@ class ProductServiceImplTest {
                 .build();
         when(validator.validateData(productDto, productName)).thenReturn(true);
         when(productRepository.findByName(productName)).thenReturn(Optional.of(Product.builder().name(productName).build()));
-        testServer.updateProduct(productName, productDto);
+        testServer.updateProduct(productDto, productName);
         verify(productRepository).update(productName, "aaaaaaaaaaa", BigDecimal.valueOf(0.01), null, false);
     }
 
@@ -170,7 +170,7 @@ class ProductServiceImplTest {
                 .price(BigDecimal.valueOf(0.01))
                 .build();
         when(validator.validateData(productDto, "bbbbb")).thenReturn(true);
-        assertThatThrownBy(() -> testServer.updateProduct("bbbbb", productDto))
+        assertThatThrownBy(() -> testServer.updateProduct(productDto,"bbbbb"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Product with the name: bbbbb does not exists.");
     }
