@@ -1,6 +1,6 @@
 package com.concordeu.catalog.product;
 
-import com.concordeu.catalog.BasicProduct;
+import com.concordeu.catalog.UniqueIdGenerator;
 import com.concordeu.catalog.category.Category;
 import com.concordeu.catalog.comment.Comment;
 import lombok.AllArgsConstructor;
@@ -9,24 +9,27 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
-import javax.validation.constraints.Min;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.util.List;
 
-@Entity
-@Table(name = "products")
+@Entity(name = "Product")
+@Table(
+        name = "products",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "product_name", columnNames = "name")
+        })
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Product extends BasicProduct {
-    @Column(name = "name", updatable = false, nullable = false, unique = true)
+public class Product extends UniqueIdGenerator {
+    @Column(name = "name", updatable = false, nullable = false, columnDefinition = "TEXT")
     @NotEmpty
     @Size(min = 3, max = 20)
     private String name;
-    @Column(name = "description", nullable = false)
+    @Column(name = "description", nullable = false, columnDefinition = "TEXT")
     @NotEmpty
     @Size(min = 10, max = 50)
     private String description;
@@ -34,7 +37,7 @@ public class Product extends BasicProduct {
     private BigDecimal price;
     @Column(name = "stock")
     private boolean inStock;
-    @Column(name = "characteristics")
+    @Column(name = "characteristics", columnDefinition = "TEXT")
     private String characteristics;
     @ManyToOne(fetch = FetchType.LAZY)
     private Category category;

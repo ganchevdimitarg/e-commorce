@@ -1,15 +1,30 @@
 package com.concordeu.catalog.category;
 
+import com.concordeu.catalog.ModelMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.RequestBody;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class CategoryServiceImpl {
+public class CategoryServiceImpl implements CategoryService {
 
     private final CategoryRepository categoryRepository;
+    private final ModelMapper modelMapper;
+    public CategoryDto createCategory(String categoryName) {
+        if (categoryName.isEmpty()) {
+            log.error("No such category: " + categoryName);
+            throw new IllegalArgumentException("No such category: " + categoryName);
+        }
 
+        if (categoryRepository.findByName(categoryName).isPresent()) {
+            log.error("Category with the name: " + categoryName + " already exists.");
+            throw new IllegalArgumentException("Category with the name: " + categoryName + " already exists.");
+        }
+
+        Category category = categoryRepository.saveAndFlush(Category.builder().name(categoryName).build());
+
+        return modelMapper.mapCategoryToDto(category);
+    }
 }

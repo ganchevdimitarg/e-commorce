@@ -2,6 +2,7 @@ package com.concordeu.catalog.product;
 
 import com.concordeu.catalog.category.Category;
 import com.concordeu.catalog.category.CategoryRepository;
+import com.concordeu.catalog.ModelMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -16,7 +17,7 @@ public class ProductServiceImpl implements ProductService {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private final ProductDataValidator validator;
-    private final ProductMapper productMapper;
+    private final ModelMapper modelMapper;
 
     @Override
     public ProductDto createProduct(ProductDto productDto, String categoryName) {
@@ -34,14 +35,14 @@ public class ProductServiceImpl implements ProductService {
             throw new IllegalArgumentException("Product with the name: " + productDto.getName() + " already exists.");
         }
 
-        Product product = productMapper.mapDTOToProduct(productDto);
+        Product product = modelMapper.mapDtoToProduct(productDto);
         product.setCategory(category);
         product.setInStock(true);
 
         productRepository.saveAndFlush(product);
         log.info("The product "+ product.getName() + " is save successful");
 
-        return productMapper.mapProductToDto(product);
+        return modelMapper.mapProductToDto(product);
     }
 
     @Override
@@ -50,7 +51,7 @@ public class ProductServiceImpl implements ProductService {
         List<Product> products = productRepository.findAll();
         log.info("Successful get products");
 
-        return productMapper.mapProductsToDtos(products);
+        return modelMapper.mapProductsToDtos(products);
     }
 
     @Override
@@ -62,7 +63,7 @@ public class ProductServiceImpl implements ProductService {
         List<Product> products = productRepository.findAllByCategoryOrderByNameAsc(category);
         log.info("Successful get products by category: " + categoryName);
 
-        return productMapper.mapProductsToDtos(products);
+        return modelMapper.mapProductsToDtos(products);
     }
 
     @Override

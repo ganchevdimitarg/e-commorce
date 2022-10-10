@@ -3,6 +3,7 @@ package com.concordeu.catalog.product;
 
 import com.concordeu.catalog.category.Category;
 import com.concordeu.catalog.category.CategoryRepository;
+import com.concordeu.catalog.ModelMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -22,19 +23,19 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 @ExtendWith(MockitoExtension.class)
 class ProductServiceImplTest {
 
-    private ProductService testServer;
+    private ProductService testService;
     @Mock
     ProductRepository productRepository;
     @Mock
     CategoryRepository categoryRepository;
     @Mock
-    ProductMapper productMapper;
+    ModelMapper modelMapper;
     @Mock
     ProductDataValidator validator;
 
     @BeforeEach
     void setup() {
-        testServer = new ProductServiceImpl(productRepository, categoryRepository, validator, productMapper);
+        testService = new ProductServiceImpl(productRepository, categoryRepository, validator, modelMapper);
     }
 
     @Test
@@ -54,9 +55,9 @@ class ProductServiceImplTest {
         when(categoryRepository.findByName(categoryName)).thenReturn(Optional.of(category));
 
         Product product = Product.builder().build();
-        when(productMapper.mapDTOToProduct(productDto)).thenReturn(product);
+        when(modelMapper.mapDtoToProduct(productDto)).thenReturn(product);
 
-        testServer.createProduct(productDto, "PC");
+        testService.createProduct(productDto, "PC");
 
         ArgumentCaptor<Product> argument = ArgumentCaptor.forClass(Product.class);
         verify(productRepository).saveAndFlush(argument.capture());
@@ -75,7 +76,7 @@ class ProductServiceImplTest {
         String categoryName = "PC";
         when(categoryRepository.findByName(categoryName)).thenReturn(Optional.of(Category.builder().name(categoryName).build()));
 
-        assertThatThrownBy(() -> testServer.createProduct(productDto, categoryName))
+        assertThatThrownBy(() -> testService.createProduct(productDto, categoryName))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Product with the name: " + productDto.getName() + " already exists.");
 
@@ -93,7 +94,7 @@ class ProductServiceImplTest {
 
         String categoryName = "";
 
-        assertThatThrownBy(() -> testServer.createProduct(productDto, categoryName))
+        assertThatThrownBy(() -> testService.createProduct(productDto, categoryName))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("No such category: " + categoryName);
 
@@ -113,7 +114,7 @@ class ProductServiceImplTest {
 
         when(validator.validateData(productDto, categoryName)).thenReturn(true);
 
-        assertThatThrownBy(() -> testServer.createProduct(productDto, categoryName))
+        assertThatThrownBy(() -> testService.createProduct(productDto, categoryName))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("No such category: " + categoryName);
 
@@ -122,7 +123,7 @@ class ProductServiceImplTest {
 
     @Test
     void getProducts() {
-        testServer.getProducts();
+        testService.getProducts();
 
         verify(productRepository).findAll();
     }
@@ -133,14 +134,14 @@ class ProductServiceImplTest {
 
         when(categoryRepository.findByName(any())).thenReturn(Optional.of(category));
 
-        testServer.getProductsByCategory("PC");
+        testService.getProductsByCategory("PC");
 
         verify(productRepository).findAllByCategoryOrderByNameAsc(category);
     }
 
     @Test
     void getProductsByCategoryShouldThrowExceptionIfCategoryNotExist() {
-        assertThatThrownBy(() -> testServer.getProductsByCategory(""))
+        assertThatThrownBy(() -> testService.getProductsByCategory(""))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("No such category: " + "");
 
@@ -157,7 +158,7 @@ class ProductServiceImplTest {
                 .build();
         when(validator.validateData(productDto, productName)).thenReturn(true);
         when(productRepository.findByName(productName)).thenReturn(Optional.of(Product.builder().name(productName).build()));
-        testServer.updateProduct(productDto, productName);
+        testService.updateProduct(productDto, productName);
         verify(productRepository).update(productName, "aaaaaaaaaaa", BigDecimal.valueOf(0.01), null, false);
     }
 
@@ -170,7 +171,7 @@ class ProductServiceImplTest {
                 .price(BigDecimal.valueOf(0.01))
                 .build();
         when(validator.validateData(productDto, "bbbbb")).thenReturn(true);
-        assertThatThrownBy(() -> testServer.updateProduct(productDto,"bbbbb"))
+        assertThatThrownBy(() -> testService.updateProduct(productDto,"bbbbb"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Product with the name: bbbbb does not exists.");
     }
@@ -180,14 +181,14 @@ class ProductServiceImplTest {
         String productName = "aaaaa";
         when(productRepository.findByName(productName)).thenReturn(Optional.of(Product.builder().name(productName).build()));
 
-        testServer.deleteProduct(productName);
+        testService.deleteProduct(productName);
 
         verify(productRepository).deleteByName(productName);
     }
 
     @Test
     void deleteProductShouldDeleteIfProductDoesNotExist() {
-        assertThatThrownBy(() -> testServer.deleteProduct("bbbbb"))
+        assertThatThrownBy(() -> testService.deleteProduct("bbbbb"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Product with the name: bbbbb does not exists.");
     }
