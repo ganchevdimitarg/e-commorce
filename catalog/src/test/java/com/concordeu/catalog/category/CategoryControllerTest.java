@@ -17,6 +17,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -49,5 +50,13 @@ class CategoryControllerTest {
                 .andExpect(status().isCreated());
 
         verify(categoryService).createCategory(any(String.class));
+    }
+
+    @Test
+    void deleteCategoryShouldDeleteProduct() throws Exception {
+        mvc.perform(delete("/api/v1/category/delete/{categoryName}","mouse"))
+                .andExpect(status().isAccepted());
+
+        verify(categoryService).deleteCategory(any());
     }
 }

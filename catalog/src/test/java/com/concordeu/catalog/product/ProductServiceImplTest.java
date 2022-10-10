@@ -78,7 +78,7 @@ class ProductServiceImplTest {
 
         assertThatThrownBy(() -> testService.createProduct(productDto, categoryName))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Product with the name: " + productDto.getName() + " already exists.");
+                .hasMessageContaining("Product with the name: " + productDto.getName() + " already exist.");
 
         verify(productRepository, never()).saveAndFlush(any());
     }
@@ -173,7 +173,7 @@ class ProductServiceImplTest {
         when(validator.validateData(productDto, "bbbbb")).thenReturn(true);
         assertThatThrownBy(() -> testService.updateProduct(productDto,"bbbbb"))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Product with the name: bbbbb does not exists.");
+                .hasMessageContaining("Product with the name: bbbbb does not exist.");
     }
 
     @Test
@@ -190,6 +190,8 @@ class ProductServiceImplTest {
     void deleteProductShouldDeleteIfProductDoesNotExist() {
         assertThatThrownBy(() -> testService.deleteProduct("bbbbb"))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Product with the name: bbbbb does not exists.");
+                .hasMessageContaining("Product with the name: bbbbb does not exist.");
+
+        verify(productRepository, never()).deleteByName(any());
     }
 }

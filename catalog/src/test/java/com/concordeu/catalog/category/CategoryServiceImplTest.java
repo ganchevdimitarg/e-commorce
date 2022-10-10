@@ -1,6 +1,7 @@
 package com.concordeu.catalog.category;
 
 import com.concordeu.catalog.ModelMapper;
+import com.concordeu.catalog.product.Product;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -28,6 +29,8 @@ class CategoryServiceImplTest {
     @Mock
     ModelMapper modelMapper;
 
+    String categoryName = "PC";
+
     @BeforeEach
     void setUp() {
         testService = new CategoryServiceImpl(categoryRepository, modelMapper);
@@ -35,7 +38,7 @@ class CategoryServiceImplTest {
 
     @Test
     void createCategoryShouldCreateCategoryIfNameIsNotEmpty() {
-        String categoryName = "PC";
+
 
         when(categoryRepository.findByName(categoryName)).thenReturn(Optional.empty());
 
@@ -60,7 +63,6 @@ class CategoryServiceImplTest {
 
     @Test
     void createCategoryShouldThrowExceptionIfCategoryExist() {
-        String categoryName = "PC";
         when(categoryRepository.findByName(categoryName)).thenReturn(Optional.of(Category.builder().name(categoryName).build()));
 
         assertThatThrownBy(() -> testService.createCategory(categoryName))
@@ -68,5 +70,23 @@ class CategoryServiceImplTest {
                 .hasMessageContaining("Category with the name: " + categoryName + " already exists.");
 
         verify(categoryRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void deleteCategoryShouldDeleteProductIfProductExist() {
+        when(categoryRepository.findByName(categoryName)).thenReturn(Optional.of(Category.builder().name(categoryName).build()));
+
+        testService.deleteCategory(categoryName);
+
+        verify(categoryRepository).deleteByName(categoryName);
+    }
+
+    @Test
+    void deleteCategoryShouldDeleteIfProductDoesNotExist() {
+        assertThatThrownBy(() -> testService.deleteCategory("bbbbb"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Category with the name: bbbbb does not exist.");
+
+        verify(categoryRepository, never()).deleteByName(any());
     }
 }

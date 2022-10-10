@@ -32,7 +32,7 @@ public class ProductServiceImpl implements ProductService {
 
         if (productRepository.findByName(productDto.getName()).isPresent()) {
             log.error("Product with the name: " + productDto.getName() + " already exists.");
-            throw new IllegalArgumentException("Product with the name: " + productDto.getName() + " already exists.");
+            throw new IllegalArgumentException("Product with the name: " + productDto.getName() + " already exist.");
         }
 
         Product product = modelMapper.mapDtoToProduct(productDto);
@@ -89,8 +89,8 @@ public class ProductServiceImpl implements ProductService {
 
     private void checkExistenceProduct(String productName) {
         if (productRepository.findByName(productName).isEmpty()) {
-            log.error("Product with the name: " + productName + " does not exists.");
-            throw new IllegalArgumentException("Product with the name: " + productName + " does not exists.");
+            log.error("Product with the name: " + productName + " does not exist.");
+            throw new IllegalArgumentException("Product with the name: " + productName + " does not exist.");
         }
     }
 }
