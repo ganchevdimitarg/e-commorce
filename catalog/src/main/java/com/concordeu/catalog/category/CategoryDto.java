@@ -1,6 +1,18 @@
 package com.concordeu.catalog.category;
 
+import com.concordeu.catalog.product.Product;
+import com.concordeu.catalog.product.ProductDto;
 import lombok.*;
 
-public record CategoryDto(String name) {
+import java.util.List;
+
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@Setter
+@Getter
+public class CategoryDto {
+    private String id;
+    private String name;
+    private List<ProductDto> products;
 }

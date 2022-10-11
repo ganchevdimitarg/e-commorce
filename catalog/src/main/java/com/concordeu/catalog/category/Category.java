@@ -2,12 +2,11 @@ package com.concordeu.catalog.category;
 
 import com.concordeu.catalog.UniqueIdGenerator;
 import com.concordeu.catalog.product.Product;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.*;
 
 import javax.persistence.*;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity(name = "Category")
@@ -16,13 +15,16 @@ import java.util.List;
         uniqueConstraints = {
                 @UniqueConstraint(name = "category_name", columnNames = "name")
         })
-@Data
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
+@Setter
+@Getter
 public class Category extends UniqueIdGenerator {
     @Column(name = "name", nullable = false, columnDefinition = "TEXT")
     private String name;
-    @OneToMany(mappedBy = "category", cascade = CascadeType.ALL)
-    private List<Product> product;
+    @OneToMany(mappedBy = "category", targetEntity = Product.class, cascade = CascadeType.ALL)
+    @JsonIgnore
+    private List<Product> products;
 }
+

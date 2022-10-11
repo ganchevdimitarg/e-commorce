@@ -1,7 +1,12 @@
 package com.concordeu.catalog.category;
 
-public interface CategoryService {
-    CategoryDto createCategory(String categoryName);
+import java.util.List;
 
-    void deleteCategory(String categoryName);
+public interface CategoryService {
+    CategoryDto createCategory(CategoryDto categoryDto);
+    CategoryDto getCategory(String categoryFrom);
+    void deleteCategory(CategoryDto categoryDto);
+    void moveOneProduct(CategoryDto categoryFrom, CategoryDto categoryTo, String productName);
+    void moveAllProducts(CategoryDto categoryFrom, CategoryDto categoryTo);
+    List<CategoryDto> getCategories();
 }

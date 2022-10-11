@@ -21,7 +21,10 @@ public interface ProductRepository extends JpaRepository<Product, String> {
     @Modifying(clearAutomatically = true)
     @Query("update Product p set p.description= :description, p.price= :price, p.characteristics= :characteristics, p.inStock= :inStock where p.name= :name")
     void update(@Param("name") String name, @Param("description") String description, @Param("price") BigDecimal price, @Param("characteristics") String characteristics, @Param("inStock") boolean inStock);
-
+    @Transactional
+    @Modifying
+    @Query("update Product p set p.category.id= :category_id where p.name= :name")
+    void changeCategory(@Param("name") String name, @Param("category_id") String category_id);
     @Transactional
     void deleteByName(String productName);
 }

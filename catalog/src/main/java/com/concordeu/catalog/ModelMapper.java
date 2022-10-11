@@ -13,8 +13,9 @@ public interface ModelMapper {
     Product mapDtoToProduct(ProductDto productDto);
     ProductDto mapProductToDto(Product product);
     List<Product> mapProductDtosToProducts(List<ProductDto> productDtos);
-    List<ProductDto> mapProductsToDtos(List<Product> productDTOs);
-
+    List<ProductDto> mapProductsToDtos(List<Product> product);
     Category mapDtoToCategory(CategoryDto categoryDTO);
     CategoryDto mapCategoryToDto(Category category);
+    List<Category> mapDtosToCategories(List<CategoryDto> categoryDto);
+    List<CategoryDto> mapCategoriesToDtos(List<Category> category);
 }

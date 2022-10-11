@@ -33,9 +33,9 @@ public class ProductController {
         return ResponseEntity.status(HttpStatus.OK).body(productService.getProducts());
     }
 
-    @GetMapping("/get-products/{category}")
-    public ResponseEntity<List<ProductDto>> getProductsByCategory(@PathVariable String category) {
-        List<ProductDto> products = productService.getProductsByCategory(category);
+    @GetMapping("/get-products/{categoryName}")
+    public ResponseEntity<List<ProductDto>> getProductsByCategory(@PathVariable String categoryName) {
+        List<ProductDto> products = productService.getProductsByCategory(categoryName);
         log.info("The products have been received");
 
         return ResponseEntity.status(HttpStatus.OK).body(products);

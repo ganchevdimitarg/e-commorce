@@ -1,7 +1,9 @@
 package com.concordeu.catalog.category;
 
+import com.concordeu.catalog.ModelMapper;
 import com.concordeu.catalog.product.ProductController;
 import com.concordeu.catalog.product.ProductDto;
+import com.concordeu.catalog.product.ProductRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -49,14 +51,51 @@ class CategoryControllerTest {
                 )
                 .andExpect(status().isCreated());
 
-        verify(categoryService).createCategory(any(String.class));
+        verify(categoryService).createCategory(any(CategoryDto.class));
     }
 
     @Test
     void deleteCategoryShouldDeleteProduct() throws Exception {
-        mvc.perform(delete("/api/v1/category/delete/{categoryName}","mouse"))
+        mvc.perform(delete("/api/v1/category/delete")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                    {
+                                        "name": "mouse"
+                                    }
+                                """))
                 .andExpect(status().isAccepted());
 
         verify(categoryService).deleteCategory(any());
+    }
+
+    @Test
+    void moveAllProductsShouldMoveOneProductFromOneCategoryToAnotherCategory() throws Exception {
+        mvc.perform(post("/api/v1/category/move-one-product")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                    {
+                                        "categoryFrom": "pc",
+                                        "categoryTo": "acc",
+                                        "productName": "mouse"
+                                    }
+                                """))
+                .andExpect(status().isMovedPermanently());
+
+        verify(categoryService).moveOneProduct(any(), any(), any());
+    }
+
+    @Test
+    void moveAllProductsShouldMoveAllProductsFromOneCategoryToAnotherCategory() throws Exception {
+        mvc.perform(post("/api/v1/category/move-all-products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                    {
+                                        "categoryFrom": "pc",
+                                        "categoryTo": "acc"
+                                    }
+                                """))
+                .andExpect(status().isMovedPermanently());
+
+        verify(categoryService).moveAllProducts(any(), any());
     }
 }

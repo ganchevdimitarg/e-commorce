@@ -3,10 +3,7 @@ package com.concordeu.catalog.product;
 import com.concordeu.catalog.UniqueIdGenerator;
 import com.concordeu.catalog.category.Category;
 import com.concordeu.catalog.comment.Comment;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import javax.persistence.*;
 import javax.validation.constraints.NotEmpty;
@@ -20,10 +17,11 @@ import java.util.List;
         uniqueConstraints = {
                 @UniqueConstraint(name = "product_name", columnNames = "name")
         })
-@Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@Setter
+@Getter
 public class Product extends UniqueIdGenerator {
     @Column(name = "name", updatable = false, nullable = false, columnDefinition = "TEXT")
     @NotEmpty
@@ -39,7 +37,8 @@ public class Product extends UniqueIdGenerator {
     private boolean inStock;
     @Column(name = "characteristics", columnDefinition = "TEXT")
     private String characteristics;
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "category_id", referencedColumnName = "id")
     private Category category;
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL)
     private List<Comment> comment;

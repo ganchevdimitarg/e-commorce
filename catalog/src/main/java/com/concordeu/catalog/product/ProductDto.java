@@ -1,5 +1,6 @@
 package com.concordeu.catalog.product;
 
+import com.concordeu.catalog.category.Category;
 import lombok.*;
 
 import javax.validation.constraints.NotEmpty;
@@ -11,6 +12,7 @@ import java.math.BigDecimal;
 @Builder
 @Setter
 @Getter
+@ToString
 public class ProductDto {
     @NotEmpty
     @Size(min = 3, max = 20)
@@ -21,4 +23,5 @@ public class ProductDto {
     private BigDecimal price;
     private boolean inStock;
     private String characteristics;
+    private Category category;
 }

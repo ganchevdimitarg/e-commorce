@@ -1,5 +1,7 @@
 package com.concordeu.catalog.product;
 
+import com.concordeu.catalog.category.Category;
+import com.concordeu.catalog.category.CategoryRepository;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
