@@ -27,7 +27,8 @@ public class Comment extends UniqueIdGenerator {
     private double star;
     @Column(name = "author", columnDefinition = "TEXT")
     private String author;
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "product_id", referencedColumnName = "id")
     private Product product;
 }
 

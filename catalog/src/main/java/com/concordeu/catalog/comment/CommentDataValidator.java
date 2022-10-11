@@ -6,4 +6,7 @@ import org.springframework.stereotype.Service;
 @Service
 @Slf4j
 public class CommentDataValidator {
+    public boolean isValidComment(CommentDto commentDto) {
+        return false;
+    }
 }

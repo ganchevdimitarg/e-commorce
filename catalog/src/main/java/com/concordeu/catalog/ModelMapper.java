@@ -2,6 +2,8 @@ package com.concordeu.catalog;
 
 import com.concordeu.catalog.category.Category;
 import com.concordeu.catalog.category.CategoryDto;
+import com.concordeu.catalog.comment.Comment;
+import com.concordeu.catalog.comment.CommentDto;
 import com.concordeu.catalog.product.Product;
 import com.concordeu.catalog.product.ProductDto;
 import org.mapstruct.Mapper;
@@ -18,4 +20,9 @@ public interface ModelMapper {
     CategoryDto mapCategoryToDto(Category category);
     List<Category> mapDtosToCategories(List<CategoryDto> categoryDto);
     List<CategoryDto> mapCategoriesToDtos(List<Category> category);
+
+    Comment mapDtoToComment(CommentDto categoryDTO);
+    CommentDto mapCommentToDto(Comment category);
+    List<Comment> mapDtosToComments(List<CommentDto> categoryDto);
+    List<CommentDto> mapCommentsToDtos(List<Comment> category);
 }

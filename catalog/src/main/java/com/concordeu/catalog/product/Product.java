@@ -3,6 +3,7 @@ package com.concordeu.catalog.product;
 import com.concordeu.catalog.UniqueIdGenerator;
 import com.concordeu.catalog.category.Category;
 import com.concordeu.catalog.comment.Comment;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.*;
 
 import javax.persistence.*;
@@ -40,7 +41,8 @@ public class Product extends UniqueIdGenerator {
     @ManyToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "category_id", referencedColumnName = "id")
     private Category category;
-    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "product", targetEntity = Comment.class, cascade = CascadeType.ALL)
+    @JsonIgnore
     private List<Comment> comment;
 }
 

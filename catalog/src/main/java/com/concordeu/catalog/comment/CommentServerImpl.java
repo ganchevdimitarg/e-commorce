@@ -1,5 +1,6 @@
 package com.concordeu.catalog.comment;
 
+import com.concordeu.catalog.ModelMapper;
 import com.concordeu.catalog.product.Product;
 import com.concordeu.catalog.product.ProductRepository;
 import lombok.RequiredArgsConstructor;
@@ -17,19 +18,31 @@ public class CommentServerImpl implements CommentServer {
     private final CommentRepository commentRepository;
     private final ProductRepository productRepository;
     private final CommentDataValidator commentDataValidator;
+    private final ModelMapper modelMapper;
 
     @Override
-    public Optional<CommentDto> createComment(CommentDto commentDto, String productName) {
-        return Optional.empty();
+    public CommentDto createComment(CommentDto commentDto, String productName) {
+        commentDataValidator.isValidComment(commentDto);
+
+        Product product = productRepository.findByName(productName)
+                .orElseThrow(() -> new IllegalArgumentException("No such user: " + productName));
+
+        Comment comment = modelMapper.mapDtoToComment(commentDto);
+        comment.setProduct(product);
+
+        commentRepository.saveAndFlush(comment);
+        log.info("The comment "+ comment.getTitle() + " is save successful");
+
+        return modelMapper.mapCommentToDto(comment);
     }
 
     @Override
-    public List<Comment> findAllByProduct(Product product) {
+    public List<CommentDto> findAllByProductName(String productName) {
         return null;
     }
 
     @Override
-    public List<Comment> findAllByAuthor(String author) {
+    public List<CommentDto> findAllByAuthor(String author) {
         return null;
     }
 }
