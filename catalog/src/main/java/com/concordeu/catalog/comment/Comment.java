@@ -1,11 +1,11 @@
 package com.concordeu.catalog.comment;
 
-import com.concordeu.catalog.UniqueIdGenerator;
 import com.concordeu.catalog.product.Product;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.GenericGenerator;
 
 import javax.persistence.*;
 import javax.validation.constraints.Size;
@@ -16,7 +16,13 @@ import javax.validation.constraints.Size;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class Comment extends UniqueIdGenerator {
+public class Comment {
+    @Id
+    @GeneratedValue(generator = "uuid-string")
+    @GenericGenerator(name = "uuid-string",
+            strategy = "org.hibernate.id.UUIDGenerator")
+    @Column(name = "id", unique = true, nullable = false, updatable = false)
+    private String id;
     @Column(name = "title", columnDefinition = "TEXT")
     @Size(min = 3, max = 15)
     private String title;

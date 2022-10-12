@@ -1,10 +1,10 @@
 package com.concordeu.catalog.product;
 
-import com.concordeu.catalog.UniqueIdGenerator;
 import com.concordeu.catalog.category.Category;
 import com.concordeu.catalog.comment.Comment;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.*;
+import org.hibernate.annotations.GenericGenerator;
 
 import javax.persistence.*;
 import javax.validation.constraints.NotEmpty;
@@ -23,7 +23,13 @@ import java.util.List;
 @Builder
 @Setter
 @Getter
-public class Product extends UniqueIdGenerator {
+public class Product {
+    @Id
+    @GeneratedValue(generator = "uuid-string")
+    @GenericGenerator(name = "uuid-string",
+            strategy = "org.hibernate.id.UUIDGenerator")
+    @Column(name = "id", unique = true, nullable = false, updatable = false)
+    private String id;
     @Column(name = "name", updatable = false, nullable = false, columnDefinition = "TEXT")
     @NotEmpty
     @Size(min = 3, max = 20)
