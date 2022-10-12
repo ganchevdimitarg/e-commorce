@@ -11,7 +11,6 @@ import java.math.BigDecimal;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 @Tag("unit")
-@ExtendWith(MockitoExtension.class)
 class ProductDataValidatorTest {
 
     private ProductDataValidator testValidator;
@@ -22,7 +21,7 @@ class ProductDataValidatorTest {
     }
 
     @Test
-    void isValidShouldReturnTrueIfAllDataIsCorrect() {
+    void validateDataShouldReturnTrueIfAllDataIsCorrect() {
         ProductDto productDto = ProductDto.builder()
                 .name("mouse")
                 .description("WiFi mouse")
@@ -30,11 +29,11 @@ class ProductDataValidatorTest {
                 .inStock(true)
                 .build();
 
-        assertThat(testValidator.validateData(productDto, "PC")).isEqualTo(true);
+        assertThat(testValidator.validateData(productDto, "PC")).isTrue();
     }
 
     @Test
-    void isValidShouldThrowExceptionIfProductNameMissing() {
+    void validateDataShouldThrowExceptionIfProductNameMissing() {
         ProductDto productDto = ProductDto.builder()
                 .name("")
                 .description("WiFi mouse")
@@ -48,7 +47,7 @@ class ProductDataValidatorTest {
     }
 
     @Test
-    void isValidShouldThrowExceptionIfProductNameLengthIsLessThanThree() {
+    void validateDataShouldThrowExceptionIfProductNameLengthIsLessThanThree() {
         ProductDto productDto = ProductDto.builder()
                 .name("aa")
                 .description("WiFi mouse")
@@ -62,7 +61,7 @@ class ProductDataValidatorTest {
     }
 
     @Test
-    void isValidShouldThrowExceptionIfProductNameLengthIsGreaterThanTwenty() {
+    void validateDataShouldThrowExceptionIfProductNameLengthIsGreaterThanTwenty() {
         ProductDto productDto = ProductDto.builder()
                 .name("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
                 .description("WiFi mouse")
@@ -77,7 +76,7 @@ class ProductDataValidatorTest {
 
 
     @Test
-    void isValidShouldThrowExceptionIfDescriptionMissing() {
+    void validateDataShouldThrowExceptionIfDescriptionMissing() {
         ProductDto productDto = ProductDto.builder()
                 .name("mouse")
                 .description("")
@@ -91,7 +90,7 @@ class ProductDataValidatorTest {
     }
 
     @Test
-    void isValidShouldThrowExceptionIfDescriptionLengthIsLessThanTen() {
+    void validateDataShouldThrowExceptionIfDescriptionLengthIsLessThanTen() {
         ProductDto productDto = ProductDto.builder()
                 .name("mouse")
                 .description("aaaaa")
@@ -105,7 +104,7 @@ class ProductDataValidatorTest {
     }
 
     @Test
-    void isValidShouldThrowExceptionIfDescriptionLengthIsGreaterThanFifty() {
+    void validateDataShouldThrowExceptionIfDescriptionLengthIsGreaterThanFifty() {
         ProductDto productDto = ProductDto.builder()
                 .name("mouse")
                 .description("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
@@ -119,7 +118,7 @@ class ProductDataValidatorTest {
     }
 
     @Test
-    void isValidShouldThrowExceptionIfPriceIsEmpty() {
+    void validateDataShouldThrowExceptionIfPriceIsEmpty() {
         ProductDto productDto = ProductDto.builder()
                 .name("mouse")
                 .description("aaaaaaaaaaaaaaaaaaaaaaaaaa")
@@ -133,7 +132,7 @@ class ProductDataValidatorTest {
     }
 
     @Test
-    void isValidShouldThrowExceptionIfSecondParameterIsEmpty() {
+    void validateDataShouldThrowExceptionIfSecondParameterIsEmpty() {
         ProductDto productDto = ProductDto.builder()
                 .name("mouse")
                 .description("aaaaaaaaaaaaaaaaaaaaaaa")

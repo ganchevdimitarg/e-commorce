@@ -6,7 +6,28 @@ import org.springframework.stereotype.Service;
 @Service
 @Slf4j
 public class CommentDataValidator {
-    public boolean isValidComment(CommentDto commentDto) {
-        return false;
+    public boolean validateData(CommentDto commentDto) {
+        return isValidTitle(commentDto.getTitle())
+                && isValidText(commentDto.getText());
+    }
+
+    private boolean isValidText(String text) {
+        if (text.isEmpty()
+                || text.trim().length() < 10
+                || text.trim().length() > 150){
+            log.error("The text is not correct!");
+            throw new IllegalArgumentException("The text is not correct!");
+        }
+        return true;
+    }
+
+    private boolean isValidTitle(String title) {
+        if (title.isEmpty()
+                || title.trim().length() < 3
+                || title.trim().length() > 15){
+            log.error("The title is not correct!");
+            throw new IllegalArgumentException("The title is not correct!");
+        }
+        return true;
     }
 }
