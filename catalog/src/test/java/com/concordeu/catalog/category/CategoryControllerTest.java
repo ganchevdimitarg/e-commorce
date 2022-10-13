@@ -1,14 +1,12 @@
 package com.concordeu.catalog.category;
 
-import com.concordeu.catalog.ModelMapper;
-import com.concordeu.catalog.product.ProductController;
-import com.concordeu.catalog.product.ProductDto;
-import com.concordeu.catalog.product.ProductRepository;
+import com.concordeu.catalog.controller.CategoryController;
+import com.concordeu.catalog.dto.CategoryDto;
+import com.concordeu.catalog.service.category.CategoryService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -16,7 +14,6 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;

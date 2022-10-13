@@ -1,5 +1,8 @@
-package com.concordeu.catalog.product;
+package com.concordeu.catalog.controller;
 
+import com.concordeu.catalog.validator.ProductDataValidator;
+import com.concordeu.catalog.dto.ProductDto;
+import com.concordeu.catalog.service.product.ProductService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;

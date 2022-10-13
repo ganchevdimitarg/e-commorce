@@ -1,8 +1,14 @@
 package com.concordeu.catalog.comment;
 
 import com.concordeu.catalog.ModelMapper;
-import com.concordeu.catalog.product.Product;
-import com.concordeu.catalog.product.ProductRepository;
+import com.concordeu.catalog.dao.CommentRepository;
+import com.concordeu.catalog.domain.Comment;
+import com.concordeu.catalog.domain.Product;
+import com.concordeu.catalog.dao.ProductRepository;
+import com.concordeu.catalog.dto.CommentDto;
+import com.concordeu.catalog.service.comment.CommentService;
+import com.concordeu.catalog.service.comment.CommentServiceImpl;
+import com.concordeu.catalog.validator.CommentDataValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -11,7 +17,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;

@@ -1,4 +1,6 @@
-package com.concordeu.catalog.comment;
+package com.concordeu.catalog.service.comment;
+
+import com.concordeu.catalog.dto.CommentDto;
 
 import java.util.List;
 

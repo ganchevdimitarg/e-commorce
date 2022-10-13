@@ -1,7 +1,5 @@
-package com.concordeu.catalog.category;
+package com.concordeu.catalog.dto;
 
-import com.concordeu.catalog.product.Product;
-import com.concordeu.catalog.product.ProductDto;
 import lombok.*;
 
 import java.util.List;

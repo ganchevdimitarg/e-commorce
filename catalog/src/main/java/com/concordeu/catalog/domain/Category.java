@@ -1,6 +1,5 @@
-package com.concordeu.catalog.category;
+package com.concordeu.catalog.domain;
 
-import com.concordeu.catalog.product.Product;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.*;
 import org.hibernate.annotations.GenericGenerator;

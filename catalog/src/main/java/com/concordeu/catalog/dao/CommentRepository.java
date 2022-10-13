@@ -1,6 +1,7 @@
-package com.concordeu.catalog.comment;
+package com.concordeu.catalog.dao;
 
-import com.concordeu.catalog.product.Product;
+import com.concordeu.catalog.domain.Comment;
+import com.concordeu.catalog.domain.Product;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

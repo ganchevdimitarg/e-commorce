@@ -1,4 +1,4 @@
-package com.concordeu.catalog.error;
+package com.concordeu.catalog.excaption;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

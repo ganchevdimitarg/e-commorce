@@ -1,9 +1,15 @@
 package com.concordeu.catalog.product;
 
 
-import com.concordeu.catalog.category.Category;
-import com.concordeu.catalog.category.CategoryRepository;
+import com.concordeu.catalog.dao.ProductRepository;
+import com.concordeu.catalog.domain.Category;
+import com.concordeu.catalog.dao.CategoryRepository;
 import com.concordeu.catalog.ModelMapper;
+import com.concordeu.catalog.domain.Product;
+import com.concordeu.catalog.dto.ProductDto;
+import com.concordeu.catalog.service.product.ProductService;
+import com.concordeu.catalog.service.product.ProductServiceImpl;
+import com.concordeu.catalog.validator.ProductDataValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;

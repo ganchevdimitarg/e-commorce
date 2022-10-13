@@ -1,11 +1,11 @@
 package com.concordeu.catalog;
 
-import com.concordeu.catalog.category.Category;
-import com.concordeu.catalog.category.CategoryDto;
-import com.concordeu.catalog.comment.Comment;
-import com.concordeu.catalog.comment.CommentDto;
-import com.concordeu.catalog.product.Product;
-import com.concordeu.catalog.product.ProductDto;
+import com.concordeu.catalog.domain.Category;
+import com.concordeu.catalog.dto.CategoryDto;
+import com.concordeu.catalog.domain.Comment;
+import com.concordeu.catalog.dto.CommentDto;
+import com.concordeu.catalog.domain.Product;
+import com.concordeu.catalog.dto.ProductDto;
 import org.mapstruct.Mapper;
 
 import java.util.List;

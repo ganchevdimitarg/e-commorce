@@ -1,14 +1,13 @@
 package com.concordeu.catalog.product;
 
-import com.concordeu.catalog.category.Category;
-import com.concordeu.catalog.category.CategoryRepository;
+import com.concordeu.catalog.dao.ProductRepository;
+import com.concordeu.catalog.domain.Product;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 
 import java.math.BigDecimal;
-import java.util.Optional;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 

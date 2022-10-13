@@ -1,4 +1,6 @@
-package com.concordeu.catalog.category;
+package com.concordeu.catalog.service.category;
+
+import com.concordeu.catalog.dto.CategoryDto;
 
 import java.util.List;
 

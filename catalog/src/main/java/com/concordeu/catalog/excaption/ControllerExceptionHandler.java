@@ -1,4 +1,4 @@
-package com.concordeu.catalog.error;
+package com.concordeu.catalog.excaption;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

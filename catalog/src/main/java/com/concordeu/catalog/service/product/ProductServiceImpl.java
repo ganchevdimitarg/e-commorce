@@ -1,8 +1,12 @@
-package com.concordeu.catalog.product;
+package com.concordeu.catalog.service.product;
 
-import com.concordeu.catalog.category.Category;
-import com.concordeu.catalog.category.CategoryRepository;
+import com.concordeu.catalog.domain.Category;
+import com.concordeu.catalog.dao.CategoryRepository;
 import com.concordeu.catalog.ModelMapper;
+import com.concordeu.catalog.domain.Product;
+import com.concordeu.catalog.validator.ProductDataValidator;
+import com.concordeu.catalog.dto.ProductDto;
+import com.concordeu.catalog.dao.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

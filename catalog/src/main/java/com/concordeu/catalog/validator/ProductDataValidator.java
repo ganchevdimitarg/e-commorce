@@ -1,5 +1,6 @@
-package com.concordeu.catalog.product;
+package com.concordeu.catalog.validator;
 
+import com.concordeu.catalog.dto.ProductDto;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 

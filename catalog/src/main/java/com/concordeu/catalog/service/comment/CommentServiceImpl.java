@@ -1,8 +1,12 @@
-package com.concordeu.catalog.comment;
+package com.concordeu.catalog.service.comment;
 
 import com.concordeu.catalog.ModelMapper;
-import com.concordeu.catalog.product.Product;
-import com.concordeu.catalog.product.ProductRepository;
+import com.concordeu.catalog.validator.CommentDataValidator;
+import com.concordeu.catalog.dto.CommentDto;
+import com.concordeu.catalog.dao.CommentRepository;
+import com.concordeu.catalog.domain.Comment;
+import com.concordeu.catalog.domain.Product;
+import com.concordeu.catalog.dao.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

@@ -1,8 +1,13 @@
 package com.concordeu.catalog.category;
 
 import com.concordeu.catalog.ModelMapper;
-import com.concordeu.catalog.product.Product;
-import com.concordeu.catalog.product.ProductRepository;
+import com.concordeu.catalog.dao.CategoryRepository;
+import com.concordeu.catalog.domain.Category;
+import com.concordeu.catalog.domain.Product;
+import com.concordeu.catalog.dao.ProductRepository;
+import com.concordeu.catalog.dto.CategoryDto;
+import com.concordeu.catalog.service.category.CategoryService;
+import com.concordeu.catalog.service.category.CategoryServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -16,10 +21,8 @@ import java.util.Optional;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.*;
-import static org.mockito.Mockito.*;
 
 @Tag("unit")
 @ExtendWith(MockitoExtension.class)

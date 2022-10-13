@@ -1,5 +1,6 @@
-package com.concordeu.catalog.category;
+package com.concordeu.catalog.dao;
 
+import com.concordeu.catalog.domain.Category;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.transaction.annotation.Transactional;
 

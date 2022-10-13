@@ -1,6 +1,5 @@
-package com.concordeu.catalog.comment;
+package com.concordeu.catalog.domain;
 
-import com.concordeu.catalog.product.Product;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

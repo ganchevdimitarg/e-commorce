@@ -1,7 +1,10 @@
 package com.concordeu.catalog.product;
 
+import com.concordeu.catalog.controller.ProductController;
+import com.concordeu.catalog.dto.ProductDto;
+import com.concordeu.catalog.service.product.ProductService;
+import com.concordeu.catalog.validator.ProductDataValidator;
 import org.hamcrest.Matchers;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

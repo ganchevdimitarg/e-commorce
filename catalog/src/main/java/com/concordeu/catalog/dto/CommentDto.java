@@ -1,12 +1,8 @@
-package com.concordeu.catalog.comment;
+package com.concordeu.catalog.dto;
 
-import com.concordeu.catalog.product.Product;
+import com.concordeu.catalog.domain.Product;
 import lombok.*;
 
-import javax.persistence.CascadeType;
-import javax.persistence.Column;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
 import javax.validation.constraints.Size;
 
 @NoArgsConstructor

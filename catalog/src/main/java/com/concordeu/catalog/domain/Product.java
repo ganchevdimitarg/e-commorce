@@ -1,7 +1,7 @@
-package com.concordeu.catalog.product;
+package com.concordeu.catalog.domain;
 
-import com.concordeu.catalog.category.Category;
-import com.concordeu.catalog.comment.Comment;
+import com.concordeu.catalog.domain.Category;
+import com.concordeu.catalog.domain.Comment;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.*;
 import org.hibernate.annotations.GenericGenerator;
@@ -10,7 +10,6 @@ import javax.persistence.*;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.Size;
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.List;
 
 @Entity(name = "Product")

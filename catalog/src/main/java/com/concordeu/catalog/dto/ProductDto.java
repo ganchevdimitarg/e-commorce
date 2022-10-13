@@ -1,7 +1,7 @@
-package com.concordeu.catalog.product;
+package com.concordeu.catalog.dto;
 
-import com.concordeu.catalog.category.Category;
-import com.concordeu.catalog.comment.Comment;
+import com.concordeu.catalog.domain.Category;
+import com.concordeu.catalog.domain.Comment;
 import lombok.*;
 
 import javax.validation.constraints.NotEmpty;

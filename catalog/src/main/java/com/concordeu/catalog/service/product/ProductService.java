@@ -1,4 +1,6 @@
-package com.concordeu.catalog.product;
+package com.concordeu.catalog.service.product;
+
+import com.concordeu.catalog.dto.ProductDto;
 
 import java.util.List;
 

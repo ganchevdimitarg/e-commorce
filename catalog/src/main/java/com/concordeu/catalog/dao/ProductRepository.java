@@ -1,6 +1,7 @@
-package com.concordeu.catalog.product;
+package com.concordeu.catalog.dao;
 
-import com.concordeu.catalog.category.Category;
+import com.concordeu.catalog.domain.Category;
+import com.concordeu.catalog.domain.Product;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;

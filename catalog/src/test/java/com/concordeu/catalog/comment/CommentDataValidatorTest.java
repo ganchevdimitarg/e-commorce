@@ -1,12 +1,13 @@
 package com.concordeu.catalog.comment;
 
+import com.concordeu.catalog.dto.CommentDto;
+import com.concordeu.catalog.validator.CommentDataValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.*;
 
 @Tag("unit")
 class CommentDataValidatorTest {
