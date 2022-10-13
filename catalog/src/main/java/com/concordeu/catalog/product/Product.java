@@ -10,6 +10,7 @@ import javax.persistence.*;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.Size;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity(name = "Product")
@@ -49,6 +50,6 @@ public class Product {
     private Category category;
     @OneToMany(mappedBy = "product", targetEntity = Comment.class, cascade = CascadeType.ALL)
     @JsonIgnore
-    private List<Comment> comment;
+    private List<Comment> comments;
 }
 

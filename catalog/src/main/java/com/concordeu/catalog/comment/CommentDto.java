@@ -1,7 +1,12 @@
 package com.concordeu.catalog.comment;
 
+import com.concordeu.catalog.product.Product;
 import lombok.*;
 
+import javax.persistence.CascadeType;
+import javax.persistence.Column;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
 import javax.validation.constraints.Size;
 
 @NoArgsConstructor
@@ -16,4 +21,5 @@ public class CommentDto {
     private String text;
     private double star;
     private String author;
+    private Product product;
 }

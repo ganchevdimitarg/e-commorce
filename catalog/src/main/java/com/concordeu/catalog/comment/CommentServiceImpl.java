@@ -23,7 +23,8 @@ public class CommentServiceImpl implements CommentService {
     public CommentDto createComment(CommentDto commentDto, String productName) {
         commentDataValidator.validateData(commentDto);
 
-        Product product = productRepository.findByName(productName)
+        Product product = productRepository
+                .findByName(productName)
                 .orElseThrow(() -> {
                     log.error("No such product: " + productName);
                     return new IllegalArgumentException("No such product: " + productName);
@@ -50,7 +51,10 @@ public class CommentServiceImpl implements CommentService {
             throw new IllegalArgumentException("No such product: " + productName);
         });
 
-        return modelMapper.mapCommentsToDtos(commentRepository.findAllByProduct(product));
+        List<Comment> allByProduct = commentRepository.findAllByProduct(product);
+        List<CommentDto> commentDtos = modelMapper.mapCommentsToDtos(allByProduct);
+
+        return commentDtos;
     }
 
     @Override
@@ -62,5 +66,18 @@ public class CommentServiceImpl implements CommentService {
 
         return modelMapper.mapCommentsToDtos(commentRepository.findAllByAuthor(author));
     }
+
+    @Override
+    public double getAvgStars(String productName) {
+        List<CommentDto> comments = findAllByProductName(productName);
+        double sum = 0.0;
+        for (CommentDto comment : comments) {
+            sum += comment.getStar();
+        }
+
+        return sum / comments.size();
+    }
+
+
 }
 
