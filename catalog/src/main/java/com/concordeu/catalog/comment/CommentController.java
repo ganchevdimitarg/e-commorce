@@ -15,9 +15,11 @@ import java.util.List;
 public class CommentController {
 
     private final CommentService commentService;
+    private final CommentDataValidator validator;
 
     @PostMapping("/create-comment/{productName}")
     public ResponseEntity<CommentDto> createComment(@RequestBody CommentDto request, @PathVariable String productName) {
+        validator.validateData(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(commentService.createComment(request, productName));
     }
 

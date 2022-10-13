@@ -25,9 +25,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(ProductController.class)
 @Tag("integration")
 class ProductControllerTest {
-
-    ProductController testController;
-
     @Autowired
     MockMvc mvc;
     @MockBean
@@ -35,16 +32,11 @@ class ProductControllerTest {
     @MockBean
     ProductDataValidator validator;
 
-    @BeforeEach
-    void setup() {
-        testController = new ProductController(productService, validator);
-    }
-
     @Test
     void createProductShouldCreateProduct() throws Exception {
         when(validator.validateData(any(), any())).thenReturn(true);
 
-        mvc.perform(post("/api/v1/product/create-product/PC")
+        mvc.perform(post("/api/v1/product/create-product/{categoryName}","PC")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
