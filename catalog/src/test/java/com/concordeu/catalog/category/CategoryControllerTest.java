@@ -1,7 +1,9 @@
 package com.concordeu.catalog.category;
 
+import com.concordeu.catalog.MapStructMapper;
 import com.concordeu.catalog.controller.CategoryController;
 import com.concordeu.catalog.dto.CategoryDto;
+import com.concordeu.catalog.dto.CategoryRequestDto;
 import com.concordeu.catalog.service.category.CategoryService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -16,6 +18,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -24,25 +27,23 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(CategoryController.class)
 @Tag("integration")
 class CategoryControllerTest {
-    CategoryController testController;
     @Autowired
     MockMvc mvc;
     @MockBean
     CategoryService categoryService;
-
-    @BeforeEach
-    void setUp() {
-        testController = new CategoryController(categoryService);
-    }
+    @MockBean
+    MapStructMapper mapper;
 
     @Test
     void createCategoryShouldCreateCategory() throws Exception {
+        CategoryRequestDto requestDto = new CategoryRequestDto("pc");
+        when(mapper.mapCategoryRequestDtoToCategoryDto(requestDto)).thenReturn(CategoryDto.builder().name("pc").build());
         mvc.perform(post("/api/v1/category/create-category")
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON)
                         .content("""
                                     {
-                                        "name": "PC"
+                                        "name": "pc"
                                     }
                                 """)
                 )
@@ -53,11 +54,13 @@ class CategoryControllerTest {
 
     @Test
     void deleteCategoryShouldDeleteProduct() throws Exception {
+        CategoryRequestDto requestDto = new CategoryRequestDto("pc");
+        when(mapper.mapCategoryRequestDtoToCategoryDto(requestDto)).thenReturn(CategoryDto.builder().name("pc").build());
         mvc.perform(delete("/api/v1/category/delete")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                     {
-                                        "name": "mouse"
+                                        "name": "pc"
                                     }
                                 """))
                 .andExpect(status().isAccepted());

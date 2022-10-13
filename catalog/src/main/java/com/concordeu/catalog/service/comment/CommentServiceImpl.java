@@ -1,6 +1,6 @@
 package com.concordeu.catalog.service.comment;
 
-import com.concordeu.catalog.ModelMapper;
+import com.concordeu.catalog.MapStructMapper;
 import com.concordeu.catalog.validator.CommentDataValidator;
 import com.concordeu.catalog.dto.CommentDto;
 import com.concordeu.catalog.dao.CommentRepository;
@@ -21,7 +21,7 @@ public class CommentServiceImpl implements CommentService {
     private final CommentRepository commentRepository;
     private final ProductRepository productRepository;
     private final CommentDataValidator commentDataValidator;
-    private final ModelMapper modelMapper;
+    private final MapStructMapper mapStructMapper;
 
     @Override
     public CommentDto createComment(CommentDto commentDto, String productName) {
@@ -34,13 +34,13 @@ public class CommentServiceImpl implements CommentService {
                     return new IllegalArgumentException("No such product: " + productName);
                 });
 
-        Comment comment = modelMapper.mapDtoToComment(commentDto);
+        Comment comment = mapStructMapper.mapDtoToComment(commentDto);
         comment.setProduct(product);
 
         commentRepository.saveAndFlush(comment);
         log.info("The comment " + comment.getTitle() + " is save successful");
 
-        return modelMapper.mapCommentToDto(comment);
+        return mapStructMapper.mapCommentToDto(comment);
     }
 
     @Override
@@ -56,7 +56,7 @@ public class CommentServiceImpl implements CommentService {
         });
 
         List<Comment> allByProduct = commentRepository.findAllByProduct(product);
-        List<CommentDto> commentDtos = modelMapper.mapCommentsToDtos(allByProduct);
+        List<CommentDto> commentDtos = mapStructMapper.mapCommentsToDtos(allByProduct);
 
         return commentDtos;
     }
@@ -68,7 +68,7 @@ public class CommentServiceImpl implements CommentService {
             throw new IllegalArgumentException("No such author: " + author);
         }
 
-        return modelMapper.mapCommentsToDtos(commentRepository.findAllByAuthor(author));
+        return mapStructMapper.mapCommentsToDtos(commentRepository.findAllByAuthor(author));
     }
 
     @Override

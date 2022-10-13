@@ -1,7 +1,9 @@
 package com.concordeu.catalog.product;
 
+import com.concordeu.catalog.MapStructMapper;
 import com.concordeu.catalog.controller.ProductController;
 import com.concordeu.catalog.dto.ProductDto;
+import com.concordeu.catalog.dto.ProductRequestDto;
 import com.concordeu.catalog.service.product.ProductService;
 import com.concordeu.catalog.validator.ProductDataValidator;
 import org.hamcrest.Matchers;
@@ -34,17 +36,21 @@ class ProductControllerTest {
     ProductService productService;
     @MockBean
     ProductDataValidator validator;
+    @MockBean
+    MapStructMapper mapper;
 
     @Test
     void createProductShouldCreateProduct() throws Exception {
+        when(mapper.mapProductRequestDtoToProductDto(any(ProductRequestDto.class))).thenReturn(ProductDto.builder().name("aaaa").description("aaaaaaaaaaaaaaaaa").build());
         when(validator.validateData(any(), any())).thenReturn(true);
 
         mvc.perform(post("/api/v1/product/create-product/{categoryName}","PC")
                         .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                    "name": "dogs",
-                                    "description": "golden retrivar",
+                                    "name": "aaaa",
+                                    "description": "aaaaaaaaaaaaaaaaa",
                                     "price": "140",
                                     "inStock": true,
                                     "characteristics": "black"
@@ -82,13 +88,14 @@ class ProductControllerTest {
 
     @Test
     void updateProductShouldUpdateProduct() throws Exception {
+        when(mapper.mapProductRequestDtoToProductDto(any(ProductRequestDto.class))).thenReturn(ProductDto.builder().name("aaaa").description("aaaaaaaaaaaaaaaaa").build());
         when(validator.validateData(any(), any())).thenReturn(true);
 
         mvc.perform(put("/api/v1/product/update-product/{productName}", "mouse")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                    "name": "mouse",
+                                    "name": "aaaa",
                                     "description": "golden retrivar",
                                     "price": "140",
                                     "inStock": true,

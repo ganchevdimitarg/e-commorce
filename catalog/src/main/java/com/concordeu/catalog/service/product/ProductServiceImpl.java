@@ -2,7 +2,7 @@ package com.concordeu.catalog.service.product;
 
 import com.concordeu.catalog.domain.Category;
 import com.concordeu.catalog.dao.CategoryRepository;
-import com.concordeu.catalog.ModelMapper;
+import com.concordeu.catalog.MapStructMapper;
 import com.concordeu.catalog.domain.Product;
 import com.concordeu.catalog.validator.ProductDataValidator;
 import com.concordeu.catalog.dto.ProductDto;
@@ -21,7 +21,7 @@ public class ProductServiceImpl implements ProductService {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private final ProductDataValidator validator;
-    private final ModelMapper modelMapper;
+    private final MapStructMapper mapStructMapper;
 
     @Override
     public ProductDto createProduct(ProductDto productDto, String categoryName) {
@@ -39,14 +39,14 @@ public class ProductServiceImpl implements ProductService {
             throw new IllegalArgumentException("Product with the name: " + productDto.getName() + " already exist.");
         }
 
-        Product product = modelMapper.mapDtoToProduct(productDto);
+        Product product = mapStructMapper.mapDtoToProduct(productDto);
         product.setCategory(category);
         product.setInStock(true);
 
         productRepository.saveAndFlush(product);
         log.info("The product "+ product.getName() + " is save successful");
 
-        return modelMapper.mapProductToDto(product);
+        return mapStructMapper.mapProductToDto(product);
     }
 
     @Override
@@ -55,7 +55,7 @@ public class ProductServiceImpl implements ProductService {
         List<Product> products = productRepository.findAll();
         log.info("Successful get products");
 
-        return modelMapper.mapProductsToDtos(products);
+        return mapStructMapper.mapProductsToDtos(products);
     }
 
     @Override
@@ -67,7 +67,7 @@ public class ProductServiceImpl implements ProductService {
         List<Product> products = productRepository.findAllByCategoryOrderByNameAsc(category);
         log.info("Successful get products by category: " + categoryName);
 
-        return modelMapper.mapProductsToDtos(products);
+        return mapStructMapper.mapProductsToDtos(products);
     }
 
     @Override

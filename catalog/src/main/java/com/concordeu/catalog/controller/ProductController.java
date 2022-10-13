@@ -1,5 +1,7 @@
 package com.concordeu.catalog.controller;
 
+import com.concordeu.catalog.MapStructMapper;
+import com.concordeu.catalog.dto.ProductRequestDto;
 import com.concordeu.catalog.validator.ProductDataValidator;
 import com.concordeu.catalog.dto.ProductDto;
 import com.concordeu.catalog.service.product.ProductService;
@@ -20,9 +22,11 @@ public class ProductController {
 
     private final ProductService productService;
     private final ProductDataValidator validator;
+    private final MapStructMapper mapper;
 
     @PostMapping("/create-product/{categoryName}")
-    public ResponseEntity<ProductDto> createProduct(@Valid @RequestBody ProductDto productDto, @PathVariable String categoryName) {
+    public ResponseEntity<ProductDto> createProduct(@RequestBody ProductRequestDto requestDto, @PathVariable String categoryName) {
+        ProductDto productDto = mapper.mapProductRequestDtoToProductDto(requestDto);
         validator.validateData(productDto, categoryName);
 
         ProductDto product = productService.createProduct(productDto, categoryName);
@@ -45,7 +49,8 @@ public class ProductController {
     }
 
     @PutMapping("/update-product/{productName}")
-    public ResponseEntity<ProductDto> updateProduct(@RequestBody ProductDto productDto, @PathVariable String productName) {
+    public ResponseEntity<ProductDto> updateProduct(@RequestBody ProductRequestDto requestDto, @PathVariable String productName) {
+        ProductDto productDto = mapper.mapProductRequestDtoToProductDto(requestDto);
         validator.validateData(productDto, productName);
 
         productService.updateProduct(productDto, productName);

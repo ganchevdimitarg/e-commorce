@@ -1,5 +1,7 @@
 package com.concordeu.catalog.controller;
 
+import com.concordeu.catalog.MapStructMapper;
+import com.concordeu.catalog.dto.CommentRequestDto;
 import com.concordeu.catalog.validator.CommentDataValidator;
 import com.concordeu.catalog.dto.CommentDto;
 import com.concordeu.catalog.service.comment.CommentService;
@@ -19,11 +21,13 @@ public class CommentController {
 
     private final CommentService commentService;
     private final CommentDataValidator validator;
+    private final MapStructMapper mapper;
 
     @PostMapping("/create-comment/{productName}")
-    public ResponseEntity<CommentDto> createComment(@RequestBody CommentDto request, @PathVariable String productName) {
-        validator.validateData(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(commentService.createComment(request, productName));
+    public ResponseEntity<CommentDto> createComment(@RequestBody CommentRequestDto requestDto, @PathVariable String productName) {
+        CommentDto commentDto = mapper.mapCommentRequestDtoToCommentDto(requestDto);
+        validator.validateData(commentDto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(commentService.createComment(commentDto, productName));
     }
 
     @GetMapping("/get-comments-product-name/{productName}")

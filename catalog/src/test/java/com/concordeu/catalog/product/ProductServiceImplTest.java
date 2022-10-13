@@ -1,10 +1,10 @@
 package com.concordeu.catalog.product;
 
 
+import com.concordeu.catalog.MapStructMapper;
 import com.concordeu.catalog.dao.ProductRepository;
 import com.concordeu.catalog.domain.Category;
 import com.concordeu.catalog.dao.CategoryRepository;
-import com.concordeu.catalog.ModelMapper;
 import com.concordeu.catalog.domain.Product;
 import com.concordeu.catalog.dto.ProductDto;
 import com.concordeu.catalog.service.product.ProductService;
@@ -35,13 +35,13 @@ class ProductServiceImplTest {
     @Mock
     CategoryRepository categoryRepository;
     @Mock
-    ModelMapper modelMapper;
+    MapStructMapper mapStructMapper;
     @Mock
     ProductDataValidator validator;
 
     @BeforeEach
     void setup() {
-        testService = new ProductServiceImpl(productRepository, categoryRepository, validator, modelMapper);
+        testService = new ProductServiceImpl(productRepository, categoryRepository, validator, mapStructMapper);
     }
 
     @Test
@@ -61,7 +61,7 @@ class ProductServiceImplTest {
         when(categoryRepository.findByName(categoryName)).thenReturn(Optional.of(category));
 
         Product product = Product.builder().build();
-        when(modelMapper.mapDtoToProduct(productDto)).thenReturn(product);
+        when(mapStructMapper.mapDtoToProduct(productDto)).thenReturn(product);
 
         testService.createProduct(productDto, "PC");
 

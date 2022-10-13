@@ -1,6 +1,6 @@
 package com.concordeu.catalog.comment;
 
-import com.concordeu.catalog.ModelMapper;
+import com.concordeu.catalog.MapStructMapper;
 import com.concordeu.catalog.dao.CommentRepository;
 import com.concordeu.catalog.domain.Comment;
 import com.concordeu.catalog.domain.Product;
@@ -37,11 +37,11 @@ class CommentServerImplTest {
     @Mock
     CommentDataValidator validator;
     @Mock
-    ModelMapper modelMapper;
+    MapStructMapper mapStructMapper;
 
     @BeforeEach
     void setUp() {
-        testService = new CommentServiceImpl(commentRepository, productRepository, validator, modelMapper);
+        testService = new CommentServiceImpl(commentRepository, productRepository, validator, mapStructMapper);
     }
 
     @Test
@@ -54,7 +54,7 @@ class CommentServerImplTest {
         when(productRepository.findByName(productName)).thenReturn(Optional.of(product));
 
         Comment comment = Comment.builder().build();
-        when(modelMapper.mapDtoToComment(commentDto)).thenReturn(comment);
+        when(mapStructMapper.mapDtoToComment(commentDto)).thenReturn(comment);
 
         testService.createComment(commentDto, productName);
 

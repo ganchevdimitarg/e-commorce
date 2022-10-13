@@ -1,6 +1,6 @@
 package com.concordeu.catalog.service.category;
 
-import com.concordeu.catalog.ModelMapper;
+import com.concordeu.catalog.MapStructMapper;
 import com.concordeu.catalog.dto.CategoryDto;
 import com.concordeu.catalog.dao.CategoryRepository;
 import com.concordeu.catalog.domain.Category;
@@ -19,7 +19,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     private final CategoryRepository categoryRepository;
     private final ProductRepository productRepository;
-    private final ModelMapper modelMapper;
+    private final MapStructMapper mapStructMapper;
 
     public CategoryDto createCategory(CategoryDto categoryDto) {
         if (categoryDto.getName().isEmpty()) {
@@ -34,12 +34,12 @@ public class CategoryServiceImpl implements CategoryService {
 
         Category category = categoryRepository.saveAndFlush(Category.builder().name(categoryDto.getName()).build());
 
-        return modelMapper.mapCategoryToDto(category);
+        return mapStructMapper.mapCategoryToDto(category);
     }
 
     @Override
     public CategoryDto getCategory(String categoryFrom) {
-        return modelMapper.mapCategoryToDto(categoryRepository.findByName(categoryFrom)
+        return mapStructMapper.mapCategoryToDto(categoryRepository.findByName(categoryFrom)
                 .orElseThrow(() -> new IllegalArgumentException("No such cateogry: " + categoryFrom)));
     }
 
@@ -78,7 +78,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     public List<CategoryDto> getCategories() {
-        return modelMapper.mapCategoriesToDtos(categoryRepository.findAll());
+        return mapStructMapper.mapCategoriesToDtos(categoryRepository.findAll());
     }
 
     private void checkCategoryData(CategoryDto categoryDto) {

@@ -1,6 +1,6 @@
 package com.concordeu.catalog.category;
 
-import com.concordeu.catalog.ModelMapper;
+import com.concordeu.catalog.MapStructMapper;
 import com.concordeu.catalog.dao.CategoryRepository;
 import com.concordeu.catalog.domain.Category;
 import com.concordeu.catalog.domain.Product;
@@ -35,13 +35,13 @@ class CategoryServiceImplTest {
     @Mock
     ProductRepository productRepository;
     @Mock
-    ModelMapper modelMapper;
+    MapStructMapper mapStructMapper;
 
     String categoryName = "pc";
 
     @BeforeEach
     void setUp() {
-        testService = new CategoryServiceImpl(categoryRepository, productRepository, modelMapper);
+        testService = new CategoryServiceImpl(categoryRepository, productRepository, mapStructMapper);
     }
 
     @Test

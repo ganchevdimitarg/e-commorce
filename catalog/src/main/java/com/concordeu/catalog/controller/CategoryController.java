@@ -1,6 +1,8 @@
 package com.concordeu.catalog.controller;
 
+import com.concordeu.catalog.MapStructMapper;
 import com.concordeu.catalog.dto.CategoryDto;
+import com.concordeu.catalog.dto.CategoryRequestDto;
 import com.concordeu.catalog.dto.ProductDto;
 import com.concordeu.catalog.service.category.CategoryService;
 import lombok.RequiredArgsConstructor;
@@ -19,16 +21,17 @@ import java.util.Map;
 public class CategoryController {
 
     private final CategoryService categoryService;
+    private final MapStructMapper mapper;
 
     @PostMapping("/create-category")
-    public ResponseEntity<CategoryDto> createCategory(@RequestBody CategoryDto categoryDto) {
-        CategoryDto category = categoryService.createCategory(categoryDto);
+    public ResponseEntity<CategoryDto> createCategory(@RequestBody CategoryRequestDto requestDto) {
+        CategoryDto category = categoryService.createCategory(mapper.mapCategoryRequestDtoToCategoryDto(requestDto));
         return ResponseEntity.status(HttpStatus.CREATED).body(category);
     }
 
     @DeleteMapping("/delete")
-    public ResponseEntity<ProductDto> deleteCategory(@RequestBody CategoryDto categoryDto) {
-        categoryService.deleteCategory(categoryDto);
+    public ResponseEntity<ProductDto> deleteCategory(@RequestBody CategoryRequestDto requestDto) {
+        categoryService.deleteCategory(mapper.mapCategoryRequestDtoToCategoryDto(requestDto));
 
         return ResponseEntity.status(HttpStatus.ACCEPTED).build();
     }
