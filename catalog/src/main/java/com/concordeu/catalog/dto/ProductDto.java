@@ -2,6 +2,7 @@ package com.concordeu.catalog.dto;
 
 import com.concordeu.catalog.domain.Category;
 import com.concordeu.catalog.domain.Comment;
+import com.concordeu.catalog.domain.Product;
 import lombok.*;
 
 import javax.validation.constraints.NotEmpty;
@@ -27,4 +28,16 @@ public class ProductDto {
     private String characteristics;
     private Category category;
     private List<Comment> comments;
+
+    public static ProductDto convertProduct(Product product){
+        return ProductDto.builder()
+                .name(product.getName())
+                .description(product.getDescription())
+                .price(product.getPrice())
+                .inStock(product.isInStock())
+                .characteristics(product.getCharacteristics())
+                .category(product.getCategory())
+                .comments(product.getComments())
+                .build();
+    }
 }

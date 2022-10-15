@@ -15,7 +15,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.stubbing.OngoingStubbing;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -103,13 +108,18 @@ class CategoryServiceImplTest {
                 .name("pc")
                 .products(List.of(Product.builder().name("mouse").build()))
                 .build();
+
         Category categoryTo = Category.builder().name("acc").build();
+
         when(categoryRepository.findByName(categoryFrom.getName())).thenReturn(Optional.of(categoryFrom));
+        when(mapStructMapper.mapCategoryToDto(categoryFrom)).thenReturn(CategoryDto.builder().id("1").build());
+
         when(categoryRepository.findByName(categoryTo.getName())).thenReturn(Optional.of(categoryTo));
+        when(mapStructMapper.mapCategoryToDto(categoryTo)).thenReturn(CategoryDto.builder().id("2").build());
+
         when(categoryRepository.getById(any())).thenReturn(categoryFrom);
 
-        testService.moveOneProduct(CategoryDto.builder().name("pc").build(),
-                CategoryDto.builder().name("acc").build(), "mouse");
+        testService.moveOneProduct("pc", "acc", "mouse");
 
         verify(productRepository).changeCategory(any(), any());
     }
@@ -119,11 +129,14 @@ class CategoryServiceImplTest {
         Category categoryFrom = Category.builder().name("pc").products(List.of(Product.builder().name("").build())).build();
         Category categoryTo = Category.builder().name("acc").build();
         when(categoryRepository.findByName(categoryFrom.getName())).thenReturn(Optional.of(categoryFrom));
+        when(mapStructMapper.mapCategoryToDto(categoryFrom)).thenReturn(CategoryDto.builder().id("1").build());
+
         when(categoryRepository.findByName(categoryTo.getName())).thenReturn(Optional.of(categoryTo));
+        when(mapStructMapper.mapCategoryToDto(categoryTo)).thenReturn(CategoryDto.builder().id("2").build());
+
         when(categoryRepository.getById(any())).thenReturn(categoryFrom);
 
-        assertThatThrownBy(() -> testService.moveOneProduct(CategoryDto.builder().name(categoryName).build(),
-                CategoryDto.builder().name("acc").build(), "mouse"))
+        assertThatThrownBy(() -> testService.moveOneProduct(categoryName, "acc", "mouse"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("No such product: mouse");
 
@@ -132,10 +145,9 @@ class CategoryServiceImplTest {
 
     @Test
     void moveOneProductShouldThrowExceptionIfFirstCategoryNameIsEmpty() {
-        assertThatThrownBy(() -> testService.moveOneProduct(CategoryDto.builder().name("").build(),
-                CategoryDto.builder().name("acc").build(), "mouse"))
+        assertThatThrownBy(() -> testService.moveOneProduct("", "acc", "mouse"))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Category name is empty: ");
+                .hasMessageContaining("No such category: ");
 
         verify(productRepository, never()).changeCategory(any(), any());
     }
@@ -144,18 +156,16 @@ class CategoryServiceImplTest {
     void moveOneProductShouldThrowExceptionIfSecondCategoryNameIsEmpty() {
         when(categoryRepository.findByName(categoryName)).thenReturn(Optional.of(Category.builder().name(categoryName).build()));
 
-        assertThatThrownBy(() -> testService.moveOneProduct(CategoryDto.builder().name(categoryName).build(),
-                CategoryDto.builder().name("").build(), "mouse"))
+        assertThatThrownBy(() -> testService.moveOneProduct(categoryName, "", "mouse"))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Category name is empty: ");
+                .hasMessageContaining("No such category: ");
 
         verify(productRepository, never()).changeCategory(any(), any());
     }
 
     @Test
     void moveOneProductShouldThrowExceptionIfFirstCategoryDoesNotExist() {
-        assertThatThrownBy(() -> testService.moveOneProduct(CategoryDto.builder().name(categoryName).build(),
-                CategoryDto.builder().name("aaaaa").build(), "mouse"))
+        assertThatThrownBy(() -> testService.moveOneProduct(categoryName, "aaaaa", "mouse"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("No such category: " + categoryName);
 
@@ -165,8 +175,7 @@ class CategoryServiceImplTest {
     @Test
     void moveOneProductShouldThrowExceptionIfSecondCategoryDoesNotExist() {
         when(categoryRepository.findByName(categoryName)).thenReturn(Optional.of(Category.builder().name(categoryName).build()));
-        assertThatThrownBy(() -> testService.moveOneProduct(CategoryDto.builder().name(categoryName).build(),
-                CategoryDto.builder().name("aaaaa").build(), "mouse"))
+        assertThatThrownBy(() -> testService.moveOneProduct(categoryName, "aaaaa", "mouse"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("No such category: aaaaa");
 
@@ -175,7 +184,12 @@ class CategoryServiceImplTest {
 
     @Test
     void getCategoriesShouldReturnAllCategories() {
-        testService.getCategories();
-        verify(categoryRepository).findAll();
+        PageRequest pageRequest = PageRequest.of(1, 5);
+        List<Category> products = Arrays.asList(new Category(), new Category());
+        Page<Category> page = new PageImpl<>(products, pageRequest, products.size());
+        when(categoryRepository.findAll(pageRequest)).thenReturn(page);
+
+        testService.getCategoriesByPage(1, 5);
+        verify(categoryRepository).findAll(pageRequest);
     }
 }

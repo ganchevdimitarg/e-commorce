@@ -7,11 +7,10 @@ import com.concordeu.catalog.dto.CommentDto;
 import com.concordeu.catalog.service.comment.CommentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/comment")
@@ -31,13 +30,13 @@ public class CommentController {
     }
 
     @GetMapping("/get-comments-product-name/{productName}")
-    public ResponseEntity<List<CommentDto>> findAllByProductName(@PathVariable String productName) {
-        return ResponseEntity.status(HttpStatus.OK).body(commentService.findAllByProductName(productName));
+    public ResponseEntity<Page<CommentDto>> findAllByProductName(@RequestParam int page, int pageSize, @PathVariable String productName) {
+        return ResponseEntity.status(HttpStatus.OK).body(commentService.findAllByProductNameByPage(productName, page, pageSize));
     }
 
     @GetMapping("/get-comments-author/{author}")
-    public ResponseEntity<List<CommentDto>> findAllByAuthor(@PathVariable String author) {
-        return ResponseEntity.status(HttpStatus.OK).body(commentService.findAllByAuthor(author));
+    public ResponseEntity<Page<CommentDto>> findAllByAuthor(@RequestParam int page, int pageSize, @PathVariable String author) {
+        return ResponseEntity.status(HttpStatus.OK).body(commentService.findAllByAuthorByPage(author, page, pageSize));
     }
 
     @GetMapping("/get-avg-stars/{productName}")

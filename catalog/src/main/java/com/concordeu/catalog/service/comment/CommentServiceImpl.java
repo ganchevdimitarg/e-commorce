@@ -9,6 +9,8 @@ import com.concordeu.catalog.domain.Product;
 import com.concordeu.catalog.dao.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -44,7 +46,7 @@ public class CommentServiceImpl implements CommentService {
     }
 
     @Override
-    public List<CommentDto> findAllByProductName(String productName) {
+    public Page<CommentDto> findAllByProductNameByPage(String productName, int page, int size) {
         if (productName.isEmpty()) {
             log.error("No such product: " + productName);
             throw new IllegalArgumentException("No such product: " + productName);
@@ -55,27 +57,34 @@ public class CommentServiceImpl implements CommentService {
             throw new IllegalArgumentException("No such product: " + productName);
         });
 
-        List<Comment> allByProduct = commentRepository.findAllByProduct(product);
-        List<CommentDto> commentDtos = mapStructMapper.mapCommentsToDtos(allByProduct);
+        Page<CommentDto> comments = commentRepository
+                .findAllByProductIdByPage(product.getId(), PageRequest.of(page, size))
+                .map(CommentDto::convertComment);
 
-        return commentDtos;
+        log.info("Successful get comments by product: " + productName);
+
+         return comments;
     }
 
     @Override
-    public List<CommentDto> findAllByAuthor(String author) {
+    public Page<CommentDto> findAllByAuthorByPage(String author, int page, int size) {
         if (author.isEmpty()) {
             log.error("No such author: " + author);
             throw new IllegalArgumentException("No such author: " + author);
         }
+        Page<CommentDto> comments = commentRepository
+                .findAllByAuthorByPage(author, PageRequest.of(page, size))
+                .map(CommentDto::convertComment);
+        log.info("Successful get comments by author: " + author);
 
-        return mapStructMapper.mapCommentsToDtos(commentRepository.findAllByAuthor(author));
+        return comments;
     }
 
     @Override
     public double getAvgStars(String productName) {
-        List<CommentDto> comments = findAllByProductName(productName);
+        List<Comment> comments = commentRepository.findAllByProductName(productName);
         double sum = 0.0;
-        for (CommentDto comment : comments) {
+        for (Comment comment : comments) {
             sum += comment.getStar();
         }
 

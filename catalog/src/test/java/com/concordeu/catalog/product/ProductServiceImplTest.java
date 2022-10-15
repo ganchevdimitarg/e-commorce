@@ -11,14 +11,20 @@ import com.concordeu.catalog.service.product.ProductService;
 import com.concordeu.catalog.service.product.ProductServiceImpl;
 import com.concordeu.catalog.validator.ProductDataValidator;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 
 import java.math.BigDecimal;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
@@ -128,30 +134,42 @@ class ProductServiceImplTest {
     }
 
     @Test
-    void getProducts() {
-        testService.getProducts();
+    void getProductsPage() {
+        PageRequest pageRequest = PageRequest.of(1, 5);
+        List<Product> products = Arrays.asList(new Product(), new Product());
+        Page<Product> page = new PageImpl<>(products, pageRequest, products.size());
+        when(productRepository.findAll(pageRequest)).thenReturn(page);
 
-        verify(productRepository).findAll();
+        testService.getProductsByPage(1, 5);
+
+        verify(productRepository).findAll(pageRequest);
     }
 
     @Test
-    void getProductsByCategoryShouldReturnProductsIfCategoryExist() {
-        Category category = Category.builder().name("PC").build();
+    @Disabled
+    void getProductsByCategoryByPageByCategoryShouldReturnProductsIfCategoryExist() {
+        PageRequest pageRequest = PageRequest.of(1, 5);
+        List<Product> products = Arrays.asList(new Product(), new Product());
+        Page<Product> page = new PageImpl<>(products, pageRequest, products.size());
+        when(productRepository.findAll(pageRequest)).thenReturn(page);
 
+        Category category = Category.builder().name("PC").build();
         when(categoryRepository.findByName(any())).thenReturn(Optional.of(category));
 
-        testService.getProductsByCategory("PC");
+        testService.getProductsByCategoryByPage(1,5,"pc");
 
-        verify(productRepository).findAllByCategoryOrderByNameAsc(category);
+        verify(productRepository).findAllByCategoryIdByPage(category.getId(), pageRequest);
     }
 
     @Test
     void getProductsByCategoryShouldThrowExceptionIfCategoryNotExist() {
-        assertThatThrownBy(() -> testService.getProductsByCategory(""))
+        PageRequest pageRequest = PageRequest.of(1, 5);
+
+        assertThatThrownBy(() -> testService.getProductsByCategoryByPage(1,2,""))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("No such category: " + "");
 
-        verify(productRepository, never()).findAllByCategoryOrderByNameAsc(any());
+        verify(productRepository, never()).findAllByCategoryIdByPage(new Category().getId(), pageRequest);
     }
 
     @Test
@@ -177,7 +195,7 @@ class ProductServiceImplTest {
                 .price(BigDecimal.valueOf(0.01))
                 .build();
         when(validator.validateData(productDto, "bbbbb")).thenReturn(true);
-        assertThatThrownBy(() -> testService.updateProduct(productDto,"bbbbb"))
+        assertThatThrownBy(() -> testService.updateProduct(productDto, "bbbbb"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Product with the name: bbbbb does not exist.");
     }

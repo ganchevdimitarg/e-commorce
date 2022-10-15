@@ -7,12 +7,10 @@ import com.concordeu.catalog.dto.ProductDto;
 import com.concordeu.catalog.service.category.CategoryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/category")
@@ -37,27 +35,22 @@ public class CategoryController {
     }
 
     @GetMapping("/get-categories")
-    public ResponseEntity<List<CategoryDto>> getCategories() {
-        return ResponseEntity.status(HttpStatus.OK).body(categoryService.getCategories());
+    public ResponseEntity<Page<CategoryDto>> getCategories(@RequestParam int page, @RequestParam int pageSize) {
+        return ResponseEntity.status(HttpStatus.OK).body(categoryService.getCategoriesByPage(page, pageSize));
     }
 
     @PostMapping("/move-one-product")
-    public ResponseEntity<CategoryDto> moveAlOneProduct(@RequestBody Map<String, String> categories) {
-        CategoryDto categoryFrom = categoryService.getCategory(categories.get("categoryFrom"));
-        CategoryDto categoryTo = categoryService.getCategory(categories.get("categoryTo"));
+    public ResponseEntity<CategoryDto> moveOneProduct(
+            @RequestParam String categoryNameFrom, @RequestParam String categoryNameTo, @RequestParam String productName) {
+        categoryService.moveOneProduct(categoryNameFrom, categoryNameTo, productName);
 
-        categoryService.moveOneProduct(categoryFrom, categoryTo, categories.get("productName"));
-
-        return ResponseEntity.status(HttpStatus.MOVED_PERMANENTLY).build();
+        return ResponseEntity.status(HttpStatus.OK).build();
     }
 
     @PostMapping("/move-all-products")
-    public ResponseEntity<CategoryDto> moveAllProducts(@RequestBody Map<String, String> categories) {
-        CategoryDto categoryFrom = categoryService.getCategory(categories.get("categoryFrom"));
-        CategoryDto categoryTo = categoryService.getCategory(categories.get("categoryTo"));
+    public ResponseEntity<CategoryDto> moveAllProducts(@RequestParam String categoryNameFrom, @RequestParam String categoryNameTo) {
+        categoryService.moveAllProducts(categoryNameFrom, categoryNameTo);
 
-        categoryService.moveAllProducts(categoryFrom, categoryTo);
-
-        return ResponseEntity.status(HttpStatus.MOVED_PERMANENTLY).build();
+        return ResponseEntity.status(HttpStatus.OK).build();
     }
 }

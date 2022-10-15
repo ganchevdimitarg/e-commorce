@@ -1,7 +1,8 @@
 package com.concordeu.catalog.dao;
 
-import com.concordeu.catalog.domain.Category;
 import com.concordeu.catalog.domain.Product;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -9,15 +10,14 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.List;
 import java.util.Optional;
 
 public interface ProductRepository extends JpaRepository<Product, String> {
     Optional<Product> findByName(String productName);
 
-    List<Product> findAllByCategoryOrderByNameAsc(Category category);
+    @Query(value = "SELECT * FROM products WHERE CATEGORY_ID = ?1", nativeQuery = true)
+    Page<Product> findAllByCategoryIdByPage(String categoryId, PageRequest pageRequest);
 
-    List<Product> findAll();
     @Transactional
     @Modifying(clearAutomatically = true)
     @Query("update Product p set p.description= :description, p.price= :price, p.characteristics= :characteristics, p.inStock= :inStock where p.name= :name")

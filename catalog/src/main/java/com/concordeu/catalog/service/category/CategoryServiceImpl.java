@@ -8,6 +8,9 @@ import com.concordeu.catalog.domain.Product;
 import com.concordeu.catalog.dao.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -38,22 +41,29 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
-    public CategoryDto getCategory(String categoryFrom) {
-        return mapStructMapper.mapCategoryToDto(categoryRepository.findByName(categoryFrom)
-                .orElseThrow(() -> new IllegalArgumentException("No such cateogry: " + categoryFrom)));
+    public CategoryDto getCategory(String categoryName) {
+        return mapStructMapper.mapCategoryToDto(categoryRepository.findByName(categoryName)
+                .orElseThrow(() -> new IllegalArgumentException("No such category: " + categoryName)));
     }
 
     @Override
     public void deleteCategory(CategoryDto categoryDto) {
-        checkCategoryData(categoryDto);
+        if (categoryDto.getName().isEmpty()) {
+            log.error("Category name is empty: " + categoryDto.getName());
+            throw new IllegalArgumentException("Category name is empty: " + categoryDto.getName());
+        }
+        if (categoryRepository.findByName(categoryDto.getName()).isEmpty()) {
+            log.error("No such category: " + categoryDto.getName());
+            throw new IllegalArgumentException("No such category: " + categoryDto.getName());
+        }
 
         categoryRepository.deleteByName(categoryDto.getName());
     }
 
     @Override
-    public void moveOneProduct(CategoryDto categoryFrom, CategoryDto categoryTo, String productName) {
-        checkCategoryData(categoryFrom);
-        checkCategoryData(categoryTo);
+    public void moveOneProduct(String categoryNameFrom, String categoryNameTo, String productName) {
+        CategoryDto categoryFrom = getCategory(categoryNameFrom);
+        CategoryDto categoryTo = getCategory(categoryNameTo);
 
         Product product = categoryRepository.getById(categoryFrom.getId())
                 .getProducts()
@@ -66,30 +76,23 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
-    public void moveAllProducts(CategoryDto categoryFrom, CategoryDto categoryTo) {
-        checkCategoryData(categoryFrom);
-        checkCategoryData(categoryTo);
+    public void moveAllProducts(String categoryNameFrom, String categoryNameTo) {
+        CategoryDto categoryFrom = getCategory(categoryNameFrom);
+        CategoryDto categoryTo = getCategory(categoryNameTo);
 
         List<Product> category = categoryRepository.getById(categoryFrom.getId()).getProducts();
         for (Product product : category) {
-            moveOneProduct(categoryFrom, categoryTo, product.getName());
+            moveOneProduct(categoryFrom.getName(), categoryTo.getName(), product.getName());
         }
     }
 
     @Override
-    public List<CategoryDto> getCategories() {
-        return mapStructMapper.mapCategoriesToDtos(categoryRepository.findAll());
-    }
+    public Page<CategoryDto> getCategoriesByPage(int page, int size) {
+        Page<CategoryDto> categories = categoryRepository
+                .findAll(PageRequest.of(page, size))
+                .map(CategoryDto::convertCategory);
+        log.info("Successful get categories: " + categories.getSize());
 
-    private void checkCategoryData(CategoryDto categoryDto) {
-        if (categoryDto.getName().isEmpty()) {
-            log.error("Category name is empty: " + categoryDto.getName());
-            throw new IllegalArgumentException("Category name is empty: " + categoryDto.getName());
-        }
-        if (categoryRepository.findByName(categoryDto.getName()).isEmpty()) {
-            log.error("No such category: " + categoryDto.getName());
-            throw new IllegalArgumentException("No such category: " + categoryDto.getName());
-        }
-
+        return categories;
     }
 }

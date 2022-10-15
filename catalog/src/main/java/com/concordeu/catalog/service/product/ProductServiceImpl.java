@@ -9,9 +9,9 @@ import com.concordeu.catalog.dto.ProductDto;
 import com.concordeu.catalog.dao.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -21,7 +21,7 @@ public class ProductServiceImpl implements ProductService {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private final ProductDataValidator validator;
-    private final MapStructMapper mapStructMapper;
+    private final MapStructMapper mapper;
 
     @Override
     public ProductDto createProduct(ProductDto productDto, String categoryName) {
@@ -39,35 +39,38 @@ public class ProductServiceImpl implements ProductService {
             throw new IllegalArgumentException("Product with the name: " + productDto.getName() + " already exist.");
         }
 
-        Product product = mapStructMapper.mapDtoToProduct(productDto);
+        Product product = mapper.mapDtoToProduct(productDto);
         product.setCategory(category);
         product.setInStock(true);
 
+        log.info("The product " + product.getName() + " is save successful");
         productRepository.saveAndFlush(product);
-        log.info("The product "+ product.getName() + " is save successful");
 
-        return mapStructMapper.mapProductToDto(product);
+        return mapper.mapProductToDto(product);
     }
 
     @Override
-    public List<ProductDto> getProducts() {
+    public Page<ProductDto> getProductsByPage(int page, int size) {
+        Page<ProductDto> products = productRepository
+                .findAll(PageRequest.of(page, size))
+                .map(ProductDto::convertProduct);
+        log.info("Successful get products: " + products.getSize());
 
-        List<Product> products = productRepository.findAll();
-        log.info("Successful get products");
-
-        return mapStructMapper.mapProductsToDtos(products);
+        return products;
     }
 
     @Override
-    public List<ProductDto> getProductsByCategory(String categoryName) {
+    public Page<ProductDto> getProductsByCategoryByPage(int page, int size, String categoryName) {
         Category category = categoryRepository
                 .findByName(categoryName)
-                .orElseThrow(() -> new IllegalArgumentException("No such category: "+ categoryName));
+                .orElseThrow(() -> new IllegalArgumentException("No such category: " + categoryName));
 
-        List<Product> products = productRepository.findAllByCategoryOrderByNameAsc(category);
+        Page<ProductDto> products = productRepository
+                .findAllByCategoryIdByPage(category.getId(), PageRequest.of(page, size))
+                .map(ProductDto::convertProduct);
         log.info("Successful get products by category: " + categoryName);
 
-        return mapStructMapper.mapProductsToDtos(products);
+        return products;
     }
 
     @Override

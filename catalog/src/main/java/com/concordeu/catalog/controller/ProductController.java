@@ -7,11 +7,11 @@ import com.concordeu.catalog.dto.ProductDto;
 import com.concordeu.catalog.service.product.ProductService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import javax.validation.Valid;
 import java.util.List;
 
 @RestController
@@ -36,13 +36,16 @@ public class ProductController {
     }
 
     @GetMapping("/get-products")
-    public ResponseEntity<List<ProductDto>> getProducts(){
-        return ResponseEntity.status(HttpStatus.OK).body(productService.getProducts());
+    public ResponseEntity<Page<ProductDto>> getProducts(@RequestParam int page, @RequestParam int pageSize) {
+        Page<ProductDto> productsByPage = productService.getProductsByPage(page, pageSize);
+        log.info("The products have been received: " + productsByPage.getSize());
+
+        return ResponseEntity.status(HttpStatus.OK).body(productsByPage);
     }
 
     @GetMapping("/get-products/{categoryName}")
-    public ResponseEntity<List<ProductDto>> getProductsByCategory(@PathVariable String categoryName) {
-        List<ProductDto> products = productService.getProductsByCategory(categoryName);
+    public ResponseEntity<Page<ProductDto>> getProductsByCategory(@RequestParam int page, @RequestParam int pageSize, @PathVariable String categoryName) {
+        Page<ProductDto> products = productService.getProductsByCategoryByPage(page, pageSize, categoryName);
         log.info("The products have been received");
 
         return ResponseEntity.status(HttpStatus.OK).body(products);

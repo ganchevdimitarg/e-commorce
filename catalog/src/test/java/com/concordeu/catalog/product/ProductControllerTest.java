@@ -6,24 +6,27 @@ import com.concordeu.catalog.dto.ProductDto;
 import com.concordeu.catalog.dto.ProductRequestDto;
 import com.concordeu.catalog.service.product.ProductService;
 import com.concordeu.catalog.validator.ProductDataValidator;
-import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.Arrays;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ExtendWith(SpringExtension.class)
@@ -62,28 +65,29 @@ class ProductControllerTest {
     }
 
     @Test
-    void getProductsShouldGetAllProducts() throws Exception {
-        when(productService.getProducts()).thenReturn(List.of(ProductDto.builder().name("mouse").build()));
+    void getProductsByPageShouldGetAllProductsBySearchPage() throws Exception {
+        PageRequest pageRequest = PageRequest.of(1, 5);
+        List<ProductDto> products = Arrays.asList(new ProductDto(), new ProductDto());
+        Page<ProductDto> page = new PageImpl<>(products, pageRequest, products.size());
 
-        mvc.perform(get("/api/v1/product/get-products")
+        given(productService.getProductsByPage(1,5)).willReturn(page);
+
+        mvc.perform(get("/api/v1/product/get-products?page=1&pageSize=5")
                         .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].name").value("mouse"))
-                .andExpect(jsonPath("$.size()", Matchers.is(1)));
+                .andExpect(status().isOk());
     }
 
     @Test
     void getProductsByCategoryShouldReturnOnlyProductOneCategory() throws Exception {
-        when(productService.getProductsByCategory("PC")).thenReturn(List.of(
-                ProductDto.builder().name("mouse").build(),
-                ProductDto.builder().name("keyboard").build()));
+        PageRequest pageRequest = PageRequest.of(1, 5);
+        List<ProductDto> products = Arrays.asList(new ProductDto(), new ProductDto());
+        Page<ProductDto> page = new PageImpl<>(products, pageRequest, products.size());
 
-        mvc.perform(get("/api/v1/product/get-products/{categoryName}", "PC")
+        given(productService.getProductsByCategoryByPage(1,5, "pc")).willReturn(page);
+
+        mvc.perform(get("/api/v1/product/get-products/{category}?page=1&pageSize=5&categoryName=pc", "pc")
                         .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].name").value("mouse"))
-                .andExpect(jsonPath("$[1].name").value("keyboard"))
-                .andExpect(jsonPath("$.size()", Matchers.is(2)));
+                .andExpect(status().isOk());
     }
 
     @Test

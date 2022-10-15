@@ -70,15 +70,8 @@ class CategoryControllerTest {
 
     @Test
     void moveAllProductsShouldMoveOneProductFromOneCategoryToAnotherCategory() throws Exception {
-        mvc.perform(post("/api/v1/category/move-one-product")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                    {
-                                        "categoryFrom": "pc",
-                                        "categoryTo": "acc",
-                                        "productName": "mouse"
-                                    }
-                                """))
+        mvc.perform(post("/api/v1/category/move-one-product?categoryNameFrom=pc&categoryNameTo=acc&productName=mouse")
+                        .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isMovedPermanently());
 
         verify(categoryService).moveOneProduct(any(), any(), any());
@@ -86,14 +79,8 @@ class CategoryControllerTest {
 
     @Test
     void moveAllProductsShouldMoveAllProductsFromOneCategoryToAnotherCategory() throws Exception {
-        mvc.perform(post("/api/v1/category/move-all-products")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                    {
-                                        "categoryFrom": "pc",
-                                        "categoryTo": "acc"
-                                    }
-                                """))
+        mvc.perform(post("/api/v1/category/move-all-products?categoryNameFrom=pc&categoryNameTo=acc")
+                        .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isMovedPermanently());
 
         verify(categoryService).moveAllProducts(any(), any());
