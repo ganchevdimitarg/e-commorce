@@ -146,15 +146,15 @@ class ProductServiceImplTest {
     }
 
     @Test
-    @Disabled
     void getProductsByCategoryByPageByCategoryShouldReturnProductsIfCategoryExist() {
+        Category category = Category.builder().id("1").build();
+        when(categoryRepository.findByName("pc")).thenReturn(Optional.of(category));
+
         PageRequest pageRequest = PageRequest.of(1, 5);
         List<Product> products = Arrays.asList(new Product(), new Product());
         Page<Product> page = new PageImpl<>(products, pageRequest, products.size());
-        when(productRepository.findAll(pageRequest)).thenReturn(page);
 
-        Category category = Category.builder().name("PC").build();
-        when(categoryRepository.findByName(any())).thenReturn(Optional.of(category));
+        when(productRepository.findAllByCategoryIdByPage("1", pageRequest)).thenReturn(page);
 
         testService.getProductsByCategoryByPage(1,5,"pc");
 

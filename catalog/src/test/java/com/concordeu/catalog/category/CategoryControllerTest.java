@@ -72,16 +72,16 @@ class CategoryControllerTest {
     void moveAllProductsShouldMoveOneProductFromOneCategoryToAnotherCategory() throws Exception {
         mvc.perform(post("/api/v1/category/move-one-product?categoryNameFrom=pc&categoryNameTo=acc&productName=mouse")
                         .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isMovedPermanently());
+                .andExpect(status().isOk());
 
         verify(categoryService).moveOneProduct(any(), any(), any());
     }
 
     @Test
-    void moveAllProductsShouldMoveAllProductsFromOneCategoryToAnotherCategory() throws Exception {
+    void moveOneProductShouldMoveAllProductsFromOneCategoryToAnotherCategory() throws Exception {
         mvc.perform(post("/api/v1/category/move-all-products?categoryNameFrom=pc&categoryNameTo=acc")
                         .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isMovedPermanently());
+                .andExpect(status().isOk());
 
         verify(categoryService).moveAllProducts(any(), any());
     }

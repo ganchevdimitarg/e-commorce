@@ -58,14 +58,14 @@ class CommentControllerTest {
 
     @Test
     void findAllByProductNameShouldReturnAllProductComments() throws Exception {
-        mvc.perform(get("/api/v1/comment/get-comments-product-name/{productName}", "productName")
+        mvc.perform(get("/api/v1/comment/get-comments-product-name/{productName}?page=1&pageSize=5", "productName")
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
     }
 
     @Test
     void findAllByAuthorShouldReturnAllAuthorComments() throws Exception {
-        mvc.perform(get("/api/v1/comment/get-comments-author/{author}", "author")
+        mvc.perform(get("/api/v1/comment/get-comments-author/{author}?page=1&pageSize=5", "author")
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
     }

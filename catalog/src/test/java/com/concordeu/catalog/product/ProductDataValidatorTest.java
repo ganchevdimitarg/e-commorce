@@ -74,7 +74,6 @@ class ProductDataValidatorTest {
                 .hasMessageContaining("The name is not correct!");
     }
 
-
     @Test
     void validateDataShouldThrowExceptionIfDescriptionMissing() {
         ProductDto productDto = ProductDto.builder()
@@ -146,6 +145,5 @@ class ProductDataValidatorTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("No such name: " + secParam);
     }
-
 
 }

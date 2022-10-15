@@ -89,45 +89,55 @@ class CommentServerImplTest {
         PageRequest pageRequest = PageRequest.of(1, 5);
         List<Comment> products = Arrays.asList(new Comment(), new Comment());
         Page<Comment> page = new PageImpl<>(products, pageRequest, products.size());
-        Product product = Product.builder().id("0030223b-fdb9-40e2-a4b0-81bdf54479a2").name("aaaa89").build();
-        when(productRepository.findByName(any(String.class))).thenReturn(Optional.of(product));
+        String productId = "0030223b-fdb9-40e2-a4b0-81bdf54479a2";
+        Product product = Product.builder().id(productId).name("aaaa89").build();
 
-        testService.findAllByProductNameByPage("aaaa89", 1 , 5);
+        when(productRepository.findByName(any(String.class))).thenReturn(Optional.of(product));
+        when(commentRepository.findAllByProductIdByPage(productId, pageRequest)).thenReturn(page);
+
+        testService.findAllByProductNameByPage("aaaa89", 1, 5);
 
         verify(commentRepository).findAllByProductIdByPage(product.getId(), pageRequest);
     }
-//TODO NOT WORK
-    /*@Test
+
+    @Test
     void findAllByProductNameShouldThrowExceptionIfProductNameIsEmpty() {
-        assertThatThrownBy(() -> testService.findAllByProductNameByPage(""))
+        assertThatThrownBy(() -> testService.findAllByProductNameByPage("", 1, 5))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("No such product: ");
 
-        verify(commentRepository, never()).findAllByProduct(any());
+        verify(commentRepository, never()).findAllByProductIdByPage(any(String.class), any(PageRequest.class));
     }
 
     @Test
     void findAllByProductNameShouldThrowExceptionIfProductDoesNotExist() {
-        assertThatThrownBy(() -> testService.findAllByProductNameByPage("aaaaa"))
+        assertThatThrownBy(() -> testService.findAllByProductNameByPage("aaaaa", 1, 5))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("No such product: ");
 
-        verify(commentRepository, never()).findAllByProduct(any());
+        verify(commentRepository, never()).findAllByProductIdByPage(any(String.class), any(PageRequest.class));
     }
 
     @Test
     void findAllByAuthorShouldReturnAllCommentsByAuthor() {
-        testService.findAllByAuthorByPage("aaaaa");
+        PageRequest pageRequest = PageRequest.of(1, 5);
+        List<Comment> products = Arrays.asList(new Comment(), new Comment());
+        Page<Comment> page = new PageImpl<>(products, pageRequest, products.size());
+        String productName = "aaaa";
 
-        verify(commentRepository).findAllByAuthorByPage(any());
+        when(commentRepository.findAllByAuthorByPage(productName, pageRequest)).thenReturn(page);
+
+        testService.findAllByAuthorByPage(productName, 1, 5);
+
+        verify(commentRepository).findAllByAuthorByPage(any(String.class), any(PageRequest.class));
     }
 
     @Test
     void findAllByAuthorShouldThrowExceptionIfAuthorIsEmpty() {
-        assertThatThrownBy(() -> testService.findAllByAuthorByPage(""))
+        assertThatThrownBy(() -> testService.findAllByAuthorByPage("", 1, 5))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("No such author: ");
 
-        verify(commentRepository, never()).findAllByAuthorByPage(any());
-    }*/
+        verify(commentRepository, never()).findAllByAuthorByPage(any(String.class), any(PageRequest.class));
+    }
 }
