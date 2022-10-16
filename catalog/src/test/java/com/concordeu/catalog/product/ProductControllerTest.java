@@ -38,14 +38,11 @@ class ProductControllerTest {
     @MockBean
     ProductService productService;
     @MockBean
-    ProductDataValidator validator;
-    @MockBean
     MapStructMapper mapper;
 
     @Test
     void createProductShouldCreateProduct() throws Exception {
         when(mapper.mapProductRequestDtoToProductDto(any(ProductRequestDto.class))).thenReturn(ProductDto.builder().name("aaaa").description("aaaaaaaaaaaaaaaaa").build());
-        when(validator.validateData(any(), any())).thenReturn(true);
 
         mvc.perform(post("/api/v1/product/create-product/{categoryName}","PC")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -59,7 +56,7 @@ class ProductControllerTest {
                                     "characteristics": "black"
                                 }
                                 """))
-                .andExpect(status().isCreated());
+                .andExpect(status().isOk());
 
         verify(productService).createProduct(any(ProductDto.class),any());
     }
@@ -93,7 +90,6 @@ class ProductControllerTest {
     @Test
     void updateProductShouldUpdateProduct() throws Exception {
         when(mapper.mapProductRequestDtoToProductDto(any(ProductRequestDto.class))).thenReturn(ProductDto.builder().name("aaaa").description("aaaaaaaaaaaaaaaaa").build());
-        when(validator.validateData(any(), any())).thenReturn(true);
 
         mvc.perform(put("/api/v1/product/update-product/{productName}", "mouse")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -106,7 +102,7 @@ class ProductControllerTest {
                                     "characteristics": "black"
                                 }
                                 """))
-                .andExpect(status().isAccepted());
+                .andExpect(status().isOk());
 
         verify(productService).updateProduct(any(ProductDto.class),any());
     }
@@ -114,7 +110,7 @@ class ProductControllerTest {
     @Test
     void deleteProductShouldDeleteProduct() throws Exception {
         mvc.perform(delete("/api/v1/product/delete/{productName}","mouse"))
-                .andExpect(status().isAccepted());
+                .andExpect(status().isOk());
 
         verify(productService).deleteProduct(any());
     }

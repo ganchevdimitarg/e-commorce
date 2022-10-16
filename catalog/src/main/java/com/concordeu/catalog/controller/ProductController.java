@@ -21,51 +21,32 @@ import java.util.List;
 public class ProductController {
 
     private final ProductService productService;
-    private final ProductDataValidator validator;
     private final MapStructMapper mapper;
 
     @PostMapping("/create-product/{categoryName}")
-    public ResponseEntity<ProductDto> createProduct(@RequestBody ProductRequestDto requestDto, @PathVariable String categoryName) {
+    public ProductDto createProduct(@RequestBody ProductRequestDto requestDto, @PathVariable String categoryName) {
         ProductDto productDto = mapper.mapProductRequestDtoToProductDto(requestDto);
-        validator.validateData(productDto, categoryName);
-
-        ProductDto product = productService.createProduct(productDto, categoryName);
-        log.info("The product has been created successfully: " + productDto.getName() + " in the category " + categoryName);
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(product);
+        return productService.createProduct(productDto, categoryName);
     }
 
     @GetMapping("/get-products")
-    public ResponseEntity<Page<ProductDto>> getProducts(@RequestParam int page, @RequestParam int pageSize) {
-        Page<ProductDto> productsByPage = productService.getProductsByPage(page, pageSize);
-        log.info("The products have been received: " + productsByPage.getSize());
-
-        return ResponseEntity.status(HttpStatus.OK).body(productsByPage);
+    public Page<ProductDto> getProducts(@RequestParam int page, @RequestParam int pageSize) {
+        return productService.getProductsByPage(page, pageSize);
     }
 
     @GetMapping("/get-products/{categoryName}")
-    public ResponseEntity<Page<ProductDto>> getProductsByCategory(@RequestParam int page, @RequestParam int pageSize, @PathVariable String categoryName) {
-        Page<ProductDto> products = productService.getProductsByCategoryByPage(page, pageSize, categoryName);
-        log.info("The products have been received");
-
-        return ResponseEntity.status(HttpStatus.OK).body(products);
+    public Page<ProductDto> getProductsByCategory(@RequestParam int page, @RequestParam int pageSize, @PathVariable String categoryName) {
+        return productService.getProductsByCategoryByPage(page, pageSize, categoryName);
     }
 
     @PutMapping("/update-product/{productName}")
-    public ResponseEntity<ProductDto> updateProduct(@RequestBody ProductRequestDto requestDto, @PathVariable String productName) {
+    public void updateProduct(@RequestBody ProductRequestDto requestDto, @PathVariable String productName) {
         ProductDto productDto = mapper.mapProductRequestDtoToProductDto(requestDto);
-        validator.validateData(productDto, productName);
-
         productService.updateProduct(productDto, productName);
-        log.info("The product has been updated: " + productName);
-
-        return ResponseEntity.status(HttpStatus.ACCEPTED).build();
     }
 
     @DeleteMapping("/delete/{productName}")
-    public ResponseEntity<ProductDto> deleteProduct(@PathVariable String productName) {
+    public void deleteProduct(@PathVariable String productName) {
         productService.deleteProduct(productName);
-
-        return ResponseEntity.status(HttpStatus.ACCEPTED).build();
     }
 }

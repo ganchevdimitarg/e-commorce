@@ -53,7 +53,7 @@ class CommentControllerTest {
                           "author": "Dimitar"
                         }
                         """))
-                .andExpect(status().isCreated());
+                .andExpect(status().isOk());
     }
 
     @Test

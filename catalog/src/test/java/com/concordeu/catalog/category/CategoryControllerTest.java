@@ -47,7 +47,7 @@ class CategoryControllerTest {
                                     }
                                 """)
                 )
-                .andExpect(status().isCreated());
+                .andExpect(status().isOk());
 
         verify(categoryService).createCategory(any(CategoryDto.class));
     }
@@ -63,7 +63,7 @@ class CategoryControllerTest {
                                         "name": "pc"
                                     }
                                 """))
-                .andExpect(status().isAccepted());
+                .andExpect(status().isOk());
 
         verify(categoryService).deleteCategory(any());
     }

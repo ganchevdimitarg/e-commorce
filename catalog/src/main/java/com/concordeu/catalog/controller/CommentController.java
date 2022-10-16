@@ -23,25 +23,25 @@ public class CommentController {
     private final MapStructMapper mapper;
 
     @PostMapping("/create-comment/{productName}")
-    public ResponseEntity<CommentDto> createComment(@RequestBody CommentRequestDto requestDto, @PathVariable String productName) {
+    public CommentDto createComment(@RequestBody CommentRequestDto requestDto, @PathVariable String productName) {
         CommentDto commentDto = mapper.mapCommentRequestDtoToCommentDto(requestDto);
         validator.validateData(commentDto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(commentService.createComment(commentDto, productName));
+        return commentService.createComment(commentDto, productName);
     }
 
     @GetMapping("/get-comments-product-name/{productName}")
-    public ResponseEntity<Page<CommentDto>> findAllByProductName(@RequestParam int page, int pageSize, @PathVariable String productName) {
-        return ResponseEntity.status(HttpStatus.OK).body(commentService.findAllByProductNameByPage(productName, page, pageSize));
+    public Page<CommentDto> findAllByProductName(@RequestParam int page, int pageSize, @PathVariable String productName) {
+        return commentService.findAllByProductNameByPage(productName, page, pageSize);
     }
 
     @GetMapping("/get-comments-author/{author}")
-    public ResponseEntity<Page<CommentDto>> findAllByAuthor(@RequestParam int page, int pageSize, @PathVariable String author) {
-        return ResponseEntity.status(HttpStatus.OK).body(commentService.findAllByAuthorByPage(author, page, pageSize));
+    public Page<CommentDto> findAllByAuthor(@RequestParam int page, int pageSize, @PathVariable String author) {
+        return commentService.findAllByAuthorByPage(author, page, pageSize);
     }
 
     @GetMapping("/get-avg-stars/{productName}")
-    public ResponseEntity<Double> getAvgStars(@PathVariable String productName) {
-        return ResponseEntity.status(HttpStatus.OK).body(commentService.getAvgStars(productName));
+    public double getAvgStars(@PathVariable String productName) {
+        return commentService.getAvgStars(productName);
     }
 
 }

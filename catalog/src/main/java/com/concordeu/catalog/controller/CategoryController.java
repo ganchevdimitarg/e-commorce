@@ -22,35 +22,28 @@ public class CategoryController {
     private final MapStructMapper mapper;
 
     @PostMapping("/create-category")
-    public ResponseEntity<CategoryDto> createCategory(@RequestBody CategoryRequestDto requestDto) {
-        CategoryDto category = categoryService.createCategory(mapper.mapCategoryRequestDtoToCategoryDto(requestDto));
-        return ResponseEntity.status(HttpStatus.CREATED).body(category);
+    public CategoryDto createCategory(@RequestBody CategoryRequestDto requestDto) {
+        return categoryService.createCategory(mapper.mapCategoryRequestDtoToCategoryDto(requestDto));
     }
 
     @DeleteMapping("/delete")
-    public ResponseEntity<ProductDto> deleteCategory(@RequestBody CategoryRequestDto requestDto) {
+    public void deleteCategory(@RequestBody CategoryRequestDto requestDto) {
         categoryService.deleteCategory(mapper.mapCategoryRequestDtoToCategoryDto(requestDto));
-
-        return ResponseEntity.status(HttpStatus.ACCEPTED).build();
     }
 
     @GetMapping("/get-categories")
-    public ResponseEntity<Page<CategoryDto>> getCategories(@RequestParam int page, @RequestParam int pageSize) {
-        return ResponseEntity.status(HttpStatus.OK).body(categoryService.getCategoriesByPage(page, pageSize));
+    public Page<CategoryDto> getCategories(@RequestParam int page, @RequestParam int pageSize) {
+        return categoryService.getCategoriesByPage(page, pageSize);
     }
 
     @PostMapping("/move-one-product")
-    public ResponseEntity<CategoryDto> moveOneProduct(
+    public void moveOneProduct(
             @RequestParam String categoryNameFrom, @RequestParam String categoryNameTo, @RequestParam String productName) {
         categoryService.moveOneProduct(categoryNameFrom, categoryNameTo, productName);
-
-        return ResponseEntity.status(HttpStatus.OK).build();
     }
 
     @PostMapping("/move-all-products")
-    public ResponseEntity<CategoryDto> moveAllProducts(@RequestParam String categoryNameFrom, @RequestParam String categoryNameTo) {
+    public void moveAllProducts(@RequestParam String categoryNameFrom, @RequestParam String categoryNameTo) {
         categoryService.moveAllProducts(categoryNameFrom, categoryNameTo);
-
-        return ResponseEntity.status(HttpStatus.OK).build();
     }
 }
