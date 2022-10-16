@@ -12,7 +12,8 @@ import java.util.List;
         name = "categories",
         uniqueConstraints = {
                 @UniqueConstraint(name = "category_name", columnNames = "name")
-        })
+        },
+        indexes = @Index(name = "category_index",columnList = "name"))
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -25,7 +26,7 @@ public class Category {
             strategy = "org.hibernate.id.UUIDGenerator")
     @Column(name = "id", unique = true, nullable = false, updatable = false)
     private String id;
-    @Column(name = "name", nullable = false, columnDefinition = "TEXT")
+    @Column(name = "name", nullable = false, length = 200)
     private String name;
     @OneToMany(mappedBy = "category", targetEntity = Product.class, cascade = CascadeType.ALL)
     @JsonIgnore

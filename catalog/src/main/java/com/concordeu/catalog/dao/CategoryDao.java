@@ -6,7 +6,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
-public interface CategoryRepository extends JpaRepository<Category, String> {
+public interface CategoryDao extends JpaRepository<Category, String> {
     Optional<Category> findByName(String categoryName);
     @Transactional
     void deleteByName(String categoryName);

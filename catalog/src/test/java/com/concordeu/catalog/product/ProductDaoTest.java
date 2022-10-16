@@ -1,6 +1,6 @@
 package com.concordeu.catalog.product;
 
-import com.concordeu.catalog.dao.ProductRepository;
+import com.concordeu.catalog.dao.ProductDao;
 import com.concordeu.catalog.domain.Product;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -13,10 +13,10 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 @DataJpaTest
 @Tag("integration")
-class ProductRepositoryTest {
+class ProductDaoTest {
 
     @Autowired
-    private ProductRepository testRepository;
+    private ProductDao testRepository;
 
     @Test
     void updateShouldChangedParameters() {

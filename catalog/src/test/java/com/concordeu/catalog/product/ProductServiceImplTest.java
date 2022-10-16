@@ -2,16 +2,15 @@ package com.concordeu.catalog.product;
 
 
 import com.concordeu.catalog.MapStructMapper;
-import com.concordeu.catalog.dao.ProductRepository;
+import com.concordeu.catalog.dao.ProductDao;
 import com.concordeu.catalog.domain.Category;
-import com.concordeu.catalog.dao.CategoryRepository;
+import com.concordeu.catalog.dao.CategoryDao;
 import com.concordeu.catalog.domain.Product;
 import com.concordeu.catalog.dto.ProductDto;
 import com.concordeu.catalog.service.product.ProductService;
 import com.concordeu.catalog.service.product.ProductServiceImpl;
 import com.concordeu.catalog.validator.ProductDataValidator;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,9 +36,9 @@ class ProductServiceImplTest {
 
     private ProductService testService;
     @Mock
-    ProductRepository productRepository;
+    ProductDao productDao;
     @Mock
-    CategoryRepository categoryRepository;
+    CategoryDao categoryDao;
     @Mock
     MapStructMapper mapStructMapper;
     @Mock
@@ -47,7 +46,7 @@ class ProductServiceImplTest {
 
     @BeforeEach
     void setup() {
-        testService = new ProductServiceImpl(productRepository, categoryRepository, validator, mapStructMapper);
+        testService = new ProductServiceImpl(productDao, categoryDao, validator, mapStructMapper);
     }
 
     @Test
@@ -64,7 +63,7 @@ class ProductServiceImplTest {
         when(validator.validateData(productDto, categoryName)).thenReturn(true);
 
         Category category = Category.builder().name(categoryName).build();
-        when(categoryRepository.findByName(categoryName)).thenReturn(Optional.of(category));
+        when(categoryDao.findByName(categoryName)).thenReturn(Optional.of(category));
 
         Product product = Product.builder().build();
         when(mapStructMapper.mapDtoToProduct(productDto)).thenReturn(product);
@@ -72,7 +71,7 @@ class ProductServiceImplTest {
         testService.createProduct(productDto, "PC");
 
         ArgumentCaptor<Product> argument = ArgumentCaptor.forClass(Product.class);
-        verify(productRepository).saveAndFlush(argument.capture());
+        verify(productDao).saveAndFlush(argument.capture());
 
         Product captureProduct = argument.getValue();
         assertThat(captureProduct).isNotNull();
@@ -83,16 +82,16 @@ class ProductServiceImplTest {
     void createProductShouldThrowExceptionIfProductAlreadyExist() {
         String productName = "aaaaa";
         ProductDto productDto = ProductDto.builder().name(productName).build();
-        when(productRepository.findByName(productName)).thenReturn(Optional.of(Product.builder().name(productName).build()));
+        when(productDao.findByName(productName)).thenReturn(Optional.of(Product.builder().name(productName).build()));
 
         String categoryName = "PC";
-        when(categoryRepository.findByName(categoryName)).thenReturn(Optional.of(Category.builder().name(categoryName).build()));
+        when(categoryDao.findByName(categoryName)).thenReturn(Optional.of(Category.builder().name(categoryName).build()));
 
         assertThatThrownBy(() -> testService.createProduct(productDto, categoryName))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Product with the name: " + productDto.getName() + " already exist.");
 
-        verify(productRepository, never()).saveAndFlush(any());
+        verify(productDao, never()).saveAndFlush(any());
     }
 
     @Test
@@ -110,7 +109,7 @@ class ProductServiceImplTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("No such category: " + categoryName);
 
-        verify(productRepository, never()).saveAndFlush(any());
+        verify(productDao, never()).saveAndFlush(any());
     }
 
     @Test
@@ -130,7 +129,7 @@ class ProductServiceImplTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("No such category: " + categoryName);
 
-        verify(productRepository, never()).saveAndFlush(any());
+        verify(productDao, never()).saveAndFlush(any());
     }
 
     @Test
@@ -138,27 +137,27 @@ class ProductServiceImplTest {
         PageRequest pageRequest = PageRequest.of(1, 5);
         List<Product> products = Arrays.asList(new Product(), new Product());
         Page<Product> page = new PageImpl<>(products, pageRequest, products.size());
-        when(productRepository.findAll(pageRequest)).thenReturn(page);
+        when(productDao.findAll(pageRequest)).thenReturn(page);
 
         testService.getProductsByPage(1, 5);
 
-        verify(productRepository).findAll(pageRequest);
+        verify(productDao).findAll(pageRequest);
     }
 
     @Test
     void getProductsByCategoryByPageByCategoryShouldReturnProductsIfCategoryExist() {
         Category category = Category.builder().id("1").build();
-        when(categoryRepository.findByName("pc")).thenReturn(Optional.of(category));
+        when(categoryDao.findByName("pc")).thenReturn(Optional.of(category));
 
         PageRequest pageRequest = PageRequest.of(1, 5);
         List<Product> products = Arrays.asList(new Product(), new Product());
         Page<Product> page = new PageImpl<>(products, pageRequest, products.size());
 
-        when(productRepository.findAllByCategoryIdByPage("1", pageRequest)).thenReturn(page);
+        when(productDao.findAllByCategoryIdByPage("1", pageRequest)).thenReturn(page);
 
         testService.getProductsByCategoryByPage(1,5,"pc");
 
-        verify(productRepository).findAllByCategoryIdByPage(category.getId(), pageRequest);
+        verify(productDao).findAllByCategoryIdByPage(category.getId(), pageRequest);
     }
 
     @Test
@@ -169,7 +168,7 @@ class ProductServiceImplTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("No such category: " + "");
 
-        verify(productRepository, never()).findAllByCategoryIdByPage(new Category().getId(), pageRequest);
+        verify(productDao, never()).findAllByCategoryIdByPage(new Category().getId(), pageRequest);
     }
 
     @Test
@@ -181,9 +180,9 @@ class ProductServiceImplTest {
                 .price(BigDecimal.valueOf(0.01))
                 .build();
         when(validator.validateData(productDto, productName)).thenReturn(true);
-        when(productRepository.findByName(productName)).thenReturn(Optional.of(Product.builder().name(productName).build()));
+        when(productDao.findByName(productName)).thenReturn(Optional.of(Product.builder().name(productName).build()));
         testService.updateProduct(productDto, productName);
-        verify(productRepository).update(productName, "aaaaaaaaaaa", BigDecimal.valueOf(0.01), null, false);
+        verify(productDao).update(productName, "aaaaaaaaaaa", BigDecimal.valueOf(0.01), null, false);
     }
 
     @Test
@@ -203,11 +202,11 @@ class ProductServiceImplTest {
     @Test
     void deleteProductShouldDeleteProductIfProductExist() {
         String productName = "aaaaa";
-        when(productRepository.findByName(productName)).thenReturn(Optional.of(Product.builder().name(productName).build()));
+        when(productDao.findByName(productName)).thenReturn(Optional.of(Product.builder().name(productName).build()));
 
         testService.deleteProduct(productName);
 
-        verify(productRepository).deleteByName(productName);
+        verify(productDao).deleteByName(productName);
     }
 
     @Test
@@ -216,6 +215,6 @@ class ProductServiceImplTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Product with the name: bbbbb does not exist.");
 
-        verify(productRepository, never()).deleteByName(any());
+        verify(productDao, never()).deleteByName(any());
     }
 }

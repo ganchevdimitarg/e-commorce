@@ -10,7 +10,8 @@ import javax.persistence.*;
 import javax.validation.constraints.Size;
 
 @Entity(name = "Comment")
-@Table(name = "comments")
+@Table(name = "comments",
+        indexes = @Index(name = "comment_index",columnList = "author"))
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -30,7 +31,7 @@ public class Comment {
     private String text;
     @Column(name = "star", nullable = false)
     private double star;
-    @Column(name = "author", columnDefinition = "TEXT")
+    @Column(name = "author", length = 200)
     private String author;
     @ManyToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "product_id", referencedColumnName = "id")

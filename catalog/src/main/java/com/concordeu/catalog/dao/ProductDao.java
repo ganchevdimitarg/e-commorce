@@ -12,7 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.Optional;
 
-public interface ProductRepository extends JpaRepository<Product, String> {
+public interface ProductDao extends JpaRepository<Product, String> {
     Optional<Product> findByName(String productName);
 
     @Query(value = "SELECT * FROM products WHERE CATEGORY_ID = ?1", nativeQuery = true)

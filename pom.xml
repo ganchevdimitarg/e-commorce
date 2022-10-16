@@ -26,6 +26,8 @@
         <java.version>17</java.version>
         <spring.boot.maven.plugin.version>2.6.4</spring.boot.maven.plugin.version>
         <spring.boot.dependecies.version>2.6.4</spring.boot.dependecies.version>
+        <springfox-boot-starter.version>3.0.0</springfox-boot-starter.version>
+        <springfox-swagger-ui.version>2.10.5</springfox-swagger-ui.version>
     </properties>
 
     <dependencyManagement>
@@ -48,12 +50,12 @@
         <dependency>
             <groupId>io.springfox</groupId>
             <artifactId>springfox-boot-starter</artifactId>
-            <version>3.0.0</version>
+            <version>${springfox-boot-starter.version}</version>
         </dependency>
         <dependency>
             <groupId>io.springfox</groupId>
             <artifactId>springfox-swagger-ui</artifactId>
-            <version>2.10.5</version>
+            <version>${springfox-swagger-ui.version}</version>
         </dependency>
     </dependencies>
 
@@ -72,11 +74,6 @@
                             </exclude>
                         </excludes>
                     </configuration>
-                </plugin>
-                <plugin>
-                    <groupId>org.flywaydb</groupId>
-                    <artifactId>flyway-maven-plugin</artifactId>
-                    <version>9.4.0</version>
                 </plugin>
             </plugins>
         </pluginManagement>

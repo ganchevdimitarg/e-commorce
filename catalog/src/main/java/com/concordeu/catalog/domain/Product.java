@@ -17,7 +17,8 @@ import java.util.List;
         name = "products",
         uniqueConstraints = {
                 @UniqueConstraint(name = "product_name", columnNames = "name")
-        })
+        },
+        indexes = @Index(name = "product_index",columnList = "name"))
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -30,7 +31,7 @@ public class Product {
             strategy = "org.hibernate.id.UUIDGenerator")
     @Column(name = "id", unique = true, nullable = false, updatable = false)
     private String id;
-    @Column(name = "name", updatable = false, nullable = false, columnDefinition = "TEXT")
+    @Column(name = "name", updatable = false, nullable = false, length = 200)
     @NotEmpty
     @Size(min = 3, max = 20)
     private String name;

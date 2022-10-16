@@ -1,10 +1,10 @@
 package com.concordeu.catalog.comment;
 
 import com.concordeu.catalog.MapStructMapper;
-import com.concordeu.catalog.dao.CommentRepository;
+import com.concordeu.catalog.dao.CommentDao;
 import com.concordeu.catalog.domain.Comment;
 import com.concordeu.catalog.domain.Product;
-import com.concordeu.catalog.dao.ProductRepository;
+import com.concordeu.catalog.dao.ProductDao;
 import com.concordeu.catalog.dto.CommentDto;
 import com.concordeu.catalog.service.comment.CommentService;
 import com.concordeu.catalog.service.comment.CommentServiceImpl;
@@ -36,9 +36,9 @@ class CommentServerImplTest {
     CommentService testService;
 
     @Mock
-    CommentRepository commentRepository;
+    CommentDao commentDao;
     @Mock
-    ProductRepository productRepository;
+    ProductDao productDao;
     @Mock
     CommentDataValidator validator;
     @Mock
@@ -46,7 +46,7 @@ class CommentServerImplTest {
 
     @BeforeEach
     void setUp() {
-        testService = new CommentServiceImpl(commentRepository, productRepository, validator, mapStructMapper);
+        testService = new CommentServiceImpl(commentDao, productDao, validator, mapStructMapper);
     }
 
     @Test
@@ -56,7 +56,7 @@ class CommentServerImplTest {
 
         String productName = "aaa";
         Product product = Product.builder().name(productName).build();
-        when(productRepository.findByName(productName)).thenReturn(Optional.of(product));
+        when(productDao.findByName(productName)).thenReturn(Optional.of(product));
 
         Comment comment = Comment.builder().build();
         when(mapStructMapper.mapDtoToComment(commentDto)).thenReturn(comment);
@@ -64,7 +64,7 @@ class CommentServerImplTest {
         testService.createComment(commentDto, productName);
 
         ArgumentCaptor<Comment> argument = ArgumentCaptor.forClass(Comment.class);
-        verify(commentRepository).saveAndFlush(argument.capture());
+        verify(commentDao).saveAndFlush(argument.capture());
 
         Comment captureComment = argument.getValue();
         assertThat(captureComment).isNotNull();
@@ -81,7 +81,7 @@ class CommentServerImplTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("No such product: " + productName);
 
-        verify(commentRepository, never()).saveAndFlush(any());
+        verify(commentDao, never()).saveAndFlush(any());
     }
 
     @Test
@@ -92,12 +92,12 @@ class CommentServerImplTest {
         String productId = "0030223b-fdb9-40e2-a4b0-81bdf54479a2";
         Product product = Product.builder().id(productId).name("aaaa89").build();
 
-        when(productRepository.findByName(any(String.class))).thenReturn(Optional.of(product));
-        when(commentRepository.findAllByProductIdByPage(productId, pageRequest)).thenReturn(page);
+        when(productDao.findByName(any(String.class))).thenReturn(Optional.of(product));
+        when(commentDao.findAllByProductIdByPage(productId, pageRequest)).thenReturn(page);
 
         testService.findAllByProductNameByPage("aaaa89", 1, 5);
 
-        verify(commentRepository).findAllByProductIdByPage(product.getId(), pageRequest);
+        verify(commentDao).findAllByProductIdByPage(product.getId(), pageRequest);
     }
 
     @Test
@@ -106,7 +106,7 @@ class CommentServerImplTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("No such product: ");
 
-        verify(commentRepository, never()).findAllByProductIdByPage(any(String.class), any(PageRequest.class));
+        verify(commentDao, never()).findAllByProductIdByPage(any(String.class), any(PageRequest.class));
     }
 
     @Test
@@ -115,7 +115,7 @@ class CommentServerImplTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("No such product: ");
 
-        verify(commentRepository, never()).findAllByProductIdByPage(any(String.class), any(PageRequest.class));
+        verify(commentDao, never()).findAllByProductIdByPage(any(String.class), any(PageRequest.class));
     }
 
     @Test
@@ -125,11 +125,11 @@ class CommentServerImplTest {
         Page<Comment> page = new PageImpl<>(products, pageRequest, products.size());
         String productName = "aaaa";
 
-        when(commentRepository.findAllByAuthorByPage(productName, pageRequest)).thenReturn(page);
+        when(commentDao.findAllByAuthorByPage(productName, pageRequest)).thenReturn(page);
 
         testService.findAllByAuthorByPage(productName, 1, 5);
 
-        verify(commentRepository).findAllByAuthorByPage(any(String.class), any(PageRequest.class));
+        verify(commentDao).findAllByAuthorByPage(any(String.class), any(PageRequest.class));
     }
 
     @Test
@@ -138,6 +138,6 @@ class CommentServerImplTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("No such author: ");
 
-        verify(commentRepository, never()).findAllByAuthorByPage(any(String.class), any(PageRequest.class));
+        verify(commentDao, never()).findAllByAuthorByPage(any(String.class), any(PageRequest.class));
     }
 }

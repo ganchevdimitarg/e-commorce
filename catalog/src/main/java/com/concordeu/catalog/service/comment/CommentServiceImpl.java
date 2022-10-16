@@ -3,10 +3,10 @@ package com.concordeu.catalog.service.comment;
 import com.concordeu.catalog.MapStructMapper;
 import com.concordeu.catalog.validator.CommentDataValidator;
 import com.concordeu.catalog.dto.CommentDto;
-import com.concordeu.catalog.dao.CommentRepository;
+import com.concordeu.catalog.dao.CommentDao;
 import com.concordeu.catalog.domain.Comment;
 import com.concordeu.catalog.domain.Product;
-import com.concordeu.catalog.dao.ProductRepository;
+import com.concordeu.catalog.dao.ProductDao;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -20,8 +20,8 @@ import java.util.List;
 @Slf4j
 public class CommentServiceImpl implements CommentService {
 
-    private final CommentRepository commentRepository;
-    private final ProductRepository productRepository;
+    private final CommentDao commentDao;
+    private final ProductDao productDao;
     private final CommentDataValidator commentDataValidator;
     private final MapStructMapper mapStructMapper;
 
@@ -29,7 +29,7 @@ public class CommentServiceImpl implements CommentService {
     public CommentDto createComment(CommentDto commentDto, String productName) {
         commentDataValidator.validateData(commentDto);
 
-        Product product = productRepository
+        Product product = productDao
                 .findByName(productName)
                 .orElseThrow(() -> {
                     log.error("No such product: " + productName);
@@ -39,7 +39,7 @@ public class CommentServiceImpl implements CommentService {
         Comment comment = mapStructMapper.mapDtoToComment(commentDto);
         comment.setProduct(product);
 
-        commentRepository.saveAndFlush(comment);
+        commentDao.saveAndFlush(comment);
         log.info("The comment " + comment.getTitle() + " is save successful");
 
         return mapStructMapper.mapCommentToDto(comment);
@@ -52,12 +52,12 @@ public class CommentServiceImpl implements CommentService {
             throw new IllegalArgumentException("No such product: " + productName);
         }
 
-        Product product = productRepository.findByName(productName).orElseThrow(() -> {
+        Product product = productDao.findByName(productName).orElseThrow(() -> {
             log.error("No such product: " + productName);
             throw new IllegalArgumentException("No such product: " + productName);
         });
 
-        Page<CommentDto> comments = commentRepository
+        Page<CommentDto> comments = commentDao
                 .findAllByProductIdByPage(product.getId(), PageRequest.of(page, size))
                 .map(CommentDto::convertComment);
 
@@ -72,7 +72,7 @@ public class CommentServiceImpl implements CommentService {
             log.error("No such author: " + author);
             throw new IllegalArgumentException("No such author: " + author);
         }
-        Page<CommentDto> comments = commentRepository
+        Page<CommentDto> comments = commentDao
                 .findAllByAuthorByPage(author, PageRequest.of(page, size))
                 .map(CommentDto::convertComment);
         log.info("Successful get comments by author: " + author);
@@ -82,7 +82,7 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     public double getAvgStars(String productName) {
-        List<Comment> comments = commentRepository.findAllByProductName(productName);
+        List<Comment> comments = commentDao.findAllByProductName(productName);
         double sum = 0.0;
         for (Comment comment : comments) {
             sum += comment.getStar();
