@@ -1,4 +1,4 @@
-package com.concordeu.config.security;
+package com.concordeu.security;
 
 import com.google.common.collect.Sets;
 import lombok.Getter;
@@ -9,7 +9,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static com.concordeu.config.security.UserPermission.*;
+import static com.concordeu.security.UserPermission.*;
 
 @RequiredArgsConstructor
 @Getter

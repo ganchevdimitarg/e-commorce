@@ -1,6 +1,6 @@
 package com.concordeu.controller;
 
-import com.concordeu.dto.UserDto;
+import com.concordeu.dto.AuthUserDto;
 import com.concordeu.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,18 +17,13 @@ import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 @Slf4j
 public class UserController {
 
-    @GetMapping("/get")
-    public String getString(){
-        return "You did it User!!!";
-    }
-
     private final AuthService authService;
 
     @PostMapping(value = "/register",
             consumes = APPLICATION_JSON_VALUE,
             headers = "Accept=application/json")
-    public UserDto registerUser(
-            @Valid @RequestBody UserDto requestDto,
+    public AuthUserDto registerUser(
+            @Valid @RequestBody AuthUserDto requestDto,
             BindingResult bindingResult) {
 
         if (bindingResult.hasErrors()) {
@@ -36,7 +31,7 @@ public class UserController {
             throw new IllegalArgumentException("Incorrect data");
         }
 
-        return authService.register(requestDto);
+        return authService.createUser(requestDto);
     }
 
    /* @PostMapping("/create-comment/{productName}")

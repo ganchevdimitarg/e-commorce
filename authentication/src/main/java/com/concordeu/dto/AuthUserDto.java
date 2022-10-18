@@ -1,6 +1,9 @@
 package com.concordeu.dto;
 
 import lombok.*;
+import org.springframework.security.core.GrantedAuthority;
+
+import java.util.Set;
 
 @NoArgsConstructor
 @AllArgsConstructor
@@ -8,9 +11,10 @@ import lombok.*;
 @Getter
 @Setter
 @ToString
-public class UserDto {
+public class AuthUserDto {
     private String username;
     private String password;
+    private Set<? extends GrantedAuthority> grantedAuthorities;
     private String firstName;
     private String lastName;
     private String email;

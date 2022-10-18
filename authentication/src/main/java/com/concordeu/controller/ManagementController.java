@@ -6,6 +6,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
+
 @RestController
 @RequestMapping("/management/api/v1")
 @RequiredArgsConstructor
@@ -13,8 +15,8 @@ import org.springframework.web.bind.annotation.*;
 public class ManagementController {
 
     @GetMapping("/get")
-    public String getString(){
-        return "You did it Admin!!!";
+    public String getString(Principal principal){
+        return String.format("You did it Admin: %s -> %s!!!", principal.getName(), principal);
     }
 
    /*@PostMapping("/create-category")

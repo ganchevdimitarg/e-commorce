@@ -1,10 +1,10 @@
 package com.concordeu;
 
 import com.concordeu.domain.AuthUser;
-import com.concordeu.dto.UserDto;
+import com.concordeu.dto.AuthUserDto;
 import org.mapstruct.Mapper;
 
 @Mapper(componentModel = "spring")
 public interface MapStructMapper {
-    UserDto mapUserToUserDto(AuthUser authUser);
+    AuthUserDto mapAuthUserToAuthUserDto(AuthUser authUser);
 }

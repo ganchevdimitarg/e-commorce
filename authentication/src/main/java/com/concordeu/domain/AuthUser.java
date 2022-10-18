@@ -18,13 +18,13 @@ import java.util.Set;
 public class AuthUser {
     @Id
     private String id;
-    @Indexed(unique = true)
     private String username;
     private String password;
     private Set<? extends GrantedAuthority> grantedAuthorities;
     private String firstName;
     private String lastName;
     private Address address;
+    @Indexed(unique = true)
     private String email;
     private String phoneNumber;
     private LocalDateTime created;

@@ -1,4 +1,4 @@
-package com.concordeu.config.security;
+package com.concordeu.security;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

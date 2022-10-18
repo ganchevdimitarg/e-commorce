@@ -4,21 +4,20 @@ import com.concordeu.MapStructMapper;
 import com.concordeu.dao.AuthUserDao;
 import com.concordeu.domain.Address;
 import com.concordeu.domain.AuthUser;
-import com.concordeu.dto.UserDto;
+import com.concordeu.dto.AuthUserDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.util.Assert;
 
 import java.time.LocalDateTime;
-import java.util.Collections;
 import java.util.Optional;
 
-import static com.concordeu.config.security.UserRole.USER;
+import static com.concordeu.security.UserRole.USER;
 
 @Service
 @RequiredArgsConstructor
@@ -30,20 +29,20 @@ public class AuthServiceIml implements AuthService {
     private final MapStructMapper mapper;
 
     @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        Optional<AuthUser> user = authUserDao.findByUsername(username);
-        log.debug("Trying to load user {}. Successful? {}", username, user.isPresent());
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        Optional<AuthUser> user = authUserDao.findByEmail(email);
+        log.debug("Trying to load user {}. Successful? {}", email, user.isPresent());
         return user
                 .map(this::map)
-                .orElseThrow(() -> new UsernameNotFoundException(String.format("Username \"%s\" not found" + username)));
+                .orElseThrow(() -> new UsernameNotFoundException(String.format("Username \"%s\" not found" + email)));
     }
 
     private UserDetails map(AuthUser authUser) {
-        return new User(authUser.getUsername(), authUser.getPassword(), authUser.getGrantedAuthorities());
+        return new User(authUser.getEmail(), authUser.getPassword(), authUser.getGrantedAuthorities());
     }
 
     @Override
-    public UserDto register(UserDto model) {
+    public AuthUserDto createUser(AuthUserDto model) {
         Address address = Address.builder()
                 .city(model.getCity())
                 .street(model.getStreet())
@@ -52,7 +51,7 @@ public class AuthServiceIml implements AuthService {
 
         AuthUser authUser = AuthUser.builder()
                 .username(model.getUsername())
-                .password(passwordEncoder.encode(model.getPassword()))
+                .password(passwordEncoder.encode(model.getPassword().trim().isEmpty() ? "" : model.getPassword().trim()))
                 .grantedAuthorities(USER.getGrantedAuthorities())
                 .firstName(model.getFirstName())
                 .lastName(model.getLastName())
@@ -62,6 +61,26 @@ public class AuthServiceIml implements AuthService {
                 .created(LocalDateTime.now())
                 .build();
 
-        return mapper.mapUserToUserDto(authUserDao.save(authUser));
+        return mapper.mapAuthUserToAuthUserDto(authUserDao.save(authUser));
     }
+
+    @Override
+    public AuthUserDto getOrCreateUser(String email) {
+        Assert.notNull(email, "Email is empty!");
+        Optional<AuthUser> user = authUserDao.findByEmail(email);
+
+        return mapper.mapAuthUserToAuthUserDto(user.orElseGet(() -> createUserWithEmail(email)));
+    }
+
+    private AuthUser createUserWithEmail(String email) {
+        log.info("Create user with email");
+        AuthUser user = AuthUser.builder()
+                .email(email)
+                .password("")
+                .grantedAuthorities(USER.getGrantedAuthorities())
+                .build();
+        return authUserDao.save(user);
+    }
+
+
 }
