@@ -20,6 +20,7 @@
 
     <modules>
         <module>catalog</module>
+        <module>authentication</module>
     </modules>
 
     <properties>
@@ -28,6 +29,7 @@
         <spring.boot.dependecies.version>2.6.4</spring.boot.dependecies.version>
         <springfox-boot-starter.version>3.0.0</springfox-boot-starter.version>
         <springfox-swagger-ui.version>2.10.5</springfox-swagger-ui.version>
+        <h2.version>2.1.212</h2.version>
     </properties>
 
     <dependencyManagement>
@@ -56,6 +58,12 @@
             <groupId>io.springfox</groupId>
             <artifactId>springfox-swagger-ui</artifactId>
             <version>${springfox-swagger-ui.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <version>${h2.version}</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 

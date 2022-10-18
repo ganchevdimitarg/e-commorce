@@ -1,0 +1,18 @@
+version: '3.3'
+services:
+  db:
+    image: mysql
+    container_name: mysqldb
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: catalog
+      MYSQL_USERNAME: ${MYSQL_USER}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - '3306:3306'
+    expose:
+      - '3306'
+    volumes:
+      - catalog-db:/var/lib/mysql
+volumes:
+  catalog-db:
