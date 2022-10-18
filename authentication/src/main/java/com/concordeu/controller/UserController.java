@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 
+import java.security.Principal;
+
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
 @RestController
@@ -18,6 +20,11 @@ import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 public class UserController {
 
     private final AuthService authService;
+
+    @GetMapping("/get")
+    public String getString(Principal principal){
+        return String.format("You did it USER: %s -> \n%s!!!", principal.getName(), principal);
+    }
 
     @PostMapping(value = "/register",
             consumes = APPLICATION_JSON_VALUE,

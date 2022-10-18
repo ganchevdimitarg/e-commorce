@@ -19,13 +19,7 @@ import java.io.IOException;
 @Component
 @RequiredArgsConstructor
 public class OAuth2UserSuccessHandler extends SavedRequestAwareAuthenticationSuccessHandler {
-
     private final AuthService authService;
-
-   /* public OAuth2UserSuccessHandler(AuthService authService) {
-        this.authService = authService;
-        setDefaultTargetUrl("/home");
-    }*/
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws ServletException, IOException {
@@ -39,7 +33,6 @@ public class OAuth2UserSuccessHandler extends SavedRequestAwareAuthenticationSuc
             authentication = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
             SecurityContextHolder.getContext().setAuthentication(authentication);
         }
-
         super.onAuthenticationSuccess(request, response, authentication);
     }
 }
