@@ -115,6 +115,7 @@ public class AuthServiceImpl implements AuthService{
                 .email(email)
                 .password("")
                 .grantedAuthorities(USER.getGrantedAuthorities())
+                .created(LocalDateTime.now())
                 .build();
         return authUserDao.insert(user);
     }
