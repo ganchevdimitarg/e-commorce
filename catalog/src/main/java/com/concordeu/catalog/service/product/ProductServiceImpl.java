@@ -13,6 +13,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.util.Assert;
 
 @Service
 @RequiredArgsConstructor
@@ -75,6 +76,14 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    public ProductResponseDto getProductByName(String name) {
+        Assert.notNull(name, "Name is empty");
+        Product product = productDao.findByName(name).orElseThrow(() -> new IllegalArgumentException("No such product"));
+        return mapper.mapProductToProductResponseDto(product);
+    }
+
+
+    @Override
     public void updateProduct(ProductResponseDto productResponseDto, String productName) {
         validator.validateData(productResponseDto, productName);
 
@@ -104,10 +113,13 @@ public class ProductServiceImpl implements ProductService {
 
     public ProductResponseDto convertProduct(Product product){
         return new ProductResponseDto(
+                product.getId(),
                 product.getName(),
                 product.getDescription(),
                 product.getPrice(),
                 product.isInStock(),
-                product.getCharacteristics());
+                product.getCharacteristics(),
+                mapper.mapCategoryToCategoryResponseDto(product.getCategory()),
+                mapper.mapCommentsToCommentResponseDtos(product.getComments()));
     }
 }

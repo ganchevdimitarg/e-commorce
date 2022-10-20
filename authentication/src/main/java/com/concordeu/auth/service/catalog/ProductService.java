@@ -15,4 +15,6 @@ public interface ProductService {
     void updateProduct(ProductRequestDto requestDto, String productName);
 
     void deleteProduct(String productName);
+
+    ProductResponseDto getProductsByName(String productName);
 }

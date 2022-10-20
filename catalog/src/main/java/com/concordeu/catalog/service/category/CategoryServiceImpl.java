@@ -6,12 +6,15 @@ import com.concordeu.catalog.dao.CategoryDao;
 import com.concordeu.catalog.domain.Category;
 import com.concordeu.catalog.domain.Product;
 import com.concordeu.catalog.dao.ProductDao;
+import com.concordeu.client.catalog.product.ProductRequestDto;
+import com.concordeu.client.catalog.product.ProductResponseDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -90,16 +93,17 @@ public class CategoryServiceImpl implements CategoryService {
     public Page<CategoryResponseDto> getCategoriesByPage(int page, int size) {
         Page<CategoryResponseDto> categories = categoryDao
                 .findAll(PageRequest.of(page, size))
-                .map(c -> new CategoryResponseDto(c.getId(),c.getName()));
+                .map(this::convertCategory);
 
         log.info("Successful get categories: " + categories.getSize());
 
         return categories;
     }
 
-    public CategoryResponseDto convertCategory(Category category) {
+    private CategoryResponseDto convertCategory(Category category) {
         return new CategoryResponseDto(
                 category.getId(),
-                category.getName());
+                category.getName(),
+                mapper.mapProductsToProductRequestDtos(category.getProducts()));
     }
 }

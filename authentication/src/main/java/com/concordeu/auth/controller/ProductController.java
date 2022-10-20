@@ -16,21 +16,21 @@ import org.springframework.web.bind.annotation.*;
 public class ProductController {
     private final ProductService productService;
 
-    @PostMapping("/management/create-product/{categoryName}")
+    @PostMapping("/create-product/{categoryName}")
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ProductResponseDto createProduct(@RequestBody ProductRequestDto requestDto,
                                             @PathVariable String categoryName) {
         return productService.createProduct(requestDto, categoryName);
     }
 
-    @GetMapping("/management/get-products")
+    @GetMapping("/get-products")
     @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_WORKER')")
     public Page<ProductResponseDto> getProducts(@RequestParam int page,
                                                 @RequestParam int pageSize) {
         return productService.getProductsByPage(page, pageSize);
     }
 
-    @GetMapping("/management/get-products/{categoryName}")
+    @GetMapping("/get-products/{categoryName}")
     @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_WORKER')")
     public Page<ProductResponseDto> getProductsByCategory(@RequestParam int page,
                                                   @RequestParam int pageSize,
@@ -38,14 +38,20 @@ public class ProductController {
         return productService.getProductsByCategoryByPage(page, pageSize, categoryName);
     }
 
-    @PutMapping("/management/update-product/{productName}")
+    @GetMapping("/get-product/{productName}")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_WORKER')")
+    public ProductResponseDto getProductByName(@PathVariable String productName){
+        return productService.getProductsByName(productName);
+    }
+
+    @PutMapping("/update-product/{productName}")
     @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_WORKER')")
     public void updateProduct(@RequestBody ProductRequestDto requestDto,
                               @PathVariable String productName) {
         productService.updateProduct(requestDto, productName);
     }
 
-    @DeleteMapping("/management/delete/{productName}")
+    @DeleteMapping("/delete/{productName}")
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     public void deleteProduct(@PathVariable String productName) {
         productService.deleteProduct(productName);

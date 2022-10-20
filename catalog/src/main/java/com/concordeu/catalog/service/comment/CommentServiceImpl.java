@@ -96,7 +96,8 @@ public class CommentServiceImpl implements CommentService {
                 comment.getTitle(),
                 comment.getText(),
                 comment.getStar(),
-                comment.getAuthor());
+                comment.getAuthor(),
+                mapper.mapProductToProductRequestDto(comment.getProduct()));
     }
 
 }

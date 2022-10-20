@@ -12,18 +12,22 @@ services:
       - '3306:3306'
     expose:
       - '3306'
-    volumes:
-      - catalog-db:/var/lib/mysql
 
   mongodb:
     image: mongo
     container_name: mongodb
     ports:
       - "27017:27017"
-    volumes:
-      - data:/data
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_DB_USER}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_DB_PASSWORD}
+
+  zipkin:
+    image: openzipkin/zipkin
+    container_name: zipkin
+    ports:
+      - 9411:9411
+
 volumes:
-  data: {}
+  db:
+  mongodb:

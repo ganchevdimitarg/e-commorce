@@ -51,4 +51,10 @@ public class ProductServiceImpl implements ProductService {
         Assert.notNull(productName, "Product name is empty!");
         productClient.deleteProduct(productName);
     }
+
+    @Override
+    public ProductResponseDto getProductsByName(String productName) {
+        Assert.notNull(productName, "Product name is empty!");
+        return productClient.getProductByName(productName);
+    }
 }

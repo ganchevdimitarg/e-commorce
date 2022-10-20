@@ -24,6 +24,9 @@ public interface ProductClient {
                                                    @RequestParam int pageSize,
                                                    @PathVariable String categoryName);
 
+    @GetMapping("/get-product/{productName}")
+    ProductResponseDto getProductByName(@PathVariable String productName);
+
     @PutMapping("/update-product/{productName}")
     void updateProduct(@RequestBody ProductRequestDto requestDto,
                        @PathVariable String productName);

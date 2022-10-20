@@ -41,6 +41,11 @@ public class ProductController {
         return productService.getProductsByCategoryByPage(page, pageSize, categoryName);
     }
 
+    @GetMapping("/get-product/{productName}")
+    public ProductResponseDto getProductByName(@PathVariable String productName){
+        return productService.getProductByName(productName);
+    }
+
     @PutMapping("/update-product/{productName}")
     public void updateProduct(@RequestBody ProductRequestDto requestDto,
                               @PathVariable String productName) {
