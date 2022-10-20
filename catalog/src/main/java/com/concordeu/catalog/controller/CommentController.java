@@ -1,15 +1,13 @@
 package com.concordeu.catalog.controller;
 
-import com.concordeu.catalog.MapStructMapper;
-import com.concordeu.catalog.dto.CommentRequestDto;
+import com.concordeu.client.catalog.comment.CommentResponseDto;
+import com.concordeu.catalog.mapper.MapStructMapper;
+import com.concordeu.client.catalog.comment.CommentRequestDto;
 import com.concordeu.catalog.validator.CommentDataValidator;
-import com.concordeu.catalog.dto.CommentDto;
 import com.concordeu.catalog.service.comment.CommentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -23,19 +21,19 @@ public class CommentController {
     private final MapStructMapper mapper;
 
     @PostMapping("/create-comment/{productName}")
-    public CommentDto createComment(@RequestBody CommentRequestDto requestDto, @PathVariable String productName) {
-        CommentDto commentDto = mapper.mapCommentRequestDtoToCommentDto(requestDto);
-        validator.validateData(commentDto);
-        return commentService.createComment(commentDto, productName);
+    public CommentResponseDto createComment(@RequestBody CommentRequestDto requestDto, @PathVariable String productName) {
+        CommentResponseDto commentResponseDto = mapper.mapCommentRequestDtoToCommentResponseDto(requestDto);
+        validator.validateData(commentResponseDto);
+        return commentService.createComment(commentResponseDto, productName);
     }
 
     @GetMapping("/get-comments-product-name/{productName}")
-    public Page<CommentDto> findAllByProductName(@RequestParam int page, int pageSize, @PathVariable String productName) {
+    public Page<CommentResponseDto> findAllByProductName(@RequestParam int page, int pageSize, @PathVariable String productName) {
         return commentService.findAllByProductNameByPage(productName, page, pageSize);
     }
 
     @GetMapping("/get-comments-author/{author}")
-    public Page<CommentDto> findAllByAuthor(@RequestParam int page, int pageSize, @PathVariable String author) {
+    public Page<CommentResponseDto> findAllByAuthor(@RequestParam int page, int pageSize, @PathVariable String author) {
         return commentService.findAllByAuthorByPage(author, page, pageSize);
     }
 

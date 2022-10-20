@@ -1,11 +1,11 @@
 package com.concordeu.catalog.product;
 
-import com.concordeu.catalog.MapStructMapper;
+import com.concordeu.client.catalog.product.ProductResponseDto;
+import com.concordeu.catalog.mapper.MapStructMapper;
 import com.concordeu.catalog.controller.ProductController;
-import com.concordeu.catalog.dto.ProductDto;
-import com.concordeu.catalog.dto.ProductRequestDto;
+import com.concordeu.client.catalog.product.ProductRequestDto;
 import com.concordeu.catalog.service.product.ProductService;
-import com.concordeu.catalog.validator.ProductDataValidator;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,6 +19,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
 
@@ -40,11 +41,18 @@ class ProductControllerTest {
     @MockBean
     MapStructMapper mapper;
 
+    ProductResponseDto productResponseDto;
+
+    @BeforeEach
+    void setUp() {
+        productResponseDto = new ProductResponseDto("aaaa", "aaaaaaaaaaaaaaaaa", BigDecimal.ONE, false, "");
+    }
+
     @Test
     void createProductShouldCreateProduct() throws Exception {
-        when(mapper.mapProductRequestDtoToProductDto(any(ProductRequestDto.class))).thenReturn(ProductDto.builder().name("aaaa").description("aaaaaaaaaaaaaaaaa").build());
+        when(mapper.mapProductRequestDtoToProductResponseDto(any(ProductRequestDto.class))).thenReturn(productResponseDto);
 
-        mvc.perform(post("/api/v1/product/create-product/{categoryName}","PC")
+        mvc.perform(post("/api/v1/product/create-product/{categoryName}", "PC")
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON)
                         .content("""
@@ -58,16 +66,17 @@ class ProductControllerTest {
                                 """))
                 .andExpect(status().isOk());
 
-        verify(productService).createProduct(any(ProductDto.class),any());
+        verify(productService).createProduct(any(ProductResponseDto.class), any());
     }
 
     @Test
     void getProductsByPageShouldGetAllProductsBySearchPage() throws Exception {
         PageRequest pageRequest = PageRequest.of(1, 5);
-        List<ProductDto> products = Arrays.asList(new ProductDto(), new ProductDto());
-        Page<ProductDto> page = new PageImpl<>(products, pageRequest, products.size());
 
-        given(productService.getProductsByPage(1,5)).willReturn(page);
+        List<ProductResponseDto> products = Arrays.asList(productResponseDto, productResponseDto);
+        Page<ProductResponseDto> page = new PageImpl<>(products, pageRequest, products.size());
+
+        given(productService.getProductsByPage(1, 5)).willReturn(page);
 
         mvc.perform(get("/api/v1/product/get-products?page=1&pageSize=5")
                         .accept(MediaType.APPLICATION_JSON))
@@ -77,10 +86,10 @@ class ProductControllerTest {
     @Test
     void getProductsByCategoryShouldReturnOnlyProductOneCategory() throws Exception {
         PageRequest pageRequest = PageRequest.of(1, 5);
-        List<ProductDto> products = Arrays.asList(new ProductDto(), new ProductDto());
-        Page<ProductDto> page = new PageImpl<>(products, pageRequest, products.size());
+        List<ProductResponseDto> products = Arrays.asList(productResponseDto, productResponseDto);
+        Page<ProductResponseDto> page = new PageImpl<>(products, pageRequest, products.size());
 
-        given(productService.getProductsByCategoryByPage(1,5, "pc")).willReturn(page);
+        given(productService.getProductsByCategoryByPage(1, 5, "pc")).willReturn(page);
 
         mvc.perform(get("/api/v1/product/get-products/{category}?page=1&pageSize=5&categoryName=pc", "pc")
                         .accept(MediaType.APPLICATION_JSON))
@@ -89,7 +98,7 @@ class ProductControllerTest {
 
     @Test
     void updateProductShouldUpdateProduct() throws Exception {
-        when(mapper.mapProductRequestDtoToProductDto(any(ProductRequestDto.class))).thenReturn(ProductDto.builder().name("aaaa").description("aaaaaaaaaaaaaaaaa").build());
+        when(mapper.mapProductRequestDtoToProductResponseDto(any(ProductRequestDto.class))).thenReturn(productResponseDto);
 
         mvc.perform(put("/api/v1/product/update-product/{productName}", "mouse")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -104,12 +113,12 @@ class ProductControllerTest {
                                 """))
                 .andExpect(status().isOk());
 
-        verify(productService).updateProduct(any(ProductDto.class),any());
+        verify(productService).updateProduct(any(ProductResponseDto.class), any());
     }
 
     @Test
     void deleteProductShouldDeleteProduct() throws Exception {
-        mvc.perform(delete("/api/v1/product/delete/{productName}","mouse"))
+        mvc.perform(delete("/api/v1/product/delete/{productName}", "mouse"))
                 .andExpect(status().isOk());
 
         verify(productService).deleteProduct(any());

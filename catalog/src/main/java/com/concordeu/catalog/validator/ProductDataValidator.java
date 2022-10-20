@@ -1,6 +1,6 @@
 package com.concordeu.catalog.validator;
 
-import com.concordeu.catalog.dto.ProductDto;
+import com.concordeu.client.catalog.product.ProductResponseDto;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -10,10 +10,10 @@ import java.math.BigDecimal;
 @Slf4j
 public class ProductDataValidator {
 
-    public boolean validateData(ProductDto productDto, String name) {
-        return isValidProductName(productDto.getName())
-                && isValidDescription(productDto.getDescription())
-                && isValidPrice(productDto.getPrice())
+    public boolean validateData(ProductResponseDto productResponseDto, String name) {
+        return isValidProductName(productResponseDto.name())
+                && isValidDescription(productResponseDto.description())
+                && isValidPrice(productResponseDto.price())
                 && isValidName(name);
     }
 

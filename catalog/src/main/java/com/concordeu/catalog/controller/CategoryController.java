@@ -1,15 +1,12 @@
 package com.concordeu.catalog.controller;
 
-import com.concordeu.catalog.MapStructMapper;
-import com.concordeu.catalog.dto.CategoryDto;
-import com.concordeu.catalog.dto.CategoryRequestDto;
-import com.concordeu.catalog.dto.ProductDto;
+import com.concordeu.catalog.mapper.MapStructMapper;
+import com.concordeu.client.catalog.category.CategoryResponseDto;
+import com.concordeu.client.catalog.category.CategoryRequestDto;
 import com.concordeu.catalog.service.category.CategoryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -22,7 +19,7 @@ public class CategoryController {
     private final MapStructMapper mapper;
 
     @PostMapping("/create-category")
-    public CategoryDto createCategory(@RequestBody CategoryRequestDto requestDto) {
+    public CategoryResponseDto createCategory(@RequestBody CategoryRequestDto requestDto) {
         return categoryService.createCategory(mapper.mapCategoryRequestDtoToCategoryDto(requestDto));
     }
 
@@ -32,7 +29,7 @@ public class CategoryController {
     }
 
     @GetMapping("/get-categories")
-    public Page<CategoryDto> getCategories(@RequestParam int page, @RequestParam int pageSize) {
+    public Page<CategoryResponseDto> getCategories(@RequestParam int page, @RequestParam int pageSize) {
         return categoryService.getCategoriesByPage(page, pageSize);
     }
 
@@ -46,4 +43,6 @@ public class CategoryController {
     public void moveAllProducts(@RequestParam String categoryNameFrom, @RequestParam String categoryNameTo) {
         categoryService.moveAllProducts(categoryNameFrom, categoryNameTo);
     }
+
+
 }

@@ -1,12 +1,12 @@
 package com.concordeu.catalog.product;
 
 
-import com.concordeu.catalog.MapStructMapper;
+import com.concordeu.client.catalog.product.ProductResponseDto;
+import com.concordeu.catalog.mapper.MapStructMapper;
 import com.concordeu.catalog.dao.ProductDao;
 import com.concordeu.catalog.domain.Category;
 import com.concordeu.catalog.dao.CategoryDao;
 import com.concordeu.catalog.domain.Product;
-import com.concordeu.catalog.dto.ProductDto;
 import com.concordeu.catalog.service.product.ProductService;
 import com.concordeu.catalog.service.product.ProductServiceImpl;
 import com.concordeu.catalog.validator.ProductDataValidator;
@@ -44,31 +44,28 @@ class ProductServiceImplTest {
     @Mock
     ProductDataValidator validator;
 
+    ProductResponseDto productResponseDto;
+
     @BeforeEach
     void setup() {
         testService = new ProductServiceImpl(productDao, categoryDao, validator, mapStructMapper);
+        productResponseDto = new ProductResponseDto("mouse", "WiFi mouse USB",
+                BigDecimal.ONE, true, "");
     }
 
     @Test
     void createProductShouldCreateNewProduct() {
-        ProductDto productDto = ProductDto.builder()
-                .name("mouse")
-                .description("WiFi mouse USB")
-                .price(BigDecimal.valueOf(54.32))
-                .inStock(true)
-                .build();
-
         String categoryName = "PC";
 
-        when(validator.validateData(productDto, categoryName)).thenReturn(true);
+        when(validator.validateData(productResponseDto, categoryName)).thenReturn(true);
 
         Category category = Category.builder().name(categoryName).build();
         when(categoryDao.findByName(categoryName)).thenReturn(Optional.of(category));
 
         Product product = Product.builder().build();
-        when(mapStructMapper.mapDtoToProduct(productDto)).thenReturn(product);
+        when(mapStructMapper.mapProductResponseDtoToProduct(productResponseDto)).thenReturn(product);
 
-        testService.createProduct(productDto, "PC");
+        testService.createProduct(productResponseDto, "PC");
 
         ArgumentCaptor<Product> argument = ArgumentCaptor.forClass(Product.class);
         verify(productDao).saveAndFlush(argument.capture());
@@ -80,32 +77,23 @@ class ProductServiceImplTest {
 
     @Test
     void createProductShouldThrowExceptionIfProductAlreadyExist() {
-        String productName = "aaaaa";
-        ProductDto productDto = ProductDto.builder().name(productName).build();
-        when(productDao.findByName(productName)).thenReturn(Optional.of(Product.builder().name(productName).build()));
+        when(productDao.findByName("mouse")).thenReturn(Optional.of(Product.builder().name("mouse").build()));
 
         String categoryName = "PC";
         when(categoryDao.findByName(categoryName)).thenReturn(Optional.of(Category.builder().name(categoryName).build()));
 
-        assertThatThrownBy(() -> testService.createProduct(productDto, categoryName))
+        assertThatThrownBy(() -> testService.createProduct(productResponseDto, categoryName))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Product with the name: " + productDto.getName() + " already exist.");
+                .hasMessageContaining("Product with the name: " + productResponseDto.name() + " already exist.");
 
         verify(productDao, never()).saveAndFlush(any());
     }
 
     @Test
     void createProductShouldThrowExceptionIncorrectCategoryName() {
-        ProductDto productDto = ProductDto.builder()
-                .name("mouse")
-                .description("WiFi mouse")
-                .price(BigDecimal.valueOf(54.32))
-                .inStock(true)
-                .build();
-
         String categoryName = "";
 
-        assertThatThrownBy(() -> testService.createProduct(productDto, categoryName))
+        assertThatThrownBy(() -> testService.createProduct(productResponseDto, categoryName))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("No such category: " + categoryName);
 
@@ -114,18 +102,11 @@ class ProductServiceImplTest {
 
     @Test
     void createProductShouldThrowExceptionCategoryDoesNotExist() {
-        ProductDto productDto = ProductDto.builder()
-                .name("mouse")
-                .description("WiFi mouse")
-                .price(BigDecimal.valueOf(54.32))
-                .inStock(true)
-                .build();
-
         String categoryName = "PC";
 
-        when(validator.validateData(productDto, categoryName)).thenReturn(true);
+        when(validator.validateData(productResponseDto, categoryName)).thenReturn(true);
 
-        assertThatThrownBy(() -> testService.createProduct(productDto, categoryName))
+        assertThatThrownBy(() -> testService.createProduct(productResponseDto, categoryName))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("No such category: " + categoryName);
 
@@ -155,7 +136,7 @@ class ProductServiceImplTest {
 
         when(productDao.findAllByCategoryIdByPage("1", pageRequest)).thenReturn(page);
 
-        testService.getProductsByCategoryByPage(1,5,"pc");
+        testService.getProductsByCategoryByPage(1, 5, "pc");
 
         verify(productDao).findAllByCategoryIdByPage(category.getId(), pageRequest);
     }
@@ -164,7 +145,7 @@ class ProductServiceImplTest {
     void getProductsByCategoryShouldThrowExceptionIfCategoryNotExist() {
         PageRequest pageRequest = PageRequest.of(1, 5);
 
-        assertThatThrownBy(() -> testService.getProductsByCategoryByPage(1,2,""))
+        assertThatThrownBy(() -> testService.getProductsByCategoryByPage(1, 2, ""))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("No such category: " + "");
 
@@ -173,28 +154,18 @@ class ProductServiceImplTest {
 
     @Test
     void updateProductShouldUpdateDataIfProductExist() {
-        String productName = "aaaaa";
-        ProductDto productDto = ProductDto.builder()
-                .name(productName)
-                .description("aaaaaaaaaaa")
-                .price(BigDecimal.valueOf(0.01))
-                .build();
-        when(validator.validateData(productDto, productName)).thenReturn(true);
-        when(productDao.findByName(productName)).thenReturn(Optional.of(Product.builder().name(productName).build()));
-        testService.updateProduct(productDto, productName);
-        verify(productDao).update(productName, "aaaaaaaaaaa", BigDecimal.valueOf(0.01), null, false);
+        ProductResponseDto updateProduct = new ProductResponseDto("mouse", "aaaaaaaaaaa", BigDecimal.ONE, false, "");
+        when(validator.validateData(updateProduct, productResponseDto.name())).thenReturn(true);
+        when(productDao.findByName(productResponseDto.name())).thenReturn(Optional.of(Product.builder().name(productResponseDto.name()).build()));
+        testService.updateProduct(updateProduct, productResponseDto.name());
+        verify(productDao).update(productResponseDto.name(), "aaaaaaaaaaa", BigDecimal.ONE, "", false);
     }
 
     @Test
     void updateProductShouldThrowExceptionIfProductDoesNotExist() {
-        String productName = "aaaaa";
-        ProductDto productDto = ProductDto.builder()
-                .name(productName)
-                .description("aaaaaaaaaaa")
-                .price(BigDecimal.valueOf(0.01))
-                .build();
-        when(validator.validateData(productDto, "bbbbb")).thenReturn(true);
-        assertThatThrownBy(() -> testService.updateProduct(productDto, "bbbbb"))
+        String productName = "mouse";
+        when(validator.validateData(productResponseDto, "bbbbb")).thenReturn(true);
+        assertThatThrownBy(() -> testService.updateProduct(productResponseDto, "bbbbb"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Product with the name: bbbbb does not exist.");
     }

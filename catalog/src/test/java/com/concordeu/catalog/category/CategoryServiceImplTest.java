@@ -1,11 +1,11 @@
 package com.concordeu.catalog.category;
 
-import com.concordeu.catalog.MapStructMapper;
+import com.concordeu.client.catalog.category.CategoryResponseDto;
+import com.concordeu.catalog.mapper.MapStructMapper;
 import com.concordeu.catalog.dao.CategoryDao;
 import com.concordeu.catalog.domain.Category;
 import com.concordeu.catalog.domain.Product;
 import com.concordeu.catalog.dao.ProductDao;
-import com.concordeu.catalog.dto.CategoryDto;
 import com.concordeu.catalog.service.category.CategoryService;
 import com.concordeu.catalog.service.category.CategoryServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,11 +41,14 @@ class CategoryServiceImplTest {
     @Mock
     MapStructMapper mapStructMapper;
 
-    String categoryName = "pc";
+    String categoryName;
+    CategoryResponseDto categoryResponseDto;
 
     @BeforeEach
     void setUp() {
         testService = new CategoryServiceImpl(categoryDao, productDao, mapStructMapper);
+        categoryName = "bbbbb";
+        categoryResponseDto = new CategoryResponseDto("1", categoryName);
     }
 
     @Test
@@ -53,7 +56,7 @@ class CategoryServiceImplTest {
 
         when(categoryDao.findByName(categoryName)).thenReturn(Optional.empty());
 
-        testService.createCategory(CategoryDto.builder().name(categoryName).build());
+        testService.createCategory(categoryResponseDto);
 
         ArgumentCaptor<Category> argumentCaptor = ArgumentCaptor.forClass(Category.class);
         verify(categoryDao).saveAndFlush(argumentCaptor.capture());
@@ -65,7 +68,8 @@ class CategoryServiceImplTest {
 
     @Test
     void createCategoryShouldThrowExceptionIfNameIsEmpty() {
-        assertThatThrownBy(() -> testService.createCategory(CategoryDto.builder().name("").build()))
+        categoryResponseDto = new CategoryResponseDto("1", "");
+        assertThatThrownBy(() -> testService.createCategory(categoryResponseDto))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Category name is empty: ");
 
@@ -76,7 +80,7 @@ class CategoryServiceImplTest {
     void createCategoryShouldThrowExceptionIfCategoryExist() {
         when(categoryDao.findByName(categoryName)).thenReturn(Optional.of(Category.builder().name(categoryName).build()));
 
-        assertThatThrownBy(() -> testService.createCategory(CategoryDto.builder().name(categoryName).build()))
+        assertThatThrownBy(() -> testService.createCategory(categoryResponseDto))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Category with the name: " + categoryName + " already exist.");
 
@@ -87,14 +91,14 @@ class CategoryServiceImplTest {
     void deleteCategoryShouldDeleteProductIfProductExist() {
         when(categoryDao.findByName(categoryName)).thenReturn(Optional.of(Category.builder().name(categoryName).build()));
 
-        testService.deleteCategory(CategoryDto.builder().name(categoryName).build());
+        testService.deleteCategory(categoryResponseDto);
 
         verify(categoryDao).deleteByName(categoryName);
     }
 
     @Test
     void deleteCategoryShouldDeleteIfProductDoesNotExist() {
-        assertThatThrownBy(() -> testService.deleteCategory(CategoryDto.builder().name("bbbbb").build()))
+        assertThatThrownBy(() -> testService.deleteCategory(categoryResponseDto))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("No such category: bbbbb");
 
@@ -111,10 +115,10 @@ class CategoryServiceImplTest {
         Category categoryTo = Category.builder().name("acc").build();
 
         when(categoryDao.findByName(categoryFrom.getName())).thenReturn(Optional.of(categoryFrom));
-        when(mapStructMapper.mapCategoryToDto(categoryFrom)).thenReturn(CategoryDto.builder().id("1").build());
+        when(mapStructMapper.mapCategoryToCategoryResponseDto(categoryFrom)).thenReturn(categoryResponseDto);
 
         when(categoryDao.findByName(categoryTo.getName())).thenReturn(Optional.of(categoryTo));
-        when(mapStructMapper.mapCategoryToDto(categoryTo)).thenReturn(CategoryDto.builder().id("2").build());
+        when(mapStructMapper.mapCategoryToCategoryResponseDto(categoryTo)).thenReturn(new CategoryResponseDto("2", "dasdas"));
 
         when(categoryDao.getById(any())).thenReturn(categoryFrom);
 
@@ -127,15 +131,16 @@ class CategoryServiceImplTest {
     void moveOneProductShouldThrowExceptionIfProductDoesNotExist() {
         Category categoryFrom = Category.builder().name("pc").products(List.of(Product.builder().name("").build())).build();
         Category categoryTo = Category.builder().name("acc").build();
+
         when(categoryDao.findByName(categoryFrom.getName())).thenReturn(Optional.of(categoryFrom));
-        when(mapStructMapper.mapCategoryToDto(categoryFrom)).thenReturn(CategoryDto.builder().id("1").build());
+        when(mapStructMapper.mapCategoryToCategoryResponseDto(categoryFrom)).thenReturn(categoryResponseDto);
 
         when(categoryDao.findByName(categoryTo.getName())).thenReturn(Optional.of(categoryTo));
-        when(mapStructMapper.mapCategoryToDto(categoryTo)).thenReturn(CategoryDto.builder().id("2").build());
+        when(mapStructMapper.mapCategoryToCategoryResponseDto(categoryTo)).thenReturn(new CategoryResponseDto("2", "dasdas"));
 
         when(categoryDao.getById(any())).thenReturn(categoryFrom);
 
-        assertThatThrownBy(() -> testService.moveOneProduct(categoryName, "acc", "mouse"))
+        assertThatThrownBy(() -> testService.moveOneProduct(categoryFrom.getName(), categoryTo.getName(), "mouse"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("No such product: mouse");
 

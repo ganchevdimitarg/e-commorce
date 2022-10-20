@@ -1,6 +1,6 @@
 package com.concordeu.catalog.comment;
 
-import com.concordeu.catalog.dto.CommentDto;
+import com.concordeu.client.catalog.comment.CommentResponseDto;
 import com.concordeu.catalog.validator.CommentDataValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -20,70 +20,52 @@ class CommentDataValidatorTest {
 
     @Test
     void validateDataShouldReturnTrue() {
-        CommentDto commentDto = CommentDto.builder()
-                .title("tttt")
-                .text("ttttttttttt")
-                .build();
+        CommentResponseDto commentResponseDto = new CommentResponseDto("tttt", "ttttttttttt", 0, "");
 
-        assertThat(testService.validateData(commentDto)).isTrue();
+        assertThat(testService.validateData(commentResponseDto)).isTrue();
     }
 
     @Test
     void validateDataShouldThrowExceptionIfTitleIsEmpty() {
-        CommentDto commentDto = CommentDto.builder()
-                .title("")
-                .text("ttttttttttt")
-                .build();
+        CommentResponseDto commentResponseDto = new CommentResponseDto("", "ttttttttttt", 0, "");
 
-        assertThatThrownBy(() -> testService.validateData(commentDto))
+        assertThatThrownBy(() -> testService.validateData(commentResponseDto))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("The title is not correct!");
     }
 
     @Test
     void validateDataShouldThrowExceptionIfTitleLengthIsLessThanThree() {
-        CommentDto commentDto = CommentDto.builder()
-                .title("tt")
-                .text("ttttttttttt")
-                .build();
+        CommentResponseDto commentResponseDto = new CommentResponseDto("tt", "ttttttttttt", 0, "");
 
-        assertThatThrownBy(() -> testService.validateData(commentDto))
+        assertThatThrownBy(() -> testService.validateData(commentResponseDto))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("The title is not correct!");
     }
 
     @Test
     void validateDataShouldThrowExceptionIfTitleLengthIsGreaterThanFifteen() {
-        CommentDto commentDto = CommentDto.builder()
-                .title("tttttttttttttttttttttttttttttttt")
-                .text("ttttttttttt")
-                .build();
+        CommentResponseDto commentResponseDto = new CommentResponseDto("tttttttttttttttttttttttttttttttttttt", "ttttttttttt", 0, "");
 
-        assertThatThrownBy(() -> testService.validateData(commentDto))
+        assertThatThrownBy(() -> testService.validateData(commentResponseDto))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("The title is not correct!");
     }
 
     @Test
     void validateDataShouldThrowExceptionIfTextLengthIsLessThanTen() {
-        CommentDto commentDto = CommentDto.builder()
-                .title("tttt")
-                .text("ttttttt")
-                .build();
+        CommentResponseDto commentResponseDto = new CommentResponseDto("tttt", "ttttttt", 0, "");
 
-        assertThatThrownBy(() -> testService.validateData(commentDto))
+        assertThatThrownBy(() -> testService.validateData(commentResponseDto))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("The text is not correct!");
     }
 
     @Test
     void validateDataShouldThrowExceptionIfTextLengthIsGreaterThanOneHundredFifty() {
-        CommentDto commentDto = CommentDto.builder()
-                .title("tttt")
-                .text("tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt")
-                .build();
+        CommentResponseDto commentResponseDto = new CommentResponseDto("tttt", "tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt", 0, "");
 
-        assertThatThrownBy(() -> testService.validateData(commentDto))
+        assertThatThrownBy(() -> testService.validateData(commentResponseDto))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("The text is not correct!");
     }

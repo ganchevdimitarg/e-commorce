@@ -1,7 +1,7 @@
 package com.concordeu.catalog.service.category;
 
-import com.concordeu.catalog.MapStructMapper;
-import com.concordeu.catalog.dto.CategoryDto;
+import com.concordeu.client.catalog.category.CategoryResponseDto;
+import com.concordeu.catalog.mapper.MapStructMapper;
 import com.concordeu.catalog.dao.CategoryDao;
 import com.concordeu.catalog.domain.Category;
 import com.concordeu.catalog.domain.Product;
@@ -21,77 +21,85 @@ public class CategoryServiceImpl implements CategoryService {
 
     private final CategoryDao categoryDao;
     private final ProductDao productDao;
-    private final MapStructMapper mapStructMapper;
+    private final MapStructMapper mapper;
 
-    public CategoryDto createCategory(CategoryDto categoryDto) {
-        if (categoryDto.getName().isEmpty()) {
-            log.error("Category name is empty: " + categoryDto.getName());
-            throw new IllegalArgumentException("Category name is empty: " + categoryDto.getName());
+    public CategoryResponseDto createCategory(CategoryResponseDto categoryResponseDto) {
+        if (categoryResponseDto.name().isEmpty()) {
+            log.error("Category name is empty: " + categoryResponseDto.name());
+            throw new IllegalArgumentException("Category name is empty: " + categoryResponseDto.name());
         }
 
-        if (categoryDao.findByName(categoryDto.getName()).isPresent()) {
-            log.error("Category with the name: " + categoryDto.getName() + " already exist.");
-            throw new IllegalArgumentException("Category with the name: " + categoryDto.getName() + " already exist.");
+        if (categoryDao.findByName(categoryResponseDto.name()).isPresent()) {
+            log.error("Category with the name: " + categoryResponseDto.name() + " already exist.");
+            throw new IllegalArgumentException("Category with the name: " + categoryResponseDto.name() + " already exist.");
         }
 
-        Category category = categoryDao.saveAndFlush(Category.builder().name(categoryDto.getName()).build());
+        Category category = categoryDao.saveAndFlush(Category.builder().name(categoryResponseDto.name()).build());
 
-        return mapStructMapper.mapCategoryToDto(category);
+        return mapper.mapCategoryToCategoryResponseDto(category);
     }
 
     @Override
-    public CategoryDto getCategory(String categoryName) {
-        return mapStructMapper.mapCategoryToDto(categoryDao.findByName(categoryName)
-                .orElseThrow(() -> new IllegalArgumentException("No such category: " + categoryName)));
+    public CategoryResponseDto getCategory(String categoryName) {
+        Category category = categoryDao.findByName(categoryName)
+                .orElseThrow(() -> new IllegalArgumentException("No such category: " + categoryName));
+        return convertCategory(category);
     }
 
     @Override
-    public void deleteCategory(CategoryDto categoryDto) {
-        if (categoryDto.getName().isEmpty()) {
-            log.error("Category name is empty: " + categoryDto.getName());
-            throw new IllegalArgumentException("Category name is empty: " + categoryDto.getName());
+    public void deleteCategory(CategoryResponseDto categoryResponseDto) {
+        if (categoryResponseDto.name().isEmpty()) {
+            log.error("Category name is empty: " + categoryResponseDto.name());
+            throw new IllegalArgumentException("Category name is empty: " + categoryResponseDto.name());
         }
-        if (categoryDao.findByName(categoryDto.getName()).isEmpty()) {
-            log.error("No such category: " + categoryDto.getName());
-            throw new IllegalArgumentException("No such category: " + categoryDto.getName());
+        if (categoryDao.findByName(categoryResponseDto.name()).isEmpty()) {
+            log.error("No such category: " + categoryResponseDto.name());
+            throw new IllegalArgumentException("No such category: " + categoryResponseDto.name());
         }
 
-        categoryDao.deleteByName(categoryDto.getName());
+        categoryDao.deleteByName(categoryResponseDto.name());
     }
 
     @Override
     public void moveOneProduct(String categoryNameFrom, String categoryNameTo, String productName) {
-        CategoryDto categoryFrom = getCategory(categoryNameFrom);
-        CategoryDto categoryTo = getCategory(categoryNameTo);
+        CategoryResponseDto categoryFrom = getCategory(categoryNameFrom);
+        CategoryResponseDto categoryTo = getCategory(categoryNameTo);
 
-        Product product = categoryDao.getById(categoryFrom.getId())
+        Product product = categoryDao.getById(categoryFrom.id())
                 .getProducts()
                 .stream()
                 .filter(p -> p.getName().equals(productName))
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("No such product: " + productName));
 
-        productDao.changeCategory(product.getName(), categoryTo.getId());
+        productDao.changeCategory(product.getName(), categoryTo.id());
     }
 
     @Override
     public void moveAllProducts(String categoryNameFrom, String categoryNameTo) {
-        CategoryDto categoryFrom = getCategory(categoryNameFrom);
-        CategoryDto categoryTo = getCategory(categoryNameTo);
+        CategoryResponseDto categoryFrom = getCategory(categoryNameFrom);
+        CategoryResponseDto categoryTo = getCategory(categoryNameTo);
 
-        List<Product> category = categoryDao.getById(categoryFrom.getId()).getProducts();
+        List<Product> category = categoryDao.getById(categoryFrom.id()).getProducts();
         for (Product product : category) {
-            moveOneProduct(categoryFrom.getName(), categoryTo.getName(), product.getName());
+            moveOneProduct(categoryFrom.name(), categoryTo.name(), product.getName());
         }
     }
 
     @Override
-    public Page<CategoryDto> getCategoriesByPage(int page, int size) {
-        Page<CategoryDto> categories = categoryDao
+    public Page<CategoryResponseDto> getCategoriesByPage(int page, int size) {
+        Page<CategoryResponseDto> categories = categoryDao
                 .findAll(PageRequest.of(page, size))
-                .map(CategoryDto::convertCategory);
+                .map(c -> new CategoryResponseDto(c.getId(),c.getName()));
+
         log.info("Successful get categories: " + categories.getSize());
 
         return categories;
+    }
+
+    public CategoryResponseDto convertCategory(Category category) {
+        return new CategoryResponseDto(
+                category.getId(),
+                category.getName());
     }
 }

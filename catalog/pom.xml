@@ -27,6 +27,12 @@
 
     <dependencies>
         <dependency>
+            <groupId>com.concordeu</groupId>
+            <artifactId>client</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
@@ -37,6 +43,10 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
@@ -120,7 +130,7 @@
                 <configuration>
                     <driver>${database.driver}</driver>
                     <url>${database.url}</url>
-                    <authUser>${database.username}</authUser>
+                    <user>${database.username}</user>
                     <password>${database.password}</password>
                     <schemas>
                         <schema>catalog</schema>

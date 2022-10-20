@@ -1,11 +1,10 @@
 package com.concordeu.catalog.category;
 
-import com.concordeu.catalog.MapStructMapper;
+import com.concordeu.client.catalog.category.CategoryResponseDto;
+import com.concordeu.catalog.mapper.MapStructMapper;
 import com.concordeu.catalog.controller.CategoryController;
-import com.concordeu.catalog.dto.CategoryDto;
-import com.concordeu.catalog.dto.CategoryRequestDto;
+import com.concordeu.client.catalog.category.CategoryRequestDto;
 import com.concordeu.catalog.service.category.CategoryService;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,7 +36,7 @@ class CategoryControllerTest {
     @Test
     void createCategoryShouldCreateCategory() throws Exception {
         CategoryRequestDto requestDto = new CategoryRequestDto("pc");
-        when(mapper.mapCategoryRequestDtoToCategoryDto(requestDto)).thenReturn(CategoryDto.builder().name("pc").build());
+        when(mapper.mapCategoryRequestDtoToCategoryDto(requestDto)).thenReturn(new CategoryResponseDto("","pc"));
         mvc.perform(post("/api/v1/category/create-category")
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON)
@@ -49,13 +48,13 @@ class CategoryControllerTest {
                 )
                 .andExpect(status().isOk());
 
-        verify(categoryService).createCategory(any(CategoryDto.class));
+        verify(categoryService).createCategory(any(CategoryResponseDto.class));
     }
 
     @Test
     void deleteCategoryShouldDeleteProduct() throws Exception {
         CategoryRequestDto requestDto = new CategoryRequestDto("pc");
-        when(mapper.mapCategoryRequestDtoToCategoryDto(requestDto)).thenReturn(CategoryDto.builder().name("pc").build());
+        when(mapper.mapCategoryRequestDtoToCategoryDto(requestDto)).thenReturn(new CategoryResponseDto("","pc"));
         mvc.perform(delete("/api/v1/category/delete")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""

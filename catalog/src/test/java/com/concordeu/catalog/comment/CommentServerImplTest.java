@@ -1,11 +1,11 @@
 package com.concordeu.catalog.comment;
 
-import com.concordeu.catalog.MapStructMapper;
+import com.concordeu.client.catalog.comment.CommentResponseDto;
+import com.concordeu.catalog.mapper.MapStructMapper;
 import com.concordeu.catalog.dao.CommentDao;
 import com.concordeu.catalog.domain.Comment;
 import com.concordeu.catalog.domain.Product;
 import com.concordeu.catalog.dao.ProductDao;
-import com.concordeu.catalog.dto.CommentDto;
 import com.concordeu.catalog.service.comment.CommentService;
 import com.concordeu.catalog.service.comment.CommentServiceImpl;
 import com.concordeu.catalog.validator.CommentDataValidator;
@@ -51,17 +51,17 @@ class CommentServerImplTest {
 
     @Test
     void createCommentShouldCreateComment() {
-        CommentDto commentDto = CommentDto.builder().build();
-        when(validator.validateData(commentDto)).thenReturn(true);
+        CommentResponseDto commentResponseDto = new CommentResponseDto("", "", 0, "");
+        when(validator.validateData(commentResponseDto)).thenReturn(true);
 
         String productName = "aaa";
         Product product = Product.builder().name(productName).build();
         when(productDao.findByName(productName)).thenReturn(Optional.of(product));
 
         Comment comment = Comment.builder().build();
-        when(mapStructMapper.mapDtoToComment(commentDto)).thenReturn(comment);
+        when(mapStructMapper.mapCommentResponseDtoToComment(commentResponseDto)).thenReturn(comment);
 
-        testService.createComment(commentDto, productName);
+        testService.createComment(commentResponseDto, productName);
 
         ArgumentCaptor<Comment> argument = ArgumentCaptor.forClass(Comment.class);
         verify(commentDao).saveAndFlush(argument.capture());
@@ -73,11 +73,11 @@ class CommentServerImplTest {
 
     @Test
     void createCommentShouldThrowExceptionIfProductDoesNotExist() {
-        CommentDto commentDto = CommentDto.builder().build();
-        when(validator.validateData(commentDto)).thenReturn(true);
+        CommentResponseDto commentResponseDto = new CommentResponseDto("", "", 0, "");
+        when(validator.validateData(commentResponseDto)).thenReturn(true);
 
         String productName = "aaa";
-        assertThatThrownBy(() -> testService.createComment(commentDto, productName))
+        assertThatThrownBy(() -> testService.createComment(commentResponseDto, productName))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("No such product: " + productName);
 

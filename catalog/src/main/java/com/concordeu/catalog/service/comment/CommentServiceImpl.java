@@ -1,8 +1,8 @@
 package com.concordeu.catalog.service.comment;
 
-import com.concordeu.catalog.MapStructMapper;
+import com.concordeu.client.catalog.comment.CommentResponseDto;
+import com.concordeu.catalog.mapper.MapStructMapper;
 import com.concordeu.catalog.validator.CommentDataValidator;
-import com.concordeu.catalog.dto.CommentDto;
 import com.concordeu.catalog.dao.CommentDao;
 import com.concordeu.catalog.domain.Comment;
 import com.concordeu.catalog.domain.Product;
@@ -23,11 +23,11 @@ public class CommentServiceImpl implements CommentService {
     private final CommentDao commentDao;
     private final ProductDao productDao;
     private final CommentDataValidator commentDataValidator;
-    private final MapStructMapper mapStructMapper;
+    private final MapStructMapper mapper;
 
     @Override
-    public CommentDto createComment(CommentDto commentDto, String productName) {
-        commentDataValidator.validateData(commentDto);
+    public CommentResponseDto createComment(CommentResponseDto commentResponseDto, String productName) {
+        commentDataValidator.validateData(commentResponseDto);
 
         Product product = productDao
                 .findByName(productName)
@@ -36,17 +36,17 @@ public class CommentServiceImpl implements CommentService {
                     return new IllegalArgumentException("No such product: " + productName);
                 });
 
-        Comment comment = mapStructMapper.mapDtoToComment(commentDto);
+        Comment comment = mapper.mapCommentResponseDtoToComment(commentResponseDto);
         comment.setProduct(product);
 
         commentDao.saveAndFlush(comment);
         log.info("The comment " + comment.getTitle() + " is save successful");
 
-        return mapStructMapper.mapCommentToDto(comment);
+        return mapper.mapCommentToCommentResponseDto(comment);
     }
 
     @Override
-    public Page<CommentDto> findAllByProductNameByPage(String productName, int page, int size) {
+    public Page<CommentResponseDto> findAllByProductNameByPage(String productName, int page, int size) {
         if (productName.isEmpty()) {
             log.error("No such product: " + productName);
             throw new IllegalArgumentException("No such product: " + productName);
@@ -57,9 +57,9 @@ public class CommentServiceImpl implements CommentService {
             throw new IllegalArgumentException("No such product: " + productName);
         });
 
-        Page<CommentDto> comments = commentDao
+        Page<CommentResponseDto> comments = commentDao
                 .findAllByProductIdByPage(product.getId(), PageRequest.of(page, size))
-                .map(CommentDto::convertComment);
+                .map(this::convertComment);
 
         log.info("Successful get comments by product: " + productName);
 
@@ -67,14 +67,14 @@ public class CommentServiceImpl implements CommentService {
     }
 
     @Override
-    public Page<CommentDto> findAllByAuthorByPage(String author, int page, int size) {
+    public Page<CommentResponseDto> findAllByAuthorByPage(String author, int page, int size) {
         if (author.isEmpty()) {
             log.error("No such author: " + author);
             throw new IllegalArgumentException("No such author: " + author);
         }
-        Page<CommentDto> comments = commentDao
+        Page<CommentResponseDto> comments = commentDao
                 .findAllByAuthorByPage(author, PageRequest.of(page, size))
-                .map(CommentDto::convertComment);
+                .map(this::convertComment);
         log.info("Successful get comments by author: " + author);
 
         return comments;
@@ -91,6 +91,13 @@ public class CommentServiceImpl implements CommentService {
         return sum / comments.size();
     }
 
+    public CommentResponseDto convertComment(Comment comment) {
+        return new CommentResponseDto(
+                comment.getTitle(),
+                comment.getText(),
+                comment.getStar(),
+                comment.getAuthor());
+    }
 
 }
 
