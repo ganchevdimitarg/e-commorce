@@ -10,4 +10,6 @@ public interface AuthService {
     void updateUser(String email, AuthUserRequestDto requestDto);
 
     void deleteUser(String email);
+
+    AuthUserDto getUserByEmail(String email);
 }

@@ -74,9 +74,18 @@ public class AuthServiceImpl implements AuthService{
         user.setLastName(requestDto.lastName());
         user.setEmail(requestDto.email());
         user.setPhoneNumber(requestDto.phoneNumber());
-        user.getAddress().setCity(requestDto.city());
-        user.getAddress().setStreet(requestDto.street());
-        user.getAddress().setPostCode(requestDto.postCode());
+        if (user.getAddress() == null) {
+            Address address = Address.builder()
+                    .city(requestDto.city())
+                    .street(requestDto.street())
+                    .postCode(requestDto.postCode())
+                    .build();
+            user.setAddress(address);
+        } else {
+            user.getAddress().setCity(requestDto.city());
+            user.getAddress().setStreet(requestDto.street());
+            user.getAddress().setPostCode(requestDto.postCode());
+        }
 
         authUserDao.save(user);
         log.info("User with email {} is update", user.getEmail());
@@ -89,6 +98,15 @@ public class AuthServiceImpl implements AuthService{
                 .orElseThrow(() -> new UsernameNotFoundException("User does not exist"));
 
         authUserDao.delete(user);
+    }
+
+    @Override
+    public AuthUserDto getUserByEmail(String email) {
+        Assert.notNull(email, "Email is empty");
+        AuthUser user = authUserDao.findByEmail(email)
+                .orElseThrow(()-> new UsernameNotFoundException("User does not exist"));
+        user.setPassword("");
+        return mapper.mapAuthUserToAuthUserDto(user);
     }
 
     private AuthUser createUserWithEmail(String email) {
