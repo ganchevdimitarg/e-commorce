@@ -1,5 +1,6 @@
 package com.concordeu.auth.controller;
 
+import com.concordeu.auth.annotation.ValidationInputRequest;
 import com.concordeu.auth.dto.AuthUserDto;
 import com.concordeu.auth.dto.AuthUserRequestDto;
 import com.concordeu.auth.service.auth.AuthService;
@@ -20,11 +21,13 @@ public class UserController {
     }
 
     @PostMapping("/register")
+    @ValidationInputRequest
     public AuthUserDto registerUser(@RequestBody AuthUserRequestDto requestDto) {
         return authService.createUser(requestDto);
     }
 
     @PutMapping("/update/{email}")
+    @ValidationInputRequest
     public void updateUser(@RequestBody AuthUserRequestDto requestDto, @PathVariable String email) {
         authService.updateUser(email, requestDto);
     }

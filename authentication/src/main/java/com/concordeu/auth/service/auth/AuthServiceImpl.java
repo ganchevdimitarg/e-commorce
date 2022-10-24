@@ -5,7 +5,9 @@ import com.concordeu.auth.domain.Address;
 import com.concordeu.auth.domain.AuthUser;
 import com.concordeu.auth.dto.AuthUserDto;
 import com.concordeu.auth.dto.AuthUserRequestDto;
+import com.concordeu.auth.excaption.InvalidRequestDataException;
 import com.concordeu.auth.mapper.MapStructMapper;
+import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -28,7 +30,9 @@ public class AuthServiceImpl implements AuthService{
 
     @Override
     public AuthUserDto createUser(AuthUserRequestDto model) {
-        Assert.notNull(model, "Request is empty");
+        if (authUserDao.findByEmail(model.email()).isPresent()) {
+            throw new InvalidRequestDataException("User already exist: " + model.email());
+        }
         Address address = Address.builder()
                 .city(model.city())
                 .street(model.street())
@@ -49,7 +53,6 @@ public class AuthServiceImpl implements AuthService{
 
         AuthUser user = authUserDao.insert(authUser);
         log.info("The user was successfully create");
-
         return mapper.mapAuthUserToAuthUserDto(user);
     }
 
@@ -64,7 +67,6 @@ public class AuthServiceImpl implements AuthService{
     @Override
     public void updateUser(String email, AuthUserRequestDto requestDto) {
         Assert.notNull(email, "Email is empty");
-        Assert.notNull(requestDto, "Request is empty");
         AuthUser user = authUserDao.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User does not exist"));
 
