@@ -20,14 +20,14 @@ class CommentDataValidatorTest {
 
     @Test
     void validateDataShouldReturnTrue() {
-        CommentResponseDto commentResponseDto = new CommentResponseDto("tttt", "ttttttttttt", 0, "");
+        CommentResponseDto commentResponseDto = new CommentResponseDto("tttt", "ttttttttttt", 0, "", null);
 
         assertThat(testService.validateData(commentResponseDto)).isTrue();
     }
 
     @Test
     void validateDataShouldThrowExceptionIfTitleIsEmpty() {
-        CommentResponseDto commentResponseDto = new CommentResponseDto("", "ttttttttttt", 0, "");
+        CommentResponseDto commentResponseDto = new CommentResponseDto("", "ttttttttttt", 0, "", null);
 
         assertThatThrownBy(() -> testService.validateData(commentResponseDto))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -36,7 +36,7 @@ class CommentDataValidatorTest {
 
     @Test
     void validateDataShouldThrowExceptionIfTitleLengthIsLessThanThree() {
-        CommentResponseDto commentResponseDto = new CommentResponseDto("tt", "ttttttttttt", 0, "");
+        CommentResponseDto commentResponseDto = new CommentResponseDto("tt", "ttttttttttt", 0, "", null);
 
         assertThatThrownBy(() -> testService.validateData(commentResponseDto))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -45,7 +45,7 @@ class CommentDataValidatorTest {
 
     @Test
     void validateDataShouldThrowExceptionIfTitleLengthIsGreaterThanFifteen() {
-        CommentResponseDto commentResponseDto = new CommentResponseDto("tttttttttttttttttttttttttttttttttttt", "ttttttttttt", 0, "");
+        CommentResponseDto commentResponseDto = new CommentResponseDto("tttttttttttttttttttttttttttttttttttt", "ttttttttttt", 0, "", null);
 
         assertThatThrownBy(() -> testService.validateData(commentResponseDto))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -54,7 +54,7 @@ class CommentDataValidatorTest {
 
     @Test
     void validateDataShouldThrowExceptionIfTextLengthIsLessThanTen() {
-        CommentResponseDto commentResponseDto = new CommentResponseDto("tttt", "ttttttt", 0, "");
+        CommentResponseDto commentResponseDto = new CommentResponseDto("tttt", "ttttttt", 0, "", null);
 
         assertThatThrownBy(() -> testService.validateData(commentResponseDto))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -63,7 +63,9 @@ class CommentDataValidatorTest {
 
     @Test
     void validateDataShouldThrowExceptionIfTextLengthIsGreaterThanOneHundredFifty() {
-        CommentResponseDto commentResponseDto = new CommentResponseDto("tttt", "tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt", 0, "");
+        CommentResponseDto commentResponseDto =
+                new CommentResponseDto("tttt", "tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt",
+                        0, "", null);
 
         assertThatThrownBy(() -> testService.validateData(commentResponseDto))
                 .isInstanceOf(IllegalArgumentException.class)

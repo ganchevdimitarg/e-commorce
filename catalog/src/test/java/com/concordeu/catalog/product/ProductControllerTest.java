@@ -20,6 +20,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -45,7 +46,8 @@ class ProductControllerTest {
 
     @BeforeEach
     void setUp() {
-        productResponseDto = new ProductResponseDto("aaaa", "aaaaaaaaaaaaaaaaa", BigDecimal.ONE, false, "");
+        productResponseDto = new ProductResponseDto("","aaaa", "aaaaaaaaaaaaaaaaa", BigDecimal.ONE,
+                false, "", null, new ArrayList<>());
     }
 
     @Test

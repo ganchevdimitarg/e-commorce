@@ -1,7 +1,7 @@
 package com.concordeu.auth.config.security;
 
-import com.concordeu.auth.service.securiy.SecurityService;
 import com.concordeu.auth.security.OAuth2UserSuccessHandler;
+import com.concordeu.auth.service.securiy.SecurityService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,6 +14,8 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.concurrent.TimeUnit;
+
+import static org.springframework.security.config.http.SessionCreationPolicy.STATELESS;
 
 @Configuration
 @EnableWebSecurity
@@ -34,9 +36,9 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
                 .authenticated()
                 .and()
                 .formLogin()
-                    /* .loginPage("/login")
-                     .loginProcessingUrl("/login/authenticate")*/
-//                     .defaultSuccessUrl("/home", true)
+                     /*.loginPage("/login")
+                     .loginProcessingUrl("/login/authenticate")
+                     .defaultSuccessUrl("/home", true)*/
                 .and()
                 .rememberMe()
                     .tokenValiditySeconds((int) TimeUnit.DAYS.toSeconds(20))

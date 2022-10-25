@@ -40,7 +40,7 @@ class CommentControllerTest {
     @Test
     void createCommentShouldCreateCommentAndReturnIt() throws Exception {
         when(mapper.mapCommentRequestDtoToCommentResponseDto(any(CommentRequestDto.class)))
-                .thenReturn(new CommentResponseDto("","",0,""));
+                .thenReturn(new CommentResponseDto("","",0,"", null));
         when(validator.validateData(any())).thenReturn(true);
 
         mvc.perform(post("/api/v1/comment/create-comment/{productName}", "mouse")
