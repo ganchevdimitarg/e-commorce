@@ -3,7 +3,6 @@ package com.concordeu.auth.service.catalog;
 import com.concordeu.client.catalog.product.ProductRequestDto;
 import com.concordeu.client.catalog.product.ProductResponseDto;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 
 public interface ProductService {
     ProductResponseDto createProduct(ProductRequestDto requestDto, String categoryName);

@@ -15,6 +15,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.ArrayList;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -36,7 +38,7 @@ class CategoryControllerTest {
     @Test
     void createCategoryShouldCreateCategory() throws Exception {
         CategoryRequestDto requestDto = new CategoryRequestDto("pc");
-        when(mapper.mapCategoryRequestDtoToCategoryDto(requestDto)).thenReturn(new CategoryResponseDto("","pc"));
+        when(mapper.mapCategoryRequestDtoToCategoryDto(requestDto)).thenReturn(new CategoryResponseDto("","pc",new ArrayList<>()));
         mvc.perform(post("/api/v1/category/create-category")
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON)
@@ -54,7 +56,7 @@ class CategoryControllerTest {
     @Test
     void deleteCategoryShouldDeleteProduct() throws Exception {
         CategoryRequestDto requestDto = new CategoryRequestDto("pc");
-        when(mapper.mapCategoryRequestDtoToCategoryDto(requestDto)).thenReturn(new CategoryResponseDto("","pc"));
+        when(mapper.mapCategoryRequestDtoToCategoryDto(requestDto)).thenReturn(new CategoryResponseDto("","pc", new ArrayList<>()));
         mvc.perform(delete("/api/v1/category/delete")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""

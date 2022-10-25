@@ -22,6 +22,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -49,8 +50,8 @@ class ProductServiceImplTest {
     @BeforeEach
     void setup() {
         testService = new ProductServiceImpl(productDao, categoryDao, validator, mapStructMapper);
-        productResponseDto = new ProductResponseDto("mouse", "WiFi mouse USB",
-                BigDecimal.ONE, true, "");
+        productResponseDto = new ProductResponseDto("","mouse", "WiFi mouse USB",
+                BigDecimal.ONE, true, "", null, new ArrayList<>());
     }
 
     @Test
@@ -154,7 +155,7 @@ class ProductServiceImplTest {
 
     @Test
     void updateProductShouldUpdateDataIfProductExist() {
-        ProductResponseDto updateProduct = new ProductResponseDto("mouse", "aaaaaaaaaaa", BigDecimal.ONE, false, "");
+        ProductResponseDto updateProduct = new ProductResponseDto("","mouse", "aaaaaaaaaaa", BigDecimal.ONE, false, "", null, new ArrayList<>());
         when(validator.validateData(updateProduct, productResponseDto.name())).thenReturn(true);
         when(productDao.findByName(productResponseDto.name())).thenReturn(Optional.of(Product.builder().name(productResponseDto.name()).build()));
         testService.updateProduct(updateProduct, productResponseDto.name());

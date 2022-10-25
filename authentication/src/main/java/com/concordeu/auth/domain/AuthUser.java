@@ -20,6 +20,7 @@ import java.util.Set;
 public class AuthUser {
     @Id
     private String id;
+    @NotBlank
     private String username;
     @Size(min = 6, max = 12, message = "Password must be between 6 and 12 characters!")
     @NotBlank(message = "Password can not be empty!")
@@ -34,14 +35,14 @@ public class AuthUser {
     @Size(min = 3, max = 12, message = "First name must be between 3 and 12 characters!")
     @NotBlank(message = "First name can not be empty!")
     @Pattern(regexp = "^([A-Z])(\\p{L})(?=\\S+$).{3,12}$",
-            message = "First name must contains uppercase first letter and then lowercase letters!")
-    @Pattern(regexp = "\\D*", message = "First name cannot contains digit/digits!")
+            message = "First name must contain uppercase first letter and then lowercase letters!")
+    @Pattern(regexp = "\\D*", message = "First name cannot contain digit/digits!")
     private String firstName;
     @Size(min = 3, max = 12, message = "Last name must be between 3 and 12 characters!")
     @NotBlank(message = "Last name can not be empty!")
     @Pattern(regexp = "^([A-Z])(\\p{L})(?=\\S+$).{3,12}$",
-            message = "Last name must contains uppercase first letter and then lowercase letters!")
-    @Pattern(regexp = "\\D*", message = "Last name cannot contains digit/digits!")
+            message = "Last name must contain uppercase first letter and then lowercase letters!")
+    @Pattern(regexp = "\\D*", message = "Last name cannot contain digit/digits!")
     private String lastName;
     private Address address;
     @Indexed(unique = true)
@@ -52,7 +53,7 @@ public class AuthUser {
     @Size(min = 9, max = 10, message = "Phone number must be between 9 and 10 characters!")
     @NotBlank(message = "Phone number can not be empty!")
     @Pattern(regexp = "^([0-9])*$",
-            message = "Phone number must contains only digits!")
+            message = "Phone number must contain only digits!")
     private String phoneNumber;
     private LocalDateTime created;
 }
