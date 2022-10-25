@@ -58,7 +58,7 @@ public class AuthServiceImpl implements AuthService{
 
     @Override
     public AuthUserDto getOrCreateUser(String email) {
-        Assert.notNull(email, "Email is empty!");
+        Assert.hasLength(email, "Email is empty!");
         Optional<AuthUser> user = authUserDao.findByEmail(email);
 
         return mapper.mapAuthUserToAuthUserDto(user.orElseGet(() -> createUserWithEmail(email)));
@@ -66,7 +66,7 @@ public class AuthServiceImpl implements AuthService{
 
     @Override
     public void updateUser(String email, AuthUserRequestDto requestDto) {
-        Assert.notNull(email, "Email is empty");
+        Assert.hasLength(email, "Email is empty");
         AuthUser user = authUserDao.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User does not exist"));
 
@@ -95,7 +95,7 @@ public class AuthServiceImpl implements AuthService{
 
     @Override
     public void deleteUser(String email) {
-        Assert.notNull(email, "Email is empty");
+        Assert.hasLength(email, "Email is empty");
         AuthUser user = authUserDao.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User does not exist"));
 
@@ -104,7 +104,7 @@ public class AuthServiceImpl implements AuthService{
 
     @Override
     public AuthUserDto getUserByEmail(String email) {
-        Assert.notNull(email, "Email is empty");
+        Assert.hasLength(email, "Email is empty");
         AuthUser user = authUserDao.findByEmail(email)
                 .orElseThrow(()-> new UsernameNotFoundException("User does not exist"));
         user.setPassword("");

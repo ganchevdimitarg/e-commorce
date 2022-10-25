@@ -51,7 +51,7 @@ class CommentServerImplTest {
 
     @Test
     void createCommentShouldCreateComment() {
-        CommentResponseDto commentResponseDto = new CommentResponseDto("", "", 0, "");
+        CommentResponseDto commentResponseDto = new CommentResponseDto("", "", 0, "", null);
         when(validator.validateData(commentResponseDto)).thenReturn(true);
 
         String productName = "aaa";
@@ -73,7 +73,7 @@ class CommentServerImplTest {
 
     @Test
     void createCommentShouldThrowExceptionIfProductDoesNotExist() {
-        CommentResponseDto commentResponseDto = new CommentResponseDto("", "", 0, "");
+        CommentResponseDto commentResponseDto = new CommentResponseDto("", "", 0, "", null);
         when(validator.validateData(commentResponseDto)).thenReturn(true);
 
         String productName = "aaa";

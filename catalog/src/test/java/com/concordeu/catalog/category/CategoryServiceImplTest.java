@@ -19,6 +19,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -48,7 +49,7 @@ class CategoryServiceImplTest {
     void setUp() {
         testService = new CategoryServiceImpl(categoryDao, productDao, mapStructMapper);
         categoryName = "bbbbb";
-        categoryResponseDto = new CategoryResponseDto("1", categoryName);
+        categoryResponseDto = new CategoryResponseDto("1", categoryName, new ArrayList<>());
     }
 
     @Test
@@ -68,7 +69,7 @@ class CategoryServiceImplTest {
 
     @Test
     void createCategoryShouldThrowExceptionIfNameIsEmpty() {
-        categoryResponseDto = new CategoryResponseDto("1", "");
+        categoryResponseDto = new CategoryResponseDto("1", "", new ArrayList<>());
         assertThatThrownBy(() -> testService.createCategory(categoryResponseDto))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Category name is empty: ");
@@ -115,10 +116,8 @@ class CategoryServiceImplTest {
         Category categoryTo = Category.builder().name("acc").build();
 
         when(categoryDao.findByName(categoryFrom.getName())).thenReturn(Optional.of(categoryFrom));
-        when(mapStructMapper.mapCategoryToCategoryResponseDto(categoryFrom)).thenReturn(categoryResponseDto);
 
         when(categoryDao.findByName(categoryTo.getName())).thenReturn(Optional.of(categoryTo));
-        when(mapStructMapper.mapCategoryToCategoryResponseDto(categoryTo)).thenReturn(new CategoryResponseDto("2", "dasdas"));
 
         when(categoryDao.getById(any())).thenReturn(categoryFrom);
 
@@ -133,10 +132,8 @@ class CategoryServiceImplTest {
         Category categoryTo = Category.builder().name("acc").build();
 
         when(categoryDao.findByName(categoryFrom.getName())).thenReturn(Optional.of(categoryFrom));
-        when(mapStructMapper.mapCategoryToCategoryResponseDto(categoryFrom)).thenReturn(categoryResponseDto);
 
         when(categoryDao.findByName(categoryTo.getName())).thenReturn(Optional.of(categoryTo));
-        when(mapStructMapper.mapCategoryToCategoryResponseDto(categoryTo)).thenReturn(new CategoryResponseDto("2", "dasdas"));
 
         when(categoryDao.getById(any())).thenReturn(categoryFrom);
 
