@@ -34,10 +34,10 @@ public class ValidateRequestImpl implements ValidateRequest {
                 "|^((\\(\\d{3}\\))|\\d{3})[- .]?\\d{3}[- .]?\\d{4}$" +
                 "|^(\\+\\d{1,3}( )?)?((\\(\\d{3}\\))|\\d{3})[- .]?\\d{3}[- .]?\\d{4}$";
 
-        if (isLengthNotValid(phoneNumber, 9, 10) ||
+        if (isLengthNotValid(phoneNumber, 9, 19) ||
                 isNotMatches(phoneNumber, regexPatternPhoneNumber)) {
             throw new InvalidRequestDataException(
-                    String.format("Phone number is not correct: %s. For example: 2055550125", phoneNumber));
+                    String.format("Phone number is not correct: %s. For example: 20555501252, 202 555 0125, 202.555.0125, 202-555-0125, (202)5550125, (202) 555-0125 or (202)-555-0125, +111 (202) 555-0125", phoneNumber));
         }
         return true;
     }
@@ -54,7 +54,7 @@ public class ValidateRequestImpl implements ValidateRequest {
     }
 
     private boolean isValidPostCode(String postCode) {
-        if (postCode.isEmpty()) {
+        if (postCode.isBlank()) {
             throw new InvalidRequestDataException(
                     String.format("Post code is not correct: %s. For example: 9001", postCode));
         }
@@ -62,7 +62,7 @@ public class ValidateRequestImpl implements ValidateRequest {
     }
 
     private boolean isValidStreet(String street) {
-        if (street.isEmpty()) {
+        if (street.isBlank()) {
             throw new InvalidRequestDataException(
                     String.format("Street is not correct: %s. For example: Katya Paskaleva", street));
         }
@@ -70,7 +70,7 @@ public class ValidateRequestImpl implements ValidateRequest {
     }
 
     private boolean isValidCity(String city) {
-        if (city.isEmpty()) {
+        if (city.isBlank()) {
             throw new InvalidRequestDataException(
                     String.format("City is not correct: %s. For example: Varna", city));
         }
@@ -126,7 +126,7 @@ public class ValidateRequestImpl implements ValidateRequest {
     }
 
     private boolean isValidUsername(String username) {
-        if (username.isEmpty()) {
+        if (username.isBlank()) {
             throw new InvalidRequestDataException(
                     String.format("Username is not correct: %s. For example: ivanIvanov", username));
         }
