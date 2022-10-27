@@ -12,6 +12,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.AuthenticationEntryPoint;
 
 import java.util.concurrent.TimeUnit;
 
@@ -36,18 +37,18 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
                 .authenticated()
                 .and()
                 .formLogin()
-                     /*.loginPage("/login")
-                     .loginProcessingUrl("/login/authenticate")
-                     .defaultSuccessUrl("/home", true)*/
+                /*.loginPage("/login")
+                .loginProcessingUrl("/login/authenticate")
+                .defaultSuccessUrl("/home", true)*/
                 .and()
                 .rememberMe()
-                    .tokenValiditySeconds((int) TimeUnit.DAYS.toSeconds(20))
+                .tokenValiditySeconds((int) TimeUnit.DAYS.toSeconds(20))
                 .and()
                 .logout()
-                    .clearAuthentication(true)
-                    .invalidateHttpSession(true)
-                    .deleteCookies("JSESSIONID", "remember-me")
-                    .logoutSuccessUrl("/login?logout")
+                .clearAuthentication(true)
+                .invalidateHttpSession(true)
+                .deleteCookies("JSESSIONID", "remember-me")
+                .logoutSuccessUrl("/login?logout")
                 .and()
                 .oauth2Login()
 //                .loginPage("/login")
