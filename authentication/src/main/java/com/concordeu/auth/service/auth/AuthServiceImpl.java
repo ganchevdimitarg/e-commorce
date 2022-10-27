@@ -7,7 +7,6 @@ import com.concordeu.auth.dto.AuthUserDto;
 import com.concordeu.auth.dto.AuthUserRequestDto;
 import com.concordeu.auth.excaption.InvalidRequestDataException;
 import com.concordeu.auth.mapper.MapStructMapper;
-import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
