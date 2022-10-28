@@ -8,6 +8,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+
 @RestController
 @RequestMapping("/api/v1/profile")
 @RequiredArgsConstructor
@@ -28,7 +32,8 @@ public class UserController {
 
     @PutMapping("/update/{email}")
     @ValidationInputRequest
-    public void updateUser(@RequestBody AuthUserRequestDto requestDto, @PathVariable String email) {
+    public void updateUser(@RequestBody AuthUserRequestDto requestDto,
+                           @PathVariable String email) {
         authService.updateUser(email, requestDto);
     }
 
@@ -37,4 +42,9 @@ public class UserController {
         authService.deleteUser(email);
     }
 
+    @GetMapping("/refresh-token")
+    public void refreshToken(HttpServletRequest request,
+                             HttpServletResponse response) throws IOException {
+        authService.refreshToken(request, response);
+    }
 }
