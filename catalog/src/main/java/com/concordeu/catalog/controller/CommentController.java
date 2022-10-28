@@ -11,7 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/v1/comment")
+@RequestMapping("/api/v1/catalog/comment")
 @RequiredArgsConstructor
 @Slf4j
 public class CommentController {

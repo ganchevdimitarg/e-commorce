@@ -2,13 +2,10 @@ package com.concordeu.client.catalog.product;
 
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 
-
-@FeignClient(name = "product", url = "http://localhost:8081/api/v1/product")
+@FeignClient(name = "product", url = "http://localhost:8081/api/v1/catalog/product")
 public interface ProductClient {
 
     @PostMapping("/create-product/{categoryName}")
