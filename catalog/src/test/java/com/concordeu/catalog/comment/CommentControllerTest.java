@@ -43,7 +43,7 @@ class CommentControllerTest {
                 .thenReturn(new CommentResponseDto("","",0,"", null));
         when(validator.validateData(any())).thenReturn(true);
 
-        mvc.perform(post("/api/v1/comment/create-comment/{productName}", "mouse")
+        mvc.perform(post("/api/v1/catalog/comment/create-comment/{productName}", "mouse")
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON)
                 .content("""
@@ -59,21 +59,21 @@ class CommentControllerTest {
 
     @Test
     void findAllByProductNameShouldReturnAllProductComments() throws Exception {
-        mvc.perform(get("/api/v1/comment/get-comments-product-name/{productName}?page=1&pageSize=5", "productName")
+        mvc.perform(get("/api/v1/catalog/comment/get-comments-product-name/{productName}?page=1&pageSize=5", "productName")
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
     }
 
     @Test
     void findAllByAuthorShouldReturnAllAuthorComments() throws Exception {
-        mvc.perform(get("/api/v1/comment/get-comments-author/{author}?page=1&pageSize=5", "author")
+        mvc.perform(get("/api/v1/catalog/comment/get-comments-author/{author}?page=1&pageSize=5", "author")
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
     }
 
     @Test
     void getAvgStars() throws Exception {
-        mvc.perform(get("/api/v1/comment/get-avg-stars/{productName}", "productName")
+        mvc.perform(get("/api/v1/catalog/comment/get-avg-stars/{productName}", "productName")
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
     }

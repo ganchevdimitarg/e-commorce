@@ -54,7 +54,7 @@ class ProductControllerTest {
     void createProductShouldCreateProduct() throws Exception {
         when(mapper.mapProductRequestDtoToProductResponseDto(any(ProductRequestDto.class))).thenReturn(productResponseDto);
 
-        mvc.perform(post("/api/v1/product/create-product/{categoryName}", "PC")
+        mvc.perform(post("/api/v1/catalog/product/create-product/{categoryName}", "PC")
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON)
                         .content("""
@@ -80,7 +80,7 @@ class ProductControllerTest {
 
         given(productService.getProductsByPage(1, 5)).willReturn(page);
 
-        mvc.perform(get("/api/v1/product/get-products?page=1&pageSize=5")
+        mvc.perform(get("/api/v1/catalog/product/get-products?page=1&pageSize=5")
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
     }
@@ -93,7 +93,7 @@ class ProductControllerTest {
 
         given(productService.getProductsByCategoryByPage(1, 5, "pc")).willReturn(page);
 
-        mvc.perform(get("/api/v1/product/get-products/{category}?page=1&pageSize=5&categoryName=pc", "pc")
+        mvc.perform(get("/api/v1/catalog/product/get-products/{category}?page=1&pageSize=5&categoryName=pc", "pc")
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
     }
@@ -102,7 +102,7 @@ class ProductControllerTest {
     void updateProductShouldUpdateProduct() throws Exception {
         when(mapper.mapProductRequestDtoToProductResponseDto(any(ProductRequestDto.class))).thenReturn(productResponseDto);
 
-        mvc.perform(put("/api/v1/product/update-product/{productName}", "mouse")
+        mvc.perform(put("/api/v1/catalog/product/update-product/{productName}", "mouse")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -120,7 +120,7 @@ class ProductControllerTest {
 
     @Test
     void deleteProductShouldDeleteProduct() throws Exception {
-        mvc.perform(delete("/api/v1/product/delete/{productName}", "mouse"))
+        mvc.perform(delete("/api/v1/catalog/product/delete/{productName}", "mouse"))
                 .andExpect(status().isOk());
 
         verify(productService).deleteProduct(any());

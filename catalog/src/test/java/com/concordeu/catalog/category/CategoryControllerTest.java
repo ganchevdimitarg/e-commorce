@@ -39,7 +39,7 @@ class CategoryControllerTest {
     void createCategoryShouldCreateCategory() throws Exception {
         CategoryRequestDto requestDto = new CategoryRequestDto("pc");
         when(mapper.mapCategoryRequestDtoToCategoryDto(requestDto)).thenReturn(new CategoryResponseDto("","pc",new ArrayList<>()));
-        mvc.perform(post("/api/v1/category/create-category")
+        mvc.perform(post("/api/v1/catalog/category/create-category")
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON)
                         .content("""
@@ -57,7 +57,7 @@ class CategoryControllerTest {
     void deleteCategoryShouldDeleteProduct() throws Exception {
         CategoryRequestDto requestDto = new CategoryRequestDto("pc");
         when(mapper.mapCategoryRequestDtoToCategoryDto(requestDto)).thenReturn(new CategoryResponseDto("","pc", new ArrayList<>()));
-        mvc.perform(delete("/api/v1/category/delete")
+        mvc.perform(delete("/api/v1/catalog/category/delete")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                     {
@@ -71,7 +71,7 @@ class CategoryControllerTest {
 
     @Test
     void moveAllProductsShouldMoveOneProductFromOneCategoryToAnotherCategory() throws Exception {
-        mvc.perform(post("/api/v1/category/move-one-product?categoryNameFrom=pc&categoryNameTo=acc&productName=mouse")
+        mvc.perform(post("/api/v1/catalog/category/move-one-product?categoryNameFrom=pc&categoryNameTo=acc&productName=mouse")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
 
@@ -80,7 +80,7 @@ class CategoryControllerTest {
 
     @Test
     void moveOneProductShouldMoveAllProductsFromOneCategoryToAnotherCategory() throws Exception {
-        mvc.perform(post("/api/v1/category/move-all-products?categoryNameFrom=pc&categoryNameTo=acc")
+        mvc.perform(post("/api/v1/catalog/category/move-all-products?categoryNameFrom=pc&categoryNameTo=acc")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
 
