@@ -23,6 +23,7 @@
         <module>authentication</module>
         <module>eureka-server</module>
         <module>client</module>
+        <module>gateway</module>
     </modules>
 
     <properties>

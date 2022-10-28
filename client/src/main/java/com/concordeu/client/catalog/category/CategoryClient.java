@@ -4,7 +4,7 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
-@FeignClient(value = "category", url = "http://localhost:8081/api/v1/category")
+@FeignClient(value = "category", url = "http://localhost:8081/api/v1/catalog/category")
 public interface CategoryClient {
 
     @PostMapping("/create-category")
