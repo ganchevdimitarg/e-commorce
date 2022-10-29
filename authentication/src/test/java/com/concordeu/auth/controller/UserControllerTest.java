@@ -1,10 +1,13 @@
 package com.concordeu.auth.controller;
 
+import com.concordeu.auth.config.jwt.JwtConfiguration;
+import com.concordeu.auth.config.jwt.JwtSecretKey;
 import com.concordeu.auth.dto.AuthUserDto;
 import com.concordeu.auth.dto.AuthUserRequestDto;
 import com.concordeu.auth.security.OAuth2UserSuccessHandler;
 import com.concordeu.auth.service.auth.AuthService;
 import com.concordeu.auth.service.securiy.SecurityService;
+import com.concordeu.auth.util.JwtTokenUtil;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -43,6 +46,13 @@ class UserControllerTest {
     OAuth2UserSuccessHandler oAuth2UserSuccessHandler;
     @MockBean
     ClientRegistrationRepository clientRegistrationRepository;
+    @MockBean
+    JwtSecretKey jwtSecretKey;
+    @MockBean
+    JwtTokenUtil jwtTokenUtil;
+    @MockBean
+    JwtConfiguration jwtConfiguration;
+
 
     @Test
     @WithMockUser(username = "user", password = "user")
