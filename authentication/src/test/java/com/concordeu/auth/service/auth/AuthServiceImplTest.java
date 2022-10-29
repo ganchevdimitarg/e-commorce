@@ -38,7 +38,7 @@ class AuthServiceImplTest {
     AuthUserRequestDto model;
     @BeforeEach
     void setUp() {
-        testService = new AuthServiceImpl(authUserDao, passwordEncoder, mapper);
+        testService = new AuthServiceImpl(authUserDao, passwordEncoder, mapper, null, null, null);
         model = new AuthUserRequestDto("ivanIvanov", "Abc123!@#",
                 "Ivan", "Ivanov", "example@gmail.com",
                 "0888888888", "Varna", "Katay", "9000");
