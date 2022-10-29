@@ -1,6 +1,6 @@
 package com.concordeu;
 
-import com.concordeu.auth.config.security.JwtConfiguration;
+import com.concordeu.auth.config.jwt.JwtConfiguration;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;

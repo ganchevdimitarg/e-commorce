@@ -1,4 +1,4 @@
-package com.concordeu.auth.config.security;
+package com.concordeu.auth.config.jwt;
 
 import com.auth0.jwt.algorithms.Algorithm;
 import lombok.RequiredArgsConstructor;

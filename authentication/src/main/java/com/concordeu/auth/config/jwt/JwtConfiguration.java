@@ -1,4 +1,4 @@
-package com.concordeu.auth.config.security;
+package com.concordeu.auth.config.jwt;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
