@@ -4,6 +4,7 @@ import com.concordeu.auth.filter.AuthenticationFilter;
 import com.concordeu.auth.filter.AuthorizationFilter;
 import com.concordeu.auth.security.OAuth2UserSuccessHandler;
 import com.concordeu.auth.service.securiy.SecurityService;
+import com.concordeu.auth.util.JwtTokenUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -31,6 +32,7 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
     private final OAuth2UserSuccessHandler oAuth2UserSuccessHandler;
     private final JwtConfiguration jwtConfiguration;
     private final JwtSecretKey jwtSecretKey;
+    private final JwtTokenUtil jwtTokenUtil;
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
@@ -39,8 +41,8 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
                 .csrf().disable()
                 .sessionManagement().sessionCreationPolicy(STATELESS)
                 .and()
-                .addFilter(new AuthenticationFilter(authenticationManager(), jwtConfiguration, jwtSecretKey))
-                .addFilterAfter(new AuthorizationFilter(jwtConfiguration, jwtSecretKey), UsernamePasswordAuthenticationFilter.class)
+                .addFilter(new AuthenticationFilter(authenticationManager(), jwtConfiguration, jwtTokenUtil))
+                .addFilterAfter(new AuthorizationFilter(jwtConfiguration, jwtSecretKey, jwtTokenUtil), UsernamePasswordAuthenticationFilter.class)
                 .authorizeRequests()
                 .antMatchers("/",
                         "/index",
