@@ -2,10 +2,10 @@ package com.concordeu.auth.service.auth;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTVerifier;
-import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
-import com.concordeu.auth.config.security.JwtSecretKey;
+import com.concordeu.auth.config.jwt.JwtConfiguration;
+import com.concordeu.auth.config.jwt.JwtSecretKey;
 import com.concordeu.auth.dao.AuthUserDao;
 import com.concordeu.auth.domain.Address;
 import com.concordeu.auth.domain.AuthUser;
@@ -14,13 +14,11 @@ import com.concordeu.auth.dto.AuthUserRequestDto;
 import com.concordeu.auth.excaption.InvalidRequestDataException;
 import com.concordeu.auth.mapper.MapStructMapper;
 import com.concordeu.auth.util.JwtTokenUtil;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
 
@@ -28,13 +26,10 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 
 import static com.concordeu.auth.security.UserRole.USER;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
-import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
 @Service
 @RequiredArgsConstructor
@@ -45,6 +40,7 @@ public class AuthServiceImpl implements AuthService{
     private final MapStructMapper mapper;
     private final JwtSecretKey jwtSecretKey;
     private final JwtTokenUtil jwtTokenUtil;
+    private final JwtConfiguration jwtConfiguration;
 
     @Override
     public AuthUserDto createUser(AuthUserRequestDto model) {
@@ -131,23 +127,18 @@ public class AuthServiceImpl implements AuthService{
 
     @Override
     public void refreshToken(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        String authorizationHeader = response.getHeader(AUTHORIZATION);
+        String authorizationHeader = request.getHeader(AUTHORIZATION);
         if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
             try {
-                String refresh_token = authorizationHeader.substring("Bearer " .length());
-                Algorithm algorithm = jwtSecretKey.secretKey();
-                JWTVerifier verifier = JWT.require(algorithm).build();
+                String refresh_token = authorizationHeader.replace(jwtConfiguration.getTokenPrefix(), "");
+                JWTVerifier verifier = JWT.require(jwtSecretKey.secretKey()).build();
                 DecodedJWT decodedJWT = verifier.verify(refresh_token);
                 String username = decodedJWT.getSubject();
                 AuthUser userDto = authUserDao.findByEmail(username).orElseThrow(() -> new UsernameNotFoundException("User does not exist"));
                 User user = new User(userDto.getUsername(), userDto.getPassword(), userDto.getGrantedAuthorities());
                 String access_token = jwtTokenUtil.generateJwtToken(request, user, 2);
-
-                Map<String, String> tokens = new HashMap<>();
-                tokens.put("access_token", access_token);
-                tokens.put("refresh_token", refresh_token);
-                response.setContentType(APPLICATION_JSON_VALUE);
-                new ObjectMapper().writeValue(response.getOutputStream(), tokens);
+                jwtTokenUtil.setResponseWithJwts(response, access_token, refresh_token);
+                log.info("Generate new access token to: {}", username);
 
             } catch (JWTVerificationException ex) {
                 jwtTokenUtil.setErrorHeader(response, ex);

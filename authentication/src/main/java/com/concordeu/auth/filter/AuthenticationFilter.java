@@ -1,9 +1,7 @@
 package com.concordeu.auth.filter;
 
-import com.concordeu.auth.config.security.JwtConfiguration;
-import com.concordeu.auth.config.security.JwtSecretKey;
+import com.concordeu.auth.config.jwt.JwtConfiguration;
 import com.concordeu.auth.util.JwtTokenUtil;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -18,10 +16,6 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-
-import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
 @RequiredArgsConstructor
 @Slf4j
@@ -52,13 +46,7 @@ public class AuthenticationFilter extends UsernamePasswordAuthenticationFilter {
         String access_token = jwtTokenUtil.generateJwtToken(request, user, 2);
         String refresh_token = jwtTokenUtil.generateJwtToken(request, user, 4);
 
-        Map<String, String> tokens = new HashMap<>();
-        tokens.put("access_token", jwtConfiguration.getTokenPrefix() + access_token);
-        tokens.put("refresh_token", jwtConfiguration.getTokenPrefix() + refresh_token);
-        response.setContentType(APPLICATION_JSON_VALUE);
-        new ObjectMapper().writeValue(response.getOutputStream(), tokens);
+        jwtTokenUtil.setResponseWithJwts(response, access_token, refresh_token);
         log.info("Successful authenticated user: {}", user.getUsername());
     }
-
-
 }

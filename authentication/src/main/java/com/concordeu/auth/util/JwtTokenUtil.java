@@ -2,13 +2,13 @@ package com.concordeu.auth.util;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.exceptions.JWTVerificationException;
-import com.concordeu.auth.config.security.JwtSecretKey;
+import com.concordeu.auth.config.jwt.JwtConfiguration;
+import com.concordeu.auth.config.jwt.JwtSecretKey;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.User;
-import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.stereotype.Component;
 
 import javax.servlet.http.HttpServletRequest;
@@ -26,8 +26,8 @@ import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 @RequiredArgsConstructor
 @Slf4j
 public class JwtTokenUtil {
-
     private final JwtSecretKey jwtSecretKey;
+    private final JwtConfiguration jwtConfiguration;
 
     public String generateJwtToken(HttpServletRequest request, User user, int expiresInWeeks) {
         return JWT.create()
@@ -50,5 +50,13 @@ public class JwtTokenUtil {
         error.put("error_message", ex.getMessage());
         response.setContentType(APPLICATION_JSON_VALUE);
         new ObjectMapper().writeValue(response.getOutputStream(), error);
+    }
+
+    public void setResponseWithJwts(HttpServletResponse response, String access_token, String refresh_token) throws IOException {
+        Map<String, String> tokens = new HashMap<>();
+        tokens.put("access_token", jwtConfiguration.getTokenPrefix() + access_token);
+        tokens.put("refresh_token", jwtConfiguration.getTokenPrefix() + refresh_token);
+        response.setContentType(APPLICATION_JSON_VALUE);
+        new ObjectMapper().writeValue(response.getOutputStream(), tokens);
     }
 }
