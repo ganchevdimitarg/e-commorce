@@ -3,6 +3,7 @@ package com.concordeu.auth.controller;
 import com.concordeu.auth.service.catalog.ProductService;
 import com.concordeu.client.catalog.product.ProductRequestDto;
 import com.concordeu.client.catalog.product.ProductResponseDto;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -16,6 +17,8 @@ import org.springframework.web.bind.annotation.*;
 public class ProductController {
     private final ProductService productService;
 
+    private Page<ProductResponseDto> productResponseDtos;
+
     @PostMapping("/create-product/{categoryName}")
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ProductResponseDto createProduct(@RequestBody ProductRequestDto requestDto,
@@ -25,8 +28,10 @@ public class ProductController {
 
     @GetMapping("/get-products")
     @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_WORKER')")
+    @CircuitBreaker(name = "catalogService", fallbackMethod = "getFirstTenProducts")
     public Page<ProductResponseDto> getProducts(@RequestParam int page,
                                                 @RequestParam int pageSize) {
+        productResponseDtos = productService.getProductsByPage(0, 3);
         return productService.getProductsByPage(page, pageSize);
     }
 
@@ -55,5 +60,10 @@ public class ProductController {
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     public void deleteProduct(@PathVariable String productName) {
         productService.deleteProduct(productName);
+    }
+
+    public Page<ProductResponseDto> getFirstTenProducts(Exception ex) {
+
+        return productResponseDtos;
     }
 }
