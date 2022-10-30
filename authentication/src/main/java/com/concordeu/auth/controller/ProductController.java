@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.*;
 public class ProductController {
     private final ProductService productService;
 
-    private Page<ProductResponseDto> productResponseDtos;
+    private Page<ProductResponseDto> productResponseDummy;
 
     @PostMapping("/create-product/{categoryName}")
     @PreAuthorize("hasRole('ROLE_ADMIN')")
@@ -31,7 +31,7 @@ public class ProductController {
     @CircuitBreaker(name = "catalogService", fallbackMethod = "getFirstTenProducts")
     public Page<ProductResponseDto> getProducts(@RequestParam int page,
                                                 @RequestParam int pageSize) {
-        productResponseDtos = productService.getProductsByPage(0, 3);
+        productResponseDummy = productService.getProductsByPage(0, 3);
         return productService.getProductsByPage(page, pageSize);
     }
 
@@ -64,6 +64,6 @@ public class ProductController {
 
     public Page<ProductResponseDto> getFirstTenProducts(Exception ex) {
 
-        return productResponseDtos;
+        return productResponseDummy;
     }
 }
