@@ -8,30 +8,32 @@ spring:
     name: gateway
   cloud:
     gateway:
+      discovery:
+        locator:
+          enabled: true
       routes:
-        - id: authentication
-          uri: lb://AUTHENTICATION
-          predicates:
-            - Path=/api/v1/profile/**
-          filters:
-            - name: RequestRateLimiter
         - id: catalog
           uri: lb://CATALOG
           predicates:
             - Path=/api/v1/catalog/**
-          filters:
-            - name: RequestRateLimiter
+        - id: authentication
+          uri: lb://AUTHENTICATION
+          predicates:
+            - Path=/api/v1/2/**
+
 
 management:
   endpoints:
     web:
       exposure:
-        include: '*'
+        include: gateway
   endpoint:
     prometheus:
       enabled: 'true'
     metrics:
       enabled: 'true'
+    gateway:
+      enabled: true
   metrics:
     export:
       prometheus:

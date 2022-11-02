@@ -29,6 +29,7 @@ public class ValidateRequestImpl implements ValidateRequest {
         //- allow optional whitespace, dots, or hyphens (-) between the numbers: 2055550125, 202 555 0125, 202.555.0125, and 202-555-0125
         //- the first part of our phone between parentheses: (202)5550125, (202) 555-0125 or (202)-555-0125
         //-  allow an international prefix at the start of a phone number: +111 (202) 555-0125
+        //language=RegExp
         String regexPatternPhoneNumber = "^\\d{10}$" +
                 "|^(\\d{3}[- .]?){2}\\d{4}$" +
                 "|^((\\(\\d{3}\\))|\\d{3})[- .]?\\d{3}[- .]?\\d{4}$" +
@@ -43,6 +44,7 @@ public class ValidateRequestImpl implements ValidateRequest {
     }
 
     private boolean isValidEmail(String email) {
+        //language=RegExp
         String regexPatternEmail = "^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$";
 
         if (isLengthNotValid(email, 5, 20) ||
@@ -95,6 +97,7 @@ public class ValidateRequestImpl implements ValidateRequest {
 
     private boolean isValidFirstName(String firstName) {
         //First name must contain uppercase first letter and then lowercase letters
+        //language=RegExp
         String regexPatternFirstName = "^([A-Z])(\\p{L})(?=\\S+$).{1,12}$";
 
         //First name cannot contain digit/digits
@@ -115,6 +118,7 @@ public class ValidateRequestImpl implements ValidateRequest {
         //- an upper case letter must occur at least once
         //- a special character must occur at least once
         //- no whitespace allowed in the entire string
+        //language=RegExp
         String regexPatternPassword = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=])(?=\\S+$).{6,12}$";
         if (isLengthNotValid(password, 6, 12) ||
                 isNotMatches(password, regexPatternPassword)) {
