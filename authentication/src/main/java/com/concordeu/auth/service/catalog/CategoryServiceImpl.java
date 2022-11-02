@@ -5,16 +5,21 @@ import com.concordeu.client.catalog.category.CategoryRequestDto;
 import com.concordeu.client.catalog.category.CategoryResponseDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cloud.client.circuitbreaker.CircuitBreakerFactory;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class CategoryServiceImpl implements CategoryService{
+public class CategoryServiceImpl implements CategoryService {
 
     private final CategoryClient categoryClient;
+    private final CircuitBreakerFactory circuitBreakerFactory;
 
 
     @Override
@@ -32,7 +37,9 @@ public class CategoryServiceImpl implements CategoryService{
 
     @Override
     public Page<CategoryResponseDto> getCategoriesByPage(int page, int pageSize) {
-        return categoryClient.getCategories(page,pageSize);
+        return circuitBreakerFactory.create("getCategoriesByPage").run(
+                () -> categoryClient.getCategories(page, pageSize),
+                t -> new PageImpl<>(List.of(new CategoryResponseDto("", "name", null))));
     }
 
     @Override
