@@ -40,7 +40,7 @@ public class AuthorizationServerConfig {
     public RegisteredClientRepository registeredClientRepository() {
         RegisteredClient registeredClient = RegisteredClient.withId(UUID.randomUUID().toString())
                 .clientId("catalog-client")
-                .clientSecret("{noop}secret")
+                .clientSecret("$2a$12$3QbFYjVUcdxSJ6Nm3mzRNuM/51N91FxMZxsFTJ/.a1N9ILG9PUWIG")
                 .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
                 .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
                 .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
