@@ -1,27 +1,41 @@
 server:
-  port: 8083
+  port: 8081
+
+logging:
+  level:
+    root: INFO
+    org.springframework.web: INFO
+    org.springframework.security: INFO
+    org.springframework.security.oauth2: INFO
 
 spring:
-  zipkin:
-    base-url: http://localhost:9411
   application:
     name: gateway
-  cloud:
-    gateway:
-      discovery:
-        locator:
-          enabled: true
-      routes:
-        - id: catalog
-          uri: lb://CATALOG
-          predicates:
-            - Path=/api/v1/catalog/**
-        - id: authentication
-          uri: lb://AUTHENTICATION
-          predicates:
-            - Path=/api/v1/2/**
-
-
+  zipkin:
+    base-url: http://localhost:9411
+  security:
+    oauth2:
+      client:
+        registration:
+          catalog-client-oidc:
+            provider: spring
+            client-id: catalog-client
+            client-secret: secret
+            authorization-grant-type: authorization_code
+            redirect-uri: "http://127.0.0.1:8081/login/oauth2/code/{registrationId}"
+            scope: openid
+            client-name: catalog-client-oidc
+          catalog-client-authorization-code:
+            provider: spring
+            client-id: catalog-client
+            client-secret: secret
+            authorization-grant-type: authorization_code
+            redirect-uri: "http://127.0.0.1:8081/authorized"
+            scope: articles.read
+            client-name: catalog-client-authorization-code
+        provider:
+          spring:
+            issuer-uri: http://localhost:8082
 management:
   endpoints:
     web:
@@ -32,8 +46,8 @@ management:
       enabled: 'true'
     metrics:
       enabled: 'true'
-    gateway:
-      enabled: true
+#    gateway:
+#      enabled: true
   metrics:
     export:
       prometheus:
@@ -43,4 +57,3 @@ eureka:
   client:
     service-url:
       defaultZone: http://localhost:8761/eureka
-

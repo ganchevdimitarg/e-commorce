@@ -8,7 +8,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+//import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 
@@ -25,16 +25,16 @@ public class OAuth2UserSuccessHandler extends SavedRequestAwareAuthenticationSuc
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws ServletException, IOException {
-        if (authentication instanceof OAuth2AuthenticationToken) {
-            OAuth2AuthenticationToken oAuth2AuthenticationToken = (OAuth2AuthenticationToken) authentication;
-
-            String email = oAuth2AuthenticationToken.getPrincipal().getAttribute("email");
-
-            AuthUserDto user = authService.getOrCreateUser(email);
-            UserDetails userDetails = securityService.loadUserByUsername(user.getEmail());
-            authentication = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-            SecurityContextHolder.getContext().setAuthentication(authentication);
-        }
-        super.onAuthenticationSuccess(request, response, authentication);
+//        if (authentication instanceof OAuth2AuthenticationToken) {
+//            OAuth2AuthenticationToken oAuth2AuthenticationToken = (OAuth2AuthenticationToken) authentication;
+//
+//            String email = oAuth2AuthenticationToken.getPrincipal().getAttribute("email");
+//
+//            AuthUserDto user = authService.getOrCreateUser(email);
+//            UserDetails userDetails = securityService.loadUserByUsername(user.getEmail());
+//            authentication = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+//            SecurityContextHolder.getContext().setAuthentication(authentication);
+//        }
+//        super.onAuthenticationSuccess(request, response, authentication);
     }
 }
