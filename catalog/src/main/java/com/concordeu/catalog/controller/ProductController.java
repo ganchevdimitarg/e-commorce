@@ -10,7 +10,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/v1/catalog/product")
+@RequestMapping("/api/v1/catalog/products")
 @RequiredArgsConstructor
 @Slf4j
 public class ProductController {
@@ -27,8 +27,8 @@ public class ProductController {
 
     @GetMapping("/get-products")
     public Page<ProductResponseDto> getProducts(@RequestParam int page,
-                                                @RequestParam int pageSize) {
-        return productService.getProductsByPage(page, pageSize);
+                                                @RequestParam int size) {
+        return productService.getProductsByPage(page, size);
     }
 
     @GetMapping("/get-products/{categoryName}")
