@@ -1,6 +1,6 @@
 package com.concordeu.catalog.service.comment;
 
-import com.concordeu.client.catalog.comment.CommentResponseDto;
+import com.concordeu.catalog.dto.comment.CommentResponseDto;
 import org.springframework.data.domain.Page;
 
 public interface CommentService {

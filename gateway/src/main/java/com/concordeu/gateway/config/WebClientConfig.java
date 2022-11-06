@@ -15,7 +15,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 public class WebClientConfig {
 
     @Bean
-    WebClient webClient(OAuth2AuthorizedClientManager authorizedClientManager) {
+    public WebClient webClient(OAuth2AuthorizedClientManager authorizedClientManager) {
         ServletOAuth2AuthorizedClientExchangeFilterFunction oauth2Client =
           new ServletOAuth2AuthorizedClientExchangeFilterFunction(authorizedClientManager);
         return WebClient.builder()
@@ -24,7 +24,7 @@ public class WebClientConfig {
     }
 
     @Bean
-    OAuth2AuthorizedClientManager authorizedClientManager(
+    public OAuth2AuthorizedClientManager authorizedClientManager(
       ClientRegistrationRepository clientRegistrationRepository,
         OAuth2AuthorizedClientRepository authorizedClientRepository) {
         OAuth2AuthorizedClientProvider authorizedClientProvider =

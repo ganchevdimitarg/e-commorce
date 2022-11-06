@@ -1,13 +1,14 @@
 package com.concordeu.catalog.controller;
 
+import com.concordeu.catalog.dto.product.ProductRequestDto;
+import com.concordeu.catalog.dto.product.ProductResponseDto;
 import com.concordeu.catalog.mapper.MapStructMapper;
 import com.concordeu.catalog.service.product.ProductService;
-import com.concordeu.client.catalog.product.ProductRequestDto;
-import com.concordeu.client.catalog.product.ProductResponseDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Mono;
 
 @RestController
 @RequestMapping("/api/v1/catalog/products")
