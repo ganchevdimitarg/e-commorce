@@ -1,6 +1,6 @@
 package com.concordeu.catalog.service.category;
 
-import com.concordeu.client.catalog.category.CategoryResponseDto;
+import com.concordeu.catalog.dto.category.CategoryResponseDto;
 import org.springframework.data.domain.Page;
 
 public interface CategoryService {

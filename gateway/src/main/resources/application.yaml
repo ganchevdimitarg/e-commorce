@@ -10,7 +10,7 @@ logging:
 
 spring:
   application:
-    name: gateway
+    name: gateway-service
   zipkin:
     base-url: http://localhost:9411
   security:
@@ -36,24 +36,52 @@ spring:
         provider:
           spring:
             issuer-uri: http://localhost:8082
+
 management:
   endpoints:
     web:
       exposure:
-        include: gateway
+        include: "*"
   endpoint:
     prometheus:
       enabled: 'true'
     metrics:
       enabled: 'true'
-#    gateway:
-#      enabled: true
+    health:
+      show-details: always
   metrics:
     export:
       prometheus:
         enabled: 'true'
+  health:
+    circuitbreakers:
+      enabled: true
+    ratelimiters:
+      enabled: true
 
 eureka:
   client:
     service-url:
       defaultZone: http://localhost:8761/eureka
+
+#Resilience4j
+resilience4j.circuitbreaker:
+    configs:
+      default:
+        registerHealthIndicator: true
+    instances:
+      catalogService:
+        register-health-indicator: true
+        event-consumer-buffer-size: 10
+        failure-rate-threshold: 50
+        minimum-number-of-calls: 5
+        automatic-transition-from-open-to-half-open-enabled: true
+        wait-duration-in-open-state: 5s
+        permitted-number-of-calls-in-half-open-state: 3
+        sliding-window-size: 10
+        sliding-window-type: count_based
+
+resilience4j.ratelimiter:
+  configs:
+    instances:
+      registerHealthIndicator: true

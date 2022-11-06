@@ -1,10 +1,10 @@
 package com.concordeu.catalog.controller;
 
-import com.concordeu.client.catalog.comment.CommentResponseDto;
+import com.concordeu.catalog.dto.comment.CommentRequestDto;
+import com.concordeu.catalog.dto.comment.CommentResponseDto;
 import com.concordeu.catalog.mapper.MapStructMapper;
-import com.concordeu.client.catalog.comment.CommentRequestDto;
-import com.concordeu.catalog.validator.CommentDataValidator;
 import com.concordeu.catalog.service.comment.CommentService;
+import com.concordeu.catalog.validator.CommentDataValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;

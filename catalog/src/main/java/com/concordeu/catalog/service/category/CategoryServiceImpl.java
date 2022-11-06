@@ -1,20 +1,17 @@
 package com.concordeu.catalog.service.category;
 
-import com.concordeu.client.catalog.category.CategoryResponseDto;
-import com.concordeu.catalog.mapper.MapStructMapper;
 import com.concordeu.catalog.dao.CategoryDao;
+import com.concordeu.catalog.dao.ProductDao;
 import com.concordeu.catalog.domain.Category;
 import com.concordeu.catalog.domain.Product;
-import com.concordeu.catalog.dao.ProductDao;
-import com.concordeu.client.catalog.product.ProductRequestDto;
-import com.concordeu.client.catalog.product.ProductResponseDto;
+import com.concordeu.catalog.dto.category.CategoryResponseDto;
+import com.concordeu.catalog.mapper.MapStructMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Service

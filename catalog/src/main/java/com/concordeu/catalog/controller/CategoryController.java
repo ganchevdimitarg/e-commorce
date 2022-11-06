@@ -1,8 +1,8 @@
 package com.concordeu.catalog.controller;
 
+import com.concordeu.catalog.dto.category.CategoryRequestDto;
+import com.concordeu.catalog.dto.category.CategoryResponseDto;
 import com.concordeu.catalog.mapper.MapStructMapper;
-import com.concordeu.client.catalog.category.CategoryResponseDto;
-import com.concordeu.client.catalog.category.CategoryRequestDto;
 import com.concordeu.catalog.service.category.CategoryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

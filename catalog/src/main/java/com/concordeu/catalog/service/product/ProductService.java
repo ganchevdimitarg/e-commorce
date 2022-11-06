@@ -1,8 +1,7 @@
 package com.concordeu.catalog.service.product;
 
-import com.concordeu.client.catalog.product.ProductResponseDto;
+import com.concordeu.catalog.dto.product.ProductResponseDto;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 
 public interface ProductService {
 

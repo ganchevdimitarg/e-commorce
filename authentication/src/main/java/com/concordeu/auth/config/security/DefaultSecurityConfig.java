@@ -1,5 +1,6 @@
 package com.concordeu.auth.config.security;
 
+import com.concordeu.auth.filter.AuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
