@@ -1,12 +1,15 @@
 package com.concordeu.client.catalog.product;
 
+import com.concordeu.client.catalog.config.OAuthFeignConfig;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.data.domain.Page;
-import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.*;
 
 
-@FeignClient(name = "product", url = "http://localhost:8083/api/v1/catalog/product")
+@FeignClient(
+        name = "product",
+        url = "http://localhost:8083/api/v1/catalog/product",
+        configuration = OAuthFeignConfig.class)
 public interface ProductClient {
 
     @PostMapping("/create-product/{categoryName}")
