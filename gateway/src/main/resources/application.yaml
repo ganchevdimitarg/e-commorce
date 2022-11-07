@@ -1,13 +1,6 @@
 server:
   port: 8081
 
-logging:
-  level:
-    root: INFO
-    org.springframework.web: INFO
-    org.springframework.security: INFO
-    org.springframework.security.oauth2: INFO
-
 spring:
   application:
     name: gateway-service
@@ -36,6 +29,13 @@ spring:
         provider:
           spring:
             issuer-uri: http://localhost:8082
+
+logging:
+  level:
+    root: INFO
+    org.springframework.web: INFO
+    org.springframework.security: INFO
+    org.springframework.security.oauth2: INFO
 
 management:
   endpoints:
