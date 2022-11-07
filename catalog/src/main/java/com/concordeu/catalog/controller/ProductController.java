@@ -10,8 +10,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
-//@RestController
-//@RequestMapping("/api/v1/catalog/products")
+@RestController
+@RequestMapping("/api/v1/catalog/products")
 @RequiredArgsConstructor
 @Slf4j
 public class ProductController {
