@@ -30,7 +30,7 @@ public class CatalogController {
 
     @GetMapping(value = "/api/v1/catalog/products/get-products")
     public Mono<ProductResponsePage<ProductResponseDto>> getArticles(
-            @RegisteredOAuth2AuthorizedClient("catalog-client-authorization-code") OAuth2AuthorizedClient authorizedClient,
+            @RegisteredOAuth2AuthorizedClient("authentication-client-authorization-code") OAuth2AuthorizedClient authorizedClient,
             @RequestParam int page,
             @RequestParam int size) {
         return this.webClient
@@ -60,12 +60,3 @@ public class CatalogController {
                 );
     }
 }
-
-/*return this.webClient
-                .get()
-                .uri("http://localhost:8083/api/v1/catalog/products/get-products?page={page}&size={size}", page, size)
-                .attributes(oauth2AuthorizedClient(authorizedClient))
-                .retrieve()
-                .bodyToMono(new ParameterizedTypeReference<ProductResponsePage<ProductResponseDto>>() {
-                })
-                .block();*/
