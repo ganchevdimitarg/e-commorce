@@ -16,7 +16,6 @@ spring:
   security:
     oauth2:
       client:
-
         registration:
           authentication-client-oidc:
             provider: spring
@@ -86,3 +85,7 @@ resilience4j.ratelimiter:
   configs:
     instances:
       registerHealthIndicator: true
+
+catalog:
+  product:
+    url: "http://localhost:8083/api/v1/catalog/products"

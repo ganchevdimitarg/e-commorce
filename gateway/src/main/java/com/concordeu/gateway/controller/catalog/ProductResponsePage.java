@@ -1,4 +1,4 @@
-package com.concordeu.gateway.controller;
+package com.concordeu.gateway.controller.catalog;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
