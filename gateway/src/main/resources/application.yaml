@@ -32,7 +32,7 @@ spring:
             client-secret: secret
             authorization-grant-type: authorization_code
             redirect-uri: "http://127.0.0.1:8081/authorized"
-            scope: articles.read
+            scope: auth.user
             client-name: authentication-client-authorization-code
         provider:
           spring:

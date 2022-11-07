@@ -47,7 +47,7 @@ public class AuthorizationServerConfig {
                 .redirectUri("http://127.0.0.1:8081/login/oauth2/code/authentication-client-oidc")
                 .redirectUri("http://127.0.0.1:8081/authorized")
                 .scope(OidcScopes.OPENID)
-                .scope("articles.read")
+                .scope("auth.user")
                 .build();
 
         return new InMemoryRegisteredClientRepository(registeredClient);

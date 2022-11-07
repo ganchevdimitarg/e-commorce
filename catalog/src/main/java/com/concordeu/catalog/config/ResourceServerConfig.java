@@ -13,7 +13,7 @@ public class ResourceServerConfig {
         http.mvcMatcher("/api/v1/catalog/**")
                 .authorizeRequests()
                 .mvcMatchers("/api/v1/catalog/**")
-                .access("hasAuthority('SCOPE_articles.read')")
+                .access("hasAuthority('SCOPE_auth.user')")
                 .and()
                 .oauth2ResourceServer()
                 .jwt();
