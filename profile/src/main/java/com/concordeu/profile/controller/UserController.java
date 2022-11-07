@@ -15,9 +15,9 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
     private final ProfileService profileService;
 
-    @GetMapping("/get-by-email/{email}")
-    public UserDto getUserByEmail(@PathVariable String email) {
-        return profileService.getUserByEmail(email);
+    @GetMapping("/get-by-username/{username}")
+    public UserDto getUserByEmail(@PathVariable String username) {
+        return profileService.getUserByEmail(username);
     }
 
     @PostMapping("/register")
@@ -26,16 +26,16 @@ public class UserController {
         return profileService.createUser(requestDto);
     }
 
-    @PutMapping("/update/{email}")
+    @PutMapping("/update/{username}")
     @ValidationInputRequest
     public void updateUser(@RequestBody UserRequestDto requestDto,
-                           @PathVariable String email) {
-        profileService.updateUser(email, requestDto);
+                           @PathVariable String username) {
+        profileService.updateUser(username, requestDto);
     }
 
-    @DeleteMapping("/delete/{email}")
-    public void deleteUser(@PathVariable String email) {
-        profileService.deleteUser(email);
+    @DeleteMapping("/delete/{username}")
+    public void deleteUser(@PathVariable String username) {
+        profileService.deleteUser(username);
     }
 
 }
