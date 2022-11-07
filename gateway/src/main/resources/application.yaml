@@ -16,23 +16,24 @@ spring:
   security:
     oauth2:
       client:
+
         registration:
-          catalog-client-oidc:
+          authentication-client-oidc:
             provider: spring
-            client-id: catalog-client
+            client-id: authentication-client
             client-secret: secret
             authorization-grant-type: authorization_code
             redirect-uri: "http://127.0.0.1:8081/login/oauth2/code/{registrationId}"
             scope: openid
-            client-name: catalog-client-oidc
-          catalog-client-authorization-code:
+            client-name: authentication-client-oidc
+          authentication-client-authorization-code:
             provider: spring
-            client-id: catalog-client
+            client-id: authentication-client
             client-secret: secret
             authorization-grant-type: authorization_code
             redirect-uri: "http://127.0.0.1:8081/authorized"
             scope: articles.read
-            client-name: catalog-client-authorization-code
+            client-name: authentication-client-authorization-code
         provider:
           spring:
             issuer-uri: http://localhost:8082

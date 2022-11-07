@@ -39,12 +39,12 @@ public class AuthorizationServerConfig {
     @Bean
     public RegisteredClientRepository registeredClientRepository() {
         RegisteredClient registeredClient = RegisteredClient.withId(UUID.randomUUID().toString())
-                .clientId("catalog-client")
+                .clientId("authentication-client")
                 .clientSecret("$2a$12$3QbFYjVUcdxSJ6Nm3mzRNuM/51N91FxMZxsFTJ/.a1N9ILG9PUWIG")
                 .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
                 .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
                 .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
-                .redirectUri("http://127.0.0.1:8081/login/oauth2/code/catalog-client-oidc")
+                .redirectUri("http://127.0.0.1:8081/login/oauth2/code/authentication-client-oidc")
                 .redirectUri("http://127.0.0.1:8081/authorized")
                 .scope(OidcScopes.OPENID)
                 .scope("articles.read")
