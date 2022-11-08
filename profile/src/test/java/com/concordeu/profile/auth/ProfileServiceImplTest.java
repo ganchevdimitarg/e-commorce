@@ -5,7 +5,6 @@ import com.concordeu.profile.domain.User;
 import com.concordeu.profile.dto.UserDto;
 import com.concordeu.profile.dto.UserRequestDto;
 import com.concordeu.profile.excaption.InvalidRequestDataException;
-import com.concordeu.profile.mapper.MapStructMapper;
 import com.concordeu.profile.service.auth.ProfileService;
 import com.concordeu.profile.service.auth.ProfileServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,13 +33,12 @@ class ProfileServiceImplTest {
     UserDao userDao;
     @Mock
     PasswordEncoder passwordEncoder;
-    @Mock
-    MapStructMapper mapper;
 
     UserRequestDto model;
+
     @BeforeEach
     void setUp() {
-        testService = new ProfileServiceImpl(userDao, passwordEncoder, mapper);
+        testService = new ProfileServiceImpl(userDao, passwordEncoder);
         model = new UserRequestDto(
                 "example@gmail.com",
                 "Abc123!@#",
@@ -82,11 +80,10 @@ class ProfileServiceImplTest {
         String email = "example@gmail.com";
         User user = User.builder().username(email).build();
         when(userDao.findByUsername(email)).thenReturn(Optional.of(user));
-        when(mapper.mapAuthUserToAuthUserDto(any(User.class))).thenReturn(UserDto.builder().email(email).build());
 
         UserDto userFromDataBase = testService.getOrCreateUser(email);
 
-        assertThat(userFromDataBase.getUsername()).isEqualTo(user.getUsername());
+        assertThat(userFromDataBase.username()).isEqualTo(user.getUsername());
     }
 
     @Test
@@ -169,11 +166,10 @@ class ProfileServiceImplTest {
     void getUserByEmailShouldReturnUser() {
         User user = User.builder().username(model.username()).build();
         when(userDao.findByUsername(model.username())).thenReturn(Optional.of(user));
-        when(mapper.mapAuthUserToAuthUserDto(user)).thenReturn(UserDto.builder().email(model.username()).build());
 
         UserDto testUser = testService.getUserByEmail(model.username());
 
-        assertThat(testUser.getUsername()).isEqualTo(user.getUsername());
+        assertThat(testUser.username()).isEqualTo(user.getUsername());
     }
 
     @Test

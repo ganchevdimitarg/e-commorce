@@ -10,25 +10,32 @@ spring:
     oauth2:
       client:
         registration:
-          authentication-client-oidc:
-            provider: spring
-            client-id: authentication-client
+          gateway-client-oidc:
+            provider: gateway-provider
+            client-id: gateway-client
             client-secret: secret
             authorization-grant-type: authorization_code
             redirect-uri: "http://127.0.0.1:8081/login/oauth2/code/{registrationId}"
-            scope: openid
-            client-name: authentication-client-oidc
-          authentication-client-authorization-code:
-            provider: spring
-            client-id: authentication-client
-            client-secret: secret
-            authorization-grant-type: authorization_code
-            redirect-uri: "http://127.0.0.1:8081/authorized"
-            scope: auth.user
-            client-name: authentication-client-authorization-code
+            scope: openid, auth.user
+            client-name: gateway-client-oidc
         provider:
-          spring:
+          gateway-provider:
             issuer-uri: http://localhost:8082
+  cloud:
+    gateway:
+      routes:
+        - id: catalog-service
+          uri: http://localhost:8083
+          predicates:
+            Path=/api/v1/catalog/**
+          filters:
+            TokenRelay=
+        - id: profile-service
+          uri: http://localhost:8084
+          predicates:
+            Path=/api/v1/profile/**
+          filters:
+            TokenRelay=
 
 logging:
   level:
@@ -53,39 +60,8 @@ management:
     export:
       prometheus:
         enabled: 'true'
-  health:
-    circuitbreakers:
-      enabled: true
-    ratelimiters:
-      enabled: true
 
 eureka:
   client:
     service-url:
       defaultZone: http://localhost:8761/eureka
-
-#Resilience4j
-resilience4j.circuitbreaker:
-    configs:
-      default:
-        registerHealthIndicator: true
-    instances:
-      catalogService:
-        register-health-indicator: true
-        event-consumer-buffer-size: 10
-        failure-rate-threshold: 50
-        minimum-number-of-calls: 5
-        automatic-transition-from-open-to-half-open-enabled: true
-        wait-duration-in-open-state: 5s
-        permitted-number-of-calls-in-half-open-state: 3
-        sliding-window-size: 10
-        sliding-window-type: count_based
-
-resilience4j.ratelimiter:
-  configs:
-    instances:
-      registerHealthIndicator: true
-
-catalog:
-  product:
-    url: "http://localhost:8083/api/v1/catalog/products"

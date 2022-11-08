@@ -6,7 +6,6 @@ import com.concordeu.profile.domain.User;
 import com.concordeu.profile.dto.UserDto;
 import com.concordeu.profile.dto.UserRequestDto;
 import com.concordeu.profile.excaption.InvalidRequestDataException;
-import com.concordeu.profile.mapper.MapStructMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -25,8 +24,6 @@ import static com.concordeu.profile.security.UserRole.USER;
 public class ProfileServiceImpl implements ProfileService {
     private final UserDao userDao;
     private final PasswordEncoder passwordEncoder;
-    private final MapStructMapper mapper;
-
 
     @Override
     public UserDto createUser(UserRequestDto model) {
@@ -52,7 +49,7 @@ public class ProfileServiceImpl implements ProfileService {
 
         User user = userDao.insert(authUser);
         log.info("The user was successfully create");
-        return mapper.mapAuthUserToAuthUserDto(user);
+        return getUserDto(user);
     }
 
     @Override
@@ -60,7 +57,7 @@ public class ProfileServiceImpl implements ProfileService {
         Assert.hasLength(username, "Username is empty!");
         Optional<User> user = userDao.findByUsername(username);
 
-        return mapper.mapAuthUserToAuthUserDto(user.orElseGet(() -> createUserWithEmail(username)));
+        return getUserDto(user.orElseGet(() -> createUserWithEmail(username)));
     }
 
     @Override
@@ -106,7 +103,7 @@ public class ProfileServiceImpl implements ProfileService {
         User user = userDao.findByUsername(username)
                 .orElseThrow(()-> new UsernameNotFoundException("User does not exist"));
         user.setPassword("");
-        return mapper.mapAuthUserToAuthUserDto(user);
+        return getUserDto(user);
     }
 
     private User createUserWithEmail(String username) {
@@ -120,5 +117,17 @@ public class ProfileServiceImpl implements ProfileService {
         return userDao.insert(user);
     }
 
-
+    private UserDto getUserDto(User user) {
+        return new UserDto(
+                user.getId(),
+                user.getUsername(),
+                user.getPassword(),
+                user.getGrantedAuthorities(),
+                user.getFirstName(),
+                user.getLastName(),
+                user.getPhoneNumber(),
+                user.getAddress().getCity(),
+                user.getAddress().getStreet(),
+                user.getAddress().getPostCode());
+    }
 }

@@ -15,6 +15,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.HashSet;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -36,7 +38,17 @@ class UserControllerTest {
 
     @Test
     void getUserByEmailShouldReturnUser() throws Exception {
-        when(profileService.getUserByEmail(any(String.class))).thenReturn(UserDto.builder().build());
+        when(profileService.getUserByEmail(any(String.class))).thenReturn(new UserDto(
+                "",
+                "",
+                "",
+                new HashSet<>(),
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""));
         mvc.perform(get("/api/v1/profile/get-by-email/{email}", "example@gmial.com")
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON))
