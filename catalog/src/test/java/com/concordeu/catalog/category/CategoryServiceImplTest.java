@@ -1,11 +1,11 @@
 package com.concordeu.catalog.category;
 
-import com.concordeu.client.catalog.category.CategoryResponseDto;
-import com.concordeu.catalog.mapper.MapStructMapper;
 import com.concordeu.catalog.dao.CategoryDao;
+import com.concordeu.catalog.dao.ProductDao;
 import com.concordeu.catalog.domain.Category;
 import com.concordeu.catalog.domain.Product;
-import com.concordeu.catalog.dao.ProductDao;
+import com.concordeu.catalog.dto.category.CategoryResponseDto;
+import com.concordeu.catalog.mapper.MapStructMapper;
 import com.concordeu.catalog.service.category.CategoryService;
 import com.concordeu.catalog.service.category.CategoryServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
