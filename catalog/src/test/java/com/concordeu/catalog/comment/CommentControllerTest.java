@@ -1,9 +1,9 @@
 package com.concordeu.catalog.comment;
 
-import com.concordeu.catalog.mapper.MapStructMapper;
 import com.concordeu.catalog.controller.CommentController;
-import com.concordeu.client.catalog.comment.CommentResponseDto;
-import com.concordeu.client.catalog.comment.CommentRequestDto;
+import com.concordeu.catalog.dto.comment.CommentRequestDto;
+import com.concordeu.catalog.dto.comment.CommentResponseDto;
+import com.concordeu.catalog.mapper.MapStructMapper;
 import com.concordeu.catalog.service.comment.CommentService;
 import com.concordeu.catalog.validator.CommentDataValidator;
 import org.junit.jupiter.api.Tag;
@@ -20,7 +20,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ExtendWith(SpringExtension.class)

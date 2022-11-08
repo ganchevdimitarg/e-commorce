@@ -1,9 +1,9 @@
 package com.concordeu.catalog.category;
 
-import com.concordeu.client.catalog.category.CategoryResponseDto;
-import com.concordeu.catalog.mapper.MapStructMapper;
 import com.concordeu.catalog.controller.CategoryController;
-import com.concordeu.client.catalog.category.CategoryRequestDto;
+import com.concordeu.catalog.dto.category.CategoryRequestDto;
+import com.concordeu.catalog.dto.category.CategoryResponseDto;
+import com.concordeu.catalog.mapper.MapStructMapper;
 import com.concordeu.catalog.service.category.CategoryService;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
