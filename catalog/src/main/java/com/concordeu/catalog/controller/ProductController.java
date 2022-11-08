@@ -8,7 +8,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
-import reactor.core.publisher.Mono;
 
 @RestController
 @RequestMapping("/api/v1/catalog/products")
@@ -34,9 +33,9 @@ public class ProductController {
 
     @GetMapping("/get-products/{categoryName}")
     public Page<ProductResponseDto> getProductsByCategory(@RequestParam int page,
-                                                          @RequestParam int pageSize,
+                                                          @RequestParam int size,
                                                           @PathVariable String categoryName) {
-        return productService.getProductsByCategoryByPage(page, pageSize, categoryName);
+        return productService.getProductsByCategoryByPage(page, size, categoryName);
     }
 
     @GetMapping("/get-product/{productName}")
@@ -51,7 +50,7 @@ public class ProductController {
         productService.updateProduct(productResponseDto, productName);
     }
 
-    @DeleteMapping("/delete/{productName}")
+    @DeleteMapping("/delete-product/{productName}")
     public void deleteProduct(@PathVariable String productName) {
         productService.deleteProduct(productName);
     }

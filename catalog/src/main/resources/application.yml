@@ -15,7 +15,7 @@ spring:
     username: ${MYSQL_USER}
     password: ${MYSQL_PASSWORD}
 
-#JPA Properties
+  #JPA Properties
   jpa:
     properties:
       hibernate:

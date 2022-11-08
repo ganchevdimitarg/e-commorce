@@ -18,6 +18,8 @@
         <mapstruct.version>1.5.2.Final</mapstruct.version>
         <spring-webflux.version>5.3.9</spring-webflux.version>
         <reactor-netty.version>1.0.9</reactor-netty.version>
+        <springfox-boot-starter.version>3.0.0</springfox-boot-starter.version>
+        <springfox-swagger-ui.version>2.10.5</springfox-swagger-ui.version>
     </properties>
 
     <dependencies>
@@ -58,23 +60,15 @@
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-circuitbreaker-reactor-resilience4j</artifactId>
+        </dependency>
 
         <!--        -->
         <dependency>
             <groupId>jakarta.validation</groupId>
             <artifactId>jakarta.validation-api</artifactId>
-        </dependency>
-
-        <!--        Map Struct     -->
-        <dependency>
-            <groupId>org.mapstruct</groupId>
-            <artifactId>mapstruct</artifactId>
-            <version>${mapstruct.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.mapstruct</groupId>
-            <artifactId>mapstruct-processor</artifactId>
-            <version>${mapstruct.version}</version>
         </dependency>
 
         <!--    Test    -->
@@ -97,18 +91,17 @@
             <artifactId>mockito-junit-jupiter</artifactId>
         </dependency>
 
-        <!--   WebClient     -->
+        <!--   Swagger     -->
         <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-webflux</artifactId>
-            <version>${spring-webflux.version}</version>
+            <groupId>io.springfox</groupId>
+            <artifactId>springfox-boot-starter</artifactId>
+            <version>${springfox-boot-starter.version}</version>
         </dependency>
         <dependency>
-            <groupId>io.projectreactor.netty</groupId>
-            <artifactId>reactor-netty</artifactId>
-            <version>${reactor-netty.version}</version>
+            <groupId>io.springfox</groupId>
+            <artifactId>springfox-swagger-ui</artifactId>
+            <version>${springfox-swagger-ui.version}</version>
         </dependency>
-
     </dependencies>
 
 </project>
