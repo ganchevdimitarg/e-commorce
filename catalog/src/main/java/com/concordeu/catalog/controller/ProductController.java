@@ -10,7 +10,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/v1/catalog/products")
+@RequestMapping("/api/v1/catalog/product")
 @RequiredArgsConstructor
 @Slf4j
 public class ProductController {

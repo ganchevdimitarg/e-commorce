@@ -28,13 +28,13 @@ public class CommentController {
     }
 
     @GetMapping("/get-comments-product-name/{productName}")
-    public Page<CommentResponseDto> findAllByProductName(@RequestParam int page, int pageSize, @PathVariable String productName) {
-        return commentService.findAllByProductNameByPage(productName, page, pageSize);
+        public Page<CommentResponseDto> findAllByProductName(@RequestParam int page, int size, @PathVariable String productName) {
+        return commentService.findAllByProductNameByPage(productName, page, size);
     }
 
     @GetMapping("/get-comments-author/{author}")
-    public Page<CommentResponseDto> findAllByAuthor(@RequestParam int page, int pageSize, @PathVariable String author) {
-        return commentService.findAllByAuthorByPage(author, page, pageSize);
+    public Page<CommentResponseDto> findAllByAuthor(@RequestParam int page, int size, @PathVariable String author) {
+        return commentService.findAllByAuthorByPage(author, page, size);
     }
 
     @GetMapping("/get-avg-stars/{productName}")

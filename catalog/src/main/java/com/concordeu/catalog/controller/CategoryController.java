@@ -29,8 +29,8 @@ public class CategoryController {
     }
 
     @GetMapping("/get-categories")
-    public Page<CategoryResponseDto> getCategories(@RequestParam int page, @RequestParam int pageSize) {
-        return categoryService.getCategoriesByPage(page, pageSize);
+    public Page<CategoryResponseDto> getCategories(@RequestParam int page, @RequestParam int size) {
+        return categoryService.getCategoriesByPage(page, size);
     }
 
     @PostMapping("/move-one-product")
