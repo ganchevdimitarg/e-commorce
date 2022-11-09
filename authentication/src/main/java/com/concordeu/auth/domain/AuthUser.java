@@ -17,7 +17,7 @@ import java.util.Set;
 @Document("users")
 @Data
 @Builder
-public class User {
+public class AuthUser {
     @Id
     private String id;
     @Indexed(unique = true)

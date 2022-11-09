@@ -21,7 +21,6 @@
         <mapstruct.version>1.5.2.Final</mapstruct.version>
         <database.driver>com.mysql.cj.jdbc.Driver</database.driver>
         <database.url>jdbc:mysql://localhost:3306/catalog?autoreconnect=true</database.url>
-        <database.username>root</database.username>
         <database.password>root</database.password>
         <springfox-boot-starter.version>3.0.0</springfox-boot-starter.version>
         <springfox-swagger-ui.version>2.10.5</springfox-swagger-ui.version>
@@ -181,7 +180,6 @@
                 <configuration>
                     <driver>${database.driver}</driver>
                     <url>${database.url}</url>
-                    <user>${database.username}</user>
                     <password>${database.password}</password>
                     <schemas>
                         <schema>catalog</schema>
