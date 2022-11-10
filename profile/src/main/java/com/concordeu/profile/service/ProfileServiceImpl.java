@@ -1,4 +1,4 @@
-package com.concordeu.profile.service.auth;
+package com.concordeu.profile.service;
 
 import com.concordeu.profile.dao.UserDao;
 import com.concordeu.profile.domain.Address;
@@ -30,11 +30,10 @@ public class ProfileServiceImpl implements ProfileService {
         if (userDao.findByUsername(model.username()).isPresent()) {
             throw new InvalidRequestDataException("User already exist: " + model.username());
         }
-        Address address = Address.builder()
-                .city(model.city())
-                .street(model.street())
-                .postCode(model.postCode())
-                .build();
+        Address address = new Address(
+                model.city(),
+                model.street(),
+                model.postCode());
 
         User authUser = User.builder()
                 .username(model.username())
@@ -65,24 +64,17 @@ public class ProfileServiceImpl implements ProfileService {
         Assert.hasLength(username, "Username is empty");
         User user = userDao.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User does not exist"));
+        Address address = new Address(
+                requestDto.city(),
+                requestDto.street(),
+                requestDto.postCode());
 
         user.setUsername(requestDto.username());
         user.setPassword(requestDto.password());
         user.setFirstName(requestDto.firstName());
         user.setLastName(requestDto.lastName());
         user.setPhoneNumber(requestDto.phoneNumber());
-        if (user.getAddress() == null) {
-            Address address = Address.builder()
-                    .city(requestDto.city())
-                    .street(requestDto.street())
-                    .postCode(requestDto.postCode())
-                    .build();
-            user.setAddress(address);
-        } else {
-            user.getAddress().setCity(requestDto.city());
-            user.getAddress().setStreet(requestDto.street());
-            user.getAddress().setPostCode(requestDto.postCode());
-        }
+        user.setAddress(address);
 
         userDao.save(user);
         log.info("User with username {} is update", user.getUsername());
@@ -98,7 +90,7 @@ public class ProfileServiceImpl implements ProfileService {
     }
 
     @Override
-    public UserDto getUserByEmail(String username) {
+    public UserDto getUserByUsername(String username) {
         Assert.hasLength(username, "Username is empty");
         User user = userDao.findByUsername(username)
                 .orElseThrow(()-> new UsernameNotFoundException("User does not exist"));
@@ -126,8 +118,8 @@ public class ProfileServiceImpl implements ProfileService {
                 user.getFirstName(),
                 user.getLastName(),
                 user.getPhoneNumber(),
-                user.getAddress().getCity(),
-                user.getAddress().getStreet(),
-                user.getAddress().getPostCode());
+                user.getAddress().city(),
+                user.getAddress().street(),
+                user.getAddress().postCode());
     }
 }

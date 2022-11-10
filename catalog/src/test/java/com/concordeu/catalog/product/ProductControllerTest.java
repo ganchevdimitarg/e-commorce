@@ -11,7 +11,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.context.ApplicationContext;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -27,8 +26,8 @@ import java.util.List;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.when;
-import static org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.*;
-import static org.springframework.web.reactive.function.client.ExchangeFilterFunctions.basicAuthentication;
+import static org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.csrf;
+import static org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockUser;
 
 
 @WebFluxTest(controllers = ProductController.class)
@@ -37,7 +36,6 @@ import static org.springframework.web.reactive.function.client.ExchangeFilterFun
 class ProductControllerTest {
 
     @Autowired
-    ApplicationContext context;
     WebTestClient client;
     @MockBean
     ProductService productService;
@@ -47,12 +45,6 @@ class ProductControllerTest {
 
     @BeforeEach
     void setUp() {
-        this.client = WebTestClient
-                .bindToApplicationContext(this.context)
-                .apply(springSecurity())
-                .configureClient()
-                .filter(basicAuthentication("admin", "admin"))
-                .build();
         productResponseDto = new ProductResponseDto("", "aaaa", "aaaaaaaaaaaaaaaaa", BigDecimal.ONE,
                 false, "", null, new ArrayList<>());
     }
@@ -61,9 +53,10 @@ class ProductControllerTest {
     void createProductShouldCreateProduct() {
         when(mapper.mapProductRequestDtoToProductResponseDto(any(ProductRequestDto.class))).thenReturn(productResponseDto);
 
-        this.client.mutateWith(mockUser("admin"))
+        this.client.mutateWith(csrf())
+                .mutateWith(mockUser("admin"))
                 .post()
-                .uri("/api/v1/catalog/products/create-product/{categoryName}", "PC")
+                .uri("/api/v1/catalog/product/create-product/{categoryName}", "PC")
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON)
                 .bodyValue("""
@@ -76,9 +69,7 @@ class ProductControllerTest {
                         }
                         """)
                 .exchange()
-                .expectStatus().isOk()
-                .expectBody()
-                .jsonPath("$.username").isEqualTo("aaaa");
+                .expectStatus().isOk();
 
         System.out.println();
     }
@@ -94,7 +85,7 @@ class ProductControllerTest {
 
         this.client.mutateWith(mockUser("admin"))
                 .get()
-                .uri("/api/v1/catalog/products/get-products?page=1&size=5")
+                .uri("/api/v1/catalog/product/get-products?page=1&size=5")
                 .accept(MediaType.APPLICATION_JSON)
                 .exchange()
                 .expectStatus().isOk();
@@ -110,7 +101,7 @@ class ProductControllerTest {
 
         this.client.mutateWith(mockUser("admin"))
                 .get()
-                .uri("/api/v1/catalog/products/get-products/{category}?page=1&size=5", "pc")
+                .uri("/api/v1/catalog/product/get-products/{category}?page=1&size=5", "pc")
                 .accept(MediaType.APPLICATION_JSON)
                 .exchange()
                 .expectStatus().isOk();
@@ -120,9 +111,10 @@ class ProductControllerTest {
     void updateProductShouldUpdateProduct() {
         when(mapper.mapProductRequestDtoToProductResponseDto(any(ProductRequestDto.class))).thenReturn(productResponseDto);
 
-        this.client.mutateWith(mockUser("admin"))
+        this.client.mutateWith(csrf())
+                .mutateWith(mockUser("admin"))
                 .put()
-                .uri("/api/v1/catalog/products/update-product/{productName}", "mouse")
+                .uri("/api/v1/catalog/product/update-product/{productName}", "mouse")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue("""
                         {
@@ -140,9 +132,10 @@ class ProductControllerTest {
 
     @Test
     void deleteProductShouldDeleteProduct() throws Exception {
-        this.client.mutateWith(mockUser("admin"))
+        this.client.mutateWith(csrf())
+                .mutateWith(mockUser("admin"))
                 .delete()
-                .uri("/api/v1/catalog/products/delete-product/{productName}", "mouse")
+                .uri("/api/v1/catalog/product/delete-product/{productName}", "mouse")
                 .exchange()
                 .expectStatus().isOk();
 

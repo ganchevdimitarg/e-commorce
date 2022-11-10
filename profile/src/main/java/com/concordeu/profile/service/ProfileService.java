@@ -1,4 +1,4 @@
-package com.concordeu.profile.service.auth;
+package com.concordeu.profile.service;
 
 import com.concordeu.profile.dto.UserDto;
 import com.concordeu.profile.dto.UserRequestDto;
@@ -11,6 +11,6 @@ public interface ProfileService {
 
     void deleteUser(String email);
 
-    UserDto getUserByEmail(String email);
+    UserDto getUserByUsername(String email);
 
 }

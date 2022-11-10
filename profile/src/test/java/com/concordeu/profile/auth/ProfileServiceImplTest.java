@@ -1,12 +1,13 @@
 package com.concordeu.profile.auth;
 
 import com.concordeu.profile.dao.UserDao;
+import com.concordeu.profile.domain.Address;
 import com.concordeu.profile.domain.User;
 import com.concordeu.profile.dto.UserDto;
 import com.concordeu.profile.dto.UserRequestDto;
 import com.concordeu.profile.excaption.InvalidRequestDataException;
-import com.concordeu.profile.service.auth.ProfileService;
-import com.concordeu.profile.service.auth.ProfileServiceImpl;
+import com.concordeu.profile.service.ProfileService;
+import com.concordeu.profile.service.ProfileServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -17,6 +18,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.util.HashSet;
 import java.util.Optional;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
@@ -26,15 +28,13 @@ import static org.mockito.Mockito.*;
 @Tag("unit")
 @ExtendWith(MockitoExtension.class)
 class ProfileServiceImplTest {
-
     ProfileService testService;
-
     @Mock
     UserDao userDao;
     @Mock
     PasswordEncoder passwordEncoder;
-
     UserRequestDto model;
+    User user;
 
     @BeforeEach
     void setUp() {
@@ -48,6 +48,15 @@ class ProfileServiceImplTest {
                 "Varna",
                 "Katay",
                 "9000");
+        user = User.builder()
+                .id("1")
+                .username("example@gmail.com")
+                .username("abc!@#ABC")
+                .grantedAuthorities(new HashSet<>())
+                .firstName("ivan").lastName("ivanov")
+                .address(new Address("varna", "katya", "9000"))
+                .build();
+
     }
 
     @Test
@@ -78,7 +87,6 @@ class ProfileServiceImplTest {
     @Test
     void getOrCreateUserShouldReturnUserIfExist() {
         String email = "example@gmail.com";
-        User user = User.builder().username(email).build();
         when(userDao.findByUsername(email)).thenReturn(Optional.of(user));
 
         UserDto userFromDataBase = testService.getOrCreateUser(email);
@@ -92,7 +100,7 @@ class ProfileServiceImplTest {
 
         assertThatThrownBy(() -> testService.getOrCreateUser(email))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Email is empty");
+                .hasMessageContaining("Username is empty");
 
         verify(userDao, never()).findByUsername(any(String.class));
     }
@@ -117,7 +125,7 @@ class ProfileServiceImplTest {
     void updateUserShouldThrowExceptionIfEmailIsEmpty() {
         assertThatThrownBy(() -> testService.updateUser("", model))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Email is empty");
+                .hasMessageContaining("Username is empty");
 
         verify(userDao, never()).save(any(User.class));
     }
@@ -146,7 +154,7 @@ class ProfileServiceImplTest {
     void deleteUserShouldThrowExceptionIfEmailIsEmpty() {
         assertThatThrownBy(() -> testService.deleteUser(""))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Email is empty");
+                .hasMessageContaining("Username is empty");
 
         verify(userDao, never()).save(any(User.class));
     }
@@ -163,29 +171,29 @@ class ProfileServiceImplTest {
     }
 
     @Test
-    void getUserByEmailShouldReturnUser() {
-        User user = User.builder().username(model.username()).build();
+    void getUserByUsernameShouldReturnUser() {
+
         when(userDao.findByUsername(model.username())).thenReturn(Optional.of(user));
 
-        UserDto testUser = testService.getUserByEmail(model.username());
+        UserDto testUser = testService.getUserByUsername(model.username());
 
         assertThat(testUser.username()).isEqualTo(user.getUsername());
     }
 
     @Test
-    void getUserByEmailShouldThrowExceptionIfEmailIsEmpty() {
-        assertThatThrownBy(() -> testService.getUserByEmail(""))
+    void getUserByUsernameShouldThrowExceptionIfEmailIsEmpty() {
+        assertThatThrownBy(() -> testService.getUserByUsername(""))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Email is empty");
+                .hasMessageContaining("Username is empty");
 
         verify(userDao, never()).save(any(User.class));
     }
 
     @Test
-    void getUserByEmailShouldThrowExceptionIfUserDoesNotExist() {
+    void getUserByUsernameShouldThrowExceptionIfUserDoesNotExist() {
         when(userDao.findByUsername("ivan@gmail.com")).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> testService.getUserByEmail("ivan@gmail.com"))
+        assertThatThrownBy(() -> testService.getUserByUsername("ivan@gmail.com"))
                 .isInstanceOf(UsernameNotFoundException.class)
                 .hasMessageContaining("User does not exist");
 

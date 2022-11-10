@@ -3,7 +3,7 @@ package com.concordeu.profile.controller;
 import com.concordeu.profile.annotation.ValidationInputRequest;
 import com.concordeu.profile.dto.UserDto;
 import com.concordeu.profile.dto.UserRequestDto;
-import com.concordeu.profile.service.auth.ProfileService;
+import com.concordeu.profile.service.ProfileService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -17,7 +17,7 @@ public class UserController {
 
     @GetMapping("/get-by-username/{username}")
     public UserDto getUserByEmail(@PathVariable String username) {
-        return profileService.getUserByEmail(username);
+        return profileService.getUserByUsername(username);
     }
 
     @PostMapping("/register")
