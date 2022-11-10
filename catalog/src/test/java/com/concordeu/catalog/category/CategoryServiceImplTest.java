@@ -92,14 +92,14 @@ class CategoryServiceImplTest {
     void deleteCategoryShouldDeleteProductIfProductExist() {
         when(categoryDao.findByName(categoryName)).thenReturn(Optional.of(Category.builder().name(categoryName).build()));
 
-        testService.deleteCategory(categoryResponseDto);
+        testService.deleteCategory(categoryName);
 
         verify(categoryDao).deleteByName(categoryName);
     }
 
     @Test
     void deleteCategoryShouldDeleteIfProductDoesNotExist() {
-        assertThatThrownBy(() -> testService.deleteCategory(categoryResponseDto))
+        assertThatThrownBy(() -> testService.deleteCategory(categoryName))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("No such category: bbbbb");
 

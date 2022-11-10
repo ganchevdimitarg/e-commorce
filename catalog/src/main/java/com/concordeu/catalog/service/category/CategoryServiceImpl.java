@@ -47,17 +47,17 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
-    public void deleteCategory(CategoryResponseDto categoryResponseDto) {
-        if (categoryResponseDto.name().isEmpty()) {
-            log.error("Category name is empty: " + categoryResponseDto.name());
-            throw new IllegalArgumentException("Category name is empty: " + categoryResponseDto.name());
+    public void deleteCategory(String categoryName) {
+        if (categoryName.isEmpty()) {
+            log.error("Category name is empty: " + categoryName);
+            throw new IllegalArgumentException("Category name is empty: " + categoryName);
         }
-        if (categoryDao.findByName(categoryResponseDto.name()).isEmpty()) {
-            log.error("No such category: " + categoryResponseDto.name());
-            throw new IllegalArgumentException("No such category: " + categoryResponseDto.name());
+        if (categoryDao.findByName(categoryName).isEmpty()) {
+            log.error("No such category: " + categoryName);
+            throw new IllegalArgumentException("No such category: " + categoryName);
         }
 
-        categoryDao.deleteByName(categoryResponseDto.name());
+        categoryDao.deleteByName(categoryName);
     }
 
     @Override

@@ -123,7 +123,7 @@ public class ValidateRequestImpl implements ValidateRequest {
         if (isLengthNotValid(username, 5, 20) ||
                 isNotMatches(username, regexPatternEmail)) {
             throw new InvalidRequestDataException(
-                    String.format("Email is not correct: %s. For example: example@gmail.com", username));
+                    String.format("Username is not correct: %s. For example: example@gmail.com", username));
         }
         return true;
     }

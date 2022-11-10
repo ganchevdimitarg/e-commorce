@@ -2,35 +2,31 @@ package com.concordeu.profile.controller;
 
 import com.concordeu.profile.dto.UserDto;
 import com.concordeu.profile.dto.UserRequestDto;
-import com.concordeu.profile.service.auth.ProfileService;
+import com.concordeu.profile.service.ProfileService;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
-import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.web.reactive.server.WebTestClient;
 
 import java.util.HashSet;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.csrf;
+import static org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockUser;
 
-@ExtendWith(SpringExtension.class)
-@WebMvcTest(UserController.class)
-@Import(UserController.class)
+@WebFluxTest(controllers = UserController.class)
+@ActiveProfiles("test")
 @Tag("integration")
 class UserControllerTest {
     @Autowired
-    MockMvc mvc;
-
+    WebTestClient client;
     @MockBean
     ProfileService profileService;
     @MockBean
@@ -38,7 +34,7 @@ class UserControllerTest {
 
     @Test
     void getUserByEmailShouldReturnUser() throws Exception {
-        when(profileService.getUserByEmail(any(String.class))).thenReturn(new UserDto(
+        when(profileService.getUserByUsername(any(String.class))).thenReturn(new UserDto(
                 "",
                 "",
                 "",
@@ -49,62 +45,76 @@ class UserControllerTest {
                 "",
                 "",
                 ""));
-        mvc.perform(get("/api/v1/profile/get-by-email/{email}", "example@gmial.com")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk());
+        this.client.mutateWith(mockUser("admin"))
+                .get()
+                .uri("/api/v1/profile/get-by-username/{email}", "example@gmial.com")
+                .accept(MediaType.APPLICATION_JSON)
+                .exchange()
+                .expectStatus().isOk();
     }
 
     @Test
     void registerUserShouldCreateUser() throws Exception {
-        mvc.perform(post("/api/v1/profile/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .accept(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                    "username" : "ivanIvanov",
-                                    "password" : "Abc123!@#",
-                                    "firstName" : "Ivanь",
-                                    "lastName" : "Ivanov",
-                                    "email" : "ivan@gmail.com",
-                                    "phoneNumber" : "0888888888",
-                                    "city" : "varna",
-                                    "street" : "katay",
-                                    "postCode" : "9000"
-                                }
-                                """))
-                .andExpect(status().isOk());
+        this.client.mutateWith(csrf())
+                .mutateWith(mockUser("admin"))
+                .post()
+                .uri("/api/v1/profile/register")
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.APPLICATION_JSON)
+                .bodyValue("""
+                        {
+                            "username" : "ivanIvanov",
+                            "password" : "Abc123!@#",
+                            "firstName" : "Ivanь",
+                            "lastName" : "Ivanov",
+                            "email" : "ivan@gmail.com",
+                            "phoneNumber" : "0888888888",
+                            "city" : "varna",
+                            "street" : "katay",
+                            "postCode" : "9000"
+                        }
+                        """)
+                .exchange()
+                .expectStatus().isOk();
 
         verify(profileService).createUser(any(UserRequestDto.class));
     }
 
     @Test
     void updateUserShouldUpdateUserInfo() throws Exception {
-        mvc.perform(put("/api/v1/profile/update/{email}", "ivan@gmail.com")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .accept(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                    "username" : "dddddd",
-                                    "password" : "Abc123!@#",
-                                    "firstName" : "Ivanь",
-                                    "lastName" : "Ivanov",
-                                    "email" : "ivan@gmail.com",
-                                    "phoneNumber" : "0888888888",
-                                    "city" : "varna",
-                                    "street" : "katay",
-                                    "postCode" : "9000"
-                                }
-                                """))
-                .andExpect(status().isOk());
+        this.client.mutateWith(csrf())
+                .mutateWith(mockUser("admin"))
+                .put()
+                .uri("/api/v1/profile/update/{email}", "ivan@gmail.com")
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.APPLICATION_JSON)
+                .bodyValue("""
+                        {
+                            "username" : "dddddd",
+                            "password" : "Abc123!@#",
+                            "firstName" : "Ivanь",
+                            "lastName" : "Ivanov",
+                            "email" : "ivan@gmail.com",
+                            "phoneNumber" : "0888888888",
+                            "city" : "varna",
+                            "street" : "katay",
+                            "postCode" : "9000"
+                        }
+                        """)
+                .exchange()
+                .expectStatus().isOk();
 
-        verify(profileService).updateUser(any(String.class),any(UserRequestDto.class));
+        verify(profileService).updateUser(any(String.class), any(UserRequestDto.class));
     }
 
     @Test
     void deleteUserShouldDeleteUser() throws Exception {
-        mvc.perform(delete("/api/v1/profile/delete/{email}", "ivan@gmail.com"))
-                .andExpect(status().isOk());
+        this.client.mutateWith(csrf())
+                .mutateWith(mockUser("admin"))
+                .delete()
+                .uri("/api/v1/profile/delete/{email}", "ivan@gmail.com")
+                .exchange()
+                .expectStatus().isOk();
 
         verify(profileService).deleteUser(any(String.class));
     }

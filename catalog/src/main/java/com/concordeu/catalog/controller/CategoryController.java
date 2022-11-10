@@ -23,9 +23,9 @@ public class CategoryController {
         return categoryService.createCategory(mapper.mapCategoryRequestDtoToCategoryDto(requestDto));
     }
 
-    @DeleteMapping("/delete")
-    public void deleteCategory(@RequestBody CategoryRequestDto requestDto) {
-        categoryService.deleteCategory(mapper.mapCategoryRequestDtoToCategoryDto(requestDto));
+    @DeleteMapping("/delete-category/{categoryName}")
+    public void deleteCategory(@PathVariable String categoryName) {
+        categoryService.deleteCategory(categoryName);
     }
 
     @GetMapping("/get-categories")
