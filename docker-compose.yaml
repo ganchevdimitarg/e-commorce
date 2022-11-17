@@ -36,6 +36,19 @@ services:
     links:
       - mongodb
 
+  postgres:
+    container_name: postgres
+    image: postgres
+    environment:
+      POSTGRES_USER: "${POSTGRES_USER}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      PGDATA: /data/postgres
+    volumes:
+      - postgres:/data/postgres
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
   zipkin:
     image: openzipkin/zipkin
     container_name: zipkin
@@ -102,3 +115,4 @@ volumes:
   prometheus_data: {}
   grafana_storage: {}
   data: {}
+  postgres:

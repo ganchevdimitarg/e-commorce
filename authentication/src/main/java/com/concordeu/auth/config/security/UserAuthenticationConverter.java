@@ -18,11 +18,10 @@ public class UserAuthenticationConverter implements AuthenticationConverter {
     @Override
     public Authentication convert(HttpServletRequest request) {
         AuthUserDto authUserDto;
-
         try {
             authUserDto = MAPPER.readValue(request.getInputStream(), AuthUserDto.class);
         } catch (IOException e) {
-            return null;
+            throw new IllegalArgumentException(e);
         }
         return new UsernamePasswordAuthenticationToken(authUserDto.username(), authUserDto.password());
     }

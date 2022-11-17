@@ -30,16 +30,16 @@ public class UserAuthenticationProvider implements AuthenticationProvider {
         Optional<AuthUser> authUser = authUserDao.findByUsername(username);
 
         if (authUser.isEmpty()) {
-            return null;
+            throw new IllegalArgumentException("User does not exist");
         }
 
         AuthUser user = authUser.get();
 
-        if (passwordEncoder.matches(CharBuffer.wrap(password), user.getPassword())) {
-            return new UsernamePasswordAuthenticationToken(username, password, Collections.emptyList());
+        if (!passwordEncoder.matches(CharBuffer.wrap(password), user.getPassword())) {
+            throw new IllegalArgumentException("The password does not match");
         }
 
-        return null;
+        return new UsernamePasswordAuthenticationToken(username, password, Collections.emptyList());
     }
 
     @Override
