@@ -24,6 +24,7 @@
         <module>eureka-server</module>
         <module>gateway</module>
         <module>profile</module>
+        <module>notification</module>
     </modules>
 
     <properties>
