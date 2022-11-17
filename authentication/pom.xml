@@ -19,6 +19,8 @@
         <spring-auth-server.version>0.2.0</spring-auth-server.version>
         <spring-webflux.version>5.3.9</spring-webflux.version>
         <reactor-netty.version>1.0.9</reactor-netty.version>
+        <springfox-boot-starter.version>3.0.0</springfox-boot-starter.version>
+        <springfox-swagger-ui.version>2.10.5</springfox-swagger-ui.version>
     </properties>
 
     <dependencies>
@@ -40,26 +42,24 @@
             <version>${spring-auth-server.version}</version>
         </dependency>
         <dependency>
-            <groupId>org.springframework.security</groupId>
-            <artifactId>spring-security-oauth2-jose</artifactId>
-        </dependency>
-        <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-webflux</artifactId>
-            <version>${spring-webflux.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.projectreactor.netty</groupId>
-            <artifactId>reactor-netty</artifactId>
-            <version>${reactor-netty.version}</version>
-        </dependency>
-        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-mongodb</artifactId>
+        </dependency>
+
+        <!--   Swagger     -->
+        <dependency>
+            <groupId>io.springfox</groupId>
+            <artifactId>springfox-boot-starter</artifactId>
+            <version>${springfox-boot-starter.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.springfox</groupId>
+            <artifactId>springfox-swagger-ui</artifactId>
+            <version>${springfox-swagger-ui.version}</version>
         </dependency>
     </dependencies>
 
