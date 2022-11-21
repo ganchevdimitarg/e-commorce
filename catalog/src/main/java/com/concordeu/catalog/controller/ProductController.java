@@ -4,6 +4,11 @@ import com.concordeu.catalog.dto.product.ProductRequestDto;
 import com.concordeu.catalog.dto.product.ProductResponseDto;
 import com.concordeu.catalog.mapper.MapStructMapper;
 import com.concordeu.catalog.service.product.ProductService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -18,6 +23,12 @@ public class ProductController {
     private final ProductService productService;
     private final MapStructMapper mapper;
 
+    @Operation(summary = "Create Product", description = "Create a product in the database",
+            security = @SecurityRequirement(name = "security_auth"))
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
+            @ApiResponse(responseCode = "500", description = "Server Error")
+    })
     @PostMapping("/create-product/{categoryName}")
     public ProductResponseDto createProduct(@RequestBody ProductRequestDto requestDto,
                                             @PathVariable String categoryName) {
@@ -25,12 +36,24 @@ public class ProductController {
         return productService.createProduct(productResponseDto, categoryName);
     }
 
+    @Operation(summary = "Get Products", description = "Get all products from the database",
+            security = @SecurityRequirement(name = "security_auth"))
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
+            @ApiResponse(responseCode = "500", description = "Server Error")
+    })
     @GetMapping("/get-products")
     public Page<ProductResponseDto> getProducts(@RequestParam int page,
                                                 @RequestParam int size) {
         return productService.getProductsByPage(page, size);
     }
 
+    @Operation(summary = "Get Products By Category Name", description = "Get all products by category name",
+            security = @SecurityRequirement(name = "security_auth"))
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
+            @ApiResponse(responseCode = "500", description = "Server Error")
+    })
     @GetMapping("/get-products/{categoryName}")
     public Page<ProductResponseDto> getProductsByCategory(@RequestParam int page,
                                                           @RequestParam int size,
@@ -38,11 +61,23 @@ public class ProductController {
         return productService.getProductsByCategoryByPage(page, size, categoryName);
     }
 
+    @Operation(summary = "Get Product By Product Name", description = "Get product by product name",
+            security = @SecurityRequirement(name = "security_auth"))
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
+            @ApiResponse(responseCode = "500", description = "Server Error")
+    })
     @GetMapping("/get-product/{productName}")
-    public ProductResponseDto getProductByName(@PathVariable String productName){
+    public ProductResponseDto getProductByName(@PathVariable String productName) {
         return productService.getProductByName(productName);
     }
 
+    @Operation(summary = "Update Product By Product Name", description = "Update product by product name",
+            security = @SecurityRequirement(name = "security_auth"))
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
+            @ApiResponse(responseCode = "500", description = "Server Error")
+    })
     @PutMapping("/update-product/{productName}")
     public void updateProduct(@RequestBody ProductRequestDto requestDto,
                               @PathVariable String productName) {
@@ -50,6 +85,12 @@ public class ProductController {
         productService.updateProduct(productResponseDto, productName);
     }
 
+    @Operation(summary = "Delete Product By Product Name", description = "Delete product by product name",
+            security = @SecurityRequirement(name = "security_auth"))
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
+            @ApiResponse(responseCode = "500", description = "Server Error")
+    })
     @DeleteMapping("/delete-product/{productName}")
     public void deleteProduct(@PathVariable String productName) {
         productService.deleteProduct(productName);

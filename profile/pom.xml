@@ -20,6 +20,8 @@
         <reactor-netty.version>1.0.9</reactor-netty.version>
         <springfox-boot-starter.version>3.0.0</springfox-boot-starter.version>
         <springfox-swagger-ui.version>2.10.5</springfox-swagger-ui.version>
+        <gson.version>2.9.1</gson.version>
+        <springdoc-openapi-ui.version>1.6.13</springdoc-openapi-ui.version>
     </properties>
 
     <dependencies>
@@ -53,10 +55,6 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-aop</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-webflux</artifactId>
         </dependency>
 
         <!--        Spring Cloud     -->
@@ -118,16 +116,28 @@
             <artifactId>mockito-junit-jupiter</artifactId>
         </dependency>
 
-        <!--   Swagger     -->
+        <!--   Spring Doc     -->
         <dependency>
-            <groupId>io.springfox</groupId>
-            <artifactId>springfox-boot-starter</artifactId>
-            <version>${springfox-boot-starter.version}</version>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-ui</artifactId>
+            <version>${springdoc-openapi-ui.version}</version>
+        </dependency>
+
+        <!--    WebFlux     -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webflux</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.springfox</groupId>
-            <artifactId>springfox-swagger-ui</artifactId>
-            <version>${springfox-swagger-ui.version}</version>
+            <groupId>io.projectreactor.netty</groupId>
+            <artifactId>reactor-netty</artifactId>
+        </dependency>
+
+        <!--    Gson    -->
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>${gson.version}</version>
         </dependency>
 
     </dependencies>

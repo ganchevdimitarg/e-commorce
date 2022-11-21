@@ -21,7 +21,7 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.MariaDBDialect
         format_sql: FALSE
-        show_sql: FALSE
+    show_sql: true
     hibernate:
       ddl-auto: validate
 

@@ -22,6 +22,7 @@
         <springfox-boot-starter.version>3.0.0</springfox-boot-starter.version>
         <springfox-swagger-ui.version>2.10.5</springfox-swagger-ui.version>
         <h2.version>2.1.212</h2.version>
+        <springdoc-openapi-ui.version>1.6.13</springdoc-openapi-ui.version>
     </properties>
 
     <dependencies>
@@ -138,18 +139,12 @@
         </dependency>
 
 
-        <!--   Swagger     -->
+        <!--   Spring Doc     -->
         <dependency>
-            <groupId>io.springfox</groupId>
-            <artifactId>springfox-boot-starter</artifactId>
-            <version>${springfox-boot-starter.version}</version>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-ui</artifactId>
+            <version>${springdoc-openapi-ui.version}</version>
         </dependency>
-        <dependency>
-            <groupId>io.springfox</groupId>
-            <artifactId>springfox-swagger-ui</artifactId>
-            <version>${springfox-swagger-ui.version}</version>
-        </dependency>
-
     </dependencies>
 
     <build>
