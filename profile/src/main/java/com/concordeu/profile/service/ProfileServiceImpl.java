@@ -3,15 +3,19 @@ package com.concordeu.profile.service;
 import com.concordeu.profile.dao.UserDao;
 import com.concordeu.profile.domain.Address;
 import com.concordeu.profile.domain.User;
+import com.concordeu.profile.dto.NotificationDto;
 import com.concordeu.profile.dto.UserDto;
 import com.concordeu.profile.dto.UserRequestDto;
 import com.concordeu.profile.excaption.InvalidRequestDataException;
+import com.google.gson.Gson;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -22,8 +26,12 @@ import static com.concordeu.profile.security.UserRole.USER;
 @RequiredArgsConstructor
 @Slf4j
 public class ProfileServiceImpl implements ProfileService {
+
     private final UserDao userDao;
     private final PasswordEncoder passwordEncoder;
+    private final WebClient webClient;
+
+    private final Gson gson;
 
     @Override
     public UserDto createUser(UserRequestDto model) {
@@ -48,6 +56,20 @@ public class ProfileServiceImpl implements ProfileService {
 
         User user = userDao.insert(authUser);
         log.info("The user was successfully create");
+
+        String notificationBody = gson.toJson(
+                new NotificationDto(
+                        user.getUsername(),
+                        "Registration",
+                        "You have successfully registered. Please log in to your account.",
+                        null));
+
+        webClient
+                .post()
+                .uri("/api/v1/notification/sendMail")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(notificationBody);
+
         return getUserDto(user);
     }
 

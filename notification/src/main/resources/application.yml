@@ -1,29 +1,25 @@
 server:
-  port: 8083
-
+  port: 8085
 spring:
   application:
-    name: catalog-service
+    name: notification-service
   devtools:
     livereload:
       port: 35730
 
-#Data Source Properties
+  #Data Source Properties
   datasource:
-    driverClassName: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/catalog?useSSL=false&createDatabaseIfNotExist=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
-    username: ${MYSQL_USER}
-    password: ${MYSQL_PASSWORD}
-
-  #JPA Properties
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+    url: jdbc:postgresql://localhost:5432/notification
   jpa:
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.MariaDBDialect
-        format_sql: FALSE
-    show_sql: true
     hibernate:
       ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+    show-sql: true
 
   #Security
   security:
@@ -40,6 +36,16 @@ spring:
   #Zipkin
   zipkin:
     base-url: http://localhost:9411
+
+  #Gmail
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: 'mondelsofiq@gmail.com'
+    password: 'qmqlztpsnvddords'
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
 
 #Show SQL executed with parameter bindings
 #Logging Levels

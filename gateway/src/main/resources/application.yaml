@@ -21,21 +21,37 @@ spring:
         provider:
           spring:
             issuer-uri: http://localhost:8082
+
   cloud:
     gateway:
+      discovery:
+        locator:
+          enabled: true
       routes:
         - id: catalog-service
-          uri: http://localhost:8083
+          uri: lb://catalog-service
           predicates:
             Path=/api/v1/catalog/**
           filters:
             TokenRelay=
         - id: profile-service
-          uri: http://localhost:8084
+          uri: lb://profile-service
           predicates:
-            Path=/api/v1/profile/**
+            - Path=/api/v1/profile/**
           filters:
-            TokenRelay=
+            - TokenRelay=
+        - id: notification-service
+          uri: lb://notification-service
+          predicates:
+            - Path=/api/v1/notification/**
+          filters:
+            - TokenRelay=
+        - id: openapi
+          uri: http://localhost:${server.port}
+          predicates:
+            - Path=/v3/api-docs/**
+          filters:
+            - RewritePath=/v3/api-docs/(?<path>.*), /$\{path}/v3/api-docs
 
 logging:
   level:
