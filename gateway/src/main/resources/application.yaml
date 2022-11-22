@@ -33,25 +33,36 @@ spring:
           predicates:
             Path=/api/v1/catalog/**
           filters:
-            TokenRelay=
+            - TokenRelay=
+            - RewritePath=/api/v1/catalog/(?<segment>.*), /$\{segment}
+            - RemoveRequestHeader=Cookie
         - id: profile-service
           uri: lb://profile-service
           predicates:
             - Path=/api/v1/profile/**
           filters:
             - TokenRelay=
+            - RewritePath=/api/v1/profile/(?<segment>.*), /$\{segment}
+            - RemoveRequestHeader=Cookie
         - id: notification-service
           uri: lb://notification-service
           predicates:
             - Path=/api/v1/notification/**
           filters:
             - TokenRelay=
-        - id: openapi
-          uri: http://localhost:${server.port}
-          predicates:
-            - Path=/v3/api-docs/**
-          filters:
-            - RewritePath=/v3/api-docs/(?<path>.*), /$\{path}/v3/api-docs
+            - RewritePath=/api/v1/notification/(?<segment>.*), /$\{segment}
+            - RemoveRequestHeader=Cookie
+
+springdoc:
+  swagger-ui:
+    disable-swagger-default-url: true
+    urls:
+      - name: catalog-service
+        url: /v3/api-docs/swagger-config
+      - name: profile-service
+        url: /v3/api-docs/swagger-config
+      - name: notification-service
+        url: /v3/api-docs/swagger-config
 
 logging:
   level:
@@ -64,7 +75,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: "*"
+        include: gateway
   endpoint:
     prometheus:
       enabled: 'true'
@@ -81,3 +92,5 @@ eureka:
   client:
     service-url:
       defaultZone: http://localhost:8761/eureka
+
+
