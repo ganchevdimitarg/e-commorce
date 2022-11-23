@@ -4,13 +4,23 @@ server:
     context-path: /config
 
 spring:
+  profiles:
+    active: git,vault
   application:
     name: config-server
   cloud:
     config:
       server:
+        vault:
+          host: 127.0.0.1
+          port: 8200
+          order: 1
+          kv-version: 2
+          authentication: TOKEN
+          token: root
         git:
           uri: file://${user.home}/IdeaProjects/config-repo
+          order: 2
 
 eureka:
   client:
