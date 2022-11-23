@@ -7,7 +7,7 @@ import javax.persistence.*;
 import javax.validation.constraints.Size;
 
 @Entity(name = "Notification")
-@Table(name="notifications" )
+@Table(name="notification" )
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
