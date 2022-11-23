@@ -3,13 +3,11 @@ package com.concordeu.notification.domain;
 import lombok.*;
 import org.hibernate.annotations.GenericGenerator;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.Id;
+import javax.persistence.*;
 import javax.validation.constraints.Size;
 
 @Entity(name = "Notification")
+@Table(name="notifications" )
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder

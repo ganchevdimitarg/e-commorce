@@ -1,13 +1,13 @@
 create table categories
 (
-    id   varchar(255) not null,
+    id   varchar(255) not null unique,
     name varchar(200) not null,
     primary key (id)
 );
 
 create table comments
 (
-    id         varchar(255)     not null,
+    id         varchar(255)     not null unique,
     author     varchar(200),
     star       double precision not null,
     text       TEXT,
@@ -18,11 +18,11 @@ create table comments
 
 create table products
 (
-    id              varchar(255)   not null,
-    characteristics TEXT,
-    description     TEXT           not null,
-    stock           bit,
+    id              varchar(255)   not null unique,
     name            varchar(200)   not null,
+    characteristics text,
+    description     text           not null,
+    stock           bit,
     price           decimal(19, 2) not null,
     category_id     varchar(255),
     primary key (id)

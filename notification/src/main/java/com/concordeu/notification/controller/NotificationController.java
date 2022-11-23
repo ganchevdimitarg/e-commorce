@@ -1,6 +1,6 @@
 package com.concordeu.notification.controller;
 
-import com.concordeu.notification.annotation.ValidationInputRequest;
+import com.concordeu.notification.annotation.ValidationRequest;
 import com.concordeu.notification.dto.NotificationDto;
 import com.concordeu.notification.service.EmailService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -29,7 +29,7 @@ public class NotificationController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @PostMapping("/sendMail")
-    @ValidationInputRequest
+    @ValidationRequest
     public String sendMail(@RequestBody NotificationDto notificationDto) {
         return emailService.sendSimpleMail(notificationDto);
     }
@@ -41,7 +41,7 @@ public class NotificationController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @PostMapping("/sendMailWithAttachment")
-    @ValidationInputRequest
+    @ValidationRequest
     public String sendMailWithAttachment(@RequestBody NotificationDto notificationDto) {
         return emailService.sendMailWithAttachment(notificationDto);
     }
