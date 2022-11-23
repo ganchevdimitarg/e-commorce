@@ -15,6 +15,7 @@ import io.swagger.v3.oas.annotations.servers.Server;
         name = "security_auth",
         type = SecuritySchemeType.OAUTH2,
         in = SecuritySchemeIn.HEADER,
+        bearerFormat = "jwt",
         flows = @OAuthFlows(
                 authorizationCode = @OAuthFlow(
                         tokenUrl = "http://localhost:8082/oauth2/token",

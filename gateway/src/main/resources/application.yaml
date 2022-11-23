@@ -55,7 +55,6 @@ spring:
 
 springdoc:
   swagger-ui:
-    disable-swagger-default-url: true
     urls:
       - name: catalog-service
         url: /v3/api-docs/swagger-config
