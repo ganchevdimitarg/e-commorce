@@ -25,6 +25,7 @@
         <module>gateway</module>
         <module>profile</module>
         <module>notification</module>
+        <module>order</module>
     </modules>
 
     <properties>

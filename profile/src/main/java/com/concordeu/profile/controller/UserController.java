@@ -1,6 +1,6 @@
 package com.concordeu.profile.controller;
 
-import com.concordeu.profile.annotation.ValidationInputRequest;
+import com.concordeu.profile.annotation.ValidationRequest;
 import com.concordeu.profile.dto.UserDto;
 import com.concordeu.profile.dto.UserRequestDto;
 import com.concordeu.profile.service.ProfileService;
@@ -38,7 +38,7 @@ public class UserController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @PostMapping("/register")
-    @ValidationInputRequest
+    @ValidationRequest
     public UserDto registerUser(@RequestBody UserRequestDto requestDto) {
         return profileService.createUser(requestDto);
     }
@@ -50,7 +50,7 @@ public class UserController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @PutMapping("/update/{username}")
-    @ValidationInputRequest
+    @ValidationRequest
     public void updateUser(@RequestBody UserRequestDto requestDto,
                            @PathVariable String username) {
         profileService.updateUser(username, requestDto);

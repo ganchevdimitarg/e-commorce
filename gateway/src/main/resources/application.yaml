@@ -52,6 +52,14 @@ spring:
             - TokenRelay=
             - RewritePath=/api/v1/notification/(?<segment>.*), /$\{segment}
             - RemoveRequestHeader=Cookie
+        - id: order-service
+          uri: lb://order-service
+          predicates:
+            - Path=/api/v1/order/**
+          filters:
+            - TokenRelay=
+            - RewritePath=/api/v1/order/(?<segment>.*), /$\{segment}
+            - RemoveRequestHeader=Cookie
 
 springdoc:
   swagger-ui:
@@ -61,6 +69,8 @@ springdoc:
       - name: profile-service
         url: /v3/api-docs/swagger-config
       - name: notification-service
+        url: /v3/api-docs/swagger-config
+      - name: order-service
         url: /v3/api-docs/swagger-config
 
 logging:

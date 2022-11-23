@@ -1,4 +1,4 @@
-package com.concordeu.profile.annotation;
+package com.concordeu.order.annotation;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -7,5 +7,5 @@ import java.lang.annotation.Target;
 
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface ValidationInputRequest {
+public @interface ValidationRequest {
 }
