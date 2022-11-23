@@ -47,7 +47,7 @@ class UserControllerTest {
                 ""));
         this.client.mutateWith(mockUser("admin"))
                 .get()
-                .uri("/api/v1/profile/get-by-username/{email}", "example@gmial.com")
+                .uri("/api/v1/profile/get-by-username/{email}", "example@gmail.com")
                 .accept(MediaType.APPLICATION_JSON)
                 .exchange()
                 .expectStatus().isOk();

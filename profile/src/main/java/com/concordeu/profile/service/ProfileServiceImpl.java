@@ -8,6 +8,7 @@ import com.concordeu.profile.dto.UserDto;
 import com.concordeu.profile.dto.UserRequestDto;
 import com.concordeu.profile.excaption.InvalidRequestDataException;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -30,8 +31,6 @@ public class ProfileServiceImpl implements ProfileService {
     private final UserDao userDao;
     private final PasswordEncoder passwordEncoder;
     private final WebClient webClient;
-
-    private final Gson gson;
 
     @Override
     public UserDto createUser(UserRequestDto model) {
@@ -57,18 +56,22 @@ public class ProfileServiceImpl implements ProfileService {
         User user = userDao.insert(authUser);
         log.info("The user was successfully create");
 
-        String notificationBody = gson.toJson(
+        String notificationBody = new Gson().toJson(
                 new NotificationDto(
                         user.getUsername(),
                         "Registration",
-                        "You have successfully registered. Please log in to your account.",
-                        null));
+                        "You have successfully registered. Please log in to your account.")
+        );
 
-        webClient
+        String value = webClient
                 .post()
                 .uri("/api/v1/notification/sendMail")
                 .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(notificationBody);
+                .accept(MediaType.APPLICATION_JSON)
+                .bodyValue(notificationBody)
+                .retrieve()
+                .bodyToMono(String.class)
+                .block();
 
         return getUserDto(user);
     }
@@ -115,7 +118,7 @@ public class ProfileServiceImpl implements ProfileService {
     public UserDto getUserByUsername(String username) {
         Assert.hasLength(username, "Username is empty");
         User user = userDao.findByUsername(username)
-                .orElseThrow(()-> new UsernameNotFoundException("User does not exist"));
+                .orElseThrow(() -> new UsernameNotFoundException("User does not exist"));
         user.setPassword("");
         return getUserDto(user);
     }

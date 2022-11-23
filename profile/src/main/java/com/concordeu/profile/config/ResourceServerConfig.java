@@ -12,6 +12,8 @@ public class ResourceServerConfig {
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.mvcMatcher("/api/v1/profile/**")
                 .authorizeRequests()
+                .antMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html")
+                .permitAll()
                 .mvcMatchers("/api/v1/profile/**")
                 .access("hasAuthority('SCOPE_auth.user')")
                 .and()

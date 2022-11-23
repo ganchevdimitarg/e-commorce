@@ -74,3 +74,7 @@ springdoc:
     path: /v3/api-docs
   swagger-ui:
     path: /swagger-ui.html
+    oauth2-redirect-url: http://127.0.0.1:8081/login/oauth2/code/gateway-client-oidc
+    csrf:
+      enabled: false
+      header-name: Authorization

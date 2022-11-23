@@ -8,6 +8,7 @@ import com.concordeu.profile.dto.UserRequestDto;
 import com.concordeu.profile.excaption.InvalidRequestDataException;
 import com.concordeu.profile.service.ProfileService;
 import com.concordeu.profile.service.ProfileServiceImpl;
+import com.google.gson.Gson;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -17,6 +18,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import java.util.HashSet;
 import java.util.Optional;
@@ -33,14 +35,16 @@ class ProfileServiceImplTest {
     UserDao userDao;
     @Mock
     PasswordEncoder passwordEncoder;
+    @Mock
+    WebClient webClient;
     UserRequestDto model;
     User user;
 
     @BeforeEach
     void setUp() {
-        testService = new ProfileServiceImpl(userDao, passwordEncoder);
+        testService = new ProfileServiceImpl(userDao, passwordEncoder, webClient);
         model = new UserRequestDto(
-                "example@gmail.com",
+                "dimitarggacnhev3@gmail.com",
                 "Abc123!@#",
                 "Ivan",
                 "Ivanov",
@@ -62,7 +66,6 @@ class ProfileServiceImplTest {
     @Test
     void createUserShouldCreateUserIfUserNotExist() {
         when(userDao.findByUsername(model.username())).thenReturn(Optional.empty());
-
         testService.createUser(model);
 
         ArgumentCaptor<User> argumentCaptor = ArgumentCaptor.forClass(User.class);
