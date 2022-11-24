@@ -1,4 +1,4 @@
-package com.concordeu.gateway;
+package com.concordeu.gateway.config;
 
 import org.springframework.cloud.gateway.route.RouteDefinitionLocator;
 import org.springframework.context.annotation.Configuration;
@@ -8,7 +8,6 @@ import springfox.documentation.swagger.web.SwaggerResourcesProvider;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 @Configuration
 @Primary
