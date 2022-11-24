@@ -41,7 +41,7 @@ management:
 
 logging:
   level:
-    root: DEBUG
+    root: info
     org:
       springframework:
-        web: DEBUG
+        web: off
