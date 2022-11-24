@@ -109,9 +109,44 @@ services:
       - "8080:8080"
     restart: always
 
+  vault:
+    image: hashicorp/vault
+    restart: always
+    volumes:
+      - ./vault/config/:/helpers
+      - vault_data:/vault/file
+    ports:
+      - "8201:8200/tcp"
+    cap_add:
+      - IPC_LOCK
+    container_name: vault
+    entrypoint: "vault server -config=/helpers/vault-config.hcl"
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:8200 || exit 1
+      interval: 10s
+      retries: 12
+      start_period: 10s
+      timeout: 10s
+
+  vault-agent:
+    image: hashicorp/vault
+    restart: always
+    ports:
+      - "8200:8200"
+    volumes:
+      - ./vault/config/:/helpers
+    environment:
+      VAULT_ADDR: "http://vault:8200"
+    container_name: vault-agent
+    entrypoint: "vault agent -log-level debug -config=/helpers/vault-agent.hcl"
+    depends_on:
+      vault:
+        condition: service_healthy
+
 volumes:
   db:
   prometheus_data: {}
   grafana_storage: {}
   data: {}
   postgres:
+  vault_data: {}

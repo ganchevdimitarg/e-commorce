@@ -17,7 +17,7 @@ spring:
           order: 1
           kv-version: 2
           authentication: TOKEN
-          token: root
+          token: ${CONFIG_SERVER_TOKEN}
         git:
           uri: file://${user.home}/IdeaProjects/config-repo
           order: 2
@@ -37,3 +37,11 @@ management:
       enabled: true
     readinessstate:
       enabled: true
+
+
+logging:
+  level:
+    root: DEBUG
+    org:
+      springframework:
+        web: DEBUG

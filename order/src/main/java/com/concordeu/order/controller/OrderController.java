@@ -49,7 +49,7 @@ public class OrderController {
             @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
-    @DeleteMapping("/get-order/{orderNumber}")
+    @GetMapping("/get-order/{orderNumber}")
     public OrderResponseDto getOrder(@PathVariable long orderNumber) {
         return orderService.getOrder(orderNumber);
     }
