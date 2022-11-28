@@ -3,6 +3,7 @@ package com.concordeu.profile.controller;
 import com.concordeu.profile.annotation.ValidationRequest;
 import com.concordeu.profile.dto.UserDto;
 import com.concordeu.profile.dto.UserRequestDto;
+import com.concordeu.profile.service.MailService;
 import com.concordeu.profile.service.ProfileService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 public class UserController {
     private final ProfileService profileService;
+    private final MailService mailService;
 
     @Operation(summary = "Get User By Username",  description = "Get user by username from the database",
             security = @SecurityRequirement(name = "security_auth"))
@@ -40,7 +42,9 @@ public class UserController {
     @PostMapping("/register")
     @ValidationRequest
     public UserDto registerUser(@RequestBody UserRequestDto requestDto) {
-        return profileService.createUser(requestDto);
+        UserDto user = profileService.createUser(requestDto);
+        mailService.sendUserWelcomeMail(user.username());
+        return user;
     }
 
     @Operation(summary = "Update User",  description = "Update user in the database",
