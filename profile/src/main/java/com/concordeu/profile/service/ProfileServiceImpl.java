@@ -62,7 +62,7 @@ public class ProfileServiceImpl implements ProfileService {
                         "Registration",
                         "You have successfully registered. Please log in to your account.")
         );
-
+/*
         String value = webClient
                 .post()
                 .uri("/api/v1/notification/sendMail")
@@ -71,7 +71,7 @@ public class ProfileServiceImpl implements ProfileService {
                 .bodyValue(notificationBody)
                 .retrieve()
                 .bodyToMono(String.class)
-                .block();
+                .block();*/
 
         return getUserDto(user);
     }
