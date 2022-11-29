@@ -16,7 +16,8 @@ public enum UserPermission {
     GET_PRODUCT("get:product"),
     CREATE_COMMENT("create:comment"),
     DELETE_COMMENT("delete:comment"),
-    GET_COMMENT("get:comment");
+    GET_COMMENT("get:comment"),
+    AUTH_USER("auth.user");
 
     private final String permission;
 }

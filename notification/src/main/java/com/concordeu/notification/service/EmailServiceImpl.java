@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class EmailServiceImpl implements EmailService {
     private final JavaMailSender javaMailSender;
+    private final NotificationService notificationService;
 
     @Value("${spring.mail.username}")
     private String sender;
@@ -37,6 +38,7 @@ public class EmailServiceImpl implements EmailService {
             mailMessage.setText(notificationDto.msgBody());
             mailMessage.setSubject(notificationDto.subject());
             javaMailSender.send(mailMessage);
+            notificationService.createNotification(notificationDto);
 
             log.info(String.format("Mail Sent Successfully to: %s", notificationDto.recipient()));
             return String.format("Mail Sent Successfully to: %s", notificationDto.recipient());
