@@ -22,12 +22,14 @@ public enum UserRole {
             UserPermission.GET_PRODUCT,
             UserPermission.CREATE_COMMENT,
             UserPermission.DELETE_COMMENT,
-            UserPermission.GET_COMMENT)),
+            UserPermission.GET_COMMENT,
+            UserPermission.AUTH_USER)),
     WORKER(Sets.newHashSet(UserPermission.GET_CATEGORY,
             UserPermission.MOVE_BETWEEN_CATEGORIES,
             UserPermission.UPDATE_PRODUCT,
-            UserPermission.GET_PRODUCT)),
-    USER(Sets.newHashSet(UserPermission.CREATE_COMMENT));
+            UserPermission.GET_PRODUCT,
+            UserPermission.AUTH_USER)),
+    USER(Sets.newHashSet(UserPermission.CREATE_COMMENT, UserPermission.AUTH_USER));
 
     private final Set<UserPermission> permissions;
 
