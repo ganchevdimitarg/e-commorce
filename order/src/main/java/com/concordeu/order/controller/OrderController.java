@@ -42,8 +42,8 @@ public class OrderController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @DeleteMapping("/delete-order/{orderNumber}")
-    public OrderDto deleteOrder(@PathVariable long orderNumber) {
-        return orderService.deleteOrder(orderNumber);
+    public void deleteOrder(@PathVariable long orderNumber) {
+        orderService.deleteOrder(orderNumber);
     }
 
     @Operation(summary = "Get Order", description = "Get order by order number",

@@ -6,33 +6,34 @@ import com.concordeu.order.dto.OrderDto;
 import com.concordeu.order.dto.OrderResponseDto;
 import com.concordeu.order.dto.ProductResponseDto;
 import com.concordeu.order.dto.UserDto;
-import com.concordeu.order.mapper.MapStructMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.time.LocalDateTime;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class OrderServiceImpl implements OrderService {
     private final OrderDao orderDao;
-    private final MapStructMapper mapper;
     private final WebClient webClient;
 
     @Override
     public void createOrder(OrderDto orderDto) {
-        orderDao.saveAndFlush(mapper.mapOrderDtoToOrder(orderDto));
+        Order entity = mapOrderDtoToOrder(orderDto);
+        entity.setCreatedOn(LocalDateTime.now());
+        entity.setOrderNumber(orderDao.count() + 1);
+        orderDao.saveAndFlush(entity);
         log.info("Order was successfully created");
     }
 
     @Override
-    public OrderDto deleteOrder(long orderNumber) {
-        Order order = orderDao.deleteByOrderNumber(orderNumber);
+    public void deleteOrder(long orderNumber) {
+        orderDao.deleteByOrderNumber(orderNumber);
         log.info("Order was successfully delete");
-
-        return mapper.mapOrderToOrderDto(order);
     }
 
     @Override
@@ -59,5 +60,14 @@ public class OrderServiceImpl implements OrderService {
 
 
         return new OrderResponseDto(userInfo, productInfo, order.getQuantity(), order.getDeliveryComment(), order.getCreatedOn());
+    }
+
+    private Order mapOrderDtoToOrder(OrderDto orderDto) {
+        return Order.builder()
+                .username(orderDto.username())
+                .productName(orderDto.productName())
+                .quantity(orderDto.quantity())
+                .deliveryComment(orderDto.deliveryComment())
+                .build();
     }
 }

@@ -4,7 +4,9 @@ import lombok.*;
 import org.hibernate.annotations.GenericGenerator;
 
 import javax.persistence.*;
+import javax.validation.constraints.Email;
 import javax.validation.constraints.Size;
+import java.time.LocalDateTime;
 
 @Entity(name = "Notification")
 @Table(name="notification" )
@@ -21,7 +23,7 @@ public class Notification {
     @Column(name = "id", unique = true, nullable = false, updatable = false)
     private String id;
     @Column(name = "recipient", columnDefinition = "TEXT")
-    @Size(min = 3, max = 15)
+    @Email
     private String recipient;
     @Column(name = "subject", length = 200)
     private String subject;
@@ -29,4 +31,6 @@ public class Notification {
     @Size(min = 10, max = 150)
     private String msgBody;
     private String attachment;
+    @Column(name = "created_on")
+    LocalDateTime createdOn;
 }

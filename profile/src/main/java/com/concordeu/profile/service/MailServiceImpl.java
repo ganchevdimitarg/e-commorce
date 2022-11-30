@@ -14,7 +14,7 @@ public class MailServiceImpl implements MailService {
     @Override
     public void sendUserWelcomeMail(String username) {
         kafkaTemplate.send(
-                "welcomeMail",
+                "sentMail",
                 new NotificationDto(
                         username,
                         "Registration",
