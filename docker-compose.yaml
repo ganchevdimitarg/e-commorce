@@ -152,7 +152,7 @@ services:
 
   kafka:
     image: confluentinc/cp-kafka
-    container_name: broker
+    container_name: kafka
     ports:
       - "9092:9092"
     depends_on:

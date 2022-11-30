@@ -2,26 +2,21 @@ package com.concordeu.notification.listener;
 
 import com.concordeu.notification.dto.NotificationDto;
 import com.concordeu.notification.service.EmailService;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
-@Service
+@Component
 @RequiredArgsConstructor
-@Slf4j
 public class KafkaListenerService {
     private final EmailService emailService;
+    private final ObjectMapper mapper;
 
-    @KafkaListener(topics = "welcomeMail", groupId = "notification")
-    public void listenWelcomeMail(NotificationDto notificationDto) {
+    @KafkaListener(topics = "sentMail", groupId = "notification", containerFactory = "messageListener")
+    public void listenToMessage(String message) throws JsonProcessingException {
+        NotificationDto notificationDto = mapper.readValue(message, NotificationDto.class);
         emailService.sendSimpleMail(notificationDto);
-        log.info("Welcome Email will be sent");
-    }
-
-    @KafkaListener(topics = "orderMail", groupId = "notification")
-    public void listenOrderMail(NotificationDto notificationDto) {
-        emailService.sendSimpleMail(notificationDto);
-        log.info("Order Email will be sent");
     }
 }

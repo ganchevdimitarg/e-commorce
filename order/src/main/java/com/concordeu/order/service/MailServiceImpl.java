@@ -14,7 +14,7 @@ public class MailServiceImpl implements MailService {
     @Override
     public void sendUserOrderMail(String username) {
         kafkaTemplate.send(
-                "orderMail",
+                "sentMail",
                 new NotificationDto(
                         username,
                         "Order",

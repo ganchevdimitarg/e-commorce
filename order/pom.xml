@@ -107,18 +107,6 @@
             <artifactId>jakarta.validation-api</artifactId>
         </dependency>
 
-        <!--        Map Struct     -->
-        <dependency>
-            <groupId>org.mapstruct</groupId>
-            <artifactId>mapstruct</artifactId>
-            <version>${mapstruct.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.mapstruct</groupId>
-            <artifactId>mapstruct-processor</artifactId>
-            <version>${mapstruct.version}</version>
-        </dependency>
-
         <!--    Test    -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>

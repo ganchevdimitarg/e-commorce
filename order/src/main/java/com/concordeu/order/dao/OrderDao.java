@@ -13,5 +13,5 @@ public interface OrderDao extends JpaRepository<Order, String> {
     Optional<Order> findByOrderNumber(long orderNumber);
 
     @Transactional
-    Order deleteByOrderNumber(long orderNumber);
+    void deleteByOrderNumber(long orderNumber);
 }

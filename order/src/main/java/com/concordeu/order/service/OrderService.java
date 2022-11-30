@@ -6,7 +6,7 @@ import com.concordeu.order.dto.OrderResponseDto;
 public interface OrderService {
     void createOrder(OrderDto orderDao);
 
-    OrderDto deleteOrder(long orderNumber);
+    void deleteOrder(long orderNumber);
 
     OrderResponseDto getOrder(long orderNumber);
 }

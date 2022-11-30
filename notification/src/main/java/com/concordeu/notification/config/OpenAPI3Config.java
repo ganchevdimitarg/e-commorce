@@ -23,6 +23,6 @@ import io.swagger.v3.oas.annotations.servers.Server;
         flows = @OAuthFlows(authorizationCode = @OAuthFlow(tokenUrl = "http://localhost:8082/oauth2/token",
                 scopes = {@OAuthScope(name = "openid", description = "openid scope")},
                 authorizationUrl = "http://localhost:8082/oauth2/authorize")))
-public class OpenAPI3Configuration {
+public class OpenAPI3Config {
 }
 
