@@ -51,7 +51,7 @@ public class OrderServiceImpl implements OrderService {
 
         ProductResponseDto productInfo = webClient
                 .post()
-                .uri("http://localhost:8083/api/v1/catalog/product//get-product/{productName}", order.getProductName())
+                .uri("http://localhost:8083/api/v1/catalog/product/get-product/{productName}", order.getProductName())
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON)
                 .retrieve()
