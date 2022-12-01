@@ -11,12 +11,12 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class KafkaListenerService {
+    private static final ObjectMapper MAPPER = new ObjectMapper();
     private final EmailService emailService;
-    private final ObjectMapper mapper;
 
     @KafkaListener(topics = "sentMail", groupId = "notification", containerFactory = "messageListener")
     public void listenToMessage(String message) throws JsonProcessingException {
-        NotificationDto notificationDto = mapper.readValue(message, NotificationDto.class);
+        NotificationDto notificationDto = MAPPER.readValue(message, NotificationDto.class);
         emailService.sendSimpleMail(notificationDto);
     }
 }
