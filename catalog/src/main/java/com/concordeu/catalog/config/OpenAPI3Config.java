@@ -9,10 +9,12 @@ import io.swagger.v3.oas.annotations.security.OAuthFlows;
 import io.swagger.v3.oas.annotations.security.OAuthScope;
 import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import io.swagger.v3.oas.annotations.servers.Server;
+import org.springframework.context.annotation.Configuration;
 
 @OpenAPIDefinition(
         servers = {@Server(url = "https://localhost:8081")},
-        info = @Info(title = "Catalog Service APIs",
+        info = @Info(
+                title = "Catalog Service APIs",
                 description = "This lists all the Catalog Service API Calls. The Calls are OAuth2 secured, so please use your client ID and Secret to test them out.",
                 version = "v1.0"))
 @SecurityScheme(
@@ -20,8 +22,12 @@ import io.swagger.v3.oas.annotations.servers.Server;
         type = SecuritySchemeType.OAUTH2,
         in = SecuritySchemeIn.HEADER,
         bearerFormat = "jwt",
-        flows = @OAuthFlows(authorizationCode = @OAuthFlow(tokenUrl = "http://localhost:8082/oauth2/token",
-                scopes = {@OAuthScope(name = "openid", description = "openid scope")},
-                authorizationUrl = "http://localhost:8082/oauth2/authorize")))
-public class OpenAPI3Configuration {
-}
+        flows = @OAuthFlows(authorizationCode = @OAuthFlow(
+                authorizationUrl = "${springdoc.oAuthFlow.authorizationUrl}",
+                tokenUrl = "${springdoc.oAuthFlow.tokenUrl}",
+                scopes = {@OAuthScope(name = "openid", description = "openid scope")}
+                )
+        )
+)
+@Configuration
+public class OpenAPI3Config {}
