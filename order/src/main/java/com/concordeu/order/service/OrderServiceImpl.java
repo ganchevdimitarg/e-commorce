@@ -41,18 +41,16 @@ public class OrderServiceImpl implements OrderService {
         Order order = orderDao.findByOrderNumber(orderNumber).get();
 
         UserDto userInfo = webClient
-                .post()
-                .uri("http://localhost:8084/api/v1/profile/get-by-username/{username}", order.getUsername())
-                .contentType(MediaType.APPLICATION_JSON)
+                .get()
+                .uri("http://127.0.0.1:8081/api/v1/profile/get-by-username/{username}", order.getUsername())
                 .accept(MediaType.APPLICATION_JSON)
                 .retrieve()
                 .bodyToMono(UserDto.class)
                 .block();
 
         ProductResponseDto productInfo = webClient
-                .post()
-                .uri("http://localhost:8083/api/v1/catalog/product/get-product/{productName}", order.getProductName())
-                .contentType(MediaType.APPLICATION_JSON)
+                .get()
+                .uri("http://127.0.0.1:8081/api/v1/catalog/product/get-product/{productName}", order.getProductName())
                 .accept(MediaType.APPLICATION_JSON)
                 .retrieve()
                 .bodyToMono(ProductResponseDto.class)
