@@ -8,13 +8,10 @@
         <version>0.0.1-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
-
-    <artifactId>authentication</artifactId>
     <packaging>jar</packaging>
+    <artifactId>authentication</artifactId>
 
     <properties>
-        <maven.compiler.source>17</maven.compiler.source>
-        <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <spring-auth-server.version>0.2.0</spring-auth-server.version>
         <spring-webflux.version>5.3.9</spring-webflux.version>
