@@ -10,12 +10,14 @@ public class ResourceServerConfig {
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http.mvcMatcher("/api/v1/order/**")
+        http
+                .csrf().disable()
+                .mvcMatcher("/api/v1/order/**")
                 .authorizeRequests()
                 .antMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html")
                 .permitAll()
                 .mvcMatchers("/api/v1/order/**")
-                .access("hasAuthority('SCOPE_auth.user')")
+                .access("hasAuthority('SCOPE_openid')")
                 .and()
                 .oauth2ResourceServer()
                 .jwt();
