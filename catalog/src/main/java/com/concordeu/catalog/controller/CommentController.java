@@ -31,21 +31,24 @@ public class CommentController {
             @ApiResponse(responseCode="200", description ="Success", content = {@Content(mediaType = "application/json")}),
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
-    @PostMapping("/create-comment/{productName}")
-    public CommentResponseDto createComment(@RequestBody CommentRequestDto requestDto, @PathVariable String productName) {
+    @PostMapping("/create-comment")
+    public CommentResponseDto createComment(@RequestBody CommentRequestDto requestDto,
+                                            @RequestParam String productName) {
         CommentResponseDto commentResponseDto = mapper.mapCommentRequestDtoToCommentResponseDto(requestDto);
         validator.validateData(commentResponseDto);
         return commentService.createComment(commentResponseDto, productName);
     }
 
-    @Operation(summary = "Delete Comment",  description = "Delete a comment for the product",
+    @Operation(summary = "Get Comments Product Name",  description = "Get Comments By Product Name",
             security = @SecurityRequirement(name = "security_auth"))
     @ApiResponses({
             @ApiResponse(responseCode="200", description ="Success", content = {@Content(mediaType = "application/json")}),
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
-    @GetMapping("/get-comments-product-name/{productName}")
-        public Page<CommentResponseDto> findAllByProductName(@RequestParam int page, int size, @PathVariable String productName) {
+    @GetMapping("/get-comments-product-name")
+        public Page<CommentResponseDto> findAllByProductName(@RequestParam int page,
+                                                             @RequestParam int size,
+                                                             @RequestParam String productName) {
         return commentService.findAllByProductNameByPage(productName, page, size);
     }
 
@@ -55,8 +58,10 @@ public class CommentController {
             @ApiResponse(responseCode="200", description ="Success", content = {@Content(mediaType = "application/json")}),
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
-    @GetMapping("/get-comments-author/{author}")
-    public Page<CommentResponseDto> findAllByAuthor(@RequestParam int page, int size, @PathVariable String author) {
+    @GetMapping("/get-comments-author")
+    public Page<CommentResponseDto> findAllByAuthor(@RequestParam int page,
+                                                    @RequestParam int size,
+                                                    @RequestParam String author) {
         return commentService.findAllByAuthorByPage(author, page, size);
     }
 
@@ -66,8 +71,8 @@ public class CommentController {
             @ApiResponse(responseCode="200", description ="Success", content = {@Content(mediaType = "application/json")}),
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
-    @GetMapping("/get-avg-stars/{productName}")
-    public double getAvgStars(@PathVariable String productName) {
+    @GetMapping("/get-avg-stars")
+    public double getAvgStars(@RequestParam String productName) {
         return commentService.getAvgStars(productName);
     }
 

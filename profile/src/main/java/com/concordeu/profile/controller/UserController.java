@@ -28,8 +28,8 @@ public class UserController {
             @ApiResponse(responseCode="200", description ="Success", content = {@Content(mediaType = "application/json")}),
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
-    @GetMapping("/get-by-username/{username}")
-    public UserDto getUserByEmail(@PathVariable String username) {
+    @GetMapping("/get-by-username")
+    public UserDto getUserByEmail(@RequestParam String username) {
         return profileService.getUserByUsername(username);
     }
 
@@ -39,7 +39,7 @@ public class UserController {
             @ApiResponse(responseCode="200", description ="Success", content = {@Content(mediaType = "application/json")}),
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
-    @PostMapping("/register")
+    @PostMapping("/register-user")
     @ValidationRequest
     public UserDto registerUser(@RequestBody UserRequestDto requestDto) {
         UserDto user = profileService.createUser(requestDto);
@@ -53,10 +53,10 @@ public class UserController {
             @ApiResponse(responseCode="200", description ="Success", content = {@Content(mediaType = "application/json")}),
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
-    @PutMapping("/update/{username}")
+    @PutMapping("/update-user")
     @ValidationRequest
     public void updateUser(@RequestBody UserRequestDto requestDto,
-                           @PathVariable String username) {
+                           @RequestParam String username) {
         profileService.updateUser(username, requestDto);
     }
 
@@ -66,8 +66,8 @@ public class UserController {
             @ApiResponse(responseCode="200", description ="Success", content = {@Content(mediaType = "application/json")}),
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
-    @DeleteMapping("/delete/{username}")
-    public void deleteUser(@PathVariable String username) {
+    @DeleteMapping("/delete-user")
+    public void deleteUser(@RequestParam String username) {
         profileService.deleteUser(username);
     }
 

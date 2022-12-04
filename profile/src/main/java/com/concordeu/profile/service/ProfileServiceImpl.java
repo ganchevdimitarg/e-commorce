@@ -85,7 +85,7 @@ public class ProfileServiceImpl implements ProfileService {
                 requestDto.postCode());
 
         user.setUsername(requestDto.username());
-        user.setPassword(requestDto.password());
+        user.setPassword(passwordEncoder.encode(requestDto.password()));
         user.setFirstName(requestDto.firstName());
         user.setLastName(requestDto.lastName());
         user.setPhoneNumber(requestDto.phoneNumber());

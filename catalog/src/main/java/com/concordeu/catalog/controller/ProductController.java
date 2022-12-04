@@ -30,9 +30,9 @@ public class ProductController {
             @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
-    @PostMapping("/create-product/{categoryName}")
+    @PostMapping("/create-product")
     public ProductResponseDto createProduct(@RequestBody ProductRequestDto requestDto,
-                                            @PathVariable String categoryName) {
+                                            @RequestParam String categoryName) {
         ProductResponseDto productResponseDto = mapper.mapProductRequestDtoToProductResponseDto(requestDto);
         return productService.createProduct(productResponseDto, categoryName);
     }
@@ -55,10 +55,10 @@ public class ProductController {
             @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
-    @GetMapping("/get-products/{categoryName}")
+    @GetMapping("/get-category-products")
     public Page<ProductResponseDto> getProductsByCategory(@RequestParam int page,
                                                           @RequestParam int size,
-                                                          @PathVariable String categoryName) {
+                                                          @RequestParam String categoryName) {
         return productService.getProductsByCategoryByPage(page, size, categoryName);
     }
 
@@ -68,8 +68,8 @@ public class ProductController {
             @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
-    @GetMapping("/get-product/{productName}")
-    public ProductResponseDto getProductByName(@PathVariable String productName) {
+    @GetMapping("/get-product")
+    public ProductResponseDto getProductByName(@RequestParam String productName) {
         return productService.getProductByName(productName);
     }
 
@@ -79,9 +79,9 @@ public class ProductController {
             @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
-    @PutMapping("/update-product/{productName}")
+    @PutMapping("/update-product")
     public void updateProduct(@RequestBody ProductRequestDto requestDto,
-                              @PathVariable String productName) {
+                              @RequestParam String productName) {
         ProductResponseDto productResponseDto = mapper.mapProductRequestDtoToProductResponseDto(requestDto);
         productService.updateProduct(productResponseDto, productName);
     }
@@ -92,8 +92,8 @@ public class ProductController {
             @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
-    @DeleteMapping("/delete-product/{productName}")
-    public void deleteProduct(@PathVariable String productName) {
+    @DeleteMapping("/delete-product")
+    public void deleteProduct(@RequestParam String productName) {
         productService.deleteProduct(productName);
     }
 }
