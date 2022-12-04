@@ -42,6 +42,7 @@ public class OrderServiceImpl implements OrderService {
     public OrderResponseDto getOrder(long orderNumber, String authorization) {
         Optional<Order> order = orderDao.findByOrderNumber(orderNumber);
         if (order.isEmpty()) {
+            log.error("No such order");
             throw new IllegalArgumentException("No such order");
         }
 
