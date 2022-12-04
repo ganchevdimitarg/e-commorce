@@ -18,8 +18,7 @@ public class DefaultSecurityConfig {
                 .anyRequest()
                 .authenticated()
                 .and()
-                .formLogin(Customizer.withDefaults())
-                .csrf().disable();
+                .formLogin(Customizer.withDefaults());
         return http.build();
     }
 
