@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -30,6 +31,7 @@ public class CategoryController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @PostMapping("/create-category")
+    @PreAuthorize("hasAuthority('SCOPE_ROLE_ADMIN')")
     public CategoryResponseDto createCategory(@RequestBody CategoryRequestDto requestDto) {
         return categoryService.createCategory(mapper.mapCategoryRequestDtoToCategoryDto(requestDto));
     }
