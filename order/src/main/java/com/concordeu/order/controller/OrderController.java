@@ -14,6 +14,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletRequest;
+import java.net.http.HttpRequest;
+
 @RestController
 @RequestMapping("/api/v1/order")
 @RequiredArgsConstructor
@@ -53,7 +56,7 @@ public class OrderController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @GetMapping("/get-order")
-    public OrderResponseDto getOrder(@RequestParam long orderNumber) {
-        return orderService.getOrder(orderNumber);
+    public OrderResponseDto getOrder(@RequestParam long orderNumber, HttpServletRequest request) {
+        return orderService.getOrder(orderNumber, request.getHeader("Authorization"));
     }
 }
