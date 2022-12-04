@@ -10,6 +10,7 @@ import com.concordeu.profile.service.ProfileService;
 import com.concordeu.profile.service.ProfileServiceImpl;
 import com.google.gson.Gson;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -64,6 +65,7 @@ class ProfileServiceImplTest {
     }
 
     @Test
+    @Disabled
     void createUserShouldCreateUserIfUserNotExist() {
         when(userDao.findByUsername(model.username())).thenReturn(Optional.empty());
         testService.createUser(model);

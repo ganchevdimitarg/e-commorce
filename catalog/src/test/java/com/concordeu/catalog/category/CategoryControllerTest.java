@@ -61,7 +61,7 @@ class CategoryControllerTest {
         this.client.mutateWith(csrf())
                 .mutateWith(mockUser("admin"))
                 .delete()
-                .uri("/api/v1/catalog/category/delete-category/{categoryName}", "category1")
+                .uri("/api/v1/catalog/category/delete-category?categoryName={categoryName}", "category1")
                 .exchange()
                 .expectStatus().isOk();
 
