@@ -28,7 +28,7 @@ public class NotificationController {
             @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
-    @PostMapping("/sendMail")
+    @PostMapping("/send-email")
     @ValidationRequest
     public String sendMail(@RequestBody NotificationDto notificationDto) {
         return emailService.sendSimpleMail(notificationDto);

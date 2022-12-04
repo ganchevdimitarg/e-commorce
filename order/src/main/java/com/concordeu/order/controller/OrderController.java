@@ -41,8 +41,8 @@ public class OrderController {
             @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
-    @DeleteMapping("/delete-order/{orderNumber}")
-    public void deleteOrder(@PathVariable long orderNumber) {
+    @DeleteMapping("/delete-order")
+    public void deleteOrder(@RequestParam long orderNumber) {
         orderService.deleteOrder(orderNumber);
     }
 
@@ -52,8 +52,8 @@ public class OrderController {
             @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
-    @GetMapping("/get-order/{orderNumber}")
-    public OrderResponseDto getOrder(@PathVariable long orderNumber) {
+    @GetMapping("/get-order")
+    public OrderResponseDto getOrder(@RequestParam long orderNumber) {
         return orderService.getOrder(orderNumber);
     }
 }

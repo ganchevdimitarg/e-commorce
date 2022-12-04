@@ -40,8 +40,8 @@ public class CategoryController {
             @ApiResponse(responseCode="200", description ="Success", content = {@Content(mediaType = "application/json")}),
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
-    @DeleteMapping("/delete-category/{categoryName}")
-    public void deleteCategory(@PathVariable String categoryName) {
+    @DeleteMapping("/delete-category")
+    public void deleteCategory(@RequestParam String categoryName) {
         categoryService.deleteCategory(categoryName);
     }
 

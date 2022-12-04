@@ -32,8 +32,8 @@ public class EmailServiceImpl implements EmailService {
             javaMailSender.send(mailMessage);
             notificationService.createNotification(notificationDto);
 
-            log.info(String.format("Mail Sent Successfully to: %s", notificationDto.recipient()));
-            return String.format("Mail Sent Successfully to: %s", notificationDto.recipient());
+            log.info(String.format("The email was successfully sent to: %s", notificationDto.recipient()));
+            return String.format("The email was successfully sent to: %s", notificationDto.recipient());
 
         } catch (MailException e) {
             log.error(e.toString());
@@ -56,8 +56,8 @@ public class EmailServiceImpl implements EmailService {
             mimeMessageHelper.addAttachment(Objects.requireNonNull(file.getFilename()), file);
             javaMailSender.send(mimeMessage);
 
-            log.info(String.format("Mail Sent Successfully to: %s", notificationDto.recipient()));
-            return String.format("Mail Sent Successfully to: %s", notificationDto.recipient());
+            log.info(String.format("The email was successfully sent to: %s", notificationDto.recipient()));
+            return String.format("The email was successfully sent to: %s", notificationDto.recipient());
 
         }
         catch (MessagingException e) {
