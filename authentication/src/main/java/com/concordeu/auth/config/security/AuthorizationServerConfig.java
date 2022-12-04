@@ -48,7 +48,6 @@ public class AuthorizationServerConfig {
                 .exceptionHandling()
                 .authenticationEntryPoint(new LoginUrlAuthenticationEntryPoint("/login"))
                 .and()
-                .csrf().disable()
                 .build();
     }
 
