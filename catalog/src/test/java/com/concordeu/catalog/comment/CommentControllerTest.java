@@ -43,7 +43,7 @@ class CommentControllerTest {
         this.client.mutateWith(csrf())
                 .mutateWith(mockUser("admin"))
                 .post()
-                .uri("/api/v1/catalog/comment/create-comment/{productName}", "mouse")
+                .uri("/api/v1/catalog/comment/create-comment?productName={productName}", "mouse")
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON)
                 .bodyValue("""
@@ -62,7 +62,7 @@ class CommentControllerTest {
     void findAllByProductNameShouldReturnAllProductComments() throws Exception {
         this.client.mutateWith(mockUser("admin"))
                 .get()
-                .uri("/api/v1/catalog/comment/get-comments-product-name/{productName}?page=1&size=5", "productName")
+                .uri("/api/v1/catalog/comment/get-comments-product-name?productName={productName}&page=1&size=5", "productName")
                 .accept(MediaType.APPLICATION_JSON)
                 .exchange()
                 .expectStatus().isOk();
@@ -72,7 +72,7 @@ class CommentControllerTest {
     void findAllByAuthorShouldReturnAllAuthorComments() throws Exception {
         this.client.mutateWith(mockUser("admin"))
                 .get()
-                .uri("/api/v1/catalog/comment/get-comments-author/{author}?page=1&size=5", "author")
+                .uri("/api/v1/catalog/comment/get-comments-author?author={author}&page=1&size=5", "author")
                 .accept(MediaType.APPLICATION_JSON)
                 .exchange()
                 .expectStatus().isOk();
@@ -82,7 +82,7 @@ class CommentControllerTest {
     void getAvgStars() throws Exception {
         this.client.mutateWith(mockUser("admin"))
                 .get()
-                .uri("/api/v1/catalog/comment/get-avg-stars/{productName}", "productName")
+                .uri("/api/v1/catalog/comment/get-avg-stars?productName={productName}", "productName")
                 .accept(MediaType.APPLICATION_JSON)
                 .exchange()
                 .expectStatus().isOk();

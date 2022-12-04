@@ -20,9 +20,11 @@ import org.springframework.security.oauth2.server.authorization.client.JdbcRegis
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.config.ProviderSettings;
+import org.springframework.security.oauth2.server.authorization.config.TokenSettings;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 
+import java.time.Duration;
 import java.util.UUID;
 
 @Configuration(proxyBeanMethods = false)
@@ -62,6 +64,10 @@ public class AuthorizationServerConfig {
                 .redirectUri("http://127.0.0.1:8081/authorized")
                 .scope(OidcScopes.OPENID)
                 .scope("auth.user")
+                .tokenSettings(TokenSettings.builder()
+                        .accessTokenTimeToLive(Duration.ofMinutes(10))
+                        .refreshTokenTimeToLive(Duration.ofHours(2))
+                        .build())
                 .build();
 
         return new InMemoryRegisteredClientRepository(gatewayClient);

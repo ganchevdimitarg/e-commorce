@@ -42,7 +42,8 @@ public class OrderServiceImpl implements OrderService {
 
         UserDto userInfo = webClient
                 .get()
-                .uri("http://127.0.0.1:8081/api/v1/profile/get-by-username/{username}", order.getUsername())
+                .uri("http://localhost:8083/api/v1/profile/get-by-username?username={username}", order.getUsername())
+                .header("Authorization","Bearer eyJraWQiOiJkMWY5MDU4My1kZTYwLTQ5ZDEtYjQ1Yy00ZTQyNDQzMGMyYTYiLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJhZG1pbiIsImF1ZCI6ImdhdGV3YXkiLCJuYmYiOjE2NzAxNzI3MjMsInNjb3BlIjpbImF1dGgudXNlciIsIm9wZW5pZCJdLCJpc3MiOiJodHRwOlwvXC9sb2NhbGhvc3Q6ODA4MiIsImV4cCI6MTY3MDE3MzMyMywiaWF0IjoxNjcwMTcyNzIzfQ.Bgx0jvSksVY2pqGB2zlCSI-Yyo6-rsBDwwf6LpL7DCSt7FMaYEbvvOtxjsQmogk5so0a282ctNcbXRcFPNS6k0udAlDARqS2pxR2YgHUeOtr0tJvt1FbQbB2T7bi_qthgcS7P6tXKGSmtyPhNfeKIhrp8EqPNeDQm9eKQxS3H_0-RmWZOUqSvSP6FXqJ7OccSUiiIFgAXLPaWkDclQaXekp5i4csvp-HGH2ven0EhFItk2W8YLYGX0fiD-cM8LrGhCd8qwUW2MwpIzFYpOZVI6bFO7A9Kgtv6hdCUcXXgisL9w0DB5lF_UKFKIQyj_7iih44F4Lc_DEvTOLyL-ZO2g")
                 .accept(MediaType.APPLICATION_JSON)
                 .retrieve()
                 .bodyToMono(UserDto.class)
@@ -50,7 +51,8 @@ public class OrderServiceImpl implements OrderService {
 
         ProductResponseDto productInfo = webClient
                 .get()
-                .uri("http://127.0.0.1:8081/api/v1/catalog/product/get-product/{productName}", order.getProductName())
+                .uri("http://127.0.0.1:8081/api/v1/catalog/product/get-product?productName={productName}", order.getProductName())
+                .header("Authorization","Bearer eyJraWQiOiJkMWY5MDU4My1kZTYwLTQ5ZDEtYjQ1Yy00ZTQyNDQzMGMyYTYiLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJhZG1pbiIsImF1ZCI6ImdhdGV3YXkiLCJuYmYiOjE2NzAxNzI3MjMsInNjb3BlIjpbImF1dGgudXNlciIsIm9wZW5pZCJdLCJpc3MiOiJodHRwOlwvXC9sb2NhbGhvc3Q6ODA4MiIsImV4cCI6MTY3MDE3MzMyMywiaWF0IjoxNjcwMTcyNzIzfQ.Bgx0jvSksVY2pqGB2zlCSI-Yyo6-rsBDwwf6LpL7DCSt7FMaYEbvvOtxjsQmogk5so0a282ctNcbXRcFPNS6k0udAlDARqS2pxR2YgHUeOtr0tJvt1FbQbB2T7bi_qthgcS7P6tXKGSmtyPhNfeKIhrp8EqPNeDQm9eKQxS3H_0-RmWZOUqSvSP6FXqJ7OccSUiiIFgAXLPaWkDclQaXekp5i4csvp-HGH2ven0EhFItk2W8YLYGX0fiD-cM8LrGhCd8qwUW2MwpIzFYpOZVI6bFO7A9Kgtv6hdCUcXXgisL9w0DB5lF_UKFKIQyj_7iih44F4Lc_DEvTOLyL-ZO2g")
                 .accept(MediaType.APPLICATION_JSON)
                 .retrieve()
                 .bodyToMono(ProductResponseDto.class)

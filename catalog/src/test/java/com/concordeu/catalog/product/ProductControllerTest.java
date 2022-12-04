@@ -56,7 +56,7 @@ class ProductControllerTest {
         this.client.mutateWith(csrf())
                 .mutateWith(mockUser("admin"))
                 .post()
-                .uri("/api/v1/catalog/product/create-product/{categoryName}", "PC")
+                .uri("/api/v1/catalog/product/create-product?categoryName={categoryName}", "PC")
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON)
                 .bodyValue("""
@@ -101,7 +101,7 @@ class ProductControllerTest {
 
         this.client.mutateWith(mockUser("admin"))
                 .get()
-                .uri("/api/v1/catalog/product/get-products/{category}?page=1&size=5", "pc")
+                .uri("/api/v1/catalog/product/get-products?categoryName={category}&page=1&size=5", "pc")
                 .accept(MediaType.APPLICATION_JSON)
                 .exchange()
                 .expectStatus().isOk();
@@ -114,7 +114,7 @@ class ProductControllerTest {
         this.client.mutateWith(csrf())
                 .mutateWith(mockUser("admin"))
                 .put()
-                .uri("/api/v1/catalog/product/update-product/{productName}", "mouse")
+                .uri("/api/v1/catalog/product/update-product?productName={productName}", "mouse")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue("""
                         {
@@ -135,7 +135,7 @@ class ProductControllerTest {
         this.client.mutateWith(csrf())
                 .mutateWith(mockUser("admin"))
                 .delete()
-                .uri("/api/v1/catalog/product/delete-product/{productName}", "mouse")
+                .uri("/api/v1/catalog/product/delete-product?productName={productName}", "mouse")
                 .exchange()
                 .expectStatus().isOk();
 
