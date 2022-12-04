@@ -44,8 +44,8 @@ public class OrderServiceImpl implements OrderService {
         String base_uri = "http://127.0.0.1:8081/api/v1";
         UserDto userInfo = webClient
                 .get()
-                .uri( base_uri + "/profile/get-by-username?username={username}", order.getUsername())
-                .header("Authorization",authorization)
+                .uri(base_uri + "/profile/get-by-username?username={username}", order.getUsername())
+                .header("Authorization", authorization)
                 .accept(MediaType.APPLICATION_JSON)
                 .retrieve()
                 .bodyToMono(UserDto.class)
@@ -54,7 +54,7 @@ public class OrderServiceImpl implements OrderService {
         ProductResponseDto productInfo = webClient
                 .get()
                 .uri(base_uri + "/catalog/product/get-product?productName={productName}", order.getProductName())
-                .header("Authorization",authorization)
+                .header("Authorization", authorization)
                 .accept(MediaType.APPLICATION_JSON)
                 .retrieve()
                 .bodyToMono(ProductResponseDto.class)
