@@ -14,6 +14,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 
 import javax.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -39,12 +40,15 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public OrderResponseDto getOrder(long orderNumber, String authorization) {
-        Order order = orderDao.findByOrderNumber(orderNumber).get();
+        Optional<Order> order = orderDao.findByOrderNumber(orderNumber);
+        if (order.isEmpty()) {
+            throw new IllegalArgumentException("No such order");
+        }
 
         String base_uri = "http://127.0.0.1:8081/api/v1";
         UserDto userInfo = webClient
                 .get()
-                .uri(base_uri + "/profile/get-by-username?username={username}", order.getUsername())
+                .uri(base_uri + "/profile/get-by-username?username={username}", order.get().getUsername())
                 .header("Authorization", authorization)
                 .accept(MediaType.APPLICATION_JSON)
                 .retrieve()
@@ -53,7 +57,7 @@ public class OrderServiceImpl implements OrderService {
 
         ProductResponseDto productInfo = webClient
                 .get()
-                .uri(base_uri + "/catalog/product/get-product?productName={productName}", order.getProductName())
+                .uri(base_uri + "/catalog/product/get-product?productName={productName}", order.get().getProductName())
                 .header("Authorization", authorization)
                 .accept(MediaType.APPLICATION_JSON)
                 .retrieve()
@@ -61,7 +65,13 @@ public class OrderServiceImpl implements OrderService {
                 .block();
 
 
-        return new OrderResponseDto(userInfo, productInfo, order.getQuantity(), order.getDeliveryComment(), order.getCreatedOn());
+        return new OrderResponseDto(
+                userInfo,
+                productInfo,
+                order.get().getQuantity(),
+                order.get().getDeliveryComment(),
+                order.get().getCreatedOn()
+        );
     }
 
     private Order mapOrderDtoToOrder(OrderDto orderDto) {
