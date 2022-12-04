@@ -67,19 +67,6 @@ public class AuthorizationServerConfig {
         return new InMemoryRegisteredClientRepository(gatewayClient);
     }
 
-
-    /*@Bean
-    public RegisteredClientRepository registeredClientRepository(JdbcTemplate jdbcTemplate) {
-        JdbcRegisteredClientRepository registeredClientRepository = new JdbcRegisteredClientRepository(jdbcTemplate);
-        RegisteredClient gatewayClient = registeredClientRepository.findByClientId("gateway");
-
-        if (gatewayClient == null) {
-            return getRegisteredClientRepository(jdbcTemplate);
-        }
-
-        return new InMemoryRegisteredClientRepository(gatewayClient);
-    }*/
-
     @Bean
     public JWKSource<SecurityContext> jwkSource() {
         JWKSet jwkSet = new JWKSet(keyManager.generateRsaKey());
@@ -93,6 +80,17 @@ public class AuthorizationServerConfig {
                 .build();
     }
 
+    /*@Bean
+   public RegisteredClientRepository registeredClientRepository(JdbcTemplate jdbcTemplate) {
+       JdbcRegisteredClientRepository registeredClientRepository = new JdbcRegisteredClientRepository(jdbcTemplate);
+       RegisteredClient gatewayClient = registeredClientRepository.findByClientId("gateway");
+
+       if (gatewayClient == null) {
+           return getRegisteredClientRepository(jdbcTemplate);
+       }
+
+       return new InMemoryRegisteredClientRepository(gatewayClient);
+   }
     private JdbcRegisteredClientRepository getRegisteredClientRepository(JdbcTemplate jdbcTemplate) {
         RegisteredClient gatewayClient = RegisteredClient.withId(UUID.randomUUID().toString())
                 .clientId("gateway")
@@ -109,5 +107,5 @@ public class AuthorizationServerConfig {
         JdbcRegisteredClientRepository registeredClientRepository = new JdbcRegisteredClientRepository(jdbcTemplate);
         registeredClientRepository.save(gatewayClient);
         return registeredClientRepository;
-    }
+    }*/
 }
