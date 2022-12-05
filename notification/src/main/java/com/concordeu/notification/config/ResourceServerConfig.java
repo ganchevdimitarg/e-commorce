@@ -11,7 +11,6 @@ public class ResourceServerConfig {
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .mvcMatcher("/api/v1/notification/**")
                 .authorizeRequests()
                 .mvcMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 .mvcMatchers("/api/v1/notification/**").hasAnyAuthority("SCOPE_admin:write", "SCOPE_worker:write")
