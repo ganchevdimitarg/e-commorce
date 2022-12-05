@@ -31,6 +31,7 @@ public class ProductController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @PostMapping("/create-product")
+    @PreAuthorize("hasAnyAuthority('SCOPE_admin:write', 'SCOPE_worker:write')")
     public ProductResponseDto createProduct(@RequestBody ProductRequestDto requestDto,
                                             @RequestParam String categoryName) {
         ProductResponseDto productResponseDto = mapper.mapProductRequestDtoToProductResponseDto(requestDto);
@@ -44,6 +45,7 @@ public class ProductController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @GetMapping("/get-products")
+    @PreAuthorize("hasAnyAuthority('SCOPE_admin:read', 'SCOPE_worker:read', 'SCOPE_user:read')")
     public Page<ProductResponseDto> getProducts(@RequestParam int page,
                                                 @RequestParam int size) {
         return productService.getProductsByPage(page, size);
@@ -56,6 +58,7 @@ public class ProductController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @GetMapping("/get-category-products")
+    @PreAuthorize("hasAnyAuthority('SCOPE_admin:read', 'SCOPE_worker:read', 'SCOPE_user:read')")
     public Page<ProductResponseDto> getProductsByCategory(@RequestParam int page,
                                                           @RequestParam int size,
                                                           @RequestParam String categoryName) {
@@ -69,6 +72,7 @@ public class ProductController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @GetMapping("/get-product")
+    @PreAuthorize("hasAnyAuthority('SCOPE_admin:read', 'SCOPE_worker:read', 'SCOPE_user:read')")
     public ProductResponseDto getProductByName(@RequestParam String productName) {
         return productService.getProductByName(productName);
     }
@@ -80,6 +84,7 @@ public class ProductController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @PutMapping("/update-product")
+    @PreAuthorize("hasAnyAuthority('SCOPE_admin:write', 'SCOPE_worker:write')")
     public void updateProduct(@RequestBody ProductRequestDto requestDto,
                               @RequestParam String productName) {
         ProductResponseDto productResponseDto = mapper.mapProductRequestDtoToProductResponseDto(requestDto);
@@ -93,6 +98,7 @@ public class ProductController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @DeleteMapping("/delete-product")
+    @PreAuthorize("hasAnyAuthority('SCOPE_admin:write', 'SCOPE_worker:write')")
     public void deleteProduct(@RequestParam String productName) {
         productService.deleteProduct(productName);
     }

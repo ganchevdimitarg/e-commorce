@@ -8,7 +8,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.OAuth2AuthorizationServerConfiguration;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -16,7 +15,6 @@ import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
 import org.springframework.security.oauth2.core.oidc.OidcScopes;
 import org.springframework.security.oauth2.server.authorization.client.InMemoryRegisteredClientRepository;
-import org.springframework.security.oauth2.server.authorization.client.JdbcRegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.config.ProviderSettings;
@@ -62,9 +60,12 @@ public class AuthorizationServerConfig {
                 .redirectUri("http://127.0.0.1:8081/login/oauth2/code/gateway-client-oidc")
                 .redirectUri("http://127.0.0.1:8081/authorized")
                 .scope(OidcScopes.OPENID)
-                .scope("ROLE_ADMIN")
-                .scope("ROLE_USER")
-                .scope("ROLE_WORKER")
+                .scope("admin:read")
+                .scope("admin:write")
+                .scope("worker:read")
+                .scope("worker:write")
+                .scope("user:read")
+                .scope("user:write")
                 .tokenSettings(TokenSettings.builder()
                         .accessTokenTimeToLive(Duration.ofMinutes(10))
                         .refreshTokenTimeToLive(Duration.ofHours(2))

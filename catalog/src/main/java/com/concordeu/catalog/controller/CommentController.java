@@ -13,6 +13,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -32,6 +33,7 @@ public class CommentController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @PostMapping("/create-comment")
+    @PreAuthorize("hasAnyAuthority('SCOPE_admin:write', 'SCOPE_worker:write', 'SCOPE_user:write')")
     public CommentResponseDto createComment(@RequestBody CommentRequestDto requestDto,
                                             @RequestParam String productName) {
         CommentResponseDto commentResponseDto = mapper.mapCommentRequestDtoToCommentResponseDto(requestDto);
@@ -46,6 +48,7 @@ public class CommentController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @GetMapping("/get-comments-product-name")
+    @PreAuthorize("hasAnyAuthority('SCOPE_admin:read', 'SCOPE_worker:read', 'SCOPE_user:read')")
         public Page<CommentResponseDto> findAllByProductName(@RequestParam int page,
                                                              @RequestParam int size,
                                                              @RequestParam String productName) {
@@ -59,6 +62,7 @@ public class CommentController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @GetMapping("/get-comments-author")
+    @PreAuthorize("hasAnyAuthority('SCOPE_admin:read', 'SCOPE_worker:read', 'SCOPE_user:read')")
     public Page<CommentResponseDto> findAllByAuthor(@RequestParam int page,
                                                     @RequestParam int size,
                                                     @RequestParam String author) {
@@ -72,6 +76,7 @@ public class CommentController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @GetMapping("/get-avg-stars")
+    @PreAuthorize("hasAnyAuthority('SCOPE_admin:read', 'SCOPE_worker:read', 'SCOPE_user:read')")
     public double getAvgStars(@RequestParam String productName) {
         return commentService.getAvgStars(productName);
     }
