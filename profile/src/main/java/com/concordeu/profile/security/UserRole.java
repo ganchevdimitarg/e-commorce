@@ -12,24 +12,15 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Getter
 public enum UserRole {
-    ADMIN(Sets.newHashSet(UserPermission.CREATE_CATEGORY,
-            UserPermission.DELETE_CATEGORY,
-            UserPermission.GET_CATEGORY,
-            UserPermission.MOVE_BETWEEN_CATEGORIES,
-            UserPermission.CREATE_PRODUCT,
-            UserPermission.DELETE_PRODUCT,
-            UserPermission.UPDATE_PRODUCT,
-            UserPermission.GET_PRODUCT,
-            UserPermission.CREATE_COMMENT,
-            UserPermission.DELETE_COMMENT,
-            UserPermission.GET_COMMENT,
-            UserPermission.AUTH_USER)),
-    WORKER(Sets.newHashSet(UserPermission.GET_CATEGORY,
-            UserPermission.MOVE_BETWEEN_CATEGORIES,
-            UserPermission.UPDATE_PRODUCT,
-            UserPermission.GET_PRODUCT,
-            UserPermission.AUTH_USER)),
-    USER(Sets.newHashSet(UserPermission.CREATE_COMMENT, UserPermission.AUTH_USER));
+    ADMIN(Sets.newHashSet(
+            UserPermission.ADMIN_READ,
+            UserPermission.ADMIN_WRITE)),
+    WORKER(Sets.newHashSet(
+            UserPermission.WORKER_READ,
+            UserPermission.WORKER_WRITE)),
+    USER(Sets.newHashSet(
+            UserPermission.USER_READ,
+            UserPermission.USER_WRITE));
 
     private final Set<UserPermission> permissions;
 

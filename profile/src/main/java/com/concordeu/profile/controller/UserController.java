@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -29,6 +30,7 @@ public class UserController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @GetMapping("/get-by-username")
+    @PreAuthorize("hasAnyAuthority('SCOPE_admin:read', 'SCOPE_worker:read', 'SCOPE_user:read')")
     public UserDto getUserByEmail(@RequestParam String username) {
         return profileService.getUserByUsername(username);
     }
@@ -41,6 +43,7 @@ public class UserController {
     })
     @PostMapping("/register-user")
     @ValidationRequest
+    @PreAuthorize("hasAnyAuthority('SCOPE_admin:write', 'SCOPE_user:write')")
     public UserDto registerUser(@RequestBody UserRequestDto requestDto) {
         UserDto user = profileService.createUser(requestDto);
         mailService.sendUserWelcomeMail(user.username());
@@ -55,6 +58,7 @@ public class UserController {
     })
     @PutMapping("/update-user")
     @ValidationRequest
+    @PreAuthorize("hasAnyAuthority('SCOPE_admin:write', 'SCOPE_user:write')")
     public void updateUser(@RequestBody UserRequestDto requestDto,
                            @RequestParam String username) {
         profileService.updateUser(username, requestDto);
@@ -67,6 +71,7 @@ public class UserController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @DeleteMapping("/delete-user")
+    @PreAuthorize("hasAnyAuthority('SCOPE_admin:write', 'SCOPE_worker:write', 'SCOPE_user:write')")
     public void deleteUser(@RequestParam String username) {
         profileService.deleteUser(username);
     }

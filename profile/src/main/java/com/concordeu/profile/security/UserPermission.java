@@ -6,18 +6,14 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 @Getter
 public enum UserPermission {
-    CREATE_CATEGORY("create:category"),
-    DELETE_CATEGORY("delete:category"),
-    GET_CATEGORY("get:category"),
-    MOVE_BETWEEN_CATEGORIES("move:categories"),
-    CREATE_PRODUCT("create:product"),
-    DELETE_PRODUCT("delete:product"),
-    UPDATE_PRODUCT("update:product"),
-    GET_PRODUCT("get:product"),
-    CREATE_COMMENT("create:comment"),
-    DELETE_COMMENT("delete:comment"),
-    GET_COMMENT("get:comment"),
-    AUTH_USER("auth.user");
+    ADMIN_READ("admin:read"),
+    ADMIN_WRITE("admin:write"),
+    WORKER_READ("worker:read"),
+    WORKER_WRITE("worker:write"),
+    USER_READ("user:read"),
+    USER_WRITE("user:write");
+
+
 
     private final String permission;
 }

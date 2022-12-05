@@ -13,10 +13,10 @@ public class ResourceServerConfig {
         http
                 .mvcMatcher("/api/v1/notification/**")
                 .authorizeRequests()
-                .antMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html")
-                .permitAll()
-                .mvcMatchers("/api/v1/notification/**")
-                .access("hasAuthority('SCOPE_auth.user')")
+                .mvcMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                .mvcMatchers("/api/v1/notification/**").hasAnyAuthority("SCOPE_admin:write", "SCOPE_worker:write")
+                .anyRequest()
+                .authenticated()
                 .and()
                 .oauth2ResourceServer()
                 .jwt();
