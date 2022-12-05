@@ -23,10 +23,10 @@ public class UserController {
     private final ProfileService profileService;
     private final MailService mailService;
 
-    @Operation(summary = "Get User By Username",  description = "Get user by username from the database",
+    @Operation(summary = "Get User By Username", description = "Get user by username from the database",
             security = @SecurityRequirement(name = "security_auth"))
     @ApiResponses({
-            @ApiResponse(responseCode="200", description ="Success", content = {@Content(mediaType = "application/json")}),
+            @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @GetMapping("/get-by-username")
@@ -35,25 +35,52 @@ public class UserController {
         return profileService.getUserByUsername(username);
     }
 
-    @Operation(summary = "Register User",  description = "Register user in the database",
+    @Operation(summary = "Register Admin", description = "Register admin in the database",
             security = @SecurityRequirement(name = "security_auth"))
     @ApiResponses({
-            @ApiResponse(responseCode="200", description ="Success", content = {@Content(mediaType = "application/json")}),
+            @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
+            @ApiResponse(responseCode = "500", description = "Server Error")
+    })
+    @PostMapping("/register-admin")
+    @ValidationRequest
+    public UserDto createAdmin(@RequestBody UserRequestDto requestDto) {
+        UserDto user = profileService.createAdmin(requestDto);
+        mailService.sendUserWelcomeMail(user.username());
+        return user;
+    }
+
+    @Operation(summary = "Register Worker", description = "Register worker in the database",
+            security = @SecurityRequirement(name = "security_auth"))
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
+            @ApiResponse(responseCode = "500", description = "Server Error")
+    })
+    @PostMapping("/register-worker")
+    @ValidationRequest
+    public UserDto createWorker(@RequestBody UserRequestDto requestDto) {
+        UserDto user = profileService.createWorker(requestDto);
+        mailService.sendUserWelcomeMail(user.username());
+        return user;
+    }
+
+    @Operation(summary = "Register User", description = "Register user in the database",
+            security = @SecurityRequirement(name = "security_auth"))
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @PostMapping("/register-user")
     @ValidationRequest
-    @PreAuthorize("hasAnyAuthority('SCOPE_admin:write', 'SCOPE_user:write')")
-    public UserDto registerUser(@RequestBody UserRequestDto requestDto) {
+    public UserDto createUser(@RequestBody UserRequestDto requestDto) {
         UserDto user = profileService.createUser(requestDto);
         mailService.sendUserWelcomeMail(user.username());
         return user;
     }
 
-    @Operation(summary = "Update User",  description = "Update user in the database",
+    @Operation(summary = "Update User", description = "Update user in the database",
             security = @SecurityRequirement(name = "security_auth"))
     @ApiResponses({
-            @ApiResponse(responseCode="200", description ="Success", content = {@Content(mediaType = "application/json")}),
+            @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @PutMapping("/update-user")
@@ -64,10 +91,10 @@ public class UserController {
         profileService.updateUser(username, requestDto);
     }
 
-    @Operation(summary = "Delete User",  description = "Delete user in the database",
+    @Operation(summary = "Delete User", description = "Delete user in the database",
             security = @SecurityRequirement(name = "security_auth"))
     @ApiResponses({
-            @ApiResponse(responseCode="200", description ="Success", content = {@Content(mediaType = "application/json")}),
+            @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @DeleteMapping("/delete-user")

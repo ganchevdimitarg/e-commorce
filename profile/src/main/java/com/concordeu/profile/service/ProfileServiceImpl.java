@@ -3,13 +3,12 @@ package com.concordeu.profile.service;
 import com.concordeu.profile.dao.UserDao;
 import com.concordeu.profile.domain.Address;
 import com.concordeu.profile.domain.User;
-import com.concordeu.profile.dto.NotificationDto;
 import com.concordeu.profile.dto.UserDto;
 import com.concordeu.profile.dto.UserRequestDto;
 import com.concordeu.profile.excaption.InvalidRequestDataException;
-import com.google.gson.Gson;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -18,8 +17,9 @@ import org.springframework.web.reactive.function.client.WebClient;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.Set;
 
-import static com.concordeu.profile.security.UserRole.USER;
+import static com.concordeu.profile.security.UserRole.*;
 
 @Service
 @RequiredArgsConstructor
@@ -31,37 +31,18 @@ public class ProfileServiceImpl implements ProfileService {
     private final WebClient webClient;
 
     @Override
+    public UserDto createAdmin(UserRequestDto model) {
+        return getUserDto(getUser(model, ADMIN.getGrantedAuthorities()));
+    }
+
+    @Override
+    public UserDto createWorker(UserRequestDto model) {
+        return getUserDto(getUser(model, WORKER.getGrantedAuthorities()));
+    }
+
+    @Override
     public UserDto createUser(UserRequestDto model) {
-        if (userDao.findByUsername(model.username()).isPresent()) {
-            throw new InvalidRequestDataException("User already exist: " + model.username());
-        }
-        Address address = new Address(
-                model.city(),
-                model.street(),
-                model.postCode());
-
-        User authUser = User.builder()
-                .username(model.username())
-                .password(passwordEncoder.encode(model.password().trim().isEmpty() ? "" : model.password().trim()))
-                .grantedAuthorities(USER.getGrantedAuthorities())
-                .firstName(model.firstName())
-                .lastName(model.lastName())
-                .address(address)
-                .phoneNumber(model.phoneNumber())
-                .created(LocalDateTime.now())
-                .build();
-
-        User user = userDao.insert(authUser);
-        log.info("The user was successfully create");
-
-        String notificationBody = new Gson().toJson(
-                new NotificationDto(
-                        user.getUsername(),
-                        "Registration",
-                        "You have successfully registered. Please log in to your account.")
-        );
-
-        return getUserDto(user);
+        return getUserDto(getUser(model, USER.getGrantedAuthorities()));
     }
 
     @Override
@@ -134,5 +115,31 @@ public class ProfileServiceImpl implements ProfileService {
                 user.getAddress().city(),
                 user.getAddress().street(),
                 user.getAddress().postCode());
+    }
+
+    private User getUser(UserRequestDto model, Set<SimpleGrantedAuthority> grantedAuthorities) {
+        if (userDao.findByUsername(model.username()).isPresent()) {
+            throw new InvalidRequestDataException(String.format("User already exist: %s", model.username()));
+        }
+        Address address = new Address(
+                model.city(),
+                model.street(),
+                model.postCode());
+
+
+        User authUser = User.builder()
+                .username(model.username())
+                .password(passwordEncoder.encode(model.password().trim().isEmpty() ? "" : model.password().trim()))
+                .grantedAuthorities(grantedAuthorities)
+                .firstName(model.firstName())
+                .lastName(model.lastName())
+                .address(address)
+                .phoneNumber(model.phoneNumber())
+                .created(LocalDateTime.now())
+                .build();
+
+        User user = userDao.insert(authUser);
+        log.info("The user was successfully create");
+        return user;
     }
 }

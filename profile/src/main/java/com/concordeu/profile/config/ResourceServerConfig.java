@@ -16,7 +16,9 @@ public class ResourceServerConfig {
         http
                 .authorizeRequests()
                 .mvcMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                .mvcMatchers(HttpMethod.POST, "/api/v1/profile/register-user").permitAll()
+                .antMatchers("/api/v1/profile/register-admin").permitAll()
+                .antMatchers("/api/v1/profile/register-worker").permitAll()
+                .antMatchers("/api/v1/profile/register-user").permitAll()
                 .anyRequest()
                 .authenticated()
                 .and()
