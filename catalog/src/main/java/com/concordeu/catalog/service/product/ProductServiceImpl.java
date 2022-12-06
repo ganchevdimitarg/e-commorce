@@ -1,17 +1,16 @@
 package com.concordeu.catalog.service.product;
 
-import com.concordeu.catalog.domain.Category;
 import com.concordeu.catalog.dao.CategoryDao;
-import com.concordeu.client.catalog.product.ProductResponseDto;
-import com.concordeu.catalog.mapper.MapStructMapper;
-import com.concordeu.catalog.domain.Product;
-import com.concordeu.catalog.validator.ProductDataValidator;
 import com.concordeu.catalog.dao.ProductDao;
+import com.concordeu.catalog.domain.Category;
+import com.concordeu.catalog.domain.Product;
+import com.concordeu.catalog.dto.product.ProductResponseDto;
+import com.concordeu.catalog.mapper.MapStructMapper;
+import com.concordeu.catalog.validator.ProductDataValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
 
@@ -79,6 +78,13 @@ public class ProductServiceImpl implements ProductService {
     public ProductResponseDto getProductByName(String name) {
         Assert.notNull(name, "Name is empty");
         Product product = productDao.findByName(name).orElseThrow(() -> new IllegalArgumentException("No such product"));
+        return mapper.mapProductToProductResponseDto(product);
+    }
+
+    @Override
+    public ProductResponseDto getProductById(String id) {
+        Assert.notNull(id, "Id is empty");
+        Product product = productDao.findById(id).orElseThrow(() -> new IllegalArgumentException("No such product"));
         return mapper.mapProductToProductResponseDto(product);
     }
 
