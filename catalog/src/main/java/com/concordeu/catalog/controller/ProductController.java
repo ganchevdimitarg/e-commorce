@@ -65,7 +65,7 @@ public class ProductController {
         return productService.getProductsByCategoryByPage(page, size, categoryName);
     }
 
-    @Operation(summary = "Get Product By Product Name", description = "Get product by product name",
+    @Operation(summary = "Get Product Product Name", description = "Get product by product name",
             security = @SecurityRequirement(name = "security_auth"))
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
@@ -75,6 +75,18 @@ public class ProductController {
     @PreAuthorize("hasAnyAuthority('SCOPE_admin:read', 'SCOPE_worker:read', 'SCOPE_user:read')")
     public ProductResponseDto getProductByName(@RequestParam String productName) {
         return productService.getProductByName(productName);
+    }
+
+    @Operation(summary = "Get Product Id", description = "Get product by product id",
+            security = @SecurityRequirement(name = "security_auth"))
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
+            @ApiResponse(responseCode = "500", description = "Server Error")
+    })
+    @GetMapping("/get-product-id")
+    @PreAuthorize("hasAnyAuthority('SCOPE_admin:read', 'SCOPE_worker:read')")
+    public ProductResponseDto getProductById(@RequestParam String productId) {
+        return productService.getProductById(productId);
     }
 
     @Operation(summary = "Update Product By Product Name", description = "Update product by product name",

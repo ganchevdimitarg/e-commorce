@@ -58,7 +58,7 @@ public class OrderServiceImpl implements OrderService {
 
         ProductResponseDto productInfo = webClient
                 .get()
-                .uri(base_uri + "/catalog/product/get-product?productName={productName}", order.get().getProductName())
+                .uri(base_uri + "/catalog/product/get-product-id?productId={productId}", order.get().getProductId())
                 .header("Authorization", authorization)
                 .accept(MediaType.APPLICATION_JSON)
                 .retrieve()
@@ -78,6 +78,7 @@ public class OrderServiceImpl implements OrderService {
     private Order mapOrderDtoToOrder(OrderDto orderDto) {
         return Order.builder()
                 .username(orderDto.username())
+                .productId(orderDto.productId())
                 .productName(orderDto.productName())
                 .quantity(orderDto.quantity())
                 .deliveryComment(orderDto.deliveryComment())

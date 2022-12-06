@@ -9,6 +9,7 @@ public interface ProductService {
     Page<ProductResponseDto> getProductsByPage(int page, int size);
     Page<ProductResponseDto> getProductsByCategoryByPage(int page, int size, String categoryName);
     ProductResponseDto getProductByName(String name);
+    ProductResponseDto getProductById(String id);
     void updateProduct(ProductResponseDto productResponseDto, String productName);
     void deleteProduct(String productName);
 }

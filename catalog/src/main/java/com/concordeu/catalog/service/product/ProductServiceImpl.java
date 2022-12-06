@@ -81,6 +81,13 @@ public class ProductServiceImpl implements ProductService {
         return mapper.mapProductToProductResponseDto(product);
     }
 
+    @Override
+    public ProductResponseDto getProductById(String id) {
+        Assert.notNull(id, "Id is empty");
+        Product product = productDao.findById(id).orElseThrow(() -> new IllegalArgumentException("No such product"));
+        return mapper.mapProductToProductResponseDto(product);
+    }
+
 
     @Override
     public void updateProduct(ProductResponseDto productResponseDto, String productName) {
