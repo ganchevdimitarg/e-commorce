@@ -39,7 +39,7 @@ public class UserAuthenticationProvider implements AuthenticationProvider {
             throw new IllegalArgumentException("The password does not match");
         }
 
-        return new UsernamePasswordAuthenticationToken(username, password, Collections.emptyList());
+        return new UsernamePasswordAuthenticationToken(username, password, user.getGrantedAuthorities());
     }
 
     @Override
