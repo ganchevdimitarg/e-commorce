@@ -26,7 +26,7 @@ public class Category {
             strategy = "org.hibernate.id.UUIDGenerator")
     @Column(name = "id", unique = true, nullable = false, updatable = false)
     private String id;
-    @Column(name = "name", unique = true, nullable = false, length = 200)
+    @Column(name = "name", nullable = false, length = 200)
     private String name;
     @OneToMany(mappedBy = "category", targetEntity = Product.class, cascade = CascadeType.ALL)
     @JsonIgnore

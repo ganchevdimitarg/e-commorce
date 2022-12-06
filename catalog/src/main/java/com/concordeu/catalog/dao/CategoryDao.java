@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
+@Repository
 public interface CategoryDao extends JpaRepository<Category, String> {
     Optional<Category> findByName(String categoryName);
     @Transactional

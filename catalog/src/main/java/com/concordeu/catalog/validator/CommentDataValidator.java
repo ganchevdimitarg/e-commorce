@@ -1,6 +1,6 @@
 package com.concordeu.catalog.validator;
 
-import com.concordeu.catalog.dto.comment.CommentResponseDto;
+import com.concordeu.client.catalog.comment.CommentResponseDto;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 

@@ -1,12 +1,12 @@
 package com.concordeu.catalog.product;
 
 
-import com.concordeu.catalog.dao.CategoryDao;
+import com.concordeu.client.catalog.product.ProductResponseDto;
+import com.concordeu.catalog.mapper.MapStructMapper;
 import com.concordeu.catalog.dao.ProductDao;
 import com.concordeu.catalog.domain.Category;
+import com.concordeu.catalog.dao.CategoryDao;
 import com.concordeu.catalog.domain.Product;
-import com.concordeu.catalog.dto.product.ProductResponseDto;
-import com.concordeu.catalog.mapper.MapStructMapper;
 import com.concordeu.catalog.service.product.ProductService;
 import com.concordeu.catalog.service.product.ProductServiceImpl;
 import com.concordeu.catalog.validator.ProductDataValidator;
@@ -27,9 +27,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.Mockito.*;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 @Tag("unit")
 @ExtendWith(MockitoExtension.class)

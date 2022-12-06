@@ -1,0 +1,46 @@
+server:
+  port: 8083
+
+spring:
+  zipkin:
+    base-url: http://localhost:9411
+  application:
+    name: gateway
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+      routes:
+        - id: catalog
+          uri: lb://CATALOG
+          predicates:
+            - Path=/api/v1/catalog/**
+        - id: authentication
+          uri: lb://AUTHENTICATION
+          predicates:
+            - Path=/api/v1/2/**
+
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: gateway
+  endpoint:
+    prometheus:
+      enabled: 'true'
+    metrics:
+      enabled: 'true'
+    gateway:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: 'true'
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+
