@@ -2,12 +2,14 @@ package com.concordeu.profile.validation;
 
 import com.concordeu.profile.dto.UserRequestDto;
 import com.concordeu.profile.excaption.InvalidRequestDataException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Component
+@Slf4j
 public class ValidateRequestImpl implements ValidateRequest {
 
     @Override
@@ -36,6 +38,7 @@ public class ValidateRequestImpl implements ValidateRequest {
 
         if (isLengthNotValid(phoneNumber, 9, 19) ||
                 isNotMatches(phoneNumber, regexPatternPhoneNumber)) {
+            log.warn("Phone number is not correct: {}", phoneNumber);
             throw new InvalidRequestDataException(
                     String.format("Phone number is not correct: %s. For example: 20555501252, 202 555 0125, 202.555.0125, 202-555-0125, (202)5550125, (202) 555-0125 or (202)-555-0125, +111 (202) 555-0125", phoneNumber));
         }
@@ -44,6 +47,7 @@ public class ValidateRequestImpl implements ValidateRequest {
 
     private boolean isValidPostCode(String postCode) {
         if (postCode.isBlank()) {
+            log.warn("Post code is not correct: {}", postCode);
             throw new InvalidRequestDataException(
                     String.format("Post code is not correct: %s. For example: 9001", postCode));
         }
@@ -52,6 +56,7 @@ public class ValidateRequestImpl implements ValidateRequest {
 
     private boolean isValidStreet(String street) {
         if (street.isBlank()) {
+            log.warn("Street is not correct: {}", street);
             throw new InvalidRequestDataException(
                     String.format("Street is not correct: %s. For example: Katya Paskaleva", street));
         }
@@ -60,6 +65,7 @@ public class ValidateRequestImpl implements ValidateRequest {
 
     private boolean isValidCity(String city) {
         if (city.isBlank()) {
+            log.warn("City is not correct: {}", city);
             throw new InvalidRequestDataException(
                     String.format("City is not correct: %s. For example: Varna", city));
         }
@@ -76,6 +82,7 @@ public class ValidateRequestImpl implements ValidateRequest {
         if (isLengthNotValid(lastName, 3, 12) ||
                 isNotMatches(lastName, regexPatternFirstName) ||
                 isNotMatches(lastName, regexPatternFirstNameWithoutNumber)) {
+            log.warn("Last name is not correct: {}", lastName);
             throw new InvalidRequestDataException(
                     String.format("Last name is not correct: %s. For example: Ivanov", lastName));
         }
@@ -93,6 +100,7 @@ public class ValidateRequestImpl implements ValidateRequest {
         if (isLengthNotValid(firstName, 3, 12) ||
                 isNotMatches(firstName, regexPatternFirstName) ||
                 isNotMatches(firstName, regexPatternFirstNameWithoutNumber)) {
+            log.warn("First name is not correct: {}", firstName);
             throw new InvalidRequestDataException(
                     String.format("First name is not correct: %s. For example: Ivan", firstName));
         }
@@ -109,6 +117,7 @@ public class ValidateRequestImpl implements ValidateRequest {
         String regexPatternPassword = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=])(?=\\S+$).{6,12}$";
         if (isLengthNotValid(password, 6, 12) ||
                 isNotMatches(password, regexPatternPassword)) {
+            log.warn("Password is not correct");
             throw new InvalidRequestDataException(
                     "Password is not correct. For example: Abc123!@#");
         }
@@ -122,6 +131,7 @@ public class ValidateRequestImpl implements ValidateRequest {
 
         if (isLengthNotValid(username, 5, 20) ||
                 isNotMatches(username, regexPatternEmail)) {
+            log.warn("Username is not correct: {}", username);
             throw new InvalidRequestDataException(
                     String.format("Username is not correct: %s. For example: example@gmail.com", username));
         }
