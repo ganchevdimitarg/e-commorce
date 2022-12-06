@@ -1,6 +1,6 @@
 package com.concordeu.catalog.comment;
 
-import com.concordeu.catalog.dto.comment.CommentResponseDto;
+import com.concordeu.client.catalog.comment.CommentResponseDto;
 import com.concordeu.catalog.validator.CommentDataValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;

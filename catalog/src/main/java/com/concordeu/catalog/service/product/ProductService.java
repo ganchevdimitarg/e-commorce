@@ -1,7 +1,8 @@
 package com.concordeu.catalog.service.product;
 
-import com.concordeu.catalog.dto.product.ProductResponseDto;
+import com.concordeu.client.catalog.product.ProductResponseDto;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface ProductService {
 
@@ -9,7 +10,6 @@ public interface ProductService {
     Page<ProductResponseDto> getProductsByPage(int page, int size);
     Page<ProductResponseDto> getProductsByCategoryByPage(int page, int size, String categoryName);
     ProductResponseDto getProductByName(String name);
-    ProductResponseDto getProductById(String id);
     void updateProduct(ProductResponseDto productResponseDto, String productName);
     void deleteProduct(String productName);
 }
