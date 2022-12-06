@@ -12,7 +12,6 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import javax.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
@@ -42,15 +41,16 @@ public class OrderServiceImpl implements OrderService {
     public OrderResponseDto getOrder(long orderNumber, String authorization) {
         Optional<Order> order = orderDao.findByOrderNumber(orderNumber);
         if (order.isEmpty()) {
-            log.error("No such order");
+            log.warn("No such order");
             throw new IllegalArgumentException("No such order");
         }
 
         String base_uri = "http://127.0.0.1:8081/api/v1";
+        String headerAuthorization = "Authorization";
         UserDto userInfo = webClient
                 .get()
                 .uri(base_uri + "/profile/get-by-username?username={username}", order.get().getUsername())
-                .header("Authorization", authorization)
+                .header(headerAuthorization, authorization)
                 .accept(MediaType.APPLICATION_JSON)
                 .retrieve()
                 .bodyToMono(UserDto.class)
@@ -59,7 +59,7 @@ public class OrderServiceImpl implements OrderService {
         ProductResponseDto productInfo = webClient
                 .get()
                 .uri(base_uri + "/catalog/product/get-product-id?productId={productId}", order.get().getProductId())
-                .header("Authorization", authorization)
+                .header(headerAuthorization, authorization)
                 .accept(MediaType.APPLICATION_JSON)
                 .retrieve()
                 .bodyToMono(ProductResponseDto.class)

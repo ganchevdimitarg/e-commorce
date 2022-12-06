@@ -31,12 +31,12 @@ public class ProductServiceImpl implements ProductService {
         Category category = categoryDao
                 .findByName(categoryName)
                 .orElseThrow(() -> {
-                    log.error("No such category: " + categoryName);
+                    log.warn("No such category: " + categoryName);
                     throw new IllegalArgumentException("No such category: " + categoryName);
                 });
 
         if (productDao.findByName(productResponseDto.name()).isPresent()) {
-            log.error("Product with the name: " + productResponseDto.name() + " already exists.");
+            log.warn("Product with the name: " + productResponseDto.name() + " already exists.");
             throw new IllegalArgumentException("Product with the name: " + productResponseDto.name() + " already exist.");
         }
 
@@ -112,7 +112,7 @@ public class ProductServiceImpl implements ProductService {
 
     private void checkExistenceProduct(String productName) {
         if (productDao.findByName(productName).isEmpty()) {
-            log.error("Product with the name: " + productName + " does not exist.");
+            log.warn("Product with the name: " + productName + " does not exist.");
             throw new IllegalArgumentException("Product with the name: " + productName + " does not exist.");
         }
     }
