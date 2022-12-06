@@ -1,6 +1,17 @@
 spring:
   application:
     name: notification-service
+  devtools:
+    livereload:
+      port: 35730
+  profiles:
+    include: dev
   cloud:
-    config:
-      uri: http://localhost:8087/config
+    vault:
+      uri: http://localhost:8200
+      authentication: TOKEN
+      token: ${VAULT_SERVER_TOKEN}
+      generic:
+        enable: true
+        backend: auth-service
+        default-context: credentials

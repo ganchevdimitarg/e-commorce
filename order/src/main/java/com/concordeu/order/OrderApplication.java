@@ -8,9 +8,6 @@ import org.springframework.cloud.netflix.eureka.EnableEurekaClient;
 
 @SpringBootApplication
 @EnableEurekaClient
-@OpenAPIDefinition(info =
-@Info(title = "Order API", description = "Documentation Order API v1.0")
-)
 public class OrderApplication {
     public static void main(String[] args) {
         SpringApplication.run(OrderApplication.class, args);

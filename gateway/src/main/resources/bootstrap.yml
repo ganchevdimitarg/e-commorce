@@ -1,9 +1,19 @@
+server:
+  port: 8081
 spring:
   application:
     name: gateway-service
-  cloud:
-    config:
-      uri: http://localhost:8087/config
-
+  devtools:
+    livereload:
+      port: 35730
   profiles:
-    active:
+    include: dev
+  cloud:
+    vault:
+      uri: http://localhost:8200
+      authentication: TOKEN
+      token: ${VAULT_SERVER_TOKEN}
+      generic:
+        enable: true
+        backend: auth-service
+        default-context: credentials
