@@ -1,12 +1,18 @@
 package com.concordeu.catalog.controller;
 
+import com.concordeu.catalog.dto.product.ProductRequestDto;
+import com.concordeu.catalog.dto.product.ProductResponseDto;
 import com.concordeu.catalog.mapper.MapStructMapper;
 import com.concordeu.catalog.service.product.ProductService;
-import com.concordeu.client.catalog.product.ProductRequestDto;
-import com.concordeu.client.catalog.product.ProductResponseDto;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -18,40 +24,94 @@ public class ProductController {
     private final ProductService productService;
     private final MapStructMapper mapper;
 
-    @PostMapping("/create-product/{categoryName}")
+    @Operation(summary = "Create Product", description = "Create a product in the database",
+            security = @SecurityRequirement(name = "security_auth"))
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
+            @ApiResponse(responseCode = "500", description = "Server Error")
+    })
+    @PostMapping("/create-product")
+    @PreAuthorize("hasAnyAuthority('SCOPE_admin:write', 'SCOPE_worker:write')")
     public ProductResponseDto createProduct(@RequestBody ProductRequestDto requestDto,
-                                            @PathVariable String categoryName) {
+                                            @RequestParam String categoryName) {
         ProductResponseDto productResponseDto = mapper.mapProductRequestDtoToProductResponseDto(requestDto);
         return productService.createProduct(productResponseDto, categoryName);
     }
 
+    @Operation(summary = "Get Products", description = "Get all products from the database",
+            security = @SecurityRequirement(name = "security_auth"))
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
+            @ApiResponse(responseCode = "500", description = "Server Error")
+    })
     @GetMapping("/get-products")
+    @PreAuthorize("hasAnyAuthority('SCOPE_admin:read', 'SCOPE_worker:read', 'SCOPE_user:read')")
     public Page<ProductResponseDto> getProducts(@RequestParam int page,
-                                                @RequestParam int pageSize) {
-        return productService.getProductsByPage(page, pageSize);
+                                                @RequestParam int size) {
+        return productService.getProductsByPage(page, size);
     }
 
-    @GetMapping("/get-products/{categoryName}")
+    @Operation(summary = "Get Products By Category Name", description = "Get all products by category name",
+            security = @SecurityRequirement(name = "security_auth"))
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
+            @ApiResponse(responseCode = "500", description = "Server Error")
+    })
+    @GetMapping("/get-category-products")
+    @PreAuthorize("hasAnyAuthority('SCOPE_admin:read', 'SCOPE_worker:read', 'SCOPE_user:read')")
     public Page<ProductResponseDto> getProductsByCategory(@RequestParam int page,
-                                                          @RequestParam int pageSize,
-                                                          @PathVariable String categoryName) {
-        return productService.getProductsByCategoryByPage(page, pageSize, categoryName);
+                                                          @RequestParam int size,
+                                                          @RequestParam String categoryName) {
+        return productService.getProductsByCategoryByPage(page, size, categoryName);
     }
 
-    @GetMapping("/get-product/{productName}")
-    public ProductResponseDto getProductByName(@PathVariable String productName){
+    @Operation(summary = "Get Product Product Name", description = "Get product by product name",
+            security = @SecurityRequirement(name = "security_auth"))
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
+            @ApiResponse(responseCode = "500", description = "Server Error")
+    })
+    @GetMapping("/get-product")
+    @PreAuthorize("hasAnyAuthority('SCOPE_admin:read', 'SCOPE_worker:read', 'SCOPE_user:read')")
+    public ProductResponseDto getProductByName(@RequestParam String productName) {
         return productService.getProductByName(productName);
     }
 
-    @PutMapping("/update-product/{productName}")
+    @Operation(summary = "Get Product Id", description = "Get product by product id",
+            security = @SecurityRequirement(name = "security_auth"))
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
+            @ApiResponse(responseCode = "500", description = "Server Error")
+    })
+    @GetMapping("/get-product-id")
+    @PreAuthorize("hasAnyAuthority('SCOPE_admin:read', 'SCOPE_worker:read')")
+    public ProductResponseDto getProductById(@RequestParam String productId) {
+        return productService.getProductById(productId);
+    }
+
+    @Operation(summary = "Update Product By Product Name", description = "Update product by product name",
+            security = @SecurityRequirement(name = "security_auth"))
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
+            @ApiResponse(responseCode = "500", description = "Server Error")
+    })
+    @PutMapping("/update-product")
+    @PreAuthorize("hasAnyAuthority('SCOPE_admin:write', 'SCOPE_worker:write')")
     public void updateProduct(@RequestBody ProductRequestDto requestDto,
-                              @PathVariable String productName) {
+                              @RequestParam String productName) {
         ProductResponseDto productResponseDto = mapper.mapProductRequestDtoToProductResponseDto(requestDto);
         productService.updateProduct(productResponseDto, productName);
     }
 
-    @DeleteMapping("/delete/{productName}")
-    public void deleteProduct(@PathVariable String productName) {
+    @Operation(summary = "Delete Product By Product Name", description = "Delete product by product name",
+            security = @SecurityRequirement(name = "security_auth"))
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
+            @ApiResponse(responseCode = "500", description = "Server Error")
+    })
+    @DeleteMapping("/delete-product")
+    @PreAuthorize("hasAnyAuthority('SCOPE_admin:write', 'SCOPE_worker:write')")
+    public void deleteProduct(@RequestParam String productName) {
         productService.deleteProduct(productName);
     }
 }
