@@ -31,7 +31,7 @@ public class Product {
             strategy = "org.hibernate.id.UUIDGenerator")
     @Column(name = "id", unique = true, nullable = false, updatable = false)
     private String id;
-    @Column(name = "name", updatable = false, nullable = false, length = 200)
+    @Column(name = "name", nullable = false, length = 200)
     @NotEmpty
     @Size(min = 3, max = 20)
     private String name;

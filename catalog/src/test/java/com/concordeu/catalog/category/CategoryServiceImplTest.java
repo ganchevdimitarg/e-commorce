@@ -1,11 +1,11 @@
 package com.concordeu.catalog.category;
 
-import com.concordeu.client.catalog.category.CategoryResponseDto;
-import com.concordeu.catalog.mapper.MapStructMapper;
 import com.concordeu.catalog.dao.CategoryDao;
+import com.concordeu.catalog.dao.ProductDao;
 import com.concordeu.catalog.domain.Category;
 import com.concordeu.catalog.domain.Product;
-import com.concordeu.catalog.dao.ProductDao;
+import com.concordeu.catalog.dto.category.CategoryResponseDto;
+import com.concordeu.catalog.mapper.MapStructMapper;
 import com.concordeu.catalog.service.category.CategoryService;
 import com.concordeu.catalog.service.category.CategoryServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
@@ -92,14 +92,14 @@ class CategoryServiceImplTest {
     void deleteCategoryShouldDeleteProductIfProductExist() {
         when(categoryDao.findByName(categoryName)).thenReturn(Optional.of(Category.builder().name(categoryName).build()));
 
-        testService.deleteCategory(categoryResponseDto);
+        testService.deleteCategory(categoryName);
 
         verify(categoryDao).deleteByName(categoryName);
     }
 
     @Test
     void deleteCategoryShouldDeleteIfProductDoesNotExist() {
-        assertThatThrownBy(() -> testService.deleteCategory(categoryResponseDto))
+        assertThatThrownBy(() -> testService.deleteCategory(categoryName))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("No such category: bbbbb");
 

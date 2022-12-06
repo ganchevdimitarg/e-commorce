@@ -1,11 +1,11 @@
 package com.concordeu.catalog.comment;
 
-import com.concordeu.client.catalog.comment.CommentResponseDto;
-import com.concordeu.catalog.mapper.MapStructMapper;
 import com.concordeu.catalog.dao.CommentDao;
+import com.concordeu.catalog.dao.ProductDao;
 import com.concordeu.catalog.domain.Comment;
 import com.concordeu.catalog.domain.Product;
-import com.concordeu.catalog.dao.ProductDao;
+import com.concordeu.catalog.dto.comment.CommentResponseDto;
+import com.concordeu.catalog.mapper.MapStructMapper;
 import com.concordeu.catalog.service.comment.CommentService;
 import com.concordeu.catalog.service.comment.CommentServiceImpl;
 import com.concordeu.catalog.validator.CommentDataValidator;
