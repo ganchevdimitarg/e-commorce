@@ -30,10 +30,12 @@ public class CategoryController {
             security = @SecurityRequirement(name = "security_auth"))
     @ApiResponses({
             @ApiResponse(responseCode="200", description ="Success", content = {@Content(mediaType = "application/json")}),
+            @ApiResponse(responseCode = "401", description = "Unauthenticated"),
+            @ApiResponse(responseCode = "403", description = "Unauthorized"),
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @PostMapping("/create-category")
-    @PreAuthorize("hasAnyAuthority('SCOPE_admin:write', 'SCOPE_worker:write')")
+    @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
     public CategoryResponseDto createCategory(@RequestBody CategoryRequestDto requestDto) {
         return categoryService.createCategory(mapper.mapCategoryRequestDtoToCategoryDto(requestDto));
     }
@@ -42,10 +44,12 @@ public class CategoryController {
             security = @SecurityRequirement(name = "security_auth"))
     @ApiResponses({
             @ApiResponse(responseCode="200", description ="Success", content = {@Content(mediaType = "application/json")}),
+            @ApiResponse(responseCode = "401", description = "Unauthenticated"),
+            @ApiResponse(responseCode = "403", description = "Unauthorized"),
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @DeleteMapping("/delete-category")
-    @PreAuthorize("hasAnyAuthority('SCOPE_admin:write', 'SCOPE_worker:write')")
+    @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
     public void deleteCategory(@RequestParam String categoryName) {
         categoryService.deleteCategory(categoryName);
     }
@@ -54,10 +58,12 @@ public class CategoryController {
             security = @SecurityRequirement(name = "security_auth"))
     @ApiResponses({
             @ApiResponse(responseCode="200", description ="Success", content = {@Content(mediaType = "application/json")}),
+            @ApiResponse(responseCode = "401", description = "Unauthenticated"),
+            @ApiResponse(responseCode = "403", description = "Unauthorized"),
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @GetMapping("/get-categories")
-    @PreAuthorize("hasAnyAuthority('SCOPE_admin:read', 'SCOPE_worker:read', 'SCOPE_user:read')")
+    @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
     public Page<CategoryResponseDto> getCategories(@RequestParam int page, @RequestParam int size) {
         return categoryService.getCategoriesByPage(page, size);
     }
@@ -66,10 +72,12 @@ public class CategoryController {
             security = @SecurityRequirement(name = "security_auth"))
     @ApiResponses({
             @ApiResponse(responseCode="200", description ="Success", content = {@Content(mediaType = "application/json")}),
+            @ApiResponse(responseCode = "401", description = "Unauthenticated"),
+            @ApiResponse(responseCode = "403", description = "Unauthorized"),
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @PostMapping("/move-one-product")
-    @PreAuthorize("hasAnyAuthority('SCOPE_admin:write', 'SCOPE_worker:write')")
+    @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
     public void moveOneProduct(
             @RequestParam String categoryNameFrom, @RequestParam String categoryNameTo, @RequestParam String productName) {
         categoryService.moveOneProduct(categoryNameFrom, categoryNameTo, productName);
@@ -79,10 +87,12 @@ public class CategoryController {
             security = @SecurityRequirement(name = "security_auth"))
     @ApiResponses({
             @ApiResponse(responseCode="200", description ="Success", content = {@Content(mediaType = "application/json")}),
+            @ApiResponse(responseCode = "401", description = "Unauthenticated"),
+            @ApiResponse(responseCode = "403", description = "Unauthorized"),
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @PostMapping("/move-all-products")
-    @PreAuthorize("hasAnyAuthority('SCOPE_admin:write', 'SCOPE_worker:write')")
+    @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
     public void moveAllProducts(@RequestParam String categoryNameFrom, @RequestParam String categoryNameTo) {
         categoryService.moveAllProducts(categoryNameFrom, categoryNameTo);
     }

@@ -12,4 +12,6 @@ public class SecurityConfig {
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
         return http.csrf().disable().build();
     }
+
+
 }

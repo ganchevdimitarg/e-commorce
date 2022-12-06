@@ -36,14 +36,13 @@ class ProfileServiceImplTest {
     UserDao userDao;
     @Mock
     PasswordEncoder passwordEncoder;
-    @Mock
-    WebClient webClient;
+
     UserRequestDto model;
     User user;
 
     @BeforeEach
     void setUp() {
-        testService = new ProfileServiceImpl(userDao, passwordEncoder, webClient);
+        testService = new ProfileServiceImpl(userDao, passwordEncoder);
         model = new UserRequestDto(
                 "dimitarggacnhev3@gmail.com",
                 "Abc123!@#",

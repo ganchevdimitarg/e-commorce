@@ -1,0 +1,7 @@
+#when using spring cloud config server
+#spring:
+#  application:
+#    name: order-service
+#  cloud:
+#    config:
+#      uri: http://localhost:8087/config

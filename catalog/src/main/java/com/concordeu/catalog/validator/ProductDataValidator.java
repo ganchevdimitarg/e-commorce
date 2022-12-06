@@ -21,7 +21,7 @@ public class ProductDataValidator {
         if (name.isEmpty()
                 || name.trim().length() < 3
                 || name.trim().length() > 20){
-            log.error("The name is not correct!");
+            log.warn("The name is not correct!");
             throw new IllegalArgumentException("The name is not correct!");
         }
         return true;
@@ -31,7 +31,7 @@ public class ProductDataValidator {
         if (description.isEmpty()
                 || description.trim().length() < 10
                 || description.trim().length() > 50){
-            log.error("The description is not correct!");
+            log.warn("The description is not correct!");
             throw new IllegalArgumentException("The description is not correct!");
         }
         return true;
@@ -39,7 +39,7 @@ public class ProductDataValidator {
 
     private boolean isValidPrice(BigDecimal price) {
         if (price == null){
-            log.error("The price is not correct!");
+            log.warn("The price is not correct!");
             throw new IllegalArgumentException("The price is not correct!");
         }
 
@@ -48,7 +48,7 @@ public class ProductDataValidator {
 
     private boolean isValidName(String name) {
         if (name.isEmpty()) {
-            log.error("No such name: " + name);
+            log.warn("No such name: " + name);
             throw new IllegalArgumentException("No such name: " + name);
         }
         return true;

@@ -11,6 +11,8 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
+import java.util.Objects;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -32,12 +34,12 @@ public class EmailServiceImpl implements EmailService {
             javaMailSender.send(mailMessage);
             notificationService.createNotification(notificationDto);
 
-            log.info(String.format("The email was successfully sent to: %s", notificationDto.recipient()));
+            log.info("The email was successfully sent to: {}", notificationDto.recipient());
             return String.format("The email was successfully sent to: %s", notificationDto.recipient());
 
         } catch (MailException e) {
-            log.error(e.toString());
-            throw new MailSendException(e.toString());
+            log.warn(e.getMessage());
+            throw new MailSendException(Objects.requireNonNull(e.getMessage()));
         }
     }
 
@@ -56,7 +58,7 @@ public class EmailServiceImpl implements EmailService {
             mimeMessageHelper.addAttachment(Objects.requireNonNull(file.getFilename()), file);
             javaMailSender.send(mimeMessage);
 
-            log.info(String.format("The email was successfully sent to: %s", notificationDto.recipient()));
+            log.info("The email was successfully sent to: {}", notificationDto.recipient());
             return String.format("The email was successfully sent to: %s", notificationDto.recipient());
 
         }
