@@ -18,9 +18,35 @@ services:
     container_name: mongodb
     ports:
       - "27017:27017"
+    volumes:
+      - data:/data
     environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_DB_USER}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_DB_PASSWORD}
+     MONGO_INITDB_ROOT_USERNAME: "${MONGO_DB_USER}"
+     MONGO_INITDB_ROOT_PASSWORD: "${MONGO_DB_PASSWORD}"
+  mongo-express:
+    image: mongo-express
+    container_name: mongo-express
+    restart: always
+    ports:
+      - "8090:8081"
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: "${MONGO_EXPRESS_USER}"
+      ME_CONFIG_MONGODB_ADMINPASSWORD: "${MONGO_EXPRESS_PASSWORD}"
+      ME_CONFIG_MONGODB_SERVER: "mongodb"
+    links:
+      - mongodb
+
+  postgres:
+    container_name: postgres
+    image: postgres
+    environment:
+      POSTGRES_USER: "${POSTGRES_USER}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+    volumes:
+      - postgres:/data/postgres
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
 
   zipkin:
     image: openzipkin/zipkin
@@ -83,8 +109,67 @@ services:
       - "8080:8080"
     restart: always
 
+  vault:
+    image: hashicorp/vault
+    restart: always
+    volumes:
+      - ./vault/config/:/helpers
+      - vault_data:/vault/file
+    ports:
+      - "8201:8200/tcp"
+    cap_add:
+      - IPC_LOCK
+    container_name: vault
+    entrypoint: "vault server -config=/helpers/vault-config.hcl"
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:8200 || exit 1
+      interval: 10s
+      retries: 12
+      start_period: 10s
+      timeout: 10s
+
+  vault-agent:
+    image: hashicorp/vault
+    restart: always
+    ports:
+      - "8200:8200"
+    volumes:
+      - ./vault/config/:/helpers
+    environment:
+      VAULT_ADDR: "http://vault:8200"
+    container_name: vault-agent
+    entrypoint: "vault agent -log-level debug -config=/helpers/vault-agent.hcl"
+    depends_on:
+      vault:
+        condition: service_healthy
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  kafka:
+    image: confluentinc/cp-kafka
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://broker:29092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+
 volumes:
   db:
-  mongodb:
   prometheus_data: {}
   grafana_storage: {}
+  data: {}
+  postgres:
+  vault_data: {}
