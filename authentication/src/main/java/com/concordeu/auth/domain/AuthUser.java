@@ -20,10 +20,7 @@ import java.util.Set;
 public class AuthUser {
     @Id
     private String id;
-    @Indexed(unique = true)
-    @Size(min = 5, max = 20, message = "Email must be between 5 and 20 characters!")
-    @NotBlank(message = "Email can not be empty!")
-    @Email
+    @NotBlank
     private String username;
     @Size(min = 6, max = 12, message = "Password must be between 6 and 12 characters!")
     @NotBlank(message = "Password can not be empty!")
@@ -48,6 +45,11 @@ public class AuthUser {
     @Pattern(regexp = "\\D*", message = "Last name cannot contain digit/digits!")
     private String lastName;
     private Address address;
+    @Indexed(unique = true)
+    @Size(min = 5, max = 20, message = "Email must be between 5 and 20 characters!")
+    @NotBlank(message = "Email can not be empty!")
+    @Email
+    private String email;
     @Size(min = 9, max = 10, message = "Phone number must be between 9 and 10 characters!")
     @NotBlank(message = "Phone number can not be empty!")
     @Pattern(regexp = "^([0-9])*$",

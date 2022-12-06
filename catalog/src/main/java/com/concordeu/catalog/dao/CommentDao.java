@@ -9,16 +9,11 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
+@Repository
 public interface CommentDao extends JpaRepository<Comment, String> {
-    @Query(value = """
-            SELECT * FROM comments WHERE PRODUCT_ID = ?1
-            """, nativeQuery = true)
+    @Query(value = "SELECT * FROM comments WHERE PRODUCT_ID = ?1", nativeQuery = true)
     Page<Comment> findAllByProductIdByPage(String productId, Pageable pageable);
-
-    @Query(value = """
-            SELECT * FROM comments WHERE AUTHOR = ?1
-            """, nativeQuery = true)
+    @Query(value = "SELECT * FROM comments WHERE AUTHOR = ?1", nativeQuery = true)
     Page<Comment> findAllByAuthorByPage(String author, Pageable pageable);
-
     List<Comment> findAllByProductName(String productName);
 }
