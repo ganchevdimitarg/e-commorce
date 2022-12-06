@@ -38,3 +38,4 @@ public interface ProductDao extends JpaRepository<Product, String> {
     @Transactional
     void deleteByName(String productName);
 }
+ 

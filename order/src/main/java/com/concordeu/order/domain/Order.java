@@ -29,6 +29,8 @@ public class Order {
     long orderNumber;
     @Column(name = "username", nullable = false)
     String username;
+    @Column(name = "product_id", nullable = false)
+    String productId;
     @Column(name = "product_name", nullable = false)
     String productName;
     @Column(name = "quantity", nullable = false)
