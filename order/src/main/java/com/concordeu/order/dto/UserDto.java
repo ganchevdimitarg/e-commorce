@@ -1,9 +1,8 @@
 package com.concordeu.order.dto;
 
-import org.springframework.security.core.GrantedAuthority;
+import lombok.Builder;
 
-import java.util.Set;
-
+@Builder
 public record UserDto(
         String username,
         String firstName,
