@@ -15,6 +15,7 @@ public class ResourceServerConfig {
         http
                 .authorizeRequests()
                 .mvcMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                .antMatchers("/actuator/**").permitAll()
                 .mvcMatchers("/api/v1/notification/**").hasAnyAuthority("SCOPE_admin:write", "SCOPE_worker:write")
                 .anyRequest()
                 .authenticated()
