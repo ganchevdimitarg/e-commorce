@@ -17,6 +17,7 @@ public class ResourceServerConfig {
                 .csrf().disable()
                 .authorizeRequests()
                 .mvcMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                .antMatchers("/actuator/**").permitAll()
                 .antMatchers("/api/v1/profile/register-admin").permitAll()
                 .antMatchers("/api/v1/profile/register-worker").permitAll()
                 .antMatchers("/api/v1/profile/register-user").permitAll()
