@@ -8,9 +8,11 @@ import com.concordeu.order.dto.ProductResponseDto;
 import com.concordeu.order.dto.UserDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cloud.client.circuitbreaker.ReactiveCircuitBreakerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -21,6 +23,8 @@ import java.util.Optional;
 public class OrderServiceImpl implements OrderService {
     private final OrderDao orderDao;
     private final WebClient webClient;
+
+    private final ReactiveCircuitBreakerFactory reactiveCircuitBreakerFactory;
 
     @Override
     public void createOrder(OrderDto orderDto) {
@@ -47,22 +51,33 @@ public class OrderServiceImpl implements OrderService {
 
         String base_uri = "http://127.0.0.1:8081/api/v1";
         String headerAuthorization = "Authorization";
+
+        String username = order.get().getUsername();
         UserDto userInfo = webClient
                 .get()
-                .uri(base_uri + "/profile/get-by-username?username={username}", order.get().getUsername())
+                .uri(base_uri + "/profile/get-by-username?username={username}", username)
                 .header(headerAuthorization, authorization)
                 .accept(MediaType.APPLICATION_JSON)
                 .retrieve()
                 .bodyToMono(UserDto.class)
+                .transform(it ->
+                    reactiveCircuitBreakerFactory.create("customer-service")
+                            .run(it, throwable -> (Mono.just(UserDto.builder().username(username).build())))
+                )
                 .block();
 
+        String productId = order.get().getProductId();
         ProductResponseDto productInfo = webClient
                 .get()
-                .uri(base_uri + "/catalog/product/get-product-id?productId={productId}", order.get().getProductId())
+                .uri(base_uri + "/catalog/product/get-product-id?productId={productId}", productId)
                 .header(headerAuthorization, authorization)
                 .accept(MediaType.APPLICATION_JSON)
                 .retrieve()
                 .bodyToMono(ProductResponseDto.class)
+                .transform(it ->
+                        reactiveCircuitBreakerFactory.create("customer-service")
+                                .run(it, throwable -> (Mono.just(ProductResponseDto.builder().id(productId).build())))
+                )
                 .block();
 
 
