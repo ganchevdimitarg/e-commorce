@@ -39,7 +39,6 @@ public class ResourceServerConfig {
                 .authorizeRequests()
                 .mvcMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 .mvcMatchers("/actuator/**").permitAll()
-                .mvcMatchers("/google/**").permitAll()
                 .mvcMatchers("/api/v1/profile/register-admin").permitAll()
                 .mvcMatchers("/api/v1/profile/register-worker").permitAll()
                 .mvcMatchers("/api/v1/profile/register-user").permitAll()
