@@ -30,10 +30,12 @@ public class CommentController {
             security = @SecurityRequirement(name = "security_auth"))
     @ApiResponses({
             @ApiResponse(responseCode="200", description ="Success", content = {@Content(mediaType = "application/json")}),
+            @ApiResponse(responseCode = "401", description = "Unauthenticated"),
+            @ApiResponse(responseCode = "403", description = "Unauthorized"),
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @PostMapping("/create-comment")
-    @PreAuthorize("hasAnyAuthority('SCOPE_admin:write', 'SCOPE_worker:write', 'SCOPE_user:write')")
+    @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
     public CommentResponseDto createComment(@RequestBody CommentRequestDto requestDto,
                                             @RequestParam String productName) {
         CommentResponseDto commentResponseDto = mapper.mapCommentRequestDtoToCommentResponseDto(requestDto);
@@ -45,10 +47,12 @@ public class CommentController {
             security = @SecurityRequirement(name = "security_auth"))
     @ApiResponses({
             @ApiResponse(responseCode="200", description ="Success", content = {@Content(mediaType = "application/json")}),
+            @ApiResponse(responseCode = "401", description = "Unauthenticated"),
+            @ApiResponse(responseCode = "403", description = "Unauthorized"),
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @GetMapping("/get-comments-product-name")
-    @PreAuthorize("hasAnyAuthority('SCOPE_admin:read', 'SCOPE_worker:read', 'SCOPE_user:read')")
+    @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
         public Page<CommentResponseDto> findAllByProductName(@RequestParam int page,
                                                              @RequestParam int size,
                                                              @RequestParam String productName) {
@@ -59,10 +63,12 @@ public class CommentController {
             security = @SecurityRequirement(name = "security_auth"))
     @ApiResponses({
             @ApiResponse(responseCode="200", description ="Success", content = {@Content(mediaType = "application/json")}),
+            @ApiResponse(responseCode = "401", description = "Unauthenticated"),
+            @ApiResponse(responseCode = "403", description = "Unauthorized"),
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @GetMapping("/get-comments-author")
-    @PreAuthorize("hasAnyAuthority('SCOPE_admin:read', 'SCOPE_worker:read', 'SCOPE_user:read')")
+    @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
     public Page<CommentResponseDto> findAllByAuthor(@RequestParam int page,
                                                     @RequestParam int size,
                                                     @RequestParam String author) {
@@ -73,10 +79,12 @@ public class CommentController {
             security = @SecurityRequirement(name = "security_auth"))
     @ApiResponses({
             @ApiResponse(responseCode="200", description ="Success", content = {@Content(mediaType = "application/json")}),
+            @ApiResponse(responseCode = "401", description = "Unauthenticated"),
+            @ApiResponse(responseCode = "403", description = "Unauthorized"),
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @GetMapping("/get-avg-stars")
-    @PreAuthorize("hasAnyAuthority('SCOPE_admin:read', 'SCOPE_worker:read', 'SCOPE_user:read')")
+    @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
     public double getAvgStars(@RequestParam String productName) {
         return commentService.getAvgStars(productName);
     }

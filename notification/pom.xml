@@ -25,6 +25,11 @@
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>com.concordeu</groupId>
+            <artifactId>client</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
         <!--        Spring Boot     -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -47,8 +52,8 @@
 
         <!--   Spring Security     -->
         <dependency>
-            <groupId>org.springframework.security</groupId>
-            <artifactId>spring-security-config</artifactId>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-vault-config</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.security</groupId>
@@ -176,6 +181,11 @@
             <version>${jakarta.mail.version}</version>
         </dependency>
 
+        <!--        when using spring cloud config server    -->
+        <!--        <dependency>-->
+        <!--            <groupId>org.springframework.cloud</groupId>-->
+        <!--            <artifactId>spring-cloud-starter-config</artifactId>-->
+        <!--        </dependency>-->
     </dependencies>
 
     <build>

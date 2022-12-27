@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
 @Component
 @Slf4j
 @RequiredArgsConstructor
-public class ValidationRequestDtoAspect {
+public class ValidationRequestAspect {
 
     private final ValidateRequest validateRequest;
 

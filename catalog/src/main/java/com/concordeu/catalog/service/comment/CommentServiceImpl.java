@@ -32,7 +32,7 @@ public class CommentServiceImpl implements CommentService {
         Product product = productDao
                 .findByName(productName)
                 .orElseThrow(() -> {
-                    log.error("No such product: " + productName);
+                    log.warn("No such product: " + productName);
                     return new IllegalArgumentException("No such product: " + productName);
                 });
 
@@ -48,12 +48,12 @@ public class CommentServiceImpl implements CommentService {
     @Override
     public Page<CommentResponseDto> findAllByProductNameByPage(String productName, int page, int size) {
         if (productName.isEmpty()) {
-            log.error("No such product: " + productName);
+            log.warn("No such product: " + productName);
             throw new IllegalArgumentException("No such product: " + productName);
         }
 
         Product product = productDao.findByName(productName).orElseThrow(() -> {
-            log.error("No such product: " + productName);
+            log.warn("No such product: " + productName);
             throw new IllegalArgumentException("No such product: " + productName);
         });
 
@@ -69,7 +69,7 @@ public class CommentServiceImpl implements CommentService {
     @Override
     public Page<CommentResponseDto> findAllByAuthorByPage(String author, int page, int size) {
         if (author.isEmpty()) {
-            log.error("No such author: " + author);
+            log.warn("No such author: " + author);
             throw new IllegalArgumentException("No such author: " + author);
         }
         Page<CommentResponseDto> comments = commentDao

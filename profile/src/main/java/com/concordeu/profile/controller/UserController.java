@@ -13,13 +13,19 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Collection;
 
 @RestController
 @RequestMapping("/api/v1/profile")
 @RequiredArgsConstructor
 @Slf4j
 public class UserController {
+    private static final String ADMIN = "admin";
     private final ProfileService profileService;
     private final MailService mailService;
 
@@ -27,11 +33,20 @@ public class UserController {
             security = @SecurityRequirement(name = "security_auth"))
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
+            @ApiResponse(responseCode = "401", description = "Unauthenticated"),
+            @ApiResponse(responseCode = "403", description = "Unauthorized"),
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @GetMapping("/get-by-username")
-    @PreAuthorize("hasAnyAuthority('SCOPE_admin:read', 'SCOPE_worker:read', 'SCOPE_user:read')")
-    public UserDto getUserByEmail(@RequestParam String username) {
+    @PreAuthorize("hasAnyAuthority('SCOPE_profile.read')")
+    public UserDto getUserByUsername(Authentication authentication, @RequestParam String username) {
+        String principalName = authentication.getName();
+
+        if (!principalName.equals(username) && !principalName.equals(ADMIN)) {
+            log.debug("User '{}' try to access another account '{}'", principalName, username);
+            throw new IllegalArgumentException("You cannot access this information!");
+        }
+
         return profileService.getUserByUsername(username);
     }
 
@@ -39,6 +54,8 @@ public class UserController {
             security = @SecurityRequirement(name = "security_auth"))
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
+            @ApiResponse(responseCode = "401", description = "Unauthenticated"),
+            @ApiResponse(responseCode = "403", description = "Unauthorized"),
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @PostMapping("/register-admin")
@@ -53,6 +70,8 @@ public class UserController {
             security = @SecurityRequirement(name = "security_auth"))
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
+            @ApiResponse(responseCode = "401", description = "Unauthenticated"),
+            @ApiResponse(responseCode = "403", description = "Unauthorized"),
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @PostMapping("/register-worker")
@@ -67,6 +86,8 @@ public class UserController {
             security = @SecurityRequirement(name = "security_auth"))
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
+            @ApiResponse(responseCode = "401", description = "Unauthenticated"),
+            @ApiResponse(responseCode = "403", description = "Unauthorized"),
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @PostMapping("/register-user")
@@ -81,11 +102,13 @@ public class UserController {
             security = @SecurityRequirement(name = "security_auth"))
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
+            @ApiResponse(responseCode = "401", description = "Unauthenticated"),
+            @ApiResponse(responseCode = "403", description = "Unauthorized"),
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @PutMapping("/update-user")
     @ValidationRequest
-    @PreAuthorize("hasAnyAuthority('SCOPE_admin:write', 'SCOPE_user:write')")
+    @PreAuthorize("hasAnyAuthority('SCOPE_profile.write', 'ROLE_USER')")
     public void updateUser(@RequestBody UserRequestDto requestDto,
                            @RequestParam String username) {
         profileService.updateUser(username, requestDto);
@@ -95,10 +118,12 @@ public class UserController {
             security = @SecurityRequirement(name = "security_auth"))
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
+            @ApiResponse(responseCode = "401", description = "Unauthenticated"),
+            @ApiResponse(responseCode = "403", description = "Unauthorized"),
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @DeleteMapping("/delete-user")
-    @PreAuthorize("hasAnyAuthority('SCOPE_admin:write', 'SCOPE_worker:write', 'SCOPE_user:write')")
+    @PreAuthorize("hasAuthority('SCOPE_profile.write')")
     public void deleteUser(@RequestParam String username) {
         profileService.deleteUser(username);
     }

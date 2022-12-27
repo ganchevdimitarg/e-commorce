@@ -21,6 +21,8 @@ public class NotificationServiceImpl implements NotificationService {
     public NotificationDto createNotification(NotificationDto notificationDto) {
         Notification notification = mapper.mapNotificationDtoToNotification(notificationDto);
         notification.setCreatedOn(LocalDateTime.now());
-        return mapper.mapNotificationToNotificationDto(notificationDao.saveAndFlush(notification));
+        NotificationDto notificationResp = mapper.mapNotificationToNotificationDto(notificationDao.saveAndFlush(notification));
+        log.info("The notification has been created");
+        return notificationResp;
     }
 }
