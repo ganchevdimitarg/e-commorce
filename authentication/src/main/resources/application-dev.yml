@@ -1,0 +1,70 @@
+spring:
+  #Data Source Properties
+  data:
+    mongodb:
+      authentication-database: admin
+      username: ${MONGO_DB_USER}
+      password: ${MONGO_DB_PASSWORD}
+      database: authentication
+      port: 27017
+      host: localhost
+
+  datasource:
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+    url: jdbc:postgresql://localhost:5432/registered_client
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+    show-sql: true
+
+  #Zipkin
+  zipkin:
+    base-url: http://localhost:9411
+
+#Logging Levels
+#Disable the default loggers
+logging:
+  level:
+    blog: WARN
+    root: INFO
+    org:
+      springframework:
+        web: INFO
+        security: INFO
+        oauth2: INFO
+
+#Eureka
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+
+#Prometheus (and other data loggers)
+management:
+  endpoint:
+    metrics:
+      enabled: true
+    prometheus:
+      enabled: true
+    health:
+      show-details: always
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+gateway:
+  client:
+    secret: ${GATEWAY_CLIENT_SECRET}
+google:
+  client:
+    secret: ${GOOGLE_CLIENT_SECRET}

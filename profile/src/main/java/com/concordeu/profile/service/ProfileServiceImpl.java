@@ -13,13 +13,14 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
-import org.springframework.web.reactive.function.client.WebClient;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.Set;
 
-import static com.concordeu.profile.security.UserRole.*;
+import static com.concordeu.client.security.UserRole.*;
+
+//import static com.concordeu.profile.security.UserRole.*;
 
 @Service
 @RequiredArgsConstructor
@@ -28,21 +29,26 @@ public class ProfileServiceImpl implements ProfileService {
 
     private final UserDao userDao;
     private final PasswordEncoder passwordEncoder;
-    private final WebClient webClient;
 
     @Override
     public UserDto createAdmin(UserRequestDto model) {
-        return getUserDto(getUser(model, ADMIN.getGrantedAuthorities()));
+        UserDto userDto = getUserDto(getUser(model, ADMIN.getGrantedAuthorities()));
+        log.info("Admin user with username: {} was created", userDto.username());
+        return userDto;
     }
 
     @Override
     public UserDto createWorker(UserRequestDto model) {
-        return getUserDto(getUser(model, WORKER.getGrantedAuthorities()));
+        UserDto userDto = getUserDto(getUser(model, WORKER.getGrantedAuthorities()));
+        log.info("Worker user with username: {} was created", userDto.username());
+        return userDto;
     }
 
     @Override
     public UserDto createUser(UserRequestDto model) {
-        return getUserDto(getUser(model, USER.getGrantedAuthorities()));
+        UserDto userDto = getUserDto(getUser(model, USER.getGrantedAuthorities()));
+        log.info("User user with username: {} was created", userDto.username());
+        return userDto;
     }
 
     @Override
@@ -78,9 +84,13 @@ public class ProfileServiceImpl implements ProfileService {
     public void deleteUser(String username) {
         Assert.hasLength(username, "Username is empty");
         User user = userDao.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User does not exist"));
+                .orElseThrow(() -> {
+                    log.warn("User does not exist");
+                    return new UsernameNotFoundException("User does not exist");
+                });
 
         userDao.delete(user);
+        log.info("ser with username: {} was successfully deleted", username);
     }
 
     @Override

@@ -13,14 +13,27 @@ import java.util.stream.Collectors;
 @Getter
 public enum UserRole {
     ADMIN(Sets.newHashSet(
-            UserPermission.ADMIN_READ,
-            UserPermission.ADMIN_WRITE)),
+            UserPermission.CATALOG_READ,
+            UserPermission.CATALOG_WRITE,
+            UserPermission.PROFILE_READ,
+            UserPermission.PROFILE_WRITE,
+            UserPermission.ORDER_READ,
+            UserPermission.ORDER_WRITE,
+            UserPermission.NOTIFICATION_READ,
+            UserPermission.NOTIFICATION_WRITE)),
     WORKER(Sets.newHashSet(
-            UserPermission.WORKER_READ,
-            UserPermission.WORKER_WRITE)),
+            UserPermission.CATALOG_READ,
+            UserPermission.PROFILE_READ,
+            UserPermission.ORDER_READ,
+            UserPermission.NOTIFICATION_READ)),
     USER(Sets.newHashSet(
-            UserPermission.USER_READ,
-            UserPermission.USER_WRITE));
+            UserPermission.CATALOG_READ,
+            UserPermission.PROFILE_READ,
+            UserPermission.PROFILE_WRITE,
+            UserPermission.ORDER_READ,
+            UserPermission.ORDER_WRITE,
+            UserPermission.NOTIFICATION_READ,
+            UserPermission.NOTIFICATION_WRITE));
 
     private final Set<UserPermission> permissions;
 

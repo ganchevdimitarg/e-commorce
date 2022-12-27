@@ -13,10 +13,10 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
-import java.net.http.HttpRequest;
 
 @RestController
 @RequestMapping("/api/v1/order")
@@ -30,11 +30,13 @@ public class OrderController {
             security = @SecurityRequirement(name = "security_auth"))
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
+            @ApiResponse(responseCode = "401", description = "Unauthenticated"),
+            @ApiResponse(responseCode = "403", description = "Unauthorized"),
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @PostMapping("/create-order")
     @ValidationRequest
-    @PreAuthorize("hasAnyAuthority('SCOPE_admin:write', 'SCOPE_user:write')")
+    @PreAuthorize("hasAuthority('SCOPE_order.write')")
     public void createOrder(@RequestBody OrderDto orderDto) {
         orderService.createOrder(orderDto);
         mailService.sendUserOrderMail(orderDto.username());
@@ -44,10 +46,12 @@ public class OrderController {
             security = @SecurityRequirement(name = "security_auth"))
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
+            @ApiResponse(responseCode = "401", description = "Unauthenticated"),
+            @ApiResponse(responseCode = "403", description = "Unauthorized"),
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @DeleteMapping("/delete-order")
-    @PreAuthorize("hasAuthority('SCOPE_admin:write')")
+    @PreAuthorize("hasAuthority('SCOPE_order.write')")
     public void deleteOrder(@RequestParam long orderNumber) {
         orderService.deleteOrder(orderNumber);
     }
@@ -56,11 +60,13 @@ public class OrderController {
             security = @SecurityRequirement(name = "security_auth"))
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
+            @ApiResponse(responseCode = "401", description = "Unauthenticated"),
+            @ApiResponse(responseCode = "403", description = "Unauthorized"),
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @GetMapping("/get-order")
-    @PreAuthorize("hasAnyAuthority('SCOPE_admin:read', 'SCOPE_worker:read', 'SCOPE_user:read')")
-    public OrderResponseDto getOrder(@RequestParam long orderNumber, HttpServletRequest request) {
-        return orderService.getOrder(orderNumber, request.getHeader("Authorization"));
+    @PreAuthorize("hasAuthority('SCOPE_order.read')")
+    public OrderResponseDto getOrder(Authentication authentication, @RequestParam long orderNumber, HttpServletRequest request) {
+        return orderService.getOrder(orderNumber, request.getHeader("Authorization"), authentication);
     }
 }
