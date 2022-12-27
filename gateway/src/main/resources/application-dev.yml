@@ -1,0 +1,163 @@
+
+#  port: 8443
+#  ssl:
+#    enabled: true
+#    key-store: classpath:bootsecurity.p12
+#    key-store-type: PKCS12
+#    key-store-password: ${KEY_STORE_TYPE}
+spring:
+  #Zipkin
+  zipkin:
+    base-url: http://localhost:9411
+
+  #Security
+  security:
+    oauth2:
+      client:
+        registration:
+          gateway-client-oidc:
+            provider: spring
+            client-id:
+            client-secret:
+            authorization-grant-type: authorization_code
+            redirect-uri: "http://127.0.0.1:8081/login/oauth2/code/{registrationId}"
+            scope:
+              - openid
+              - catalog.read
+              - catalog.write
+              - profile.read
+              - profile.write
+              - order.read
+              - order.write
+              - notification.read
+              - notification.write
+            client-name: gateway-client-oidc
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            redirect-uri: http://127.0.0.1:8081/login/oauth2/code/{registrationId}
+            scope:
+              - openid
+              - email
+              - profile
+          github:
+            client-id: ${GITHUB_CLIENT_ID}
+            client-secret: ${GITHUB_CLIENT_SECRET}
+            redirect-uri: http://127.0.0.1:8081/login/oauth2/code/{registrationId}
+          facebook:
+            client-id: ${FACEBOOK_CLIENT_ID}
+            client-secret: ${FACEBOOK_CLIENT_SECRET}
+            redirect-uri: http://127.0.0.1:8081/login/oauth2/code/{registrationId}
+        provider:
+          spring:
+            issuer-uri: http://localhost:8082
+            authorization-uri: http://localhost:8082/oauth2/authorize
+            token-uri: http://localhost:8082/oauth2/token
+
+  #Gateway
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lowerCaseServiceId: true
+      default-filters:
+        - TokenRelay
+        - name: Retry
+          args:
+            retries: 3
+            method: GET
+            backoff:
+              firstBackoff: 50ms
+              maxBackoff: 500ms
+      routes:
+        - id: catalog-service
+          uri: lb://catalog-service
+          predicates:
+            Path=/api/v1/catalog/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: catalogService
+                fallbackUri: forward:/catalog-fallback
+        - id: profile-service
+          uri: lb://profile-service
+          predicates:
+            - Path=/api/v1/profile/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: catalogService
+                fallbackUri: forward:/profile-fallback
+        - id: notification-service
+          uri: lb://notification-service
+          predicates:
+            - Path=/api/v1/notification/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: catalogService
+                fallbackUri: forward:/notification-fallback
+        - id: order-service
+          uri: lb://order-service
+          predicates:
+            - Path=/api/v1/order/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: catalogService
+                fallbackUri: forward:/order-fallback
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      catalogService:
+        sliding-window-size: 10
+        permitted-number-of-calls-in-half-open-state: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 1000
+        register-health-indicator: true
+  timelimiter:
+    instances:
+      catalogService:
+        timeout-duration: 3s
+
+
+#Logging Levels
+#Disable the default loggers
+logging:
+  level:
+    root: INFO
+    org.springframework.web: INFO
+    org.springframework.security: INFO
+    org.springframework.security.oauth2: INFO
+
+#Prometheus (and other data loggers)
+management:
+#  server:
+#    port: 8081
+#    ssl:
+#      enabled: false
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+  endpoint:
+    prometheus:
+      enabled: 'true'
+    metrics:
+      enabled: 'true'
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: 'true'
+
+#Eureka
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+
+

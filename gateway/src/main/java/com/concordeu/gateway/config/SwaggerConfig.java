@@ -30,8 +30,10 @@ public class SwaggerConfig implements SwaggerResourcesProvider {
                             .replace("ReactiveCompositeDiscoveryClient_", "");
                     if (resourceName.equals(resourceName.toLowerCase())) {
                         String location = routeDefinition
-                                .getPredicates().get(0)
-                                .getArgs().get("_genkey_0")
+                                .getPredicates()
+                                .get(0)
+                                .getArgs()
+                                .get("_genkey_0")
                                 .replace("/**", API_URI);
                         resources.add(swaggerResource(resourceName, location));
                     }

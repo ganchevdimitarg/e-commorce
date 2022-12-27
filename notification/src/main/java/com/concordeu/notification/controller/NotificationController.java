@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -26,10 +27,13 @@ public class NotificationController {
             security = @SecurityRequirement(name = "security_auth"))
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
+            @ApiResponse(responseCode = "401", description = "Unauthenticated"),
+            @ApiResponse(responseCode = "403", description = "Unauthorized"),
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @PostMapping("/send-email")
     @ValidationRequest
+    @PreAuthorize("hasAuthority('SCOPE_notification.write')")
     public String sendMail(@RequestBody NotificationDto notificationDto) {
         return emailService.sendSimpleMail(notificationDto);
     }
@@ -38,6 +42,8 @@ public class NotificationController {
             security = @SecurityRequirement(name = "security_auth"))
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
+            @ApiResponse(responseCode = "401", description = "Unauthenticated"),
+            @ApiResponse(responseCode = "403", description = "Unauthorized"),
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @PostMapping("/sendMailWithAttachment")

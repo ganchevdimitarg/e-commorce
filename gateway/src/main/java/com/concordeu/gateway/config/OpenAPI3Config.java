@@ -15,11 +15,9 @@ import io.swagger.v3.oas.annotations.security.*;
         flows = @OAuthFlows(
                 authorizationCode = @OAuthFlow(
                         authorizationUrl = "${springdoc.oAuthFlow.authorizationUrl}",
-                        tokenUrl = "${springdoc.oAuthFlow.tokenUrl}",
-                        scopes = {@OAuthScope(name = "openid", description = "openid scope")}
+                        tokenUrl = "${springdoc.oAuthFlow.tokenUrl}"
                 )
         )
 )
 public class OpenAPI3Config {
 }
-

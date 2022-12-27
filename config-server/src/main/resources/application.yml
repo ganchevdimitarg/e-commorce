@@ -21,6 +21,7 @@ spring:
         git:
           uri: file://${user.home}/IdeaProjects/config-repo
           order: 2
+          default-label: feature-v1
 
 eureka:
   client:

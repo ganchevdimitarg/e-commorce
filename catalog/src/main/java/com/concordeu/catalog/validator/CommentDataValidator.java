@@ -16,7 +16,7 @@ public class CommentDataValidator {
         if (text.isEmpty()
                 || text.trim().length() < 10
                 || text.trim().length() > 150){
-            log.error("The text is not correct!");
+            log.warn("The text is not correct!");
             throw new IllegalArgumentException("The text is not correct!");
         }
         return true;
@@ -26,7 +26,7 @@ public class CommentDataValidator {
         if (title.isEmpty()
                 || title.trim().length() < 3
                 || title.trim().length() > 15){
-            log.error("The title is not correct!");
+            log.warn("The title is not correct!");
             throw new IllegalArgumentException("The title is not correct!");
         }
         return true;

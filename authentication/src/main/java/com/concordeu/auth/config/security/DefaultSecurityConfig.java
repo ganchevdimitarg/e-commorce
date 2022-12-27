@@ -13,8 +13,8 @@ public class DefaultSecurityConfig {
     SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeRequests()
-                .antMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html")
-                .permitAll()
+                .antMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                .antMatchers("/actuator/**").permitAll()
                 .anyRequest()
                 .authenticated()
                 .and()

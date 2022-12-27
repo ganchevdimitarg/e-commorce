@@ -12,18 +12,24 @@ import io.swagger.v3.oas.annotations.servers.Server;
         info = @Info(
                 title = "Catalog Service APIs",
                 description = "This lists all the Catalog Service API Calls. The Calls are OAuth2 secured, so please use your client ID and Secret to test them out.",
-                version = "v1.0"))
+                version = "v3.0.1"))
 @SecurityRequirement(name = "security_auth")
 @SecurityScheme(
         name = "security_auth",
         type = SecuritySchemeType.OAUTH2,
         in = SecuritySchemeIn.HEADER,
         bearerFormat = "jwt",
-        flows = @OAuthFlows(authorizationCode = @OAuthFlow(
-                authorizationUrl = "${springdoc.oAuthFlow.authorizationUrl}",
-                tokenUrl = "${springdoc.oAuthFlow.tokenUrl}",
-                scopes = {@OAuthScope(name = "openid", description = "openid scope")}
+        flows = @OAuthFlows(
+                authorizationCode = @OAuthFlow(
+                        authorizationUrl = "${springdoc.oAuthFlow.authorizationUrl}",
+                        tokenUrl = "${springdoc.oAuthFlow.tokenUrl}",
+                        scopes = {
+                                @OAuthScope(name = "openid", description = "openid scope"),
+                                @OAuthScope(name = "catalog.read", description = "with this scope, the user can access every get request"),
+                                @OAuthScope(name = "catalog.write", description = "with this scope, the user can access every post, put and delete request")
+                        }
                 )
         )
 )
-public class OpenAPI3Config {}
+public class OpenAPI3Config {
+}
