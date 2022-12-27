@@ -13,10 +13,10 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
-import java.net.http.HttpRequest;
 
 @RestController
 @RequestMapping("/api/v1/order")
@@ -66,7 +66,7 @@ public class OrderController {
     })
     @GetMapping("/get-order")
     @PreAuthorize("hasAuthority('SCOPE_order.read')")
-    public OrderResponseDto getOrder(@RequestParam long orderNumber, HttpServletRequest request) {
-        return orderService.getOrder(orderNumber, request.getHeader("Authorization"));
+    public OrderResponseDto getOrder(Authentication authentication, @RequestParam long orderNumber, HttpServletRequest request) {
+        return orderService.getOrder(orderNumber, request.getHeader("Authorization"), authentication);
     }
 }

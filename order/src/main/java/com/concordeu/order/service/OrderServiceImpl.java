@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.client.circuitbreaker.ReactiveCircuitBreakerFactory;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
@@ -43,7 +44,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public OrderResponseDto getOrder(long orderNumber, String authorization) {
+    public OrderResponseDto getOrder(long orderNumber, String authorization, Authentication authentication) {
         Optional<Order> order = orderDao.findByOrderNumber(orderNumber);
         if (order.isEmpty()) {
             log.warn("No such order");
@@ -51,6 +52,12 @@ public class OrderServiceImpl implements OrderService {
         }
 
         String username = order.get().getUsername();
+        String authenticationName = authentication.getName();
+        if (!username.equals(authenticationName)) {
+            log.debug("User '{}' try to access another account '{}'", authenticationName, username);
+            throw new IllegalArgumentException("You cannot access this information!");
+        }
+
         UserDto userInfo = webClient
                 .get()
                 .uri(BASE_URI + "/profile/get-by-username?username={username}", username)
