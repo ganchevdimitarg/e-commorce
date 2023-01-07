@@ -14,25 +14,27 @@ import javax.validation.constraints.Size;
 import java.time.LocalDateTime;
 import java.util.Set;
 
-@Document("users")
+@Document(collection = "users")
 @Data
 @Builder
-public class User {
+public class Profile {
     @Id
     private String id;
     @Indexed(unique = true)
-    @Size(min = 5, max = 20, message = "Email must be between 5 and 20 characters!")
+    @Size(min = 5, max = 50, message = "Email must be between 5 and 50 characters!")
     @NotBlank(message = "Email can not be empty!")
     @Email
     private String username;
-    @Size(min = 6, max = 12, message = "Password must be between 6 and 12 characters!")
+    @Size(min = 6, max = 30, message = "Password must be between 6 and 30 characters!")
     @NotBlank(message = "Password can not be empty!")
-    @Pattern(regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=])(?=\\S+$).{6,12}$",
-            message = "a digit must occur at least once\n" +
-                    "a lower case letter must occur at least once\n" +
-                    "an upper case letter must occur at least once\n" +
-                    "a special character must occur at least once\n" +
-                    "no whitespace allowed in the entire string")
+    @Pattern(regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=])(?=\\S+$).{6,30}$",
+            message = """
+                    a digit must occur at least once
+                    a lower case letter must occur at least once
+                    an upper case letter must occur at least once
+                    a special character must occur at least once
+                    no whitespace allowed in the entire string
+                    """)
     private String password;
     private Set<? extends GrantedAuthority> grantedAuthorities;
     @Size(min = 3, max = 12, message = "First name must be between 3 and 12 characters!")
