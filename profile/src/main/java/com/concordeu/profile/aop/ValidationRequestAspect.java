@@ -2,7 +2,7 @@ package com.concordeu.profile.aop;
 
 import com.concordeu.profile.dto.UserRequestDto;
 import com.concordeu.profile.excaption.InvalidRequestDataException;
-import com.concordeu.profile.validation.ValidateRequest;
+import com.concordeu.profile.validation.ValidateData;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -16,7 +16,7 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class ValidationRequestAspect {
 
-    private final ValidateRequest validateRequest;
+    private final ValidateData validateData;
 
     @Around("@annotation(com.concordeu.profile.annotation.ValidationRequest)")
     public Object validateRequest(ProceedingJoinPoint pjp) throws Throwable {
@@ -26,7 +26,7 @@ public class ValidationRequestAspect {
         Object[] requestObject = pjp.getArgs();
 
         if (requestObject.length > 0 && requestObject[0] instanceof UserRequestDto authUser) {
-            validateRequest.validateRequest(authUser);
+            validateData.validateRequest(authUser);
         } else {
             log.info("request object is not of UserRequestDto instance");
             throw new InvalidRequestDataException("Request object is not of UserRequestDto instance");

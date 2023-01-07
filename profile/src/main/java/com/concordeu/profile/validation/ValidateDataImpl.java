@@ -10,7 +10,7 @@ import java.util.regex.Pattern;
 
 @Component
 @Slf4j
-public class ValidateRequestImpl implements ValidateRequest {
+public class ValidateDataImpl implements ValidateData {
 
     @Override
     public boolean validateRequest(UserRequestDto requestDto) {
@@ -23,6 +23,38 @@ public class ValidateRequestImpl implements ValidateRequest {
                 isValidPostCode(requestDto.postCode()) &&
                 isValidPhoneNumber(requestDto.phoneNumber());
 
+    }
+
+    @Override
+    public boolean isValidUsername(String username) {
+        //language=RegExp
+        String regexPatternEmail = "^[\\w-.]+@([\\w-]+\\.)+[\\w-]{2,4}$";
+
+        if (isLengthNotValid(username, 5, 50) ||
+                isNotMatches(username, regexPatternEmail)) {
+            log.warn("Username is not correct: {}", username);
+            throw new InvalidRequestDataException(
+                    String.format("Username is not correct: %s. For example: example@gmail.com", username));
+        }
+        return true;
+    }
+
+    @Override
+    public boolean isValidPassword(String password) {
+        //- a digit must occur at least once
+        //- a lower case letter must occur at least once
+        //- an upper case letter must occur at least once
+        //- a special character must occur at least once
+        //- no whitespace allowed in the entire string
+        //language=RegExp
+        String regexPatternPassword = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=])(?=\\S+$).{6,30}$";
+        if (isLengthNotValid(password, 6, 30) ||
+                isNotMatches(password, regexPatternPassword)) {
+            log.warn("Password is not correct");
+            throw new InvalidRequestDataException(
+                    "Password is not correct");
+        }
+        return true;
     }
 
     private boolean isValidPhoneNumber(String phoneNumber) {
@@ -103,37 +135,6 @@ public class ValidateRequestImpl implements ValidateRequest {
             log.warn("First name is not correct: {}", firstName);
             throw new InvalidRequestDataException(
                     String.format("First name is not correct: %s. For example: Ivan", firstName));
-        }
-        return true;
-    }
-
-    private boolean isValidPassword(String password) {
-        //- a digit must occur at least once
-        //- a lower case letter must occur at least once
-        //- an upper case letter must occur at least once
-        //- a special character must occur at least once
-        //- no whitespace allowed in the entire string
-        //language=RegExp
-        String regexPatternPassword = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=])(?=\\S+$).{6,12}$";
-        if (isLengthNotValid(password, 6, 12) ||
-                isNotMatches(password, regexPatternPassword)) {
-            log.warn("Password is not correct");
-            throw new InvalidRequestDataException(
-                    "Password is not correct. For example: Abc123!@#");
-        }
-        return true;
-
-    }
-
-    private boolean isValidUsername(String username) {
-        //language=RegExp
-        String regexPatternEmail = "^[\\w-.]+@([\\w-]+\\.)+[\\w-]{2,4}$";
-
-        if (isLengthNotValid(username, 5, 20) ||
-                isNotMatches(username, regexPatternEmail)) {
-            log.warn("Username is not correct: {}", username);
-            throw new InvalidRequestDataException(
-                    String.format("Username is not correct: %s. For example: example@gmail.com", username));
         }
         return true;
     }

@@ -11,6 +11,7 @@ spring:
       database: authentication
       port: 27017
       host: localhost
+      auto-index-creation: true
 
   #Security
   security:
@@ -37,6 +38,7 @@ logging:
     root: INFO
     org:
       springframework:
+        data: INFO
         web: INFO
         security: INFO
         oauth2: INFO
@@ -87,3 +89,8 @@ springdoc:
 #Kafka
 kafka:
   bootstrapAddress: localhost:9092
+
+#JWT secret key
+jwt:
+  secret:
+    key: ${PASSWORD_RESET_TOKEN_SECRET_KEY}
