@@ -10,13 +10,13 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 
 @Tag("unit")
-class ValidateRequestImplTest {
+class ValidateDataImplTest {
 
-    ValidateRequest testValidateRequest;
+    ValidateData testValidateData;
 
     @BeforeEach
     void setUp() {
-        testValidateRequest = new ValidateRequestImpl();
+        testValidateData = new ValidateDataImpl();
     }
 
     @Test
@@ -31,7 +31,7 @@ class ValidateRequestImplTest {
                 "Katay",
                 "9999");
 
-        assertThat(testValidateRequest.validateRequest(requestDto)).isTrue();
+        assertThat(testValidateData.validateRequest(requestDto)).isTrue();
     }
 
     @Test
@@ -46,7 +46,7 @@ class ValidateRequestImplTest {
                 "Katay",
                 "9999");
 
-        assertThat(testValidateRequest.validateRequest(requestDto)).isTrue();
+        assertThat(testValidateData.validateRequest(requestDto)).isTrue();
     }
 
     @Test
@@ -61,7 +61,7 @@ class ValidateRequestImplTest {
                 "Katay",
                 "9999");
 
-        assertThat(testValidateRequest.validateRequest(requestDto)).isTrue();
+        assertThat(testValidateData.validateRequest(requestDto)).isTrue();
     }
 
     @Test
@@ -76,7 +76,7 @@ class ValidateRequestImplTest {
                 "Katay",
                 "9999");
 
-        assertThat(testValidateRequest.validateRequest(requestDto)).isTrue();
+        assertThat(testValidateData.validateRequest(requestDto)).isTrue();
     }
 
     @Test
@@ -91,7 +91,7 @@ class ValidateRequestImplTest {
                 "Katay",
                 "9999");
 
-        assertThat(testValidateRequest.validateRequest(requestDto)).isTrue();
+        assertThat(testValidateData.validateRequest(requestDto)).isTrue();
     }
 
     @Test
@@ -106,7 +106,7 @@ class ValidateRequestImplTest {
                 "Katay",
                 "9999");
 
-        assertThat(testValidateRequest.validateRequest(requestDto)).isTrue();
+        assertThat(testValidateData.validateRequest(requestDto)).isTrue();
     }
 
     @Test
@@ -120,7 +120,7 @@ class ValidateRequestImplTest {
                 "Varna",
                 "Katay",
                 "9999");
-        assertThatThrownBy(() -> testValidateRequest.validateRequest(requestDto))
+        assertThatThrownBy(() -> testValidateData.validateRequest(requestDto))
                 .isInstanceOf(InvalidRequestDataException.class)
                 .hasMessageContaining(
                         String.format("Phone number is not correct: %s. For example: 2055550125", requestDto.phoneNumber()));
@@ -137,7 +137,7 @@ class ValidateRequestImplTest {
                 "Varna",
                 "Katay",
                 "9999");
-        assertThatThrownBy(() -> testValidateRequest.validateRequest(requestDto))
+        assertThatThrownBy(() -> testValidateData.validateRequest(requestDto))
                 .isInstanceOf(InvalidRequestDataException.class)
                 .hasMessageContaining(
                         String.format("Phone number is not correct: %s. For example: 2055550125", requestDto.phoneNumber()));
@@ -154,7 +154,7 @@ class ValidateRequestImplTest {
                 "Varna",
                 "Katay",
                 "9999");
-        assertThatThrownBy(() -> testValidateRequest.validateRequest(requestDto))
+        assertThatThrownBy(() -> testValidateData.validateRequest(requestDto))
                 .isInstanceOf(InvalidRequestDataException.class)
                 .hasMessageContaining(
                         String.format("Phone number is not correct: %s. For example: 2055550125", requestDto.phoneNumber()));
@@ -171,7 +171,7 @@ class ValidateRequestImplTest {
                 "Varna",
                 "Katay",
                 "9999");
-        assertThatThrownBy(() -> testValidateRequest.validateRequest(requestDto))
+        assertThatThrownBy(() -> testValidateData.validateRequest(requestDto))
                 .isInstanceOf(InvalidRequestDataException.class)
                 .hasMessageContaining(
                         String.format("Username is not correct: %s. For example: example@gmail.com", requestDto.username()));
@@ -188,7 +188,7 @@ class ValidateRequestImplTest {
                 "Varna",
                 "Katay",
                 "9999");
-        assertThatThrownBy(() -> testValidateRequest.validateRequest(requestDto))
+        assertThatThrownBy(() -> testValidateData.validateRequest(requestDto))
                 .isInstanceOf(InvalidRequestDataException.class)
                 .hasMessageContaining(
                         String.format("Username is not correct: %s. For example: example@gmail.com", requestDto.username()));
@@ -205,7 +205,7 @@ class ValidateRequestImplTest {
                 "Varna",
                 "Katay",
                 "9999");
-        assertThatThrownBy(() -> testValidateRequest.validateRequest(requestDto))
+        assertThatThrownBy(() -> testValidateData.validateRequest(requestDto))
                 .isInstanceOf(InvalidRequestDataException.class)
                 .hasMessageContaining(
                         String.format("Username is not correct: %s. For example: example@gmail.com", requestDto.username()));
@@ -222,7 +222,7 @@ class ValidateRequestImplTest {
                 "Varna",
                 "Katay",
                 "9999");
-        assertThatThrownBy(() -> testValidateRequest.validateRequest(requestDto))
+        assertThatThrownBy(() -> testValidateData.validateRequest(requestDto))
                 .isInstanceOf(InvalidRequestDataException.class)
                 .hasMessageContaining(
                         String.format("Username is not correct: %s. For example: example@gmail.com", requestDto.username()));
@@ -239,7 +239,7 @@ class ValidateRequestImplTest {
                 "Varna",
                 "Katay",
                 "9999");
-        assertThatThrownBy(() -> testValidateRequest.validateRequest(requestDto))
+        assertThatThrownBy(() -> testValidateData.validateRequest(requestDto))
                 .isInstanceOf(InvalidRequestDataException.class)
                 .hasMessageContaining(
                         String.format("Username is not correct: %s. For example: example@gmail.com", requestDto.username()));
@@ -256,7 +256,7 @@ class ValidateRequestImplTest {
                 "Varna",
                 "Katay",
                 "");
-        assertThatThrownBy(() -> testValidateRequest.validateRequest(requestDto))
+        assertThatThrownBy(() -> testValidateData.validateRequest(requestDto))
                 .isInstanceOf(InvalidRequestDataException.class)
                 .hasMessageContaining(
                         String.format("Post code is not correct: %s. For example: 9001", requestDto.postCode()));
@@ -274,7 +274,7 @@ class ValidateRequestImplTest {
                 "Varna",
                 "",
                 "9999");
-        assertThatThrownBy(() -> testValidateRequest.validateRequest(requestDto))
+        assertThatThrownBy(() -> testValidateData.validateRequest(requestDto))
                 .isInstanceOf(InvalidRequestDataException.class)
                 .hasMessageContaining(
                         String.format("Street is not correct: %s. For example: Katya Paskaleva", requestDto.street()));
@@ -291,7 +291,7 @@ class ValidateRequestImplTest {
                 "",
                 "Katya",
                 "9999");
-        assertThatThrownBy(() -> testValidateRequest.validateRequest(requestDto))
+        assertThatThrownBy(() -> testValidateData.validateRequest(requestDto))
                 .isInstanceOf(InvalidRequestDataException.class)
                 .hasMessageContaining(
                         String.format("City is not correct: %s. For example: Varna", requestDto.city()));
@@ -308,7 +308,7 @@ class ValidateRequestImplTest {
                 "Varna",
                 "Katya",
                 "9999");
-        assertThatThrownBy(() -> testValidateRequest.validateRequest(requestDto))
+        assertThatThrownBy(() -> testValidateData.validateRequest(requestDto))
                 .isInstanceOf(InvalidRequestDataException.class)
                 .hasMessageContaining(
                         String.format("Last name is not correct: %s. For example: Ivanov", requestDto.lastName()));
@@ -325,7 +325,7 @@ class ValidateRequestImplTest {
                 "Varna",
                 "Katya",
                 "9999");
-        assertThatThrownBy(() -> testValidateRequest.validateRequest(requestDto))
+        assertThatThrownBy(() -> testValidateData.validateRequest(requestDto))
                 .isInstanceOf(InvalidRequestDataException.class)
                 .hasMessageContaining(
                         String.format("Last name is not correct: %s. For example: Ivanov", requestDto.lastName()));
@@ -342,7 +342,7 @@ class ValidateRequestImplTest {
                 "Varna",
                 "Katya",
                 "9999");
-        assertThatThrownBy(() -> testValidateRequest.validateRequest(requestDto))
+        assertThatThrownBy(() -> testValidateData.validateRequest(requestDto))
                 .isInstanceOf(InvalidRequestDataException.class)
                 .hasMessageContaining(
                         String.format("First name is not correct: %s. For example: Ivan", requestDto.firstName()));
@@ -359,7 +359,7 @@ class ValidateRequestImplTest {
                 "Varna",
                 "Katya",
                 "9999");
-        assertThatThrownBy(() -> testValidateRequest.validateRequest(requestDto))
+        assertThatThrownBy(() -> testValidateData.validateRequest(requestDto))
                 .isInstanceOf(InvalidRequestDataException.class)
                 .hasMessageContaining(
                         String.format("First name is not correct: %s. For example: Ivan", requestDto.firstName()));
@@ -376,9 +376,9 @@ class ValidateRequestImplTest {
                 "Varna",
                 "Katya",
                 "9999");
-        assertThatThrownBy(() -> testValidateRequest.validateRequest(requestDto))
+        assertThatThrownBy(() -> testValidateData.validateRequest(requestDto))
                 .isInstanceOf(InvalidRequestDataException.class)
-                .hasMessageContaining("Password is not correct. For example: Abc123!@#");
+                .hasMessageContaining("Password is not correct");
     }
 
     @Test
@@ -392,9 +392,9 @@ class ValidateRequestImplTest {
                 "Varna",
                 "Katya",
                 "9999");
-        assertThatThrownBy(() -> testValidateRequest.validateRequest(requestDto))
+        assertThatThrownBy(() -> testValidateData.validateRequest(requestDto))
                 .isInstanceOf(InvalidRequestDataException.class)
-                .hasMessageContaining("Password is not correct. For example: Abc123!@#");
+                .hasMessageContaining("Password is not correct");
     }
 
     @Test
@@ -408,9 +408,9 @@ class ValidateRequestImplTest {
                 "Varna",
                 "Katya",
                 "9999");
-        assertThatThrownBy(() -> testValidateRequest.validateRequest(requestDto))
+        assertThatThrownBy(() -> testValidateData.validateRequest(requestDto))
                 .isInstanceOf(InvalidRequestDataException.class)
-                .hasMessageContaining("Password is not correct. For example: Abc123!@#");
+                .hasMessageContaining("Password is not correct");
     }
 
     @Test
@@ -424,9 +424,9 @@ class ValidateRequestImplTest {
                 "Varna",
                 "Katya",
                 "9999");
-        assertThatThrownBy(() -> testValidateRequest.validateRequest(requestDto))
+        assertThatThrownBy(() -> testValidateData.validateRequest(requestDto))
                 .isInstanceOf(InvalidRequestDataException.class)
-                .hasMessageContaining("Password is not correct. For example: Abc123!@#");
+                .hasMessageContaining("Password is not correct");
     }
 
     @Test
@@ -440,9 +440,9 @@ class ValidateRequestImplTest {
                 "Varna",
                 "Katya",
                 "9999");
-        assertThatThrownBy(() -> testValidateRequest.validateRequest(requestDto))
+        assertThatThrownBy(() -> testValidateData.validateRequest(requestDto))
                 .isInstanceOf(InvalidRequestDataException.class)
-                .hasMessageContaining("Password is not correct. For example: Abc123!@#");
+                .hasMessageContaining("Password is not correct");
     }
 
     @Test
@@ -456,7 +456,7 @@ class ValidateRequestImplTest {
                 "Varna",
                 "Katya",
                 "9999");
-        assertThatThrownBy(() -> testValidateRequest.validateRequest(requestDto))
+        assertThatThrownBy(() -> testValidateData.validateRequest(requestDto))
                 .isInstanceOf(InvalidRequestDataException.class)
                 .hasMessageContaining(String.format("Username is not correct: %s. For example: example@gmail.com", requestDto.username()));
     }

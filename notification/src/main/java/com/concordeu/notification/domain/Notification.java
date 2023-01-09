@@ -28,7 +28,7 @@ public class Notification {
     @Column(name = "subject", length = 200)
     private String subject;
     @Column(name = "msgBody", columnDefinition = "TEXT")
-    @Size(min = 10, max = 150)
+    @Size(min = 10, max = 251)
     private String msgBody;
     private String attachment;
     @Column(name = "created_on")

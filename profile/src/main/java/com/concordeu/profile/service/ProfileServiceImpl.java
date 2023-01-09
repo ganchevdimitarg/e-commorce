@@ -1,34 +1,35 @@
 package com.concordeu.profile.service;
 
-import com.concordeu.profile.dao.UserDao;
+import com.concordeu.profile.dao.ProfileDao;
 import com.concordeu.profile.domain.Address;
-import com.concordeu.profile.domain.User;
+import com.concordeu.profile.domain.Profile;
 import com.concordeu.profile.dto.UserDto;
 import com.concordeu.profile.dto.UserRequestDto;
 import com.concordeu.profile.excaption.InvalidRequestDataException;
+import com.concordeu.profile.validation.ValidateData;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
 
 import java.time.LocalDateTime;
-import java.util.Optional;
 import java.util.Set;
 
 import static com.concordeu.client.security.UserRole.*;
-
-//import static com.concordeu.profile.security.UserRole.*;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class ProfileServiceImpl implements ProfileService {
-
-    private final UserDao userDao;
+    private final ProfileDao profileDao;
     private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
+    private final MailService mailService;
+    private final ValidateData validateData;
 
     @Override
     public UserDto createAdmin(UserRequestDto model) {
@@ -47,89 +48,101 @@ public class ProfileServiceImpl implements ProfileService {
     @Override
     public UserDto createUser(UserRequestDto model) {
         UserDto userDto = getUserDto(getUser(model, USER.getGrantedAuthorities()));
-        log.info("User user with username: {} was created", userDto.username());
+        log.info("Profile user with username: {} was created", userDto.username());
         return userDto;
-    }
-
-    @Override
-    public UserDto getOrCreateUser(String username) {
-        Assert.hasLength(username, "Username is empty!");
-        Optional<User> user = userDao.findByUsername(username);
-
-        return getUserDto(user.orElseGet(() -> createUserWithEmail(username)));
     }
 
     @Override
     public void updateUser(String username, UserRequestDto requestDto) {
         Assert.hasLength(username, "Username is empty");
-        User user = userDao.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User does not exist"));
+        Profile profile = profileDao.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("Profile does not exist"));
         Address address = new Address(
                 requestDto.city(),
                 requestDto.street(),
                 requestDto.postCode());
 
-        user.setUsername(requestDto.username());
-        user.setPassword(passwordEncoder.encode(requestDto.password()));
-        user.setFirstName(requestDto.firstName());
-        user.setLastName(requestDto.lastName());
-        user.setPhoneNumber(requestDto.phoneNumber());
-        user.setAddress(address);
+        profile.setUsername(requestDto.username());
+        profile.setPassword(passwordEncoder.encode(requestDto.password()));
+        profile.setFirstName(requestDto.firstName());
+        profile.setLastName(requestDto.lastName());
+        profile.setPhoneNumber(requestDto.phoneNumber());
+        profile.setAddress(address);
 
-        userDao.save(user);
-        log.info("User with username {} is update", user.getUsername());
+        profileDao.save(profile);
+        log.info("Profile with username {} is update", profile.getUsername());
     }
 
     @Override
     public void deleteUser(String username) {
         Assert.hasLength(username, "Username is empty");
-        User user = userDao.findByUsername(username)
+        Profile profile = profileDao.findByUsername(username)
                 .orElseThrow(() -> {
-                    log.warn("User does not exist");
-                    return new UsernameNotFoundException("User does not exist");
+                    log.warn("Profile does not exist");
+                    return new UsernameNotFoundException("Profile does not exist");
                 });
 
-        userDao.delete(user);
+        profileDao.delete(profile);
         log.info("ser with username: {} was successfully deleted", username);
     }
 
     @Override
     public UserDto getUserByUsername(String username) {
         Assert.hasLength(username, "Username is empty");
-        User user = userDao.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User does not exist"));
-        user.setPassword("");
-        return getUserDto(user);
+        Profile profile = profileDao.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("Profile does not exist"));
+        profile.setPassword("");
+        return getUserDto(profile);
     }
 
-    private User createUserWithEmail(String username) {
-        log.info("Create user with username");
-        User user = User.builder()
-                .username(username)
-                .password("")
-                .grantedAuthorities(USER.getGrantedAuthorities())
-                .created(LocalDateTime.now())
-                .build();
-        return userDao.insert(user);
+    @Override
+    public String passwordReset(String username) {
+        profileDao.findByUsername(username)
+                        .orElseThrow(() -> new InvalidRequestDataException("User does not exist"));
+        String token = jwtService.generateToken(
+                new User(
+                        username,
+                        "",
+                        USER.getGrantedAuthorities()
+                )
+        );
+        mailService.sendPasswordResetTokenMail(username, token);
+        log.info("Successfully generated password reset token");
+        return token;
     }
 
-    private UserDto getUserDto(User user) {
+    @Override
+    public boolean isPasswordResetTokenValid(String token) {
+        return jwtService.isTokenValid(token);
+    }
+
+    @Override
+    public void setNewPassword(String username, String password) {
+        Profile profile = profileDao.findByUsername(username)
+                .orElseThrow(()-> new InvalidRequestDataException("User does not exist"));
+        validateData.isValidPassword(password);
+        profile.setPassword(passwordEncoder.encode(password));
+        profileDao.save(profile);
+        log.info("The password of user {} has been changed successfully", username);
+    }
+
+    private UserDto getUserDto(Profile profile) {
         return new UserDto(
-                user.getId(),
-                user.getUsername(),
-                user.getPassword(),
-                user.getGrantedAuthorities(),
-                user.getFirstName(),
-                user.getLastName(),
-                user.getPhoneNumber(),
-                user.getAddress().city(),
-                user.getAddress().street(),
-                user.getAddress().postCode());
+                profile.getId(),
+                profile.getUsername(),
+                profile.getPassword(),
+                profile.getGrantedAuthorities(),
+                profile.getFirstName(),
+                profile.getLastName(),
+                profile.getPhoneNumber(),
+                profile.getAddress().city(),
+                profile.getAddress().street(),
+                profile.getAddress().postCode());
     }
 
-    private User getUser(UserRequestDto model, Set<SimpleGrantedAuthority> grantedAuthorities) {
-        if (userDao.findByUsername(model.username()).isPresent()) {
-            throw new InvalidRequestDataException(String.format("User already exist: %s", model.username()));
+    private Profile getUser(UserRequestDto model, Set<SimpleGrantedAuthority> grantedAuthorities) {
+        if (profileDao.findByUsername(model.username()).isPresent()) {
+            throw new InvalidRequestDataException(String.format("Profile already exist: %s", model.username()));
         }
         Address address = new Address(
                 model.city(),
@@ -137,7 +150,7 @@ public class ProfileServiceImpl implements ProfileService {
                 model.postCode());
 
 
-        User authUser = User.builder()
+        Profile authProfile = Profile.builder()
                 .username(model.username())
                 .password(passwordEncoder.encode(model.password().trim().isEmpty() ? "" : model.password().trim()))
                 .grantedAuthorities(grantedAuthorities)
@@ -148,8 +161,8 @@ public class ProfileServiceImpl implements ProfileService {
                 .created(LocalDateTime.now())
                 .build();
 
-        User user = userDao.insert(authUser);
-        log.info("The user was successfully create");
-        return user;
+        Profile profile = profileDao.insert(authProfile);
+        log.info("The profile was successfully create");
+        return profile;
     }
 }
