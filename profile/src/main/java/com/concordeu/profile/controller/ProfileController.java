@@ -14,22 +14,18 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Collection;
 
 @RestController
 @RequestMapping("/api/v1/profile")
 @RequiredArgsConstructor
 @Slf4j
-public class UserController {
+public class ProfileController {
     private static final String ADMIN = "admin";
     private final ProfileService profileService;
     private final MailService mailService;
 
-    @Operation(summary = "Get User By Username", description = "Get user by username from the database",
+    @Operation(summary = "Get Profile By Username", description = "Get user by username from the database",
             security = @SecurityRequirement(name = "security_auth"))
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
@@ -42,12 +38,11 @@ public class UserController {
     public UserDto getUserByUsername(Authentication authentication, @RequestParam String username) {
         String principalName = authentication.getName();
 
-        if (!principalName.equals(username) && !principalName.equals(ADMIN)) {
-            log.debug("User '{}' try to access another account '{}'", principalName, username);
-            throw new IllegalArgumentException("You cannot access this information!");
+        if (principalName.equals(username.trim()) || principalName.equals(ADMIN)) {
+            return profileService.getUserByUsername(username.trim());
         }
-
-        return profileService.getUserByUsername(username);
+        log.debug("Profile '{}' try to access another account '{}'", principalName, username);
+        throw new IllegalArgumentException("You cannot access this information!");
     }
 
     @Operation(summary = "Register Admin", description = "Register admin in the database",
@@ -82,7 +77,7 @@ public class UserController {
         return user;
     }
 
-    @Operation(summary = "Register User", description = "Register user in the database",
+    @Operation(summary = "Register Profile", description = "Register user in the database",
             security = @SecurityRequirement(name = "security_auth"))
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
@@ -98,7 +93,7 @@ public class UserController {
         return user;
     }
 
-    @Operation(summary = "Update User", description = "Update user in the database",
+    @Operation(summary = "Update Profile", description = "Update user in the database",
             security = @SecurityRequirement(name = "security_auth"))
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
@@ -111,10 +106,10 @@ public class UserController {
     @PreAuthorize("hasAnyAuthority('SCOPE_profile.write', 'ROLE_USER')")
     public void updateUser(@RequestBody UserRequestDto requestDto,
                            @RequestParam String username) {
-        profileService.updateUser(username, requestDto);
+        profileService.updateUser(username.trim(), requestDto);
     }
 
-    @Operation(summary = "Delete User", description = "Delete user in the database",
+    @Operation(summary = "Delete Profile", description = "Delete user in the database",
             security = @SecurityRequirement(name = "security_auth"))
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
@@ -125,7 +120,47 @@ public class UserController {
     @DeleteMapping("/delete-user")
     @PreAuthorize("hasAuthority('SCOPE_profile.write')")
     public void deleteUser(@RequestParam String username) {
-        profileService.deleteUser(username);
+        profileService.deleteUser(username.trim());
     }
 
+    @Operation(summary = "Password Reset", description = "Generates a token and sends it to the submitted user",
+            security = @SecurityRequirement(name = "security_auth"))
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
+            @ApiResponse(responseCode = "401", description = "Unauthenticated"),
+            @ApiResponse(responseCode = "403", description = "Unauthorized"),
+            @ApiResponse(responseCode = "500", description = "Server Error")
+    })
+    @GetMapping("/password-reset")
+    public String passwordReset(@RequestParam String username) {
+        return String.format("""
+                token: %s
+                """, profileService.passwordReset(username.trim()));
+    }
+
+    @Operation(summary = "Password Reset is Valid", description = "Checks if the token is valid",
+            security = @SecurityRequirement(name = "security_auth"))
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
+            @ApiResponse(responseCode = "401", description = "Unauthenticated"),
+            @ApiResponse(responseCode = "403", description = "Unauthorized"),
+            @ApiResponse(responseCode = "500", description = "Server Error")
+    })
+    @GetMapping("/password-reset-token")
+    public boolean isValidPasswordReset(@RequestParam String token) {
+        return profileService.isPasswordResetTokenValid(token.trim());
+    }
+
+    @Operation(summary = "Set New Password", description = "Sets a new password",
+            security = @SecurityRequirement(name = "security_auth"))
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
+            @ApiResponse(responseCode = "401", description = "Unauthenticated"),
+            @ApiResponse(responseCode = "403", description = "Unauthorized"),
+            @ApiResponse(responseCode = "500", description = "Server Error")
+    })
+    @GetMapping("/set-new-password")
+    public void setNewPassword(@RequestParam String username, @RequestParam String password) {
+         profileService.setNewPassword(username.trim(), password.trim());
+    }
 }

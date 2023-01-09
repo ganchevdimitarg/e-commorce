@@ -7,12 +7,10 @@ public interface ProfileService {
     UserDto createAdmin(UserRequestDto model);
     UserDto createWorker(UserRequestDto model);
     UserDto createUser(UserRequestDto model);
-    UserDto getOrCreateUser(String email);
-
     void updateUser(String email, UserRequestDto requestDto);
-
     void deleteUser(String email);
-
     UserDto getUserByUsername(String email);
-
+    String passwordReset(String username);
+    boolean isPasswordResetTokenValid(String token);
+    void setNewPassword(String username, String password);
 }
