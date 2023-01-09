@@ -23,10 +23,10 @@ import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.csrf;
 import static org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockUser;
 
-@WebFluxTest(controllers = UserController.class)
+@WebFluxTest(controllers = ProfileController.class)
 @ActiveProfiles("test")
 @Tag("integration")
-class UserControllerTest {
+class ProfileControllerTest {
     @Autowired
     WebTestClient client;
     @MockBean
@@ -37,7 +37,7 @@ class UserControllerTest {
     MailService mailService;
 
     @Test
-    void getUserByEmailShouldReturnUser() throws Exception {
+    void getUserByEmailShouldReturnUser() {
         when(profileService.getUserByUsername(any(String.class))).thenReturn(new UserDto(
                 "",
                 "",
@@ -59,7 +59,7 @@ class UserControllerTest {
 
     @Test
     @Disabled
-    void registerUserShouldCreateUser() throws Exception {
+    void registerUserShouldCreateUser() {
         this.client.mutateWith(csrf())
                 .mutateWith(mockUser("admin"))
                 .post()
@@ -86,7 +86,7 @@ class UserControllerTest {
     }
 
     @Test
-    void updateUserShouldUpdateUserInfo() throws Exception {
+    void updateUserShouldUpdateUserInfo() {
         this.client.mutateWith(csrf())
                 .mutateWith(mockUser("admin"))
                 .put()
@@ -113,7 +113,7 @@ class UserControllerTest {
     }
 
     @Test
-    void deleteUserShouldDeleteUser() throws Exception {
+    void deleteUserShouldDeleteUser() {
         this.client.mutateWith(csrf())
                 .mutateWith(mockUser("admin"))
                 .delete()

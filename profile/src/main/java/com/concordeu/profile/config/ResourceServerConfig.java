@@ -42,6 +42,7 @@ public class ResourceServerConfig {
                 .mvcMatchers("/api/v1/profile/register-admin").permitAll()
                 .mvcMatchers("/api/v1/profile/register-worker").permitAll()
                 .mvcMatchers("/api/v1/profile/register-user").permitAll()
+                .mvcMatchers("/api/v1/profile/password-reset").permitAll()
                 .anyRequest().authenticated()
                 .and()
                 .oauth2ResourceServer()
