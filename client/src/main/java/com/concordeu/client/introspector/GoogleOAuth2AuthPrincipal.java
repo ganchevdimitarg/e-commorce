@@ -14,6 +14,7 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -24,8 +25,8 @@ import static com.concordeu.client.security.UserRole.USER;
 
 @Component
 @Slf4j
-public class GoogleOAuth2AuthPrincipal  {
-  private static final String OAUTH2_GOOGLE_APIS_USER_INFO_URI = "https://oauth2.googleapis.com/tokeninfo";
+public class GoogleOAuth2AuthPrincipal {
+    private static final String OAUTH2_GOOGLE_APIS_USER_INFO_URI = "https://oauth2.googleapis.com/tokeninfo";
     private final RestTemplate restTemplate = new RestTemplate();
 
     public OAuth2AuthenticatedPrincipal getPrincipal(String token) {
@@ -36,8 +37,7 @@ public class GoogleOAuth2AuthPrincipal  {
             String username = String.valueOf(Objects.requireNonNull(responseEntity.getBody()).get("email"));
 
             Map<String, Object> attributes = responseEntity.getBody();
-            assert attributes != null;
-            attributes.put("exp", null);
+            attributes.put("exp", Instant.ofEpochSecond(Long.parseLong(attributes.get("exp").toString())));
 
             Collection<GrantedAuthority> authorities = USER.getGrantedAuthorities()
                     .stream()
