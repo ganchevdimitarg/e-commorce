@@ -1,5 +1,8 @@
 package com.concordeu.client.introspector;
 
+import com.concordeu.client.principal.FacebookOAuth2AuthPrincipal;
+import com.concordeu.client.principal.GitHubOAuth2AuthPrincipal;
+import com.concordeu.client.principal.GoogleOAuth2AuthPrincipal;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.oauth2.core.OAuth2AuthenticatedPrincipal;
