@@ -1,4 +1,4 @@
-package com.concordeu.client.introspector;
+package com.concordeu.client.principal;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.ParameterizedTypeReference;

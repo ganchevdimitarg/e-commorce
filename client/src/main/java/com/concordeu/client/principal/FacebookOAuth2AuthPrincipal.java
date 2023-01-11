@@ -1,4 +1,4 @@
-package com.concordeu.client.introspector;
+package com.concordeu.client.principal;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.ParameterizedTypeReference;
@@ -14,7 +14,6 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
-import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -25,8 +24,8 @@ import static com.concordeu.client.security.UserRole.USER;
 
 @Component
 @Slf4j
-public class GoogleOAuth2AuthPrincipal {
-    private static final String OAUTH2_GOOGLE_APIS_USER_INFO_URI = "https://oauth2.googleapis.com/tokeninfo";
+public class FacebookOAuth2AuthPrincipal {
+    private static final String OAUTH2_FACEBOOK_APIS_USER_INFO_URI ="https://graph.facebook.com/v15.0/me";
     private final RestTemplate restTemplate = new RestTemplate();
 
     public OAuth2AuthenticatedPrincipal getPrincipal(String token) {
@@ -37,7 +36,6 @@ public class GoogleOAuth2AuthPrincipal {
             String username = String.valueOf(Objects.requireNonNull(responseEntity.getBody()).get("email"));
 
             Map<String, Object> attributes = responseEntity.getBody();
-            attributes.put("exp", Instant.ofEpochSecond(Long.parseLong(attributes.get("exp").toString())));
 
             Collection<GrantedAuthority> authorities = USER.getGrantedAuthorities()
                     .stream()
@@ -45,7 +43,7 @@ public class GoogleOAuth2AuthPrincipal {
                     .collect(Collectors.toSet());
 
             OAuth2IntrospectionAuthenticatedPrincipal principal = new OAuth2IntrospectionAuthenticatedPrincipal(username, attributes, authorities);
-            log.info("User {} is login with Google", username);
+            log.info("User {} is login with Facebook", username);
             return principal;
 
         } catch (Exception ex) {
@@ -59,8 +57,8 @@ public class GoogleOAuth2AuthPrincipal {
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
         MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
         body.add("access_token", token);
+        body.add("fields", "name,email,location,gender,first_name,last_name,birthday");
 
-        return new RequestEntity<>(body, headers, HttpMethod.POST, URI.create(OAUTH2_GOOGLE_APIS_USER_INFO_URI));
-
+        return new RequestEntity<Object>(body, headers, HttpMethod.POST, URI.create(OAUTH2_FACEBOOK_APIS_USER_INFO_URI));
     }
 }
