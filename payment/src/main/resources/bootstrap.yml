@@ -1,9 +1,6 @@
 spring:
   application:
-    name: order-service
-  devtools:
-    livereload:
-      port: 35730
+    name: payment-service
   profiles:
     include: dev
   cloud:
@@ -13,5 +10,5 @@ spring:
       token: ${VAULT_SERVER_TOKEN}
       generic:
         enable: true
-        backend: order-service
+        backend: payment-service
         default-context: credentials

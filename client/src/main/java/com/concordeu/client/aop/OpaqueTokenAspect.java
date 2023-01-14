@@ -21,7 +21,7 @@ import java.util.Optional;
 public class OpaqueTokenAspect {
     private final OpaqueTokenDao opaqueTokenDao;
 
-    @Around("execution(* com.concordeu.client.principal.*.*(..))")
+    @Around("execution(* com.concordeu.client.introspector.CustomOpaqueTokenIntrospector.introspect(..))")
     public Object addTokenExp(ProceedingJoinPoint point) throws Throwable {
         Object[] pointArgs = point.getArgs();
 
@@ -37,11 +37,15 @@ public class OpaqueTokenAspect {
                 log.info("Added expiration time to token");
                 return point.proceed();
             }
-            if (currentTime.isAfter(opaqueToken.get().getExp())) {
-                log.debug("The token has expired: " + opaqueToken.get().getToken());
-                throw new BadOpaqueTokenException("The token has expired: " + opaqueToken.get().getToken());
-            }
+            isTokenExp(opaqueToken, currentTime);
         }
         return point.proceed();
+    }
+
+    private static void isTokenExp(Optional<OpaqueToken> opaqueToken, Instant currentTime) {
+        if (currentTime.isAfter(opaqueToken.get().getExp())) {
+            log.debug("The token has expired: " + opaqueToken.get().getToken());
+            throw new BadOpaqueTokenException("The token has expired: " + opaqueToken.get().getToken());
+        }
     }
 }

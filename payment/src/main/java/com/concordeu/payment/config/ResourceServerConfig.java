@@ -1,4 +1,4 @@
-package com.concordeu.order.config;
+package com.concordeu.payment.config;
 
 import com.concordeu.client.introspector.CustomOpaqueTokenIntrospector;
 import lombok.RequiredArgsConstructor;
