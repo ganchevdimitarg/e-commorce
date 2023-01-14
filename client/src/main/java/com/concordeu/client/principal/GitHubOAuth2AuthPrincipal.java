@@ -18,11 +18,12 @@ import static com.concordeu.client.security.UserRole.USER;
 
 @Component
 @Slf4j
-public class GitHubOAuth2AuthPrincipal {
+public class GitHubOAuth2AuthPrincipal implements OAuth2AuthPrincipal {
     private static final String OAUTH2_GITHUB_APIS_USER_INFO_URI = "https://api.github.com/user";
     private static final String OAUTH2_GITHUB_APIS_USER_EMAIL_URI = "https://api.github.com/user/emails";
     private final RestTemplate restTemplate = new RestTemplate();
 
+    @Override
     public OAuth2IntrospectionAuthenticatedPrincipal getPrincipal(String token) {
         RequestEntity<?> userEmail = buildUserEmailRequest(token);
         RequestEntity<?> userInfo = buildUserInfoRequest(token);

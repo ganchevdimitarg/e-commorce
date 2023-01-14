@@ -25,10 +25,11 @@ import static com.concordeu.client.security.UserRole.USER;
 
 @Component
 @Slf4j
-public class GoogleOAuth2AuthPrincipal {
+public class GoogleOAuth2AuthPrincipal implements OAuth2AuthPrincipal{
     private static final String OAUTH2_GOOGLE_APIS_USER_INFO_URI = "https://oauth2.googleapis.com/tokeninfo";
     private final RestTemplate restTemplate = new RestTemplate();
 
+    @Override
     public OAuth2AuthenticatedPrincipal getPrincipal(String token) {
         RequestEntity<?> requestEntity = buildRequest(token);
         try {

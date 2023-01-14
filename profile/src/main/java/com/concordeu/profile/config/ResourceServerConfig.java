@@ -1,9 +1,6 @@
 package com.concordeu.profile.config;
 
 import com.concordeu.client.introspector.CustomOpaqueTokenIntrospector;
-import com.concordeu.client.principal.FacebookOAuth2AuthPrincipal;
-import com.concordeu.client.principal.GitHubOAuth2AuthPrincipal;
-import com.concordeu.client.principal.GoogleOAuth2AuthPrincipal;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
@@ -53,11 +50,7 @@ public class ResourceServerConfig {
 
     @Bean
     public OpaqueTokenIntrospector opaqueTokenIntrospector() {
-        return new CustomOpaqueTokenIntrospector(
-                new GoogleOAuth2AuthPrincipal(),
-                new GitHubOAuth2AuthPrincipal(),
-                new FacebookOAuth2AuthPrincipal()
-        );
+        return new CustomOpaqueTokenIntrospector();
     }
 
     @Bean

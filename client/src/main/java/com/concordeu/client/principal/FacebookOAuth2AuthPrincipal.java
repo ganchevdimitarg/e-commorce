@@ -24,10 +24,11 @@ import static com.concordeu.client.security.UserRole.USER;
 
 @Component
 @Slf4j
-public class FacebookOAuth2AuthPrincipal {
+public class FacebookOAuth2AuthPrincipal implements OAuth2AuthPrincipal {
     private static final String OAUTH2_FACEBOOK_APIS_USER_INFO_URI ="https://graph.facebook.com/v15.0/me";
     private final RestTemplate restTemplate = new RestTemplate();
 
+    @Override
     public OAuth2AuthenticatedPrincipal getPrincipal(String token) {
         RequestEntity<?> requestEntity = buildRequest(token);
         try {
