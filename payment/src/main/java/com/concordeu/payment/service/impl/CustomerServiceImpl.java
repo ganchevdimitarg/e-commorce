@@ -15,6 +15,12 @@ import org.springframework.stereotype.Service;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Customers
+ * This object represents a customer of your business.
+ * It lets you create recurring charges and track payments that belong to the same customer.
+ * source: <a href="https://stripe.com/docs/api/customers">...</a>
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -28,9 +34,8 @@ public class CustomerServiceImpl implements CustomerService {
         Stripe.apiKey = secretKey;
 
         Map<String, Object> params = new HashMap<>();
-        params.put("email", customerDto.email());
+        params.put("email", customerDto.username());
         params.put("name", customerDto.customerName());
-        params.put("payment_method", customerDto.paymentMethod());
 
         try {
             Customer customer = Customer.create(params);
@@ -38,7 +43,7 @@ public class CustomerServiceImpl implements CustomerService {
 
             customerDao.save(AppCustomer.builder()
                     .customerId(customer.getId())
-                    .email(customer.getEmail())
+                    .username(customer.getEmail())
                     .customerName(customer.getName())
                     .build());
             log.info("Created customer in payment service db");
@@ -49,18 +54,33 @@ public class CustomerServiceImpl implements CustomerService {
 
     }
 
+    /**
+     * Retrieves a Customer object.
+     *
+     * @param username customer username
+     * @return Returns the Customer object for a valid identifier.
+     * If it’s for a deleted Customer, a subset of the customer’s information is returned,
+     * including a deleted property that’s set to true.
+     */
     @Override
-    public Customer getCustomerByEmail(String email) {
-        AppCustomer appCustomer = customerDao.findByEmail(email);
+    public Customer getCustomerByUsername(String username) {
+        AppCustomer appCustomer = customerDao.findByUsername(username);
         return getCustomer(appCustomer.getCustomerId());
     }
 
+    /**
+     * Permanently deletes a customer.
+     * It cannot be undone.
+     * Also immediately cancels any active subscriptions on the customer.
+     *
+     * @param username customer username
+     */
     @Override
-    public void deleteCustomer(String email) {
+    public void deleteCustomer(String username) {
         Stripe.apiKey = secretKey;
 
         try {
-            Customer customerByEmail = getCustomerByEmail(email);
+            Customer customerByEmail = getCustomerByUsername(username);
             Customer
                     .retrieve(customerByEmail.getId())
                     .delete();

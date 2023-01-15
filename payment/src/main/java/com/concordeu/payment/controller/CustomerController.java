@@ -1,10 +1,8 @@
 package com.concordeu.payment.controller;
 
-import com.concordeu.payment.domain.AppCustomer;
 import com.concordeu.payment.dto.CustomerDto;
 import com.concordeu.payment.service.CustomerService;
 import com.stripe.exception.StripeException;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -22,7 +20,7 @@ public class CustomerController {
     }
 
     @DeleteMapping("/delete-customer")
-    public void deleteCustomer(@RequestParam String email) {
-        customerService.deleteCustomer(email);
+    public void deleteCustomer(@RequestParam String username) {
+        customerService.deleteCustomer(username);
     }
 }

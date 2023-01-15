@@ -5,10 +5,9 @@ import com.concordeu.payment.service.CardService;
 import com.stripe.exception.StripeException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Set;
 
 @RestController
 @RequestMapping("/api/v1/payment/card")
@@ -20,5 +19,10 @@ public class CardController {
     @PostMapping("/create-card")
     public String createCard(@RequestBody CardDto cardDto) throws StripeException {
         return cardService.createCard(cardDto);
+    }
+
+    @GetMapping("/get-cards")
+    public Set<String> getCards(@RequestParam String username) {
+        return cardService.getCards(username);
     }
 }
