@@ -1,6 +1,7 @@
 package com.concordeu.payment.service.impl;
 
 import com.concordeu.payment.dto.CardDto;
+import com.concordeu.payment.excaption.InvalidPaymentRequestException;
 import com.concordeu.payment.service.CardService;
 import com.concordeu.payment.service.CustomerService;
 import com.stripe.Stripe;
@@ -50,7 +51,7 @@ public class CardServiceImpl implements CardService {
                     retrieveParams,
                     null
             );
-
+            log.info("Method createCard: Get customer successful: {}", customer.getEmail());
 
             Map<String, Object> cardParams = new HashMap<>();
             cardParams.put("number", cardDto.number());
@@ -62,15 +63,18 @@ public class CardServiceImpl implements CardService {
             params.put("card", cardParams);
 
             Token token = Token.create(params);
+            log.info("Method createCard: Create token successful: {}", token.getId());
 
             Map<String, Object> source = new HashMap<>();
             source.put("source", token.getId());
 
             Card card = (Card) customer.getSources().create(source);
+            log.info("Method createCard: Create card successful: {}", card.getId());
             return card.getId();
 
         } catch (StripeException e) {
-            throw new RuntimeException(e);
+            log.warn(e.getMessage());
+            throw new InvalidPaymentRequestException(e.getMessage());
         }
     }
 
@@ -99,17 +103,20 @@ public class CardServiceImpl implements CardService {
                     retrieveParams,
                     null
             );
+            log.info("Method getCards: Get customer successful: {}", customer.getEmail());
 
             Map<String, Object> params = new HashMap<>();
             params.put("object", "card");
             params.put("limit", 3);
 
             PaymentSourceCollection cards = customer.getSources().list(params);
+            log.info("Method getCards: Get ids of all cards owned by the customer");
 
             return cards.getData().stream().map(HasId::getId).collect(Collectors.toSet());
 
         } catch (StripeException e) {
-            throw new RuntimeException(e);
+            log.warn(e.getMessage());
+            throw new InvalidPaymentRequestException(e.getMessage());
         }
     }
 }
