@@ -14,6 +14,13 @@ import org.springframework.stereotype.Service;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Charges
+ * To charge a credit or a debit card, you create a Charge object.
+ * You can retrieve and refund individual charges as well as list all charges.
+ * Charges are identified by a unique, random ID.
+ * source: <a href="https://stripe.com/docs/api/charges">...</a>
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -23,6 +30,15 @@ public class ChargeServerImpl implements ChargeService {
     @Value("${stripe.secret.key}")
     private String secretKey;
 
+    /**
+     * To charge a credit card or other payment source, you create a Charge object.
+     * If your API key is in test mode, the supplied payment source (e.g., card) won’t actually be charged,
+     * although everything else will occur as if in live mode.
+     * (Stripe assumes that the charge would have completed successfully).
+     *
+     * @param chargeDto charge information
+     * @return charge status: succeeded, pending, or failed
+     */
     @Override
     public String createCharge(ChargeDto chargeDto) {
         Stripe.apiKey = secretKey;
@@ -32,6 +48,7 @@ public class ChargeServerImpl implements ChargeService {
         params.put("currency", chargeDto.currency());
         params.put("receipt_email", chargeDto.receiptEmail());
         params.put("customer", chargeDto.customerId());
+        params.put("source", chargeDto.source());
 
         try {
             Charge charge = Charge.create(params);

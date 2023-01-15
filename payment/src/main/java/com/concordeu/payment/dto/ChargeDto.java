@@ -9,5 +9,6 @@ public record ChargeDto(
         BigDecimal amount,
         String currency,
         String customerId,
-        String receiptEmail) {
+        String receiptEmail,
+        String source) {
 }

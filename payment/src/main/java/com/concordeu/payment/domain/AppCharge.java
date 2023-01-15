@@ -18,17 +18,17 @@ public class AppCharge {
     @GeneratedValue(generator = "uuid-string")
     @GenericGenerator(name = "uuid-string",
             strategy = "org.hibernate.id.UUIDGenerator")
-    @Column(name = "id", unique = true, nullable = false, updatable = false)
+    @Column(name = "charge_id", unique = true, nullable = false, updatable = false)
     private String id;
     @Column(name = "amount")
     private BigDecimal amount;
     @Column(name = "currency")
     private String currency;
-    @Column(name = "customer_id")
+    @Column(name = "customer_id_stp")
     private String customerId;
     @Column(name = "receipt_email")
     private String receiptEmail;
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "customer", nullable = false)
+    @JoinColumn(name = "customer_id", nullable = false)
     private AppCustomer customer;
 }

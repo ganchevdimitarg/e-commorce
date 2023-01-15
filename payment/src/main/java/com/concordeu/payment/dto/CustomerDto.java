@@ -4,8 +4,7 @@ import lombok.Builder;
 
 @Builder
 public record CustomerDto(
-        String email,
+        String username,
         String customerName,
-        String customerId,
-        String paymentMethod) {
+        String customerId) {
 }

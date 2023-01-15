@@ -6,6 +6,6 @@ import com.stripe.model.Customer;
 
 public interface CustomerService {
     void createCustomer(CustomerDto customerDto) throws StripeException;
-    Customer getCustomerByEmail(String email);
-    void deleteCustomer(String email);
+    Customer getCustomerByUsername(String username);
+    void deleteCustomer(String username);
 }
