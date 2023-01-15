@@ -9,10 +9,13 @@ spring:
       port: 27017
       host: localhost
 
+  #Data Source Properties
   datasource:
     username: ${POSTGRES_USER}
     password: ${POSTGRES_PASSWORD}
     url: jdbc:postgresql://localhost:5432/registered_client
+
+  #JPA Properties
   jpa:
     hibernate:
       ddl-auto: validate
@@ -61,10 +64,3 @@ management:
     export:
       prometheus:
         enabled: true
-
-gateway:
-  client:
-    secret: ${GATEWAY_CLIENT_SECRET}
-google:
-  client:
-    secret: ${GOOGLE_CLIENT_SECRET}
