@@ -2,6 +2,7 @@ package com.concordeu.payment.service.impl;
 
 import com.concordeu.payment.dao.ChargeDao;
 import com.concordeu.payment.dto.ChargeDto;
+import com.concordeu.payment.excaption.InvalidPaymentRequestException;
 import com.concordeu.payment.service.ChargeService;
 import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
@@ -52,9 +53,11 @@ public class ChargeServerImpl implements ChargeService {
 
         try {
             Charge charge = Charge.create(params);
+            log.info("Method createCharge: Create successful charge: {}", charge.getId());
             return charge.getStatus();
         } catch (StripeException e) {
-            throw new RuntimeException(e);
+            log.warn(e.getMessage());
+            throw new InvalidPaymentRequestException(e.getMessage());
         }
     }
 }

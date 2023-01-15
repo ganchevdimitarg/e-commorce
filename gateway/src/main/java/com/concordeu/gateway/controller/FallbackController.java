@@ -37,4 +37,9 @@ public class FallbackController {
     Mono<String> getNotificationFallback() {
         return Mono.just("Oops... Something went wrong, please try again later :)");
     }
+
+    @GetMapping("/payment-fallback")
+    Mono<String> getPaymentFallback() {
+        return Mono.just("Oops... Something went wrong, please try again later :)");
+    }
 }

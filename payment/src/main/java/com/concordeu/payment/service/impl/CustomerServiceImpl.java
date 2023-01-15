@@ -3,6 +3,7 @@ package com.concordeu.payment.service.impl;
 import com.concordeu.payment.dao.CustomerDao;
 import com.concordeu.payment.domain.AppCustomer;
 import com.concordeu.payment.dto.CustomerDto;
+import com.concordeu.payment.excaption.InvalidPaymentRequestException;
 import com.concordeu.payment.service.CustomerService;
 import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
@@ -39,7 +40,7 @@ public class CustomerServiceImpl implements CustomerService {
 
         try {
             Customer customer = Customer.create(params);
-            log.info("Created customer in STRIPE payment service");
+            log.info("Method createCustomer: Create customer successful: {}", customer.getEmail());
 
             customerDao.save(AppCustomer.builder()
                     .customerId(customer.getId())
@@ -49,7 +50,8 @@ public class CustomerServiceImpl implements CustomerService {
             log.info("Created customer in payment service db");
 
         } catch (StripeException e) {
-            throw new RuntimeException(e.getMessage());
+            log.warn(e.getMessage());
+            throw new InvalidPaymentRequestException(e.getMessage());
         }
 
     }
@@ -81,21 +83,23 @@ public class CustomerServiceImpl implements CustomerService {
 
         try {
             Customer customerByEmail = getCustomerByUsername(username);
-            Customer
-                    .retrieve(customerByEmail.getId())
-                    .delete();
+            Customer.retrieve(customerByEmail.getId()).delete();
+            log.info("Delete customer successful: {}", customerByEmail.getEmail());
         } catch (StripeException e) {
-            throw new RuntimeException(e);
+            log.warn(e.getMessage());
+            throw new InvalidPaymentRequestException(e.getMessage());
         }
     }
 
     private Customer getCustomer(String customerId) {
         Stripe.apiKey = secretKey;
-
         try {
-            return Customer.retrieve(customerId);
+            Customer customer = Customer.retrieve(customerId);
+            log.info("Get customer successful: {}", customer.getEmail());
+            return customer;
         } catch (StripeException e) {
-            throw new RuntimeException(e);
+            log.warn(e.getMessage());
+            throw new InvalidPaymentRequestException(e.getMessage());
         }
     }
 }

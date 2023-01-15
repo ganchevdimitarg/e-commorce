@@ -87,7 +87,7 @@ spring:
           filters:
             - name: CircuitBreaker
               args:
-                name: catalogService
+                name: profileService
                 fallbackUri: forward:/profile-fallback
         - id: notification-service
           uri: lb://notification-service
@@ -96,7 +96,7 @@ spring:
           filters:
             - name: CircuitBreaker
               args:
-                name: catalogService
+                name: notificationService
                 fallbackUri: forward:/notification-fallback
         - id: order-service
           uri: lb://order-service
@@ -105,8 +105,17 @@ spring:
           filters:
             - name: CircuitBreaker
               args:
-                name: catalogService
+                name: orderService
                 fallbackUri: forward:/order-fallback
+        - id: payment-service
+          uri: lb://payment-service
+          predicates:
+            - Path=/api/v1/payment/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: paymentService
+                fallbackUri: forward:/payment-fallback
 
 resilience4j:
   circuitbreaker:
@@ -117,11 +126,42 @@ resilience4j:
         failure-rate-threshold: 50
         wait-duration-in-open-state: 1000
         register-health-indicator: true
+      profileService:
+        sliding-window-size: 10
+        permitted-number-of-calls-in-half-open-state: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 1000
+        register-health-indicator: true
+      notificationService:
+        sliding-window-size: 10
+        permitted-number-of-calls-in-half-open-state: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 1000
+        register-health-indicator: true
+      orderService:
+        sliding-window-size: 10
+        permitted-number-of-calls-in-half-open-state: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 1000
+        register-health-indicator: true
+      paymentService:
+        sliding-window-size: 10
+        permitted-number-of-calls-in-half-open-state: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 1000
+        register-health-indicator: true
   timelimiter:
     instances:
       catalogService:
         timeout-duration: 3s
-
+      profileService:
+        timeout-duration: 3s
+      notificationService:
+        timeout-duration: 3s
+      orderService:
+        timeout-duration: 3s
+      paymentService:
+        timeout-duration: 3s
 
 #Logging Levels
 #Disable the default loggers
