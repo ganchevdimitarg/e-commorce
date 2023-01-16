@@ -5,7 +5,7 @@ import com.stripe.exception.StripeException;
 import com.stripe.model.Customer;
 
 public interface CustomerService {
-    void createCustomer(CustomerDto customerDto) throws StripeException;
+    CustomerDto createCustomer(CustomerDto customerDto) throws StripeException;
     Customer getCustomerByUsername(String username);
     void deleteCustomer(String username);
 }

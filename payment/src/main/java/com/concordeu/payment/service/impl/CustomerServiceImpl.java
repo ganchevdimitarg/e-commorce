@@ -20,7 +20,7 @@ import java.util.Map;
  * Customers
  * This object represents a customer of your business.
  * It lets you create recurring charges and track payments that belong to the same customer.
- * source: <a href="https://stripe.com/docs/api/customers">...</a>
+ * cardId: <a href="https://stripe.com/docs/api/customers">...</a>
  */
 @Service
 @RequiredArgsConstructor
@@ -31,7 +31,7 @@ public class CustomerServiceImpl implements CustomerService {
     private String secretKey;
 
     @Override
-    public void createCustomer(CustomerDto customerDto) {
+    public CustomerDto createCustomer(CustomerDto customerDto) {
         Stripe.apiKey = secretKey;
 
         Map<String, Object> params = new HashMap<>();
@@ -49,11 +49,15 @@ public class CustomerServiceImpl implements CustomerService {
                     .build());
             log.info("Created customer in payment service db");
 
+            return CustomerDto.builder()
+                    .customerId(customer.getId())
+                    .username(customer.getEmail())
+                    .customerName(customer.getName())
+                    .build();
         } catch (StripeException e) {
             log.warn(e.getMessage());
             throw new InvalidPaymentRequestException(e.getMessage());
         }
-
     }
 
     /**
