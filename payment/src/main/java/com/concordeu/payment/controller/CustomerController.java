@@ -3,6 +3,7 @@ package com.concordeu.payment.controller;
 import com.concordeu.payment.dto.CustomerDto;
 import com.concordeu.payment.service.CustomerService;
 import com.stripe.exception.StripeException;
+import com.stripe.model.Customer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -17,6 +18,12 @@ public class CustomerController {
     @PostMapping("/create-customer")
     public void createCustomer(@RequestBody CustomerDto customerDto) throws StripeException {
         customerService.createCustomer(customerDto);
+    }
+
+    @GetMapping("/get-customer")
+    public CustomerDto getCustomer(@RequestParam String username) {
+        Customer customer = customerService.getCustomerByUsername(username);
+        return CustomerDto.getCustomer(customer);
     }
 
     @DeleteMapping("/delete-customer")
