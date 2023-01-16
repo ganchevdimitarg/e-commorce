@@ -20,7 +20,7 @@ import java.util.Map;
  * To charge a credit or a debit card, you create a Charge object.
  * You can retrieve and refund individual charges as well as list all charges.
  * Charges are identified by a unique, random ID.
- * source: <a href="https://stripe.com/docs/api/charges">...</a>
+ * cardId: <a href="https://stripe.com/docs/api/charges">...</a>
  */
 @Service
 @RequiredArgsConstructor
@@ -32,8 +32,8 @@ public class ChargeServerImpl implements ChargeService {
     private String secretKey;
 
     /**
-     * To charge a credit card or other payment source, you create a Charge object.
-     * If your API key is in test mode, the supplied payment source (e.g., card) won’t actually be charged,
+     * To charge a credit card or other payment cardId, you create a Charge object.
+     * If your API key is in test mode, the supplied payment cardId (e.g., card) won’t actually be charged,
      * although everything else will occur as if in live mode.
      * (Stripe assumes that the charge would have completed successfully).
      *
@@ -49,7 +49,7 @@ public class ChargeServerImpl implements ChargeService {
         params.put("currency", chargeDto.currency());
         params.put("receipt_email", chargeDto.receiptEmail());
         params.put("customer", chargeDto.customerId());
-        params.put("source", chargeDto.source());
+        params.put("source", chargeDto.cardId());
 
         try {
             Charge charge = Charge.create(params);

@@ -10,5 +10,5 @@ public record ChargeDto(
         String currency,
         String customerId,
         String receiptEmail,
-        String source) {
+        String cardId) {
 }

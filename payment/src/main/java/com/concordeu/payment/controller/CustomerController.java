@@ -16,8 +16,8 @@ public class CustomerController {
     private final CustomerService customerService;
 
     @PostMapping("/create-customer")
-    public void createCustomer(@RequestBody CustomerDto customerDto) throws StripeException {
-        customerService.createCustomer(customerDto);
+    public CustomerDto createCustomer(@RequestBody CustomerDto customerDto) throws StripeException {
+       return customerService.createCustomer(customerDto);
     }
 
     @GetMapping("/get-customer")

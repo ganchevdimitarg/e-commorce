@@ -5,7 +5,7 @@ import com.concordeu.order.dto.OrderResponseDto;
 import org.springframework.security.core.Authentication;
 
 public interface OrderService {
-    void createOrder(OrderDto orderDao);
+    void createOrder(OrderDto orderDao, Authentication authentication, String authorization);
 
     void deleteOrder(long orderNumber);
 
