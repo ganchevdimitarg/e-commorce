@@ -3,6 +3,7 @@ package com.concordeu.payment.service.impl;
 import com.concordeu.payment.dao.CustomerDao;
 import com.concordeu.payment.domain.AppCustomer;
 import com.concordeu.payment.dto.CustomerDto;
+import com.concordeu.payment.dto.PaymentDto;
 import com.concordeu.payment.excaption.InvalidPaymentRequestException;
 import com.concordeu.payment.service.CustomerService;
 import com.stripe.Stripe;
@@ -31,12 +32,12 @@ public class CustomerServiceImpl implements CustomerService {
     private String secretKey;
 
     @Override
-    public CustomerDto createCustomer(CustomerDto customerDto) {
+    public CustomerDto createCustomer(PaymentDto paymentDto) {
         Stripe.apiKey = secretKey;
 
         Map<String, Object> params = new HashMap<>();
-        params.put("email", customerDto.username());
-        params.put("name", customerDto.customerName());
+        params.put("email", paymentDto.username());
+        params.put("name", paymentDto.username());
 
         try {
             Customer customer = Customer.create(params);
@@ -88,6 +89,7 @@ public class CustomerServiceImpl implements CustomerService {
         try {
             Customer customerByEmail = getCustomerByUsername(username);
             Customer.retrieve(customerByEmail.getId()).delete();
+            customerDao.delete(customerDao.findByUsername(username));
             log.info("Delete customer successful: {}", customerByEmail.getEmail());
         } catch (StripeException e) {
             log.warn(e.getMessage());

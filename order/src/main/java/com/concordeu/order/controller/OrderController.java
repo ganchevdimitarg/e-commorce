@@ -42,7 +42,7 @@ public class OrderController {
         mailService.sendUserOrderMail(orderDto.username());
     }
 
-    @Operation(summary = "Delete Order", description = "Delete order by order number",
+    @Operation(summary = "Delete Order", description = "Delete order by order cardNumber",
             security = @SecurityRequirement(name = "security_auth"))
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
@@ -56,7 +56,7 @@ public class OrderController {
         orderService.deleteOrder(orderNumber);
     }
 
-    @Operation(summary = "Get Order", description = "Get order by order number",
+    @Operation(summary = "Get Order", description = "Get order by order cardNumber",
             security = @SecurityRequirement(name = "security_auth"))
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),

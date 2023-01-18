@@ -1,7 +1,7 @@
 package com.concordeu.payment.service.impl;
 
-import com.concordeu.payment.dao.ChargeDao;
 import com.concordeu.payment.dto.ChargeDto;
+import com.concordeu.payment.dto.PaymentDto;
 import com.concordeu.payment.excaption.InvalidPaymentRequestException;
 import com.concordeu.payment.service.ChargeService;
 import com.stripe.Stripe;
@@ -26,8 +26,6 @@ import java.util.Map;
 @RequiredArgsConstructor
 @Slf4j
 public class ChargeServerImpl implements ChargeService {
-    private final ChargeDao chargeDao;
-
     @Value("${stripe.secret.key}")
     private String secretKey;
 
@@ -37,24 +35,31 @@ public class ChargeServerImpl implements ChargeService {
      * although everything else will occur as if in live mode.
      * (Stripe assumes that the charge would have completed successfully).
      *
-     * @param chargeDto charge information
+     * @param paymentDto charge information
      * @return charge status: succeeded, pending, or failed
      */
     @Override
-    public String createCharge(ChargeDto chargeDto) {
+    public ChargeDto createCharge(PaymentDto paymentDto) {
         Stripe.apiKey = secretKey;
 
         Map<String, Object> params = new HashMap<>();
-        params.put("amount", chargeDto.amount());
-        params.put("currency", chargeDto.currency());
-        params.put("receipt_email", chargeDto.receiptEmail());
-        params.put("customer", chargeDto.customerId());
-        params.put("source", chargeDto.cardId());
+        params.put("amount", paymentDto.amount());
+        params.put("currency", paymentDto.currency());
+        params.put("receipt_email", paymentDto.receiptEmail());
+        params.put("customer", paymentDto.customerId());
+        params.put("source", paymentDto.cardId());
 
         try {
             Charge charge = Charge.create(params);
             log.info("Method createCharge: Create successful charge: {}", charge.getId());
-            return charge.getStatus();
+            return ChargeDto.builder()
+                    .id(charge.getId())
+                    .amount(charge.getAmount())
+                    .currency(charge.getCurrency())
+                    .paymentMethod(charge.getPaymentMethod())
+                    .status(charge.getStatus())
+                    .source(charge.getSource().toString())
+                    .build();
         } catch (StripeException e) {
             log.warn(e.getMessage());
             throw new InvalidPaymentRequestException(e.getMessage());
