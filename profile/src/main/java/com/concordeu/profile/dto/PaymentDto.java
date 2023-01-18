@@ -1,4 +1,4 @@
-package com.concordeu.payment.dto;
+package com.concordeu.profile.dto;
 
 import lombok.Builder;
 
@@ -11,11 +11,5 @@ public record PaymentDto(
         long expMonth,
         long expYear,
         String cvc,
-        long amount,
-        String currency,
-        String receiptEmail,
-        String cardId,
-        String chargeId,
-        String chargeStatus,
-        String source) {
+        String cardId) {
 }

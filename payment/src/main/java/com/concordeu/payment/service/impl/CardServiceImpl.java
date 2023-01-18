@@ -1,6 +1,7 @@
 package com.concordeu.payment.service.impl;
 
 import com.concordeu.payment.dto.CardDto;
+import com.concordeu.payment.dto.PaymentDto;
 import com.concordeu.payment.excaption.InvalidPaymentRequestException;
 import com.concordeu.payment.service.CardService;
 import com.concordeu.payment.service.CustomerService;
@@ -32,11 +33,11 @@ public class CardServiceImpl implements CardService {
     /**
      * When you create a new credit card, you must specify a customer or recipient on which to create it.
      *
-     * @param cardDto card information
+     * @param paymentDto card information
      * @return card id
      */
     @Override
-    public String createCard(CardDto cardDto) {
+    public CardDto createCard(PaymentDto paymentDto) {
         Stripe.apiKey = secretKey;
 
         List<String> expandList = new ArrayList<>();
@@ -47,17 +48,17 @@ public class CardServiceImpl implements CardService {
 
         try {
             Customer customer = Customer.retrieve(
-                    cardDto.customerId(),
+                    paymentDto.customerId(),
                     retrieveParams,
                     null
             );
             log.info("Method createCard: Get customer successful: {}", customer.getEmail());
 
             Map<String, Object> cardParams = new HashMap<>();
-            cardParams.put("number", cardDto.number());
-            cardParams.put("exp_month", cardDto.expMonth());
-            cardParams.put("exp_year", cardDto.expYear());
-            cardParams.put("cvc", cardDto.cvc());
+            cardParams.put("number", paymentDto.number());
+            cardParams.put("exp_month", paymentDto.expMonth());
+            cardParams.put("exp_year", paymentDto.expYear());
+            cardParams.put("cvc", paymentDto.cvc());
 
             Map<String, Object> params = new HashMap<>();
             params.put("card", cardParams);
@@ -70,7 +71,12 @@ public class CardServiceImpl implements CardService {
 
             Card card = (Card) customer.getSources().create(source);
             log.info("Method createCard: Create card successful: {}", card.getId());
-            return card.getId();
+            return CardDto.builder()
+                    .cardId(card.getId())
+                    .number(card.getLast4())
+                    .expMonth(card.getExpMonth())
+                    .expMonth(card.getExpYear())
+                    .build();
 
         } catch (StripeException e) {
             log.warn(e.getMessage());

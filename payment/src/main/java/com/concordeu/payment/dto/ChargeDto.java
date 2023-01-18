@@ -2,13 +2,14 @@ package com.concordeu.payment.dto;
 
 import lombok.Builder;
 
-import java.math.BigDecimal;
-
 @Builder
 public record ChargeDto(
-        BigDecimal amount,
+        String id,
+        long amount,
         String currency,
-        String customerId,
-        String receiptEmail,
-        String cardId) {
+        String paymentMethod,
+        String status,
+        String source) {
+
+
 }

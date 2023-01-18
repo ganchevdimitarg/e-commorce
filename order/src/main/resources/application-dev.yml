@@ -106,3 +106,18 @@ kafka:
 
 gateway:
   uri: http://127.0.0.1:8081/api/v1
+payment:
+  service:
+    customer:
+      post:
+        uri: ${gateway.uri}/payment/customer/create-customer
+      get:
+        uri: ${gateway.uri}/payment/customer/get-customer?username=
+    card:
+      post:
+        uri: ${gateway.uri}/payment/card/create-card
+      get:
+        uri: ${gateway.uri}/payment/card/get-cards?username=
+    charge:
+      post:
+        uri: ${gateway.uri}/payment/charge/create-charge

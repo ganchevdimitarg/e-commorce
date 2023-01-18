@@ -2,8 +2,6 @@ package com.concordeu.order.dto;
 
 import lombok.Builder;
 
-import java.math.BigDecimal;
-
 @Builder
 public record PaymentDto(
         String username,
@@ -13,8 +11,11 @@ public record PaymentDto(
         long expMonth,
         long expYear,
         String cvc,
-        BigDecimal amount,
+        long amount,
         String currency,
         String receiptEmail,
-        String cardId) {
+        String cardId,
+        String chargeId,
+        String chargeStatus,
+        String source) {
 }

@@ -1,6 +1,7 @@
 package com.concordeu.payment.controller;
 
 import com.concordeu.payment.dto.CustomerDto;
+import com.concordeu.payment.dto.PaymentDto;
 import com.concordeu.payment.service.CustomerService;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Customer;
@@ -16,14 +17,23 @@ public class CustomerController {
     private final CustomerService customerService;
 
     @PostMapping("/create-customer")
-    public CustomerDto createCustomer(@RequestBody CustomerDto customerDto) throws StripeException {
-       return customerService.createCustomer(customerDto);
+    public PaymentDto createCustomer(@RequestBody PaymentDto paymentDto) throws StripeException {
+        CustomerDto customer = customerService.createCustomer(paymentDto);
+        return PaymentDto.builder()
+                .username(customer.username())
+                .customerId(customer.customerId())
+                .customerName(customer.customerName())
+                .build();
     }
 
     @GetMapping("/get-customer")
     public CustomerDto getCustomer(@RequestParam String username) {
         Customer customer = customerService.getCustomerByUsername(username);
-        return CustomerDto.getCustomer(customer);
+        return CustomerDto.builder()
+                .username(customer.getEmail())
+                .customerName(customer.getName())
+                .customerId(customer.getId())
+                .build();
     }
 
     @DeleteMapping("/delete-customer")

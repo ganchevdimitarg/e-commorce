@@ -78,7 +78,7 @@ spring:
           filters:
             - name: CircuitBreaker
               args:
-                name: catalogService
+                name: catalogServices
                 fallbackUri: forward:/catalog-fallback
         - id: profile-service
           uri: lb://profile-service
@@ -87,7 +87,7 @@ spring:
           filters:
             - name: CircuitBreaker
               args:
-                name: profileService
+                name: catalogServices
                 fallbackUri: forward:/profile-fallback
         - id: notification-service
           uri: lb://notification-service
@@ -96,7 +96,7 @@ spring:
           filters:
             - name: CircuitBreaker
               args:
-                name: notificationService
+                name: catalogServices
                 fallbackUri: forward:/notification-fallback
         - id: order-service
           uri: lb://order-service
@@ -105,7 +105,7 @@ spring:
           filters:
             - name: CircuitBreaker
               args:
-                name: orderService
+                name: catalogServices
                 fallbackUri: forward:/order-fallback
         - id: payment-service
           uri: lb://payment-service
@@ -114,37 +114,13 @@ spring:
           filters:
             - name: CircuitBreaker
               args:
-                name: paymentService
+                name: catalogServices
                 fallbackUri: forward:/payment-fallback
 
 resilience4j:
   circuitbreaker:
     instances:
-      catalogService:
-        sliding-window-size: 10
-        permitted-number-of-calls-in-half-open-state: 5
-        failure-rate-threshold: 50
-        wait-duration-in-open-state: 1000
-        register-health-indicator: true
-      profileService:
-        sliding-window-size: 10
-        permitted-number-of-calls-in-half-open-state: 5
-        failure-rate-threshold: 50
-        wait-duration-in-open-state: 1000
-        register-health-indicator: true
-      notificationService:
-        sliding-window-size: 10
-        permitted-number-of-calls-in-half-open-state: 5
-        failure-rate-threshold: 50
-        wait-duration-in-open-state: 1000
-        register-health-indicator: true
-      orderService:
-        sliding-window-size: 10
-        permitted-number-of-calls-in-half-open-state: 5
-        failure-rate-threshold: 50
-        wait-duration-in-open-state: 1000
-        register-health-indicator: true
-      paymentService:
+      catalogServices:
         sliding-window-size: 10
         permitted-number-of-calls-in-half-open-state: 5
         failure-rate-threshold: 50
@@ -152,15 +128,7 @@ resilience4j:
         register-health-indicator: true
   timelimiter:
     instances:
-      catalogService:
-        timeout-duration: 3s
-      profileService:
-        timeout-duration: 3s
-      notificationService:
-        timeout-duration: 3s
-      orderService:
-        timeout-duration: 3s
-      paymentService:
+      catalogServices:
         timeout-duration: 3s
 
 #Logging Levels

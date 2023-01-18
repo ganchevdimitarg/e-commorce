@@ -1,7 +1,8 @@
 package com.concordeu.payment.service;
 
 import com.concordeu.payment.dto.ChargeDto;
+import com.concordeu.payment.dto.PaymentDto;
 
 public interface ChargeService {
-    String createCharge(ChargeDto chargeDto);
+    ChargeDto createCharge(PaymentDto chargeDto);
 }
