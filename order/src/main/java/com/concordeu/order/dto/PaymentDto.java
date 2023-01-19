@@ -16,6 +16,5 @@ public record PaymentDto(
         String receiptEmail,
         String cardId,
         String chargeId,
-        String chargeStatus,
-        String source) {
+        String chargeStatus) {
 }

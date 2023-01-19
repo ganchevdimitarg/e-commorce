@@ -25,26 +25,6 @@ public class ProfileController {
     private final ProfileService profileService;
     private final MailService mailService;
 
-    @Operation(summary = "Get Profile By Username", description = "Get user by username from the database",
-            security = @SecurityRequirement(name = "security_auth"))
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
-            @ApiResponse(responseCode = "401", description = "Unauthenticated"),
-            @ApiResponse(responseCode = "403", description = "Unauthorized"),
-            @ApiResponse(responseCode = "500", description = "Server Error")
-    })
-    @GetMapping("/get-by-username")
-    @PreAuthorize("hasAnyAuthority('SCOPE_profile.read')")
-    public UserDto getUserByUsername(Authentication authentication, @RequestParam String username) {
-        String principalName = authentication.getName();
-
-        if (principalName.equals(username.trim()) || principalName.equals(ADMIN)) {
-            return profileService.getUserByUsername(username.trim());
-        }
-        log.debug("Profile '{}' try to access another account '{}'", principalName, username);
-        throw new IllegalArgumentException("You cannot access this information!");
-    }
-
     @Operation(summary = "Register Admin", description = "Register admin in the database",
             security = @SecurityRequirement(name = "security_auth"))
     @ApiResponses({
@@ -91,6 +71,26 @@ public class ProfileController {
         UserDto user = profileService.createUser(requestDto);
         mailService.sendUserWelcomeMail(user.username());
         return user;
+    }
+
+    @Operation(summary = "Get Profile By Username", description = "Get user by username from the database",
+            security = @SecurityRequirement(name = "security_auth"))
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
+            @ApiResponse(responseCode = "401", description = "Unauthenticated"),
+            @ApiResponse(responseCode = "403", description = "Unauthorized"),
+            @ApiResponse(responseCode = "500", description = "Server Error")
+    })
+    @GetMapping("/get-by-username")
+    @PreAuthorize("hasAnyAuthority('SCOPE_profile.read')")
+    public UserDto getUserByUsername(Authentication authentication, @RequestParam String username) {
+        String principalName = authentication.getName();
+
+        if (principalName.equals(username.trim()) || principalName.equals(ADMIN)) {
+            return profileService.getUserByUsername(username.trim());
+        }
+        log.debug("Profile '{}' try to access another account '{}'", principalName, username);
+        throw new IllegalArgumentException("You cannot access this information!");
     }
 
     @Operation(summary = "Update Profile", description = "Update user in the database",
@@ -161,6 +161,6 @@ public class ProfileController {
     })
     @GetMapping("/set-new-password")
     public void setNewPassword(@RequestParam String username, @RequestParam String password) {
-         profileService.setNewPassword(username.trim(), password.trim());
+        profileService.setNewPassword(username.trim(), password.trim());
     }
 }

@@ -1,6 +1,5 @@
 package com.concordeu.payment.controller;
 
-import com.concordeu.payment.dto.ChargeDto;
 import com.concordeu.payment.dto.PaymentDto;
 import com.concordeu.payment.service.ChargeService;
 import lombok.RequiredArgsConstructor;
@@ -19,10 +18,6 @@ public class ChargeController {
 
     @PostMapping("/create-charge")
     public PaymentDto createCharge(@RequestBody PaymentDto paymentDto) {
-        ChargeDto charge = chargeService.createCharge(paymentDto);
-        return PaymentDto.builder()
-                .chargeId(charge.id())
-                .chargeStatus(charge.status())
-                .build();
+        return chargeService.createCharge(paymentDto);
     }
 }

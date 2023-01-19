@@ -2,7 +2,6 @@ package com.concordeu.payment.service.impl;
 
 import com.concordeu.payment.dao.CustomerDao;
 import com.concordeu.payment.domain.AppCustomer;
-import com.concordeu.payment.dto.CustomerDto;
 import com.concordeu.payment.dto.PaymentDto;
 import com.concordeu.payment.excaption.InvalidPaymentRequestException;
 import com.concordeu.payment.service.CustomerService;
@@ -32,7 +31,7 @@ public class CustomerServiceImpl implements CustomerService {
     private String secretKey;
 
     @Override
-    public CustomerDto createCustomer(PaymentDto paymentDto) {
+    public PaymentDto createCustomer(PaymentDto paymentDto) {
         Stripe.apiKey = secretKey;
 
         Map<String, Object> params = new HashMap<>();
@@ -50,11 +49,12 @@ public class CustomerServiceImpl implements CustomerService {
                     .build());
             log.info("Created customer in payment service db");
 
-            return CustomerDto.builder()
-                    .customerId(customer.getId())
+            return PaymentDto.builder()
                     .username(customer.getEmail())
+                    .customerId(customer.getId())
                     .customerName(customer.getName())
                     .build();
+
         } catch (StripeException e) {
             log.warn(e.getMessage());
             throw new InvalidPaymentRequestException(e.getMessage());
@@ -78,7 +78,7 @@ public class CustomerServiceImpl implements CustomerService {
     /**
      * Permanently deletes a customer.
      * It cannot be undone.
-     * Also immediately cancels any active subscriptions on the customer.
+     * Also, immediately cancels any active subscriptions on the customer.
      *
      * @param username customer username
      */

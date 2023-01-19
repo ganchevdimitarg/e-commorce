@@ -8,9 +8,5 @@ public record OrderDto(
         String username,
         String deliveryComment,
         List<Item> items,
-        String cardNumber,
-        long cardExpMonth,
-        long cardExpYear,
-        String cardCvc,
         String cardId) {
 }
