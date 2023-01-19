@@ -26,10 +26,6 @@ public class ChargeServiceImpl implements ChargeService {
     private static final String HEADER_AUTHORIZATION = "Authorization";
     @Value("${payment.service.customer.get.uri}")
     private String paymentCustomerGetUri;
-    @Value("${payment.service.customer.post.uri}")
-    private String paymentCustomerPostUri;
-    @Value("${payment.service.card.post.uri}")
-    private String paymentCardPostUri;
     @Value("${payment.service.charge.post.uri}")
     private String paymentChargePostUri;
 
@@ -41,11 +37,6 @@ public class ChargeServiceImpl implements ChargeService {
         );
 
         String cardId = orderDto.cardId();
-
-        if (paymentCustomer.customerId() == null) {
-            paymentCustomer = createCustomer(authorization, authenticationName, authenticationName);
-            cardId = addCardToCustomer(orderDto, authorization, paymentCustomer).cardId();
-        }
 
         return chargeCustomer(authorization, amount, paymentCustomer, cardId);
     }
@@ -77,37 +68,6 @@ public class ChargeServiceImpl implements ChargeService {
                 paymentChargePostUri,
                 authorization,
                 chargeRequestBody);
-    }
-
-    private PaymentDto addCardToCustomer(OrderDto orderDto, String authorization, PaymentDto paymentCustomer) {
-        String cardRequestBody = mapper.toJson(PaymentDto.builder()
-                .customerId(paymentCustomer.customerId())
-                .number(orderDto.cardNumber())
-                .expMonth(orderDto.cardExpMonth())
-                .expYear(orderDto.cardExpYear())
-                .cvc(orderDto.cardCvc())
-                .build()
-        );
-
-        return sendRequestToPaymentService(
-                paymentCardPostUri,
-                authorization,
-                cardRequestBody
-        );
-    }
-
-    private PaymentDto createCustomer(String authorization, String username, String authenticationName) {
-        String customerRequestBody = mapper.toJson(PaymentDto.builder()
-                .username(username)
-                .customerName(authenticationName)
-                .build()
-        );
-
-        return sendRequestToPaymentService(
-                paymentCustomerPostUri,
-                authorization,
-                customerRequestBody
-        );
     }
 
     private PaymentDto sendRequestToPaymentService(String uri, String authorizationToken, String request) {

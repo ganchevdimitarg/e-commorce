@@ -7,15 +7,14 @@ public record PaymentDto(
         String username,
         String customerName,
         String customerId,
-        String number,
-        long expMonth,
-        long expYear,
-        String cvc,
+        String cardNumber,
+        long cardExpMonth,
+        long cardExpYear,
+        String cardCvc,
         long amount,
         String currency,
         String receiptEmail,
         String cardId,
         String chargeId,
-        String chargeStatus,
-        String source) {
+        String chargeStatus) {
 }

@@ -1,6 +1,5 @@
 package com.concordeu.payment.service.impl;
 
-import com.concordeu.payment.dto.ChargeDto;
 import com.concordeu.payment.dto.PaymentDto;
 import com.concordeu.payment.excaption.InvalidPaymentRequestException;
 import com.concordeu.payment.service.ChargeService;
@@ -39,7 +38,7 @@ public class ChargeServerImpl implements ChargeService {
      * @return charge status: succeeded, pending, or failed
      */
     @Override
-    public ChargeDto createCharge(PaymentDto paymentDto) {
+    public PaymentDto createCharge(PaymentDto paymentDto) {
         Stripe.apiKey = secretKey;
 
         Map<String, Object> params = new HashMap<>();
@@ -52,13 +51,9 @@ public class ChargeServerImpl implements ChargeService {
         try {
             Charge charge = Charge.create(params);
             log.info("Method createCharge: Create successful charge: {}", charge.getId());
-            return ChargeDto.builder()
-                    .id(charge.getId())
-                    .amount(charge.getAmount())
-                    .currency(charge.getCurrency())
-                    .paymentMethod(charge.getPaymentMethod())
-                    .status(charge.getStatus())
-                    .source(charge.getSource().toString())
+            return PaymentDto.builder()
+                    .chargeId(charge.getId())
+                    .chargeStatus(charge.getStatus())
                     .build();
         } catch (StripeException e) {
             log.warn(e.getMessage());

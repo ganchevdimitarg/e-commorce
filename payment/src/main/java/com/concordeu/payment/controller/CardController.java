@@ -1,6 +1,5 @@
 package com.concordeu.payment.controller;
 
-import com.concordeu.payment.dto.CardDto;
 import com.concordeu.payment.dto.PaymentDto;
 import com.concordeu.payment.service.CardService;
 import com.stripe.exception.StripeException;
@@ -19,13 +18,7 @@ public class CardController {
 
     @PostMapping("/create-card")
     public PaymentDto createCard(@RequestBody PaymentDto paymentDto) throws StripeException {
-        CardDto cardDto = cardService.createCard(paymentDto);
-        return PaymentDto.builder()
-                .number(cardDto.number())
-                .expMonth(cardDto.expMonth())
-                .expYear(cardDto.expYear())
-                .cardId(cardDto.cardId())
-                .build();
+        return cardService.createCard(paymentDto);
     }
 
     @GetMapping("/get-cards")
