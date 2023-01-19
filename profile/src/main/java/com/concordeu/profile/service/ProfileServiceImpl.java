@@ -22,6 +22,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
 import java.util.Set;
@@ -42,9 +43,10 @@ public class ProfileServiceImpl implements ProfileService {
     private final ValidateData validateData;
     @Value("${payment.service.customer.post.uri}")
     private String paymentCustomerPostUri;
+    @Value("${payment.service.customer.delete.uri}")
+    private String paymentDeleteCustomerPostUri;
     @Value("${payment.service.card.post.uri}")
     private String paymentCardPostUri;
-
 
     @Override
     public UserDto createAdmin(UserRequestDto userRequestDto) {
@@ -99,9 +101,13 @@ public class ProfileServiceImpl implements ProfileService {
                     return new UsernameNotFoundException("Profile does not exist");
                 });
 
+        deletePaymentCustomer(paymentDeleteCustomerPostUri, username);
+
         profileDao.delete(profile);
         log.info("ser with username: {} was successfully deleted", username);
     }
+
+
 
     @Override
     public UserDto getUserByUsername(String username) {
@@ -243,10 +249,23 @@ public class ProfileServiceImpl implements ProfileService {
                 .bodyValue(request)
                 .retrieve()
                 .bodyToMono(PaymentDto.class)
-                /*.transform(it ->
+                .transform(it ->
                         reactiveCircuitBreakerFactory.create("profile-service")
                                 .run(it, throwable -> (Mono.just(PaymentDto.builder().username("Ooops...").build())))
-                )*/
+                )
+                .block();
+    }
+
+    private String deletePaymentCustomer(String uri, String username) {
+        return webClient
+                .post()
+                .uri(uri + username)
+                .retrieve()
+                .bodyToMono(String.class)
+                .transform(it ->
+                        reactiveCircuitBreakerFactory.create("profile-service")
+                                .run(it)
+                )
                 .block();
     }
 }

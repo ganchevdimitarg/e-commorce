@@ -109,7 +109,7 @@ jwt:
     key: ${PASSWORD_RESET_TOKEN_SECRET_KEY}
 
 gateway:
-  uri: http://127.0.0.1:8081/api/v1
+  uri: http://127.0.0.1:8087/api/v1
 payment:
   service:
     customer:
@@ -117,6 +117,8 @@ payment:
         uri: ${gateway.uri}/payment/customer/create-customer
       get:
         uri: ${gateway.uri}/payment/customer/get-customer?username=
+      delete:
+        uri: ${gateway.uri}/payment/customer/delete-customer?username=
     card:
       post:
         uri: ${gateway.uri}/payment/card/create-card
