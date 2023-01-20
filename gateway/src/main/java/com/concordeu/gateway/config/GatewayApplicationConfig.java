@@ -1,4 +1,4 @@
-package com.concordeu.gateway;
+package com.concordeu.gateway.config;
 
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.timelimiter.TimeLimiterConfig;
@@ -12,7 +12,7 @@ import java.time.Duration;
 @Configuration
 public class GatewayApplicationConfig {
     @Bean
-    public Customizer<ReactiveResilience4JCircuitBreakerFactory> orderServiceCusomtizer() {
+    public Customizer<ReactiveResilience4JCircuitBreakerFactory> orderServiceCustomizer() {
         return factory -> factory.configure(builder -> builder
                 .timeLimiterConfig(TimeLimiterConfig.custom().timeoutDuration(Duration.ofSeconds(4)).build())
                 .circuitBreakerConfig(CircuitBreakerConfig.ofDefaults()), "ecommerceServices");
