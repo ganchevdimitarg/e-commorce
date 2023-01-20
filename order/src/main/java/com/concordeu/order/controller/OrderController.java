@@ -37,8 +37,8 @@ public class OrderController {
     @PostMapping("/create-order")
     @ValidationRequest
     @PreAuthorize("hasAuthority('SCOPE_order.write')")
-    public void createOrder(@RequestBody OrderDto orderDto, Authentication authentication, HttpServletRequest request) {
-        orderService.createOrder(orderDto, authentication, request.getHeader("Authorization"));
+    public void createOrder(@RequestBody OrderDto orderDto, Authentication authentication) {
+        orderService.createOrder(orderDto, authentication.getName());
         mailService.sendUserOrderMail(orderDto.username());
     }
 
@@ -66,7 +66,7 @@ public class OrderController {
     })
     @GetMapping("/get-order")
     @PreAuthorize("hasAuthority('SCOPE_order.read')")
-    public OrderResponseDto getOrder(@RequestParam long orderNumber, Authentication authentication, HttpServletRequest request) {
-        return orderService.getOrder(orderNumber, request.getHeader("Authorization"), authentication);
+    public OrderResponseDto getOrder(@RequestParam long orderNumber, Authentication authentication) {
+        return orderService.getOrder(orderNumber, authentication.getName());
     }
 }

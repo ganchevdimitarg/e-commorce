@@ -38,5 +38,5 @@ public class Order {
     @OneToOne(mappedBy = "order", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     private Charge charge;
     @OneToMany(mappedBy = "order", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    private List<Item> items = new ArrayList<>();
+    private List<Item> items;
 }

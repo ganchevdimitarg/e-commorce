@@ -1,12 +1,15 @@
 package com.concordeu.order.dto;
 
-import java.time.LocalDateTime;
+import lombok.Builder;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Builder
 public record OrderResponseDto(
         UserDto userInfo,
-        ProductResponseDto productInfo,
-        long quantity,
+        List<ProductResponseDto> productInfo,
+        int orderNumber,
         String deliveryComment,
-        LocalDateTime createdOn
-) {
+        LocalDateTime createdOn) {
 }
