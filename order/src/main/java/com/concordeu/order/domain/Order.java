@@ -28,7 +28,7 @@ public class Order {
     @Column(name = "order_id", unique = true, nullable = false, updatable = false)
     private String id;
     @Column(name = "order_number", unique = true, nullable = false)
-    private int orderNumber;
+    private long orderNumber;
     @Column(name = "username", nullable = false)
     private String username;
     @Column(name = "created_on")

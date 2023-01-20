@@ -35,6 +35,8 @@ public class OrderServiceImpl implements OrderService {
     @Value("${catalog.service.profile.get.uri}")
     private String catalogProfileGetUri;
 
+    private long orderCounter = 1;
+
     @Override
     public void createOrder(OrderDto orderDto, String authenticationName) {
         String username = orderDto.username();
@@ -66,6 +68,7 @@ public class OrderServiceImpl implements OrderService {
             Order order = Order.builder()
                     .username(orderDto.username())
                     .deliveryComment(orderDto.deliveryComment())
+                    .orderNumber(orderCounter++)
                     .createdOn(LocalDateTime.now())
                     .build();
             Order orderSave = orderDao.saveAndFlush(order);
