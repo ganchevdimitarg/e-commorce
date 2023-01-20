@@ -108,22 +108,22 @@ jwt:
   secret:
     key: ${PASSWORD_RESET_TOKEN_SECRET_KEY}
 
-gateway:
-  uri: http://127.0.0.1:8087/api/v1
 payment:
+  base:
+    uri: http://127.0.0.1:8087/api/v1
   service:
     customer:
       post:
-        uri: ${gateway.uri}/payment/customer/create-customer
+        uri: ${payment.base.uri}/payment/customer/create-customer
       get:
-        uri: ${gateway.uri}/payment/customer/get-customer?username=
+        uri: ${payment.base.uri}/payment/customer/get-customer?username=
       delete:
-        uri: ${gateway.uri}/payment/customer/delete-customer?username=
+        uri: ${payment.base.uri}/payment/customer/delete-customer?username=
     card:
       post:
-        uri: ${gateway.uri}/payment/card/create-card
+        uri: ${payment.base.uri}/payment/card/create-card
       get:
-        uri: ${gateway.uri}/payment/card/get-cards?username=
+        uri: ${payment.base.uri}/payment/card/get-cards?username=
 
 webClient:
   oath2Client:
