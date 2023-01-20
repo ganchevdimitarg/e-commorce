@@ -32,6 +32,6 @@ public class CustomerController {
 
     @DeleteMapping("/delete-customer")
     public void deleteCustomer(@RequestParam String username) {
-        customerService.deleteCustomer(username);
+      customerService.deleteCustomer(username);
     }
 }

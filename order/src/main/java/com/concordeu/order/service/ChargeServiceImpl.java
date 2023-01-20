@@ -23,22 +23,21 @@ public class ChargeServiceImpl implements ChargeService {
     private final Gson mapper;
     private final WebClient webClient;
     private final ReactiveCircuitBreakerFactory reactiveCircuitBreakerFactory;
-    private static final String HEADER_AUTHORIZATION = "Authorization";
+
     @Value("${payment.service.customer.get.uri}")
     private String paymentCustomerGetUri;
     @Value("${payment.service.charge.post.uri}")
     private String paymentChargePostUri;
 
     @Override
-    public PaymentDto makePayment(OrderDto orderDto, String authorization, String authenticationName, long amount) {
+    public PaymentDto makePayment(OrderDto orderDto, String authenticationName, long amount) {
         PaymentDto paymentCustomer = getCustomerFromPaymentService(
-                paymentCustomerGetUri + authenticationName,
-                authorization
+                paymentCustomerGetUri + authenticationName
         );
 
         String cardId = orderDto.cardId();
 
-        return chargeCustomer(authorization, amount, paymentCustomer, cardId);
+        return chargeCustomer(amount, paymentCustomer, cardId);
     }
 
     @Override
@@ -53,7 +52,7 @@ public class ChargeServiceImpl implements ChargeService {
         log.info("Charge was successfully created");
     }
 
-    private PaymentDto chargeCustomer(String authorization, long amount, PaymentDto paymentCustomer, String cardId) {
+    private PaymentDto chargeCustomer(long amount, PaymentDto paymentCustomer, String cardId) {
         String chargeRequestBody = mapper.toJson(
                 PaymentDto.builder()
                         .amount(amount)
@@ -66,15 +65,13 @@ public class ChargeServiceImpl implements ChargeService {
 
         return sendRequestToPaymentService(
                 paymentChargePostUri,
-                authorization,
                 chargeRequestBody);
     }
 
-    private PaymentDto sendRequestToPaymentService(String uri, String authorizationToken, String request) {
+    private PaymentDto sendRequestToPaymentService(String uri, String request) {
         return webClient
                 .post()
                 .uri(uri)
-                .header(HEADER_AUTHORIZATION, authorizationToken)
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
@@ -87,11 +84,10 @@ public class ChargeServiceImpl implements ChargeService {
                 .block();
     }
 
-    private PaymentDto getCustomerFromPaymentService(String uri, String authorizationToken) {
+    private PaymentDto getCustomerFromPaymentService(String uri) {
         return webClient
                 .get()
                 .uri(uri)
-                .header(HEADER_AUTHORIZATION, authorizationToken)
                 .accept(MediaType.APPLICATION_JSON)
                 .retrieve()
                 .bodyToMono(PaymentDto.class)
