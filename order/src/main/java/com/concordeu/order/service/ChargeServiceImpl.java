@@ -35,7 +35,9 @@ public class ChargeServiceImpl implements ChargeService {
                 paymentCustomerGetUri + authenticationName
         );
 
-        return chargeCustomer(amount, paymentCustomer, orderDto.cardId());
+        PaymentDto chargeCustomer = chargeCustomer(amount, paymentCustomer, orderDto.cardId());
+        log.info("Payment went through successfully: {}", chargeCustomer.chargeId());
+        return chargeCustomer;
     }
 
     @Override
