@@ -103,6 +103,18 @@ springdoc:
 kafka:
   bootstrapAddress: localhost:9092
 
+#Resilience4j
+resilience4j.circuitbreaker:
+  instances:
+    profile-service:
+      failureRateThreshold: 50
+      minimumNumberOfCalls: 10
+      slidingWindowType: TIME_BASED
+      slidingWindowSize: 10
+      waitDurationInOpenState: 1000
+      permittedNumberOfCallsInHalfOpenState: 5
+      register-health-indicator: true
+
 #JWT secret key
 jwt:
   secret:

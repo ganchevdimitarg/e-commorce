@@ -145,10 +145,10 @@ public class OrderServiceImpl implements OrderService {
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<List<ProductResponseDto>>() {
                 })
-                /*.transform(it ->
+                .transform(it ->
                         reactiveCircuitBreakerFactory.create("order-service")
                                 .run(it)
-                )*/
+                )
                 .block();
     }
 }
