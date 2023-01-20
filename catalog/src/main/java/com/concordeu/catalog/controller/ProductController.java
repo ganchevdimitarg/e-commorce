@@ -104,7 +104,6 @@ public class ProductController {
     }
 
     @PostMapping("/get-products-id")
-    @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
     public List<ProductResponseDto> getProductsById(@RequestBody ItemRequestDto items) {
         return productService.getProductsById(items);
     }
