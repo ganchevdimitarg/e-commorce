@@ -35,9 +35,7 @@ public class ChargeServiceImpl implements ChargeService {
                 paymentCustomerGetUri + authenticationName
         );
 
-        String cardId = orderDto.cardId();
-
-        return chargeCustomer(amount, paymentCustomer, cardId);
+        return chargeCustomer(amount, paymentCustomer, orderDto.cardId());
     }
 
     @Override
@@ -77,10 +75,10 @@ public class ChargeServiceImpl implements ChargeService {
                 .bodyValue(request)
                 .retrieve()
                 .bodyToMono(PaymentDto.class)
-                .transform(it ->
+                /*.transform(it ->
                         reactiveCircuitBreakerFactory.create("charge-service")
                                 .run(it, throwable -> (Mono.just(PaymentDto.builder().username("Ooops...").build())))
-                )
+                )*/
                 .block();
     }
 
