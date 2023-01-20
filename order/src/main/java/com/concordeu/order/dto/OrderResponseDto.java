@@ -9,7 +9,7 @@ import java.util.List;
 public record OrderResponseDto(
         UserDto userInfo,
         List<ProductResponseDto> productInfo,
-        int orderNumber,
+        long orderNumber,
         String deliveryComment,
         LocalDateTime createdOn) {
 }

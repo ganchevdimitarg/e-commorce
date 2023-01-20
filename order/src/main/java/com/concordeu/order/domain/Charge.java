@@ -9,9 +9,9 @@ import javax.persistence.*;
 @Table(
         name = "charges",
         uniqueConstraints = {
-                @UniqueConstraint(name = "charge_id_payment", columnNames = "charge_id_payment")
+                @UniqueConstraint(name = "charge_id_stp", columnNames = "charge_id_stp")
         },
-        indexes = @Index(name = "charge_id_payment_index", columnList = "charge_id_payment"))
+        indexes = @Index(name = "charge_id_stp_index", columnList = "charge_id_stp"))
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
