@@ -101,10 +101,10 @@ public class ProfileServiceImpl implements ProfileService {
                     return new UsernameNotFoundException("Profile does not exist");
                 });
 
-        deletePaymentCustomer(paymentDeleteCustomerPostUri, username);
+        deletePaymentCustomer(username);
 
         profileDao.delete(profile);
-        log.info("ser with username: {} was successfully deleted", username);
+        log.info("User with username: {} was successfully deleted", username);
     }
 
 
@@ -256,16 +256,16 @@ public class ProfileServiceImpl implements ProfileService {
                 .block();
     }
 
-    private String deletePaymentCustomer(String uri, String username) {
-        return webClient
-                .post()
-                .uri(uri + username)
+    private void deletePaymentCustomer(String username) {
+        webClient
+                .delete()
+                .uri(paymentDeleteCustomerPostUri + username)
                 .retrieve()
-                .bodyToMono(String.class)
-                .transform(it ->
-                        reactiveCircuitBreakerFactory.create("profile-service")
+                .bodyToMono(Void.class)
+                /*.transform(it ->
+                        reactiveCircuitBreakerFactory.create("order-service")
                                 .run(it)
-                )
-                .block();
+                )*/
+                .subscribe();
     }
 }

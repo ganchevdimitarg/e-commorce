@@ -119,8 +119,8 @@ public class ProfileController {
     })
     @DeleteMapping("/delete-user")
     @PreAuthorize("hasAuthority('SCOPE_profile.write')")
-    public void deleteUser(@RequestParam String username) {
-        profileService.deleteUser(username.trim());
+    public void deleteUser(Authentication authentication) {
+        profileService.deleteUser(authentication.getName().trim());
     }
 
     @Operation(summary = "Password Reset", description = "Generates a token and sends it to the submitted user",
