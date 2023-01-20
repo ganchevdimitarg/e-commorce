@@ -1,8 +1,11 @@
 package com.concordeu.payment.service.impl;
 
+import com.concordeu.payment.dao.ChargeDao;
+import com.concordeu.payment.domain.AppCharge;
 import com.concordeu.payment.dto.PaymentDto;
 import com.concordeu.payment.excaption.InvalidPaymentRequestException;
 import com.concordeu.payment.service.ChargeService;
+import com.concordeu.payment.service.CustomerService;
 import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Charge;
@@ -11,6 +14,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import javax.persistence.Column;
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -25,6 +30,8 @@ import java.util.Map;
 @RequiredArgsConstructor
 @Slf4j
 public class ChargeServerImpl implements ChargeService {
+    private final CustomerService customerService;
+    private final ChargeDao chargeDao;
     @Value("${stripe.secret.key}")
     private String secretKey;
 
@@ -50,6 +57,16 @@ public class ChargeServerImpl implements ChargeService {
 
         try {
             Charge charge = Charge.create(params);
+
+            chargeDao.saveAndFlush(AppCharge.builder()
+                    .chargeId(charge.getId())
+                    .amount(charge.getAmount())
+                    .currency(charge.getCurrency())
+                    .customerId(charge.getCustomer())
+                    .receiptEmail(charge.getReceiptEmail())
+                    .customer(customerService.findByUsername(paymentDto.username()))
+                    .build());
+
             log.info("Method createCharge: Create successful charge: {}", charge.getId());
             return PaymentDto.builder()
                     .chargeId(charge.getId())

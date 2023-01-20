@@ -50,9 +50,7 @@ public class CustomerServiceImpl implements CustomerService {
             log.info("Created customer in payment service db");
 
             return PaymentDto.builder()
-                    .username(customer.getEmail())
                     .customerId(customer.getId())
-                    .customerName(customer.getName())
                     .build();
 
         } catch (StripeException e) {
@@ -73,6 +71,11 @@ public class CustomerServiceImpl implements CustomerService {
     public Customer getCustomerByUsername(String username) {
         AppCustomer appCustomer = customerDao.findByUsername(username);
         return getCustomer(appCustomer.getCustomerId());
+    }
+
+    @Override
+    public AppCustomer findByUsername(String username) {
+        return customerDao.findByUsername(username);
     }
 
     /**

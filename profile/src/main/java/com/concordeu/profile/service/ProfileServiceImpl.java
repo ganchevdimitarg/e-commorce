@@ -22,7 +22,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
 import java.util.Set;
@@ -107,8 +106,6 @@ public class ProfileServiceImpl implements ProfileService {
         log.info("User with username: {} was successfully deleted", username);
     }
 
-
-
     @Override
     public UserDto getUserByUsername(String username) {
         Assert.hasLength(username, "Username is empty");
@@ -178,9 +175,11 @@ public class ProfileServiceImpl implements ProfileService {
         Profile authProfile = builtProfile(userRequestDto, grantedAuthorities);
 
 
-        String paymentCustomerId = createPaymentCustomer(userRequestDto.username()).customerId();
+        PaymentDto paymentCustomerId = createPaymentCustomer(userRequestDto.username());
+        log.info("Payment customer was successfully create: {}", paymentCustomerId);
 
-        addCardToCustomer(userRequestDto, paymentCustomerId);
+        PaymentDto paymentDto = addCardToCustomer(userRequestDto, paymentCustomerId.customerId());
+        log.info("Payment card id {} was successfully added to payment customer", paymentDto.cardId());
 
         Profile profile = profileDao.insert(authProfile);
         log.info("The profile was successfully create");
@@ -209,7 +208,7 @@ public class ProfileServiceImpl implements ProfileService {
         return authProfile;
     }
 
-    private void addCardToCustomer(UserRequestDto userRequestDto,
+    private PaymentDto addCardToCustomer(UserRequestDto userRequestDto,
                                    String customerId) {
         String cardRequestBody = mapper.toJson(CardDto.builder()
                 .customerId(customerId)
@@ -220,7 +219,7 @@ public class ProfileServiceImpl implements ProfileService {
                 .build()
         );
 
-        sendRequestToPaymentService(
+       return sendRequestToPaymentService(
                 paymentCardPostUri,
                 cardRequestBody
         );
@@ -249,10 +248,10 @@ public class ProfileServiceImpl implements ProfileService {
                 .bodyValue(request)
                 .retrieve()
                 .bodyToMono(PaymentDto.class)
-                .transform(it ->
+/*                .transform(it ->
                         reactiveCircuitBreakerFactory.create("profile-service")
                                 .run(it, throwable -> (Mono.just(PaymentDto.builder().username("Ooops...").build())))
-                )
+                )*/
                 .block();
     }
 

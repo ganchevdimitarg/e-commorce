@@ -1,5 +1,9 @@
 package com.concordeu.payment.service.impl;
 
+import com.concordeu.payment.dao.CardDao;
+import com.concordeu.payment.dao.CustomerDao;
+import com.concordeu.payment.domain.AppCard;
+import com.concordeu.payment.domain.AppCustomer;
 import com.concordeu.payment.dto.PaymentDto;
 import com.concordeu.payment.excaption.InvalidPaymentRequestException;
 import com.concordeu.payment.service.CardService;
@@ -12,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import javax.persistence.Column;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -26,6 +31,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class CardServiceImpl implements CardService {
     private final CustomerService customerService;
+    private final CardDao cardDao;
     @Value("${stripe.secret.key}")
     private String secretKey;
 
@@ -69,12 +75,21 @@ public class CardServiceImpl implements CardService {
             source.put("source", token.getId());
 
             Card card = (Card) customer.getSources().create(source);
+
+            cardDao.saveAndFlush(AppCard.builder()
+                    .cardId(card.getId())
+                    .brand(card.getBrand())
+                    .customerId(card.getCustomer())
+                    .cvcCheck(card.getCvcCheck())
+                    .expMonth(card.getExpMonth())
+                    .expYear(card.getExpYear())
+                    .lastFourDigits(card.getLast4())
+                    .customer(customerService.findByUsername(customer.getName()))
+                    .build());
+
             log.info("Method createCard: Create card successful: {}", card.getId());
             return PaymentDto.builder()
                     .cardId(card.getId())
-                    .cardNumber(card.getLast4())
-                    .cardExpMonth(card.getExpMonth())
-                    .cardExpYear(card.getExpYear())
                     .build();
 
         } catch (StripeException e) {
