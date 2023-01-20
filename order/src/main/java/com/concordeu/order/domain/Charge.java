@@ -6,7 +6,12 @@ import org.hibernate.annotations.GenericGenerator;
 import javax.persistence.*;
 
 @Entity(name = "Charges")
-@Table(name = "charges")
+@Table(
+        name = "charges",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "charge_id_payment", columnNames = "charge_id_payment")
+        },
+        indexes = @Index(name = "charge_id_payment_index", columnList = "charge_id_payment"))
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -19,7 +24,7 @@ public class Charge {
             strategy = "org.hibernate.id.UUIDGenerator")
     @Column(name = "charge_id", unique = true, nullable = false, updatable = false)
     private String id;
-    @Column(name = "charge_id_payment", nullable = false)
+    @Column(name = "charge_id_stp", nullable = false)
     private String chargeId;
     @Column(name = "status", nullable = false)
     private String status;

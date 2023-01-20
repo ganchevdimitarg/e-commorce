@@ -6,7 +6,12 @@ import org.hibernate.annotations.GenericGenerator;
 import javax.persistence.*;
 
 @Entity(name = "Items")
-@Table(name = "items")
+@Table(
+        name = "items",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "product_id", columnNames = "product_id")
+        },
+        indexes = @Index(name = "product_id_index", columnList = "product_id"))
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder

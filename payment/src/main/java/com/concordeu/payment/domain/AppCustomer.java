@@ -10,9 +10,9 @@ import java.util.List;
 @Table(
         name = "customers",
         uniqueConstraints = {
-                @UniqueConstraint(name = "username", columnNames = "username")
+                @UniqueConstraint(name = "customer_id_stp", columnNames = "customer_id_stp")
         },
-        indexes = @Index(name = "email_index", columnList = "username"))
+        indexes = @Index(name = "customer_id_stp", columnList = "customer_id_stp"))
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -33,4 +33,6 @@ public class AppCustomer {
     private String customerId;
     @OneToMany(mappedBy = "customer", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     private List<AppCharge> charges;
+    @OneToMany(mappedBy = "customer", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    private List<AppCard> cards;
 }
