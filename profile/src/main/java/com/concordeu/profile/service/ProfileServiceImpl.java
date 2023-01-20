@@ -22,6 +22,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
 import java.util.Set;
@@ -195,7 +196,7 @@ public class ProfileServiceImpl implements ProfileService {
                 model.street(),
                 model.postCode());
 
-        Profile authProfile = Profile.builder()
+        return Profile.builder()
                 .username(model.username())
                 .password(passwordEncoder.encode(model.password().trim()))
                 .grantedAuthorities(grantedAuthorities)
@@ -205,7 +206,6 @@ public class ProfileServiceImpl implements ProfileService {
                 .phoneNumber(model.phoneNumber())
                 .created(LocalDateTime.now())
                 .build();
-        return authProfile;
     }
 
     private PaymentDto addCardToCustomer(UserRequestDto userRequestDto,
@@ -248,10 +248,10 @@ public class ProfileServiceImpl implements ProfileService {
                 .bodyValue(request)
                 .retrieve()
                 .bodyToMono(PaymentDto.class)
-/*                .transform(it ->
+                .transform(it ->
                         reactiveCircuitBreakerFactory.create("profile-service")
                                 .run(it, throwable -> (Mono.just(PaymentDto.builder().username("Ooops...").build())))
-                )*/
+                )
                 .block();
     }
 
@@ -261,10 +261,10 @@ public class ProfileServiceImpl implements ProfileService {
                 .uri(paymentDeleteCustomerPostUri + username)
                 .retrieve()
                 .bodyToMono(Void.class)
-                /*.transform(it ->
-                        reactiveCircuitBreakerFactory.create("order-service")
+                .transform(it ->
+                        reactiveCircuitBreakerFactory.create("profile-service")
                                 .run(it)
-                )*/
+                )
                 .subscribe();
     }
 }

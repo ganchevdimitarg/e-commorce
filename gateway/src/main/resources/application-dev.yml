@@ -79,6 +79,9 @@ spring:
               args:
                 name: ecommerceServices
                 fallbackUri: forward:/catalog-fallback
+                statusCodes:
+                  - 500
+                  - "NOT_FOUND"
         - id: profile-service
           uri: lb://profile-service
           predicates:
@@ -88,6 +91,9 @@ spring:
               args:
                 name: ecommerceServices
                 fallbackUri: forward:/profile-fallback
+                statusCodes:
+                  - 500
+                  - "NOT_FOUND"
         - id: notification-service
           uri: lb://notification-service
           predicates:
@@ -97,6 +103,9 @@ spring:
               args:
                 name: ecommerceServices
                 fallbackUri: forward:/notification-fallback
+                statusCodes:
+                  - 500
+                  - "NOT_FOUND"
         - id: order-service
           uri: lb://order-service
           predicates:
@@ -106,6 +115,9 @@ spring:
               args:
                 name: ecommerceServices
                 fallbackUri: forward:/order-fallback
+                statusCodes:
+                  - 500
+                  - "NOT_FOUND"
         - id: payment-service
           uri: lb://payment-service
           predicates:
@@ -115,20 +127,21 @@ spring:
               args:
                 name: ecommerceServices
                 fallbackUri: forward:/payment-fallback
+                statusCodes:
+                  - 500
+                  - "NOT_FOUND"
 
 resilience4j:
   circuitbreaker:
     instances:
       ecommerceServices:
-        sliding-window-size: 10
-        permitted-number-of-calls-in-half-open-state: 5
-        failure-rate-threshold: 50
-        wait-duration-in-open-state: 1000
+        failureRateThreshold: 50
+        minimumNumberOfCalls: 10
+        slidingWindowType: TIME_BASED
+        slidingWindowSize: 10
+        waitDurationInOpenState: 1000
+        permittedNumberOfCallsInHalfOpenState: 5
         register-health-indicator: true
-  timelimiter:
-    instances:
-      ecommerceServices:
-        timeout-duration: 3s
 
 #Logging Levels
 #Disable the default loggers
