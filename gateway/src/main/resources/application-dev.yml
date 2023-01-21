@@ -131,6 +131,7 @@ spring:
                   - 500
                   - "NOT_FOUND"
 
+#Resilience4j
 resilience4j:
   circuitbreaker:
     instances:
@@ -141,7 +142,11 @@ resilience4j:
         slidingWindowSize: 10
         waitDurationInOpenState: 1000
         permittedNumberOfCallsInHalfOpenState: 5
-        register-health-indicator: true
+        registerHealthIndicator: true
+  timelimiter:
+    instances:
+      ecommerceServices:
+        timeoutDuration: 4s
 
 #Logging Levels
 #Disable the default loggers
