@@ -5,6 +5,7 @@ import com.concordeu.order.dao.OrderDao;
 import com.concordeu.order.domain.Item;
 import com.concordeu.order.domain.Order;
 import com.concordeu.order.dto.*;
+import com.concordeu.order.excaption.InvalidRequestDataException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -64,24 +65,22 @@ public class OrderServiceImpl implements OrderService {
         );
 
         PaymentDto payment = chargeService.makePayment(orderDto, authenticationName, amount);
+        
+        Order order = Order.builder()
+                .username(orderDto.username())
+                .deliveryComment(orderDto.deliveryComment())
+                .orderNumber(orderCounter++)
+                .createdOn(LocalDateTime.now())
+                .build();
+        Order orderSave = orderDao.saveAndFlush(order);
+        log.info("Order was successfully created");
 
-        if (payment.chargeStatus().equals("succeeded")) {
-            Order order = Order.builder()
-                    .username(orderDto.username())
-                    .deliveryComment(orderDto.deliveryComment())
-                    .orderNumber(orderCounter++)
-                    .createdOn(LocalDateTime.now())
-                    .build();
-            Order orderSave = orderDao.saveAndFlush(order);
-            log.info("Order was successfully created");
+        List<Item> items = orderDto.items();
+        items.forEach(item -> item.setOrder(orderSave));
+        itemDao.saveAllAndFlush(items);
+        log.info("Items was successfully created");
 
-            List<Item> items = orderDto.items();
-            items.forEach(item -> item.setOrder(orderSave));
-            itemDao.saveAllAndFlush(items);
-            log.info("Items was successfully created");
-
-            chargeService.saveCharge(order, payment);
-        }
+        chargeService.saveCharge(order, payment);
     }
 
     @Override
@@ -113,12 +112,13 @@ public class OrderServiceImpl implements OrderService {
                 .transform(it ->
                         reactiveCircuitBreakerFactory.create("orderService")
                                 .run(it, throwable -> {
-                                    log.warn("Catalog Server is down");
-                                    return Mono.just(UserDto.builder().username(username).build());
+                                    log.warn("Catalog Server is down", throwable);
+                                    return Mono.just(UserDto.builder().username("N/A").build());
                                 })
                 )
                 .block();
 
+        ckeckCatalogServiceAvailability(userInfo.username());
 
         List<ProductResponseDto> productInfo = getRequestToCategoryService(
                 ItemRequestDto.builder()
@@ -140,7 +140,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private List<ProductResponseDto> getRequestToCategoryService(ItemRequestDto request) {
-        return webClient
+        List<ProductResponseDto> responseDtoList = webClient
                 .post()
                 .uri(catalogProductsGetUri)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -152,10 +152,22 @@ public class OrderServiceImpl implements OrderService {
                 .transform(it ->
                         reactiveCircuitBreakerFactory.create("orderService")
                                 .run(it, throwable -> {
-                                    log.warn("Catalog Server is down");
+                                    log.warn("Catalog Server is down", throwable);
                                     return Mono.just(List.of(ProductResponseDto.builder().name("N/A").build()));
                                 })
                 )
                 .block();
+
+        ckeckCatalogServiceAvailability(responseDtoList.get(0).name());
+        return responseDtoList;
+    }
+
+    private void ckeckCatalogServiceAvailability(String userInfo) {
+        if (userInfo.equals("N/A")) {
+            throw new InvalidRequestDataException("""
+                Something happened with the order service.
+                Please check the request details again
+                """);
+        }
     }
 }

@@ -5,6 +5,7 @@ import com.concordeu.order.domain.Charge;
 import com.concordeu.order.domain.Order;
 import com.concordeu.order.dto.OrderDto;
 import com.concordeu.order.dto.PaymentDto;
+import com.concordeu.order.excaption.InvalidRequestDataException;
 import com.google.gson.Gson;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -69,7 +70,7 @@ public class ChargeServiceImpl implements ChargeService {
     }
 
     private PaymentDto sendRequestToPaymentService(String uri, String request) {
-        return webClient
+        PaymentDto paymentDto = webClient
                 .post()
                 .uri(uri)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -80,15 +81,18 @@ public class ChargeServiceImpl implements ChargeService {
                 .transform(it ->
                         reactiveCircuitBreakerFactory.create("orderService")
                                 .run(it, throwable -> {
-                                    log.warn("Payment service is down");
+                                    log.warn("Payment service is down", throwable);
                                     return Mono.just(PaymentDto.builder().username("N/A").build());
                                 })
                 )
                 .block();
+
+        checkPaymentServiceAvailability(paymentDto);
+        return paymentDto;
     }
 
     private PaymentDto getCustomerFromPaymentService(String uri) {
-        return webClient
+        PaymentDto paymentDto = webClient
                 .get()
                 .uri(uri)
                 .accept(MediaType.APPLICATION_JSON)
@@ -97,12 +101,23 @@ public class ChargeServiceImpl implements ChargeService {
                 .transform(it ->
                         reactiveCircuitBreakerFactory.create("orderService")
                                 .run(it, throwable -> {
-                                    log.warn("Payment service is down");
-                                   return Mono.just(PaymentDto.builder().username("Ooops...").build());
+                                    log.warn("Payment service is down", throwable);
+                                    return Mono.just(PaymentDto.builder().username("N/A").build());
                                 })
                 )
                 .block();
+
+        checkPaymentServiceAvailability(paymentDto);
+        return paymentDto;
     }
 
+    private void checkPaymentServiceAvailability(PaymentDto paymentDto) {
+        if (paymentDto.username().equals("N/A")) {
+            throw new InvalidRequestDataException("""
+                    Something happened with the order service.
+                    Please check the request details again
+                    """);
+        }
+    }
 
 }
