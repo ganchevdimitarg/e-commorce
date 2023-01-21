@@ -118,21 +118,32 @@ kafka:
   bootstrapAddress: localhost:9092
 
 #Resilience4j
-resilience4j:
-  circuitbreaker:
-    instances:
-      order-service:
-        failure-rate-threshold: 50
-        minimum-number-of-calls: 10
-        sliding-window-type: TIME_BASED
-        sliding-window-size: 10
-        wait-duration-in-open-state: 1000
-        permitted-number-of-calls-in-half-open-state: 5
-        register-health-indicator: true
-  timelimiter:
-    instances:
-      order-service:
-        timeout-duration: 4s
+resilience4j.circuitbreaker:
+  configs:
+    default:
+      failureRateThreshold: 50
+      minimumNumberOfCalls: 10
+      slidingWindowType: TIME_BASED
+      slidingWindowSize: 10
+      waitDurationInOpenState: 1000
+      permittedNumberOfCallsInHalfOpenState: 5
+      registerHealthIndicator: true
+      recordExceptions:
+        - org.springframework.web.client.HttpServerErrorException
+        - java.util.concurrent.TimeoutException
+        - java.io.IOException
+  instances:
+    orderService:
+      baseConfig: default
+
+resilience4j.timelimiter:
+  configs:
+    default:
+      timeoutDuration: 5s
+      cancelRunningFuture: true
+  instances:
+    orderService:
+      baseConfig: default
 
 catalog:
   base:

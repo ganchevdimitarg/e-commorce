@@ -77,11 +77,8 @@ spring:
           filters:
             - name: CircuitBreaker
               args:
-                name: ecommerceServices
-                fallbackUri: forward:/catalog-fallback
-                statusCodes:
-                  - 500
-                  - "NOT_FOUND"
+                name: catalogService
+                fallbackUri: forward:/fallback
         - id: profile-service
           uri: lb://profile-service
           predicates:
@@ -89,11 +86,8 @@ spring:
           filters:
             - name: CircuitBreaker
               args:
-                name: ecommerceServices
-                fallbackUri: forward:/profile-fallback
-                statusCodes:
-                  - 500
-                  - "NOT_FOUND"
+                name: profileService
+                fallbackUri: /fallback
         - id: notification-service
           uri: lb://notification-service
           predicates:
@@ -101,11 +95,8 @@ spring:
           filters:
             - name: CircuitBreaker
               args:
-                name: ecommerceServices
-                fallbackUri: forward:/notification-fallback
-                statusCodes:
-                  - 500
-                  - "NOT_FOUND"
+                name: notificationService
+                fallbackUri: forward:/fallback
         - id: order-service
           uri: lb://order-service
           predicates:
@@ -113,11 +104,8 @@ spring:
           filters:
             - name: CircuitBreaker
               args:
-                name: ecommerceServices
-                fallbackUri: forward:/order-fallback
-                statusCodes:
-                  - 500
-                  - "NOT_FOUND"
+                name: orderService
+                fallbackUri: forward:/fallback
         - id: payment-service
           uri: lb://payment-service
           predicates:
@@ -125,28 +113,52 @@ spring:
           filters:
             - name: CircuitBreaker
               args:
-                name: ecommerceServices
-                fallbackUri: forward:/payment-fallback
-                statusCodes:
-                  - 500
-                  - "NOT_FOUND"
+                name: paymentService
+                fallbackUri: forward:/fallback
 
 #Resilience4j
-resilience4j:
-  circuitbreaker:
-    instances:
-      ecommerceServices:
-        failureRateThreshold: 50
-        minimumNumberOfCalls: 10
-        slidingWindowType: TIME_BASED
-        slidingWindowSize: 10
-        waitDurationInOpenState: 1000
-        permittedNumberOfCallsInHalfOpenState: 5
-        registerHealthIndicator: true
-  timelimiter:
-    instances:
-      ecommerceServices:
-        timeoutDuration: 4s
+resilience4j.circuitbreaker:
+  configs:
+    default:
+      failureRateThreshold: 50
+      minimumNumberOfCalls: 10
+      slidingWindowType: TIME_BASED
+      slidingWindowSize: 10
+      waitDurationInOpenState: 1000
+      permittedNumberOfCallsInHalfOpenState: 5
+      registerHealthIndicator: true
+      recordExceptions:
+        - org.springframework.web.client.HttpServerErrorException
+        - java.util.concurrent.TimeoutException
+        - java.io.IOException
+  instances:
+    catalogService:
+      baseConfig: default
+    profileService:
+      baseConfig: default
+    notificationService:
+      baseConfig: default
+    orderService:
+      baseConfig: default
+    paymentService:
+      baseConfig: default
+
+resilience4j.timelimiter:
+  configs:
+    default:
+      timeoutDuration: 5s
+      cancelRunningFuture: true
+  instances:
+    catalogService:
+      baseConfig: default
+    profileService:
+      baseConfig: default
+    notificationService:
+      baseConfig: default
+    orderService:
+      baseConfig: default
+    paymentService:
+      baseConfig: default
 
 #Logging Levels
 #Disable the default loggers
@@ -179,6 +191,11 @@ management:
     export:
       prometheus:
         enabled: 'true'
+  health:
+    circuitbreakers:
+      enabled: true
+    ratelimiters:
+      enabled: true
 
 #Eureka
 eureka:

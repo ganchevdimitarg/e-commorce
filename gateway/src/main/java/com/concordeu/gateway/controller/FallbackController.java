@@ -1,29 +1,29 @@
 package com.concordeu.gateway.controller;
 
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
 @RestController
 public class FallbackController {
-    @GetMapping("/catalog-fallback")
-    Mono<String> getCategoryFallback() {
+
+    @GetMapping("/fallback")
+    private Mono<String> fallbackGet() {
         return Mono.just("Oops... Something went wrong, please try again later :)");
     }
-    @GetMapping("/order-fallback")
-    Mono<String> getOrderFallback() {
+
+    @PostMapping("/fallback")
+    private Mono<String> fallbackPost() {
         return Mono.just("Oops... Something went wrong, please try again later :)");
     }
-    @GetMapping("/profile-fallback")
-    Mono<String> getProfileFallback() {
+
+    @PutMapping("/fallback")
+    private Mono<String> fallbackPut() {
         return Mono.just("Oops... Something went wrong, please try again later :)");
     }
-    @GetMapping("/notification-fallback")
-    Mono<String> getNotificationFallback() {
-        return Mono.just("Oops... Something went wrong, please try again later :)");
-    }
-    @GetMapping("/payment-fallback")
-    Mono<String> getPaymentFallback() {
+
+    @DeleteMapping("/fallback")
+    private Mono<String> fallbackDelete() {
         return Mono.just("Oops... Something went wrong, please try again later :)");
     }
 }
+

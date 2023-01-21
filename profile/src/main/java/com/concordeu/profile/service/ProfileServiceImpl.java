@@ -249,7 +249,7 @@ public class ProfileServiceImpl implements ProfileService {
                 .retrieve()
                 .bodyToMono(PaymentDto.class)
                 .transform(it ->
-                        reactiveCircuitBreakerFactory.create("profile-service")
+                        reactiveCircuitBreakerFactory.create("profileService")
                                 .run(it, throwable -> (Mono.just(PaymentDto.builder().username("Ooops...").build())))
                 )
                 .block();
@@ -262,7 +262,7 @@ public class ProfileServiceImpl implements ProfileService {
                 .retrieve()
                 .bodyToMono(Void.class)
                 .transform(it ->
-                        reactiveCircuitBreakerFactory.create("profile-service")
+                        reactiveCircuitBreakerFactory.create("profileService")
                                 .run(it)
                 )
                 .subscribe();
