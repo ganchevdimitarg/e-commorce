@@ -7,6 +7,7 @@ import com.stripe.model.Customer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Mono;
 
 @RestController
 @RequestMapping("/api/v1/payment/customer")
@@ -31,7 +32,7 @@ public class CustomerController {
     }
 
     @DeleteMapping("/delete-customer")
-    public void deleteCustomer(@RequestParam String username) {
-      customerService.deleteCustomer(username);
+    public String deleteCustomer(@RequestParam String username) {
+        return customerService.deleteCustomer(username);
     }
 }

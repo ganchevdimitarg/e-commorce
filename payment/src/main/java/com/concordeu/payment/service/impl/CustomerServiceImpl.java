@@ -86,7 +86,7 @@ public class CustomerServiceImpl implements CustomerService {
      * @param username customer username
      */
     @Override
-    public void deleteCustomer(String username) {
+    public String deleteCustomer(String username) {
         Stripe.apiKey = secretKey;
 
         try {
@@ -94,6 +94,7 @@ public class CustomerServiceImpl implements CustomerService {
             Customer.retrieve(customerByEmail.getId()).delete();
             customerDao.delete(customerDao.findByUsername(username));
             log.info("Delete customer successful: {}", customerByEmail.getEmail());
+            return customerByEmail.getId();
         } catch (StripeException e) {
             log.warn(e.getMessage());
             throw new InvalidPaymentRequestException(e.getMessage());
