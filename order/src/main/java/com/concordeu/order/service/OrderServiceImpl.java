@@ -17,6 +17,7 @@ import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -111,7 +112,10 @@ public class OrderServiceImpl implements OrderService {
                 .bodyToMono(UserDto.class)
                 .transform(it ->
                         reactiveCircuitBreakerFactory.create("orderService")
-                                .run(it, throwable -> (Mono.just(UserDto.builder().username(username).build())))
+                                .run(it, throwable -> {
+                                    log.warn("Catalog Server is down");
+                                    return Mono.just(UserDto.builder().username(username).build());
+                                })
                 )
                 .block();
 
@@ -147,7 +151,10 @@ public class OrderServiceImpl implements OrderService {
                 })
                 .transform(it ->
                         reactiveCircuitBreakerFactory.create("orderService")
-                                .run(it)
+                                .run(it, throwable -> {
+                                    log.warn("Catalog Server is down");
+                                    return Mono.just(List.of(ProductResponseDto.builder().name("N/A").build()));
+                                })
                 )
                 .block();
     }
