@@ -110,7 +110,7 @@ public class OrderServiceImpl implements OrderService {
                 .retrieve()
                 .bodyToMono(UserDto.class)
                 .transform(it ->
-                        reactiveCircuitBreakerFactory.create("order-service")
+                        reactiveCircuitBreakerFactory.create("orderService")
                                 .run(it, throwable -> (Mono.just(UserDto.builder().username(username).build())))
                 )
                 .block();
@@ -146,7 +146,7 @@ public class OrderServiceImpl implements OrderService {
                 .bodyToMono(new ParameterizedTypeReference<List<ProductResponseDto>>() {
                 })
                 .transform(it ->
-                        reactiveCircuitBreakerFactory.create("order-service")
+                        reactiveCircuitBreakerFactory.create("orderService")
                                 .run(it)
                 )
                 .block();
