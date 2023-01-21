@@ -209,7 +209,7 @@ public class ProfileServiceImpl implements ProfileService {
     }
 
     private PaymentDto addCardToCustomer(UserRequestDto userRequestDto,
-                                   String customerId) {
+                                         String customerId) {
         String cardRequestBody = mapper.toJson(CardDto.builder()
                 .customerId(customerId)
                 .cardNumber(userRequestDto.cardNumber())
@@ -219,7 +219,7 @@ public class ProfileServiceImpl implements ProfileService {
                 .build()
         );
 
-       return sendRequestToPaymentService(
+        return sendRequestToPaymentService(
                 paymentCardPostUri,
                 cardRequestBody
         );
@@ -250,7 +250,10 @@ public class ProfileServiceImpl implements ProfileService {
                 .bodyToMono(PaymentDto.class)
                 .transform(it ->
                         reactiveCircuitBreakerFactory.create("profileService")
-                                .run(it, throwable -> (Mono.just(PaymentDto.builder().username("Ooops...").build())))
+                                .run(it, throwable -> {
+                                    log.warn("Payment service is down");
+                                    return Mono.just(PaymentDto.builder().username("Ooops...").build());
+                                })
                 )
                 .block();
     }
@@ -263,7 +266,10 @@ public class ProfileServiceImpl implements ProfileService {
                 .bodyToMono(Void.class)
                 .transform(it ->
                         reactiveCircuitBreakerFactory.create("profileService")
-                                .run(it)
+                                .run(it, throwable -> {
+                                    log.warn("Payment service is down");
+                                    return Mono.empty();
+                                })
                 )
                 .subscribe();
     }

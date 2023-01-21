@@ -79,7 +79,10 @@ public class ChargeServiceImpl implements ChargeService {
                 .bodyToMono(PaymentDto.class)
                 .transform(it ->
                         reactiveCircuitBreakerFactory.create("orderService")
-                                .run(it, throwable -> (Mono.just(PaymentDto.builder().username("Ooops...").build())))
+                                .run(it, throwable -> {
+                                    log.warn("Payment service is down");
+                                    return Mono.just(PaymentDto.builder().username("N/A").build());
+                                })
                 )
                 .block();
     }
@@ -93,7 +96,10 @@ public class ChargeServiceImpl implements ChargeService {
                 .bodyToMono(PaymentDto.class)
                 .transform(it ->
                         reactiveCircuitBreakerFactory.create("orderService")
-                                .run(it, throwable -> (Mono.just(PaymentDto.builder().username("Ooops...").build())))
+                                .run(it, throwable -> {
+                                    log.warn("Payment service is down");
+                                   return Mono.just(PaymentDto.builder().username("Ooops...").build());
+                                })
                 )
                 .block();
     }
