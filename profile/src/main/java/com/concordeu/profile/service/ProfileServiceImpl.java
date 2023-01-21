@@ -251,7 +251,7 @@ public class ProfileServiceImpl implements ProfileService {
                 .transform(it ->
                         reactiveCircuitBreakerFactory.create("profileService")
                                 .run(it, throwable -> {
-                                    log.warn("Payment service is down");
+                                    log.warn("Payment service is down", throwable);
                                     return Mono.just(PaymentDto.builder().username("Ooops...").build());
                                 })
                 )
@@ -267,7 +267,7 @@ public class ProfileServiceImpl implements ProfileService {
                 .transform(it ->
                         reactiveCircuitBreakerFactory.create("profileService")
                                 .run(it, throwable -> {
-                                    log.warn("Payment service is down");
+                                    log.warn("Payment service is down", throwable);
                                     return Mono.empty();
                                 })
                 )
