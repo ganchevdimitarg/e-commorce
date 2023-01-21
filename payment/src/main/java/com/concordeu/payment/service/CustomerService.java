@@ -9,5 +9,5 @@ public interface CustomerService {
     PaymentDto createCustomer(PaymentDto customerDto) throws StripeException;
     Customer getCustomerByUsername(String username);
     AppCustomer findByUsername(String username);
-    void deleteCustomer(String username);
+    String deleteCustomer(String username);
 }

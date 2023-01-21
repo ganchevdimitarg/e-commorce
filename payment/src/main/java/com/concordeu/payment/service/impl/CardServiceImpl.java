@@ -90,6 +90,7 @@ public class CardServiceImpl implements CardService {
             log.info("Method createCard: Create card successful: {}", card.getId());
             return PaymentDto.builder()
                     .cardId(card.getId())
+                    .customerId(customer.getId())
                     .build();
 
         } catch (StripeException e) {

@@ -240,7 +240,7 @@ public class ProfileServiceImpl implements ProfileService {
 
     private PaymentDto sendRequestToPaymentService(String uri,
                                                    String request) {
-        return webClient
+        PaymentDto paymentDto = webClient
                 .post()
                 .uri(uri)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -252,25 +252,40 @@ public class ProfileServiceImpl implements ProfileService {
                         reactiveCircuitBreakerFactory.create("profileService")
                                 .run(it, throwable -> {
                                     log.warn("Payment service is down", throwable);
-                                    return Mono.just(PaymentDto.builder().username("Ooops...").build());
+                                    return Mono.just(PaymentDto.builder().customerId("").build());
                                 })
                 )
                 .block();
+
+        checkAvailabilityOfPaymentService(paymentDto.customerId());
+
+        return paymentDto;
     }
 
     private void deletePaymentCustomer(String username) {
-        webClient
+        String paymentCustomerId = webClient
                 .delete()
                 .uri(paymentDeleteCustomerPostUri + username)
                 .retrieve()
-                .bodyToMono(Void.class)
+                .bodyToMono(String.class)
                 .transform(it ->
                         reactiveCircuitBreakerFactory.create("profileService")
                                 .run(it, throwable -> {
                                     log.warn("Payment service is down", throwable);
-                                    return Mono.empty();
+                                    return Mono.just("");
                                 })
                 )
-                .subscribe();
+                .block();
+
+        checkAvailabilityOfPaymentService(paymentCustomerId);
+    }
+
+    private void checkAvailabilityOfPaymentService(String token) {
+        if (token.isEmpty()) {
+            throw new InvalidRequestDataException("""
+                    Something happened with the profile service.
+                    Please check the request details again
+                    """);
+        }
     }
 }

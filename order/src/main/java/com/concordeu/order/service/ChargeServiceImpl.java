@@ -82,12 +82,12 @@ public class ChargeServiceImpl implements ChargeService {
                         reactiveCircuitBreakerFactory.create("orderService")
                                 .run(it, throwable -> {
                                     log.warn("Payment service is down", throwable);
-                                    return Mono.just(PaymentDto.builder().username("N/A").build());
+                                    return Mono.just(PaymentDto.builder().chargeId("").build());
                                 })
                 )
                 .block();
 
-        checkPaymentServiceAvailability(paymentDto);
+        checkPaymentServiceAvailability(paymentDto.chargeId());
         return paymentDto;
     }
 
@@ -102,17 +102,17 @@ public class ChargeServiceImpl implements ChargeService {
                         reactiveCircuitBreakerFactory.create("orderService")
                                 .run(it, throwable -> {
                                     log.warn("Payment service is down", throwable);
-                                    return Mono.just(PaymentDto.builder().username("N/A").build());
+                                    return Mono.just(PaymentDto.builder().username("").build());
                                 })
                 )
                 .block();
 
-        checkPaymentServiceAvailability(paymentDto);
+        checkPaymentServiceAvailability(paymentDto.username());
         return paymentDto;
     }
 
-    private void checkPaymentServiceAvailability(PaymentDto paymentDto) {
-        if (paymentDto.username().equals("N/A")) {
+    private void checkPaymentServiceAvailability(String token) {
+        if (token.isEmpty()) {
             throw new InvalidRequestDataException("""
                     Something happened with the order service.
                     Please check the request details again

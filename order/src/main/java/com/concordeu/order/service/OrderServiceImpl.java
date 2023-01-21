@@ -18,7 +18,6 @@ import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -65,7 +64,7 @@ public class OrderServiceImpl implements OrderService {
         );
 
         PaymentDto payment = chargeService.makePayment(orderDto, authenticationName, amount);
-        
+
         Order order = Order.builder()
                 .username(orderDto.username())
                 .deliveryComment(orderDto.deliveryComment())
@@ -113,12 +112,12 @@ public class OrderServiceImpl implements OrderService {
                         reactiveCircuitBreakerFactory.create("orderService")
                                 .run(it, throwable -> {
                                     log.warn("Catalog Server is down", throwable);
-                                    return Mono.just(UserDto.builder().username("N/A").build());
+                                    return Mono.just(UserDto.builder().username("").build());
                                 })
                 )
                 .block();
 
-        ckeckCatalogServiceAvailability(userInfo.username());
+        checkAvailabilityOfCatalogService(userInfo.username());
 
         List<ProductResponseDto> productInfo = getRequestToCategoryService(
                 ItemRequestDto.builder()
@@ -153,21 +152,21 @@ public class OrderServiceImpl implements OrderService {
                         reactiveCircuitBreakerFactory.create("orderService")
                                 .run(it, throwable -> {
                                     log.warn("Catalog Server is down", throwable);
-                                    return Mono.just(List.of(ProductResponseDto.builder().name("N/A").build()));
+                                    return Mono.just(List.of(ProductResponseDto.builder().name("").build()));
                                 })
                 )
                 .block();
 
-        ckeckCatalogServiceAvailability(responseDtoList.get(0).name());
+        checkAvailabilityOfCatalogService(responseDtoList.get(0).name());
         return responseDtoList;
     }
 
-    private void ckeckCatalogServiceAvailability(String userInfo) {
-        if (userInfo.equals("N/A")) {
+    private void checkAvailabilityOfCatalogService(String token) {
+        if (token.isEmpty()) {
             throw new InvalidRequestDataException("""
-                Something happened with the order service.
-                Please check the request details again
-                """);
+                    Something happened with the order service.
+                    Please check the request details again
+                    """);
         }
     }
 }
