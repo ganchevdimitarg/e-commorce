@@ -152,9 +152,15 @@ catalog:
     products:
       get:
         uri: ${catalog.base.uri}/catalog/product/get-products-id
-    profile:
-      get:
-        uri: ${catalog.base.uri}/profile/get-by-username?username=
+
+profile:
+  base:
+    uri: http://127.0.0.1:8083/api/v1
+  service:
+    get:
+      uri: ${profile.base.uri}/profile/get-by-username?username=
+    post:
+      uri: ${profile.base.uri}/profile/register-user
 
 payment:
   base:

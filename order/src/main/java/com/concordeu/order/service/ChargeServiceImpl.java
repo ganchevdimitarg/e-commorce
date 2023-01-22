@@ -31,12 +31,12 @@ public class ChargeServiceImpl implements ChargeService {
     private String paymentChargePostUri;
 
     @Override
-    public PaymentDto makePayment(OrderDto orderDto, String authenticationName, long amount) {
+    public PaymentDto makePayment(String cardId, String authenticationName, long amount) {
         PaymentDto paymentCustomer = getCustomerFromPaymentService(
                 paymentCustomerGetUri + authenticationName
         );
 
-        PaymentDto chargeCustomer = chargeCustomer(amount, paymentCustomer, orderDto.cardId());
+        PaymentDto chargeCustomer = chargeCustomer(amount, paymentCustomer, cardId);
         log.info("Payment went through successfully: {}", chargeCustomer.chargeId());
         return chargeCustomer;
     }

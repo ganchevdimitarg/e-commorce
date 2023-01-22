@@ -6,5 +6,5 @@ import com.concordeu.order.dto.PaymentDto;
 
 public interface ChargeService {
     void saveCharge(Order order, PaymentDto paymentCharge);
-    PaymentDto makePayment(OrderDto orderDto, String username, long amount);
+    PaymentDto makePayment(String cardId, String username, long amount);
 }
