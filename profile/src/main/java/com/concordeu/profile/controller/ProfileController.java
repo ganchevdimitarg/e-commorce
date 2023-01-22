@@ -82,13 +82,15 @@ public class ProfileController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @GetMapping("/get-by-username")
-    @PreAuthorize("hasAnyAuthority('SCOPE_profile.read')")
     public UserDto getUserByUsername(Authentication authentication, @RequestParam String username) {
         String principalName = authentication.getName();
 
-        if (principalName.equals(username.trim()) || principalName.equals(ADMIN)) {
+        if (principalName.equals(username.trim()) ||
+            principalName.equals(ADMIN) ||
+            principalName.equals("gateway")) {
             return profileService.getUserByUsername(username.trim());
         }
+
         log.debug("Profile '{}' try to access another account '{}'", principalName, username);
         throw new IllegalArgumentException("You cannot access this information!");
     }

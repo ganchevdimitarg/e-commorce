@@ -17,5 +17,9 @@ public record UserDto(
         String city,
         String street,
         String postCode,
+        String cardNumber,
+        long cardExpMonth,
+        long cardExpYear,
+        String cardCvc,
         String cardId) {
 }

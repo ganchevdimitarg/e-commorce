@@ -27,4 +27,5 @@ public class CustomOpaqueTokenIntrospector implements OpaqueTokenIntrospector {
         }
         return new FacebookOAuth2AuthPrincipal().getPrincipal(token);
     }
+
 }
