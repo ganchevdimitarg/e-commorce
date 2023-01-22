@@ -8,6 +8,7 @@ import java.util.Optional;
 
 public interface OrderDao extends JpaRepository<Order, String> {
     Optional<Order> findByOrderNumber(long orderNumber);
+
     @Transactional
     void deleteByOrderNumber(long orderNumber);
 }

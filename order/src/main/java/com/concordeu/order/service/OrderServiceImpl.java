@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
+import javax.annotation.PostConstruct;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -31,12 +32,18 @@ public class OrderServiceImpl implements OrderService {
     private final ReactiveCircuitBreakerFactory reactiveCircuitBreakerFactory;
     private final ChargeService chargeService;
 
+    private long orderCounter;
+
+    @PostConstruct
+    public void init() {
+        orderCounter = orderDao.count();
+    }
+
     @Value("${catalog.service.products.get.uri}")
     private String catalogProductsGetUri;
     @Value("${catalog.service.profile.get.uri}")
     private String catalogProfileGetUri;
 
-    private long orderCounter = 1;
 
     @Override
     public void createOrder(OrderDto orderDto, String authenticationName) {
@@ -68,7 +75,7 @@ public class OrderServiceImpl implements OrderService {
         Order order = Order.builder()
                 .username(orderDto.username())
                 .deliveryComment(orderDto.deliveryComment())
-                .orderNumber(orderCounter++)
+                .orderNumber(++orderCounter)
                 .createdOn(LocalDateTime.now())
                 .build();
         Order orderSave = orderDao.saveAndFlush(order);
