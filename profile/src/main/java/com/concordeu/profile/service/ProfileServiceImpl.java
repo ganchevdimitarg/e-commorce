@@ -64,7 +64,7 @@ public class ProfileServiceImpl implements ProfileService {
 
     @Override
     public UserDto createUser(UserRequestDto userRequestDto) {
-        UserDto userDto = getUserDto(createUser(userRequestDto, USER.getGrantedAuthorities()));
+        UserDto userDto = createUser(userRequestDto, USER.getGrantedAuthorities());
         log.info("Profile user with username: {} was created", userDto.username());
         return userDto;
     }
@@ -149,17 +149,19 @@ public class ProfileServiceImpl implements ProfileService {
     }
 
     private UserDto getUserDto(Profile profile) {
-        return new UserDto(
-                profile.getId(),
-                profile.getUsername(),
-                profile.getPassword(),
-                profile.getGrantedAuthorities(),
-                profile.getFirstName(),
-                profile.getLastName(),
-                profile.getPhoneNumber(),
-                profile.getAddress().city(),
-                profile.getAddress().street(),
-                profile.getAddress().postCode());
+        return UserDto.builder()
+                .id(profile.getId())
+                .username(profile.getUsername())
+                .password("")
+                .grantedAuthorities(profile.getGrantedAuthorities())
+                .firstName(profile.getFirstName())
+                .lastName(profile.getLastName())
+                .phoneNumber(profile.getPhoneNumber())
+                .city(profile.getAddress().city())
+                .street(profile.getAddress().street())
+                .postCode(profile.getAddress().postCode())
+                .cardId("")
+                .build();
     }
 
     private Profile createStaff(UserRequestDto userRequestDto,
@@ -171,7 +173,7 @@ public class ProfileServiceImpl implements ProfileService {
         return profile;
     }
 
-    private Profile createUser(UserRequestDto userRequestDto,
+    private UserDto createUser(UserRequestDto userRequestDto,
                                Set<SimpleGrantedAuthority> grantedAuthorities) {
         Profile authProfile = builtProfile(userRequestDto, grantedAuthorities);
 
@@ -184,7 +186,19 @@ public class ProfileServiceImpl implements ProfileService {
 
         Profile profile = profileDao.insert(authProfile);
         log.info("The profile was successfully create");
-        return profile;
+        return UserDto.builder()
+                .id(profile.getId())
+                .username(profile.getUsername())
+                .password("")
+                .grantedAuthorities(profile.getGrantedAuthorities())
+                .firstName(profile.getFirstName())
+                .lastName(profile.getLastName())
+                .phoneNumber(profile.getPhoneNumber())
+                .city(profile.getAddress().city())
+                .street(profile.getAddress().street())
+                .postCode(profile.getAddress().postCode())
+                .cardId(paymentDto.cardId())
+                .build();
     }
 
     private Profile builtProfile(UserRequestDto model, Set<SimpleGrantedAuthority> grantedAuthorities) {

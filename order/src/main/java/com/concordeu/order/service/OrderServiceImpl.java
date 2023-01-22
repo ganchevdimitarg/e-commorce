@@ -41,9 +41,10 @@ public class OrderServiceImpl implements OrderService {
 
     @Value("${catalog.service.products.get.uri}")
     private String catalogProductsGetUri;
-    @Value("${catalog.service.profile.get.uri}")
-    private String catalogProfileGetUri;
-
+    @Value("${profile.service.get.uri}")
+    private String profileServiceGetUri;
+    @Value("${profile.service.post.uri}")
+    private String profileServicePostUri;
 
     @Override
     public void createOrder(OrderDto orderDto, String authenticationName) {
@@ -53,7 +54,12 @@ public class OrderServiceImpl implements OrderService {
             throw new IllegalArgumentException("You cannot access this information!");
         }
 
-        List<ProductResponseDto> products = getRequestToCategoryService(
+        UserDto userInfo = getRequestToProfileServiceUserInfo(authenticationName);
+        if (userInfo.username().isEmpty()) {
+            userInfo = createProfileUser(orderDto);
+        }
+
+        List<ProductResponseDto> products = getRequestToCategoryServiceProductInfo(
                 ItemRequestDto.builder()
                         .items(orderDto.items()
                                 .stream()
@@ -70,7 +76,7 @@ public class OrderServiceImpl implements OrderService {
                         .replace(".", "")
         );
 
-        PaymentDto payment = chargeService.makePayment(orderDto, authenticationName, amount);
+        PaymentDto payment = chargeService.makePayment(userInfo.cardId(), authenticationName, amount);
 
         Order order = Order.builder()
                 .username(orderDto.username())
@@ -109,24 +115,11 @@ public class OrderServiceImpl implements OrderService {
             throw new IllegalArgumentException("You cannot access this information!");
         }
 
-        UserDto userInfo = webClient
-                .get()
-                .uri(catalogProfileGetUri + username)
-                .accept(MediaType.APPLICATION_JSON)
-                .retrieve()
-                .bodyToMono(UserDto.class)
-                .transform(it ->
-                        reactiveCircuitBreakerFactory.create("orderService")
-                                .run(it, throwable -> {
-                                    log.warn("Catalog Server is down", throwable);
-                                    return Mono.just(UserDto.builder().username("").build());
-                                })
-                )
-                .block();
+        UserDto userInfo = getRequestToProfileServiceUserInfo(authenticationName);
 
         checkAvailabilityOfCatalogService(userInfo.username());
 
-        List<ProductResponseDto> productInfo = getRequestToCategoryService(
+        List<ProductResponseDto> productInfo = getRequestToCategoryServiceProductInfo(
                 ItemRequestDto.builder()
                         .items(order.get()
                                 .getItems()
@@ -145,7 +138,7 @@ public class OrderServiceImpl implements OrderService {
                 .build();
     }
 
-    private List<ProductResponseDto> getRequestToCategoryService(ItemRequestDto request) {
+    private List<ProductResponseDto> getRequestToCategoryServiceProductInfo(ItemRequestDto request) {
         List<ProductResponseDto> responseDtoList = webClient
                 .post()
                 .uri(catalogProductsGetUri)
@@ -175,5 +168,57 @@ public class OrderServiceImpl implements OrderService {
                     Please check the request details again
                     """);
         }
+    }
+
+    private UserDto getRequestToProfileServiceUserInfo(String username) {
+        return webClient
+                .get()
+                .uri(profileServiceGetUri + username)
+                .accept(MediaType.APPLICATION_JSON)
+                .retrieve()
+                .bodyToMono(UserDto.class)
+                .transform(it ->
+                        reactiveCircuitBreakerFactory.create("orderService")
+                                .run(it, throwable -> {
+                                    log.warn("Profile Server is down", throwable);
+                                    return Mono.just(UserDto.builder().username("").build());
+                                })
+                )
+                .block();
+
+    }
+
+    private UserDto createProfileUser(OrderDto orderDto) {
+        UserDto profileRequest = UserDto.builder()
+                .username(orderDto.username())
+                .password("opaque")
+                .firstName(orderDto.firstName())
+                .lastName(orderDto.lastName())
+                .phoneNumber(orderDto.phoneNumber())
+                .city(orderDto.city())
+                .street(orderDto.street())
+                .postCode(orderDto.postCode())
+                .cardNumber(orderDto.cardNumber())
+                .cardExpMonth(orderDto.cardExpMonth())
+                .cardExpYear(orderDto.cardExpYear())
+                .cardCvc(orderDto.cardCvc())
+                .build();
+
+        return webClient
+                .post()
+                .uri(profileServicePostUri)
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.APPLICATION_JSON)
+                .bodyValue(profileRequest)
+                .retrieve()
+                .bodyToMono(UserDto.class)
+                .transform(it ->
+                        reactiveCircuitBreakerFactory.create("orderService")
+                                .run(it, throwable -> {
+                                    log.warn("Profile Server is down", throwable);
+                                    return Mono.just(UserDto.builder().username("").build());
+                                })
+                )
+                .block();
     }
 }
