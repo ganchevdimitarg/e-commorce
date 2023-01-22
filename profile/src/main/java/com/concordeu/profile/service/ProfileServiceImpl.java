@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.client.circuitbreaker.ReactiveCircuitBreakerFactory;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
@@ -48,16 +49,19 @@ public class ProfileServiceImpl implements ProfileService {
     @Value("${payment.service.card.post.uri}")
     private String paymentCardPostUri;
 
+    @Value("${payment.service.card.get.uri}")
+    private String paymentCardGetUri;
+
     @Override
     public UserDto createAdmin(UserRequestDto userRequestDto) {
-        UserDto userDto = getUserDto(createStaff(userRequestDto, ADMIN.getGrantedAuthorities()));
+        UserDto userDto = getUserDto(createStaff(userRequestDto, ADMIN.getGrantedAuthorities()), "");
         log.info("Admin user with username: {} was created", userDto.username());
         return userDto;
     }
 
     @Override
     public UserDto createWorker(UserRequestDto userRequestDto) {
-        UserDto userDto = getUserDto(createStaff(userRequestDto, WORKER.getGrantedAuthorities()));
+        UserDto userDto = getUserDto(createStaff(userRequestDto, WORKER.getGrantedAuthorities()), "");
         log.info("Worker user with username: {} was created", userDto.username());
         return userDto;
     }
@@ -112,8 +116,23 @@ public class ProfileServiceImpl implements ProfileService {
         Assert.hasLength(username, "Username is empty");
         Profile profile = profileDao.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("Profile does not exist"));
-        profile.setPassword("");
-        return getUserDto(profile);
+
+        Set<String> paymentCustomerId = webClient
+                .get()
+                .uri(paymentCardGetUri + username)
+                .retrieve()
+                .bodyToMono(new ParameterizedTypeReference<Set<String>>() {
+                })
+                .transform(it ->
+                        reactiveCircuitBreakerFactory.create("profileService")
+                                .run(it, throwable -> {
+                                    log.warn("Payment service is down", throwable);
+                                    return Mono.just(Set.of(""));
+                                })
+                )
+                .block();
+
+        return getUserDto(profile, paymentCustomerId.stream().findFirst().get());
     }
 
     @Override
@@ -148,7 +167,7 @@ public class ProfileServiceImpl implements ProfileService {
         log.info("The password of user {} has been changed successfully", username);
     }
 
-    private UserDto getUserDto(Profile profile) {
+    private UserDto getUserDto(Profile profile, String cardId) {
         return UserDto.builder()
                 .id(profile.getId())
                 .username(profile.getUsername())
@@ -160,7 +179,7 @@ public class ProfileServiceImpl implements ProfileService {
                 .city(profile.getAddress().city())
                 .street(profile.getAddress().street())
                 .postCode(profile.getAddress().postCode())
-                .cardId("")
+                .cardId(cardId.equals("") ? "" : cardId)
                 .build();
     }
 

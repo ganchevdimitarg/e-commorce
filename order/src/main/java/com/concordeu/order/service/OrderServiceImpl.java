@@ -171,20 +171,21 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private UserDto getRequestToProfileServiceUserInfo(String username) {
-        return webClient
+        UserDto block = webClient
                 .get()
                 .uri(profileServiceGetUri + username)
                 .accept(MediaType.APPLICATION_JSON)
                 .retrieve()
                 .bodyToMono(UserDto.class)
-                .transform(it ->
+                /*.transform(it ->
                         reactiveCircuitBreakerFactory.create("orderService")
                                 .run(it, throwable -> {
                                     log.warn("Profile Server is down", throwable);
                                     return Mono.just(UserDto.builder().username("").build());
                                 })
-                )
+                )*/
                 .block();
+        return block;
 
     }
 
