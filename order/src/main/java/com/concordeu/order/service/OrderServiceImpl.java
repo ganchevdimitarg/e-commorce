@@ -40,11 +40,11 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Value("${catalog.service.products.get.uri}")
-    private String catalogProductsGetUri;
+    private String catalogServiceGetProductsByIdsUri;
     @Value("${profile.service.get.uri}")
-    private String profileServiceGetUri;
+    private String profileServiceGetProfileByUsernameUri;
     @Value("${profile.service.post.uri}")
-    private String profileServicePostUri;
+    private String profileServiceCreateUserUri;
 
     @Override
     public void createOrder(OrderDto orderDto, String authenticationName) {
@@ -141,7 +141,7 @@ public class OrderServiceImpl implements OrderService {
     private List<ProductResponseDto> getRequestToCategoryServiceProductInfo(ItemRequestDto request) {
         List<ProductResponseDto> responseDtoList = webClient
                 .post()
-                .uri(catalogProductsGetUri)
+                .uri(catalogServiceGetProductsByIdsUri)
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
@@ -173,7 +173,7 @@ public class OrderServiceImpl implements OrderService {
     private UserDto getRequestToProfileServiceUserInfo(String username) {
         return webClient
                 .get()
-                .uri(profileServiceGetUri + username)
+                .uri(profileServiceGetProfileByUsernameUri + username)
                 .accept(MediaType.APPLICATION_JSON)
                 .retrieve()
                 .bodyToMono(UserDto.class)
@@ -206,7 +206,7 @@ public class OrderServiceImpl implements OrderService {
 
         return webClient
                 .post()
-                .uri(profileServicePostUri)
+                .uri(profileServiceCreateUserUri)
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON)
                 .bodyValue(profileRequest)

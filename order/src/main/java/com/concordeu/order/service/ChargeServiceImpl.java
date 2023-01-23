@@ -3,7 +3,6 @@ package com.concordeu.order.service;
 import com.concordeu.order.dao.ChargeDao;
 import com.concordeu.order.domain.Charge;
 import com.concordeu.order.domain.Order;
-import com.concordeu.order.dto.OrderDto;
 import com.concordeu.order.dto.PaymentDto;
 import com.concordeu.order.excaption.InvalidRequestDataException;
 import com.google.gson.Gson;
@@ -26,14 +25,14 @@ public class ChargeServiceImpl implements ChargeService {
     private final ReactiveCircuitBreakerFactory reactiveCircuitBreakerFactory;
 
     @Value("${payment.service.customer.get.uri}")
-    private String paymentCustomerGetUri;
+    private String paymentServiceGetCustomerByUsernameUri;
     @Value("${payment.service.charge.post.uri}")
-    private String paymentChargePostUri;
+    private String paymentServiceChargeCustomerUri;
 
     @Override
     public PaymentDto makePayment(String cardId, String authenticationName, long amount) {
         PaymentDto paymentCustomer = getCustomerFromPaymentService(
-                paymentCustomerGetUri + authenticationName
+                paymentServiceGetCustomerByUsernameUri + authenticationName
         );
 
         PaymentDto chargeCustomer = chargeCustomer(amount, paymentCustomer, cardId);
@@ -65,7 +64,7 @@ public class ChargeServiceImpl implements ChargeService {
         );
 
         return sendRequestToPaymentService(
-                paymentChargePostUri,
+                paymentServiceChargeCustomerUri,
                 chargeRequestBody);
     }
 
