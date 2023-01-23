@@ -1,7 +1,9 @@
 package com.concordeu.payment.service.impl;
 
 import com.concordeu.payment.dao.ChargeDao;
+import com.concordeu.payment.dao.CustomerDao;
 import com.concordeu.payment.domain.AppCharge;
+import com.concordeu.payment.domain.AppCustomer;
 import com.concordeu.payment.dto.PaymentDto;
 import com.concordeu.payment.excaption.InvalidPaymentRequestException;
 import com.concordeu.payment.service.ChargeService;
@@ -18,6 +20,7 @@ import javax.persistence.Column;
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Charges
@@ -30,8 +33,8 @@ import java.util.Map;
 @RequiredArgsConstructor
 @Slf4j
 public class ChargeServerImpl implements ChargeService {
-    private final CustomerService customerService;
     private final ChargeDao chargeDao;
+    private final CustomerDao customerDao;
     @Value("${stripe.secret.key}")
     private String secretKey;
 
@@ -46,6 +49,11 @@ public class ChargeServerImpl implements ChargeService {
      */
     @Override
     public PaymentDto createCharge(PaymentDto paymentDto) {
+        AppCustomer appCustomer = customerDao.findByUsername(paymentDto.username()).orElseThrow(() -> {
+            log.warn("Customer with username {} does not exist in db customers", paymentDto.username());
+            throw new InvalidPaymentRequestException("Customer with username " + paymentDto.username() + " does not exist");
+        });
+
         Stripe.apiKey = secretKey;
 
         Map<String, Object> params = new HashMap<>();
@@ -64,7 +72,7 @@ public class ChargeServerImpl implements ChargeService {
                     .currency(charge.getCurrency())
                     .customerId(charge.getCustomer())
                     .receiptEmail(charge.getReceiptEmail())
-                    .customer(customerService.findByUsername(paymentDto.username()))
+                    .customer(appCustomer)
                     .build());
 
             log.info("Method createCharge: Create successful charge: {}", charge.getId());

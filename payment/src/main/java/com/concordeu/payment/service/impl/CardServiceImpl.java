@@ -7,7 +7,6 @@ import com.concordeu.payment.domain.AppCustomer;
 import com.concordeu.payment.dto.PaymentDto;
 import com.concordeu.payment.excaption.InvalidPaymentRequestException;
 import com.concordeu.payment.service.CardService;
-import com.concordeu.payment.service.CustomerService;
 import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
 import com.stripe.model.*;
@@ -16,7 +15,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import javax.persistence.Column;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -30,8 +28,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Slf4j
 public class CardServiceImpl implements CardService {
-    private final CustomerService customerService;
     private final CardDao cardDao;
+    private final CustomerDao customerDao;
     @Value("${stripe.secret.key}")
     private String secretKey;
 
@@ -76,6 +74,7 @@ public class CardServiceImpl implements CardService {
 
             Card card = (Card) customer.getSources().create(source);
 
+            AppCustomer appCustomer = getAppCustomer(customer.getName());
             cardDao.saveAndFlush(AppCard.builder()
                     .cardId(card.getId())
                     .brand(card.getBrand())
@@ -84,7 +83,7 @@ public class CardServiceImpl implements CardService {
                     .expMonth(card.getExpMonth())
                     .expYear(card.getExpYear())
                     .lastFourDigits(card.getLast4())
-                    .customer(customerService.findByUsername(customer.getName()))
+                    .customer(appCustomer)
                     .build());
 
             log.info("Method createCard: Create card successful: {}", card.getId());
@@ -119,8 +118,9 @@ public class CardServiceImpl implements CardService {
         retrieveParams.put("expand", expandList);
 
         try {
+            AppCustomer appCustomer = getAppCustomer(username);
             Customer customer = Customer.retrieve(
-                    customerService.getCustomerByUsername(username).getId(),
+                    appCustomer.getCustomerId(),
                     retrieveParams,
                     null
             );
@@ -139,5 +139,20 @@ public class CardServiceImpl implements CardService {
             log.warn(e.getMessage());
             throw new InvalidPaymentRequestException(e.getMessage());
         }
+    }
+
+    @Override
+    public Set<String> getCustomerCards(String username) {
+        return cardDao.findAppCardsByCustomerId(getAppCustomer(username).getCustomerId())
+                .stream()
+                .map(AppCard::getCardId)
+                .collect(Collectors.toSet());
+    }
+
+    private AppCustomer getAppCustomer(String username) {
+        return customerDao.findByUsername(username).orElseThrow(() -> {
+            log.warn("Customer with username {} does not exist in db customers", username);
+            throw new InvalidPaymentRequestException("Customer with username " + username + " does not exist");
+        });
     }
 }

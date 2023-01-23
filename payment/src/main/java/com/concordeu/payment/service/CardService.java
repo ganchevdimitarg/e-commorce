@@ -9,4 +9,6 @@ public interface CardService {
     PaymentDto createCard(PaymentDto cardDto) throws StripeException;
 
     Set<String> getCards(String username);
+
+    Set<String> getCustomerCards(String customerId);
 }

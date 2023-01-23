@@ -39,6 +39,7 @@ public class OpaqueTokenAspect {
             }
             isTokenExp(opaqueToken, currentTime);
         }
+
         return point.proceed();
     }
 

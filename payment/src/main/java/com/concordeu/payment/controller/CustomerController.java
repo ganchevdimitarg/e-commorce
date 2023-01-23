@@ -23,12 +23,7 @@ public class CustomerController {
 
     @GetMapping("/get-customer")
     public PaymentDto getCustomer(@RequestParam String username) {
-        Customer customer = customerService.getCustomerByUsername(username);
-        return PaymentDto.builder()
-                .username(customer.getEmail())
-                .customerName(customer.getName())
-                .customerId(customer.getId())
-                .build();
+        return customerService.getCustomerByUsername(username);
     }
 
     @DeleteMapping("/delete-customer")
