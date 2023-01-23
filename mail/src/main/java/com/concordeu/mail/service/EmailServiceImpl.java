@@ -7,29 +7,23 @@ import java.util.Optional;
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
 
-import com.concordeu.mail.dao.MailListDao;
-import com.concordeu.mail.domain.MailList;
-import com.concordeu.mail.dto.MailDto;
-import com.concordeu.mail.enums.EmailClassification;
-import com.concordeu.mail.enums.MailTypeEnum;
-import com.concordeu.mail.helpers.CreateMailFields;
-import com.concordeu.mail.helpers.MailTemplateMaker;
-
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.event.ContextRefreshedEvent;
-import org.springframework.context.event.EventListener;
 import org.springframework.mail.MailException;
 import org.springframework.mail.MailSendException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
-import org.thymeleaf.TemplateEngine;
-import org.thymeleaf.context.Context;
+
+import com.concordeu.mail.dao.MailListDao;
+import com.concordeu.mail.domain.MailList;
+import com.concordeu.mail.dto.MailDto;
+import com.concordeu.mail.enums.EmailClassification;
+import com.concordeu.mail.helpers.MailTemplateMaker;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
@@ -41,30 +35,8 @@ public class EmailServiceImpl implements EmailService {
 
 	private final MailTemplateMaker mailTemplateMaker;
 
-	private final CreateMailFields createMailFields; // TODO remove only for testing perposees
-
-
-
 	@Value("${spring.mail.username}")
 	private String sender;
-
-
-// TODO remove only for testing perposees
-	@EventListener(ContextRefreshedEvent.class)
-	public void contextRefreshedEvent() {
-		sendMailWithHTML(new MailDto("stefan.kehayov.96@gmail.com", "", "" , "1", MailTypeEnum.EMAIL_VERIFICATION,
-										 createMailFields.createEmailVerificationFields("https://google.com", "Stefan")));
-
-		sendMailWithHTML(new MailDto("stefan.kehayov.96@gmail.com", "", "" , "1", MailTypeEnum.PASSWORD_RESET,
-									 createMailFields.createPasswordResetFields("https://google.com", "Stefan")));
-		sendMailWithHTML(new MailDto("stefan.kehayov.96@gmail.com", "", "" , "1", MailTypeEnum.FAILED_PAYMENT,
-									 createMailFields.createFailedPayment("https://google.com", "Stefan", "https://google.com/" , "23.68")));
-		sendMailWithHTML(new MailDto("stefan.kehayov.96@gmail.com", "", "" , "1", MailTypeEnum.LOGIN_MAIL,
-									 createMailFields.createLoginFields("https://google.com", "Stefan", "1.1.1.1" , "Linux", "Brave", "2023-01-15")));
-
-	}
-
-
 
 	public String sendSimpleMail(MailDto mailDto) {
 

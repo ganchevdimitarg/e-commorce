@@ -15,13 +15,6 @@ spring:
         enable: true
         backend: auth-service
         default-context: credentials
-
-
-
-  # TODO remove
-  flyway:
-    enabled: false
-
   jpa:
     hibernate:
       ddl-auto: update
