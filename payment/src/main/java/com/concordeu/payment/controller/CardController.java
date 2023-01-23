@@ -25,4 +25,8 @@ public class CardController {
     public Set<String> getCards(@RequestParam String username) {
         return cardService.getCards(username);
     }
+    @GetMapping("/get-customer-cards")
+    public Set<String> getCustomerCards(@RequestParam String username) {
+        return cardService.getCustomerCards(username);
+    }
 }

@@ -52,7 +52,6 @@ public class ProductController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @GetMapping("/get-products")
-    @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
     public Page<ProductResponseDto> getProducts(@RequestParam int page,
                                                 @RequestParam int size) {
         return productService.getProductsByPage(page, size);
@@ -67,7 +66,6 @@ public class ProductController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @GetMapping("/get-category-products")
-    @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
     public Page<ProductResponseDto> getProductsByCategory(@RequestParam int page,
                                                           @RequestParam int size,
                                                           @RequestParam String categoryName) {

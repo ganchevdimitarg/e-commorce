@@ -68,14 +68,17 @@ public class CustomerServiceImpl implements CustomerService {
      * including a deleted property that’s set to true.
      */
     @Override
-    public Customer getCustomerByUsername(String username) {
-        AppCustomer appCustomer = customerDao.findByUsername(username);
-        return getCustomer(appCustomer.getCustomerId());
-    }
+    public PaymentDto getCustomerByUsername(String username) {
+        AppCustomer appCustomer = customerDao.findByUsername(username).orElseThrow(() -> {
+            log.warn("Customer with username {} does not exist in db customers", username);
+            throw new InvalidPaymentRequestException("Customer with username " + username + " does not exist");
+        });
+        return PaymentDto.builder()
+                .username(appCustomer.getUsername())
+                .customerName(appCustomer.getCustomerName())
+                .customerId(appCustomer.getCustomerId())
+                .build();
 
-    @Override
-    public AppCustomer findByUsername(String username) {
-        return customerDao.findByUsername(username);
     }
 
     /**
@@ -90,9 +93,13 @@ public class CustomerServiceImpl implements CustomerService {
         Stripe.apiKey = secretKey;
 
         try {
-            Customer customerByEmail = getCustomerByUsername(username);
+            Customer customerByEmail = getCustomerByStripeId(getCustomerByUsername(username).customerId());
             Customer.retrieve(customerByEmail.getId()).delete();
-            customerDao.delete(customerDao.findByUsername(username));
+            AppCustomer customer = customerDao.findByUsername(username).orElseThrow(() -> {
+                log.warn("Customer with username {} does not exist in db customers", username);
+                throw new InvalidPaymentRequestException("Customer with username " + username + " does not exist");
+            });
+            customerDao.delete(customer);
             log.info("Delete customer successful: {}", customerByEmail.getEmail());
             return customerByEmail.getId();
         } catch (StripeException e) {
@@ -101,7 +108,8 @@ public class CustomerServiceImpl implements CustomerService {
         }
     }
 
-    private Customer getCustomer(String customerId) {
+    @Override
+    public Customer getCustomerByStripeId(String customerId) {
         Stripe.apiKey = secretKey;
         try {
             Customer customer = Customer.retrieve(customerId);
