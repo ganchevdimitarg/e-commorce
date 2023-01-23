@@ -43,14 +43,13 @@ public class ProfileServiceImpl implements ProfileService {
     private final MailService mailService;
     private final ValidateData validateData;
     @Value("${payment.service.customer.post.uri}")
-    private String paymentCustomerPostUri;
+    private String paymentServiceCreateNewCustomerUri;
     @Value("${payment.service.customer.delete.uri}")
-    private String paymentDeleteCustomerPostUri;
+    private String paymentServiceDeleteCustomerByUsernameUri;
     @Value("${payment.service.card.post.uri}")
-    private String paymentCardPostUri;
-
+    private String paymentServiceCreateCardUri;
     @Value("${payment.service.card.get.uri}")
-    private String paymentCardGetUri;
+    private String paymentServiceGetCardsByUsernameUri;
 
     @Override
     public UserDto createAdmin(UserRequestDto userRequestDto) {
@@ -119,7 +118,7 @@ public class ProfileServiceImpl implements ProfileService {
 
         Set<String> paymentCustomerId = webClient
                 .get()
-                .uri(paymentCardGetUri + username)
+                .uri(paymentServiceGetCardsByUsernameUri + username)
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<Set<String>>() {
                 })
@@ -253,7 +252,7 @@ public class ProfileServiceImpl implements ProfileService {
         );
 
         return sendRequestToPaymentService(
-                paymentCardPostUri,
+                paymentServiceCreateCardUri,
                 cardRequestBody
         );
     }
@@ -266,7 +265,7 @@ public class ProfileServiceImpl implements ProfileService {
         );
 
         return sendRequestToPaymentService(
-                paymentCustomerPostUri,
+                paymentServiceCreateNewCustomerUri,
                 customerRequestBody
         );
     }
@@ -298,7 +297,7 @@ public class ProfileServiceImpl implements ProfileService {
     private void deletePaymentCustomer(String username) {
         String paymentCustomerId = webClient
                 .delete()
-                .uri(paymentDeleteCustomerPostUri + username)
+                .uri(paymentServiceDeleteCustomerByUsernameUri + username)
                 .retrieve()
                 .bodyToMono(String.class)
                 .transform(it ->
