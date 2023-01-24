@@ -170,5 +170,4 @@ public class ProfileController {
     public void setNewPassword(@RequestParam String username, @RequestParam String password) {
         profileService.setNewPassword(username.trim(), password.trim());
     }
-
 }

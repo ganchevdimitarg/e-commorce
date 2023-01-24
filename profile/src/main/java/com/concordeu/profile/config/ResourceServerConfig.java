@@ -4,6 +4,7 @@ import com.concordeu.client.introspector.CustomOpaqueTokenIntrospector;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationManagerResolver;
 import org.springframework.security.authentication.ProviderManager;
@@ -17,6 +18,7 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.security.oauth2.server.resource.authentication.OpaqueTokenAuthenticationProvider;
 import org.springframework.security.oauth2.server.resource.introspection.OpaqueTokenIntrospector;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -26,6 +28,7 @@ import javax.servlet.http.HttpServletRequest;
 @Slf4j
 public class ResourceServerConfig {
     private final JwtDecoder jwtDecoder;
+    private final CustomLogoutHandler logoutHandler;
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -34,16 +37,22 @@ public class ResourceServerConfig {
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 .and()
                 .authorizeRequests()
-                .mvcMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                .mvcMatchers("/actuator/**").permitAll()
-                .mvcMatchers("/api/v1/profile/register-admin").permitAll()
-                .mvcMatchers("/api/v1/profile/register-worker").permitAll()
-                .mvcMatchers("/api/v1/profile/register-user").permitAll()
-                .mvcMatchers("/api/v1/profile/password-reset").permitAll()
-                .anyRequest().authenticated()
+                    .mvcMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                    .mvcMatchers("/actuator/**").permitAll()
+                    .mvcMatchers("/api/v1/profile/register-admin").permitAll()
+                    .mvcMatchers("/api/v1/profile/register-worker").permitAll()
+                    .mvcMatchers("/api/v1/profile/register-user").permitAll()
+                    .mvcMatchers("/api/v1/profile/password-reset").permitAll()
+                    .anyRequest().authenticated()
+                .and()
+                .logout()
+                    .logoutUrl("/api/v1/profile/logout")
+                    .addLogoutHandler(logoutHandler)
+                    .logoutSuccessHandler(new HttpStatusReturningLogoutSuccessHandler(HttpStatus.OK))
+                    .permitAll()
                 .and()
                 .oauth2ResourceServer()
-                .authenticationManagerResolver(this.tokenAuthenticationManagerResolver());
+                    .authenticationManagerResolver(this.tokenAuthenticationManagerResolver());
 
         return http.build();
     }
