@@ -48,18 +48,21 @@ public class CustomLogoutHandler implements LogoutHandler {
 
     }
 
+    //TODO method does not work. Should return 204 No Content, but returns 404 Not Found from DELETE
     private void revokeGitHubAccessToken(String token) {
         String requestBody = mapper.toJson(String.format("""
                 {
                     "access_token":"%s"
                 }
                 """, token));
+
         ResponseEntity<Void> response = webClient
                 .method(HttpMethod.DELETE)
                 .uri("https://api.github.com/applications/309e3867b9f10d4a8270/grant")
                 .header("Accept", "application/vnd.github+json")
-                .header("Authorization", "Basic MzA5ZTM4NjdiOWYxMGQ0YTgyNzA6NGRkNDU5OWEwNjQ0ZDNmNTZjMGRmMjhhMzcxMzI4ZDc5NzNlNWMyOQ==")
+                .headers(headers -> headers.setBasicAuth("309e3867b9f10d4a8270", "4dd4599a0644d3f56c0df28a371328d7973e5c29"))
                 .contentType(MediaType.APPLICATION_JSON)
+                .contentLength(67)
                 .bodyValue(requestBody)
                 .retrieve()
                 .toEntity(Void.class)
@@ -101,11 +104,17 @@ public class CustomLogoutHandler implements LogoutHandler {
                 """, token, revokeResponse.getStatusCodeValue());
     }
 
-    //TODO does not work
+
     private void revokeECommerceAccessToken(String token) {
         String revoke = "http://localhost:8082/oauth2/revoke?token=" + token;
-        ResponseEntity<Void> revokeResponse = revokeTokenPost(token, revoke);
 
+        ResponseEntity<Void> revokeResponse = webClient
+                .post()
+                .uri(revoke)
+                .headers(headers -> headers.setBasicAuth("gateway", "secret"))
+                .retrieve()
+                .toEntity(Void.class)
+                .block();
         log.info("""
                 User login with E-COMMERCE AUTH SERVER successful logout.
                 Token: {}
