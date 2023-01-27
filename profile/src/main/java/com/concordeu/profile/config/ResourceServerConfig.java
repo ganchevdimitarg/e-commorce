@@ -1,6 +1,7 @@
 package com.concordeu.profile.config;
 
 import com.concordeu.client.introspector.CustomOpaqueTokenIntrospector;
+import com.concordeu.profile.handler.CustomLogoutHandler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
