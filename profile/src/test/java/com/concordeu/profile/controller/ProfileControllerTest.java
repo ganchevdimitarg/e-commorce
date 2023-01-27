@@ -48,6 +48,11 @@ class ProfileControllerTest {
                 "",
                 "",
                 "",
+                "",
+                "",
+                0,
+                0,
+                "",
                 ""));
         this.client.mutateWith(mockUser("admin"))
                 .get()
