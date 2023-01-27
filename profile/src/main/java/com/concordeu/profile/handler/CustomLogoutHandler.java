@@ -1,16 +1,13 @@
-package com.concordeu.profile.config;
+package com.concordeu.profile.handler;
 
-import com.concordeu.client.principal.FacebookOAuth2AuthPrincipal;
-import com.concordeu.client.principal.GitHubOAuth2AuthPrincipal;
-import com.concordeu.client.principal.GoogleOAuth2AuthPrincipal;
 import com.google.gson.Gson;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.oauth2.core.OAuth2AuthenticatedPrincipal;
 import org.springframework.security.oauth2.jwt.BadJwtException;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.web.authentication.logout.LogoutHandler;
@@ -30,6 +27,16 @@ public class CustomLogoutHandler implements LogoutHandler {
     private final WebClient webClient;
     private final Gson mapper;
 
+    @Value("${github.clientId}")
+    private String gitGithubClientId;
+    @Value("${github.secret}")
+    private String gitGithubSecret;
+    @Value("${ecommerce.oauth2.clientId}")
+    private String ecommerceOAuth2ClientId;
+    @Value("${ecommerce.oauth2.secret}")
+    private String ecommerceOAuth2Secret;
+
+
     @Override
     public void logout(HttpServletRequest httpServletRequest,
                        HttpServletResponse httpServletResponse,
@@ -48,7 +55,7 @@ public class CustomLogoutHandler implements LogoutHandler {
 
     }
 
-    //TODO method does not work. Should return 204 No Content, but returns 404 Not Found from DELETE
+    //TODO method does not work. Should return 204 No Content, but returns 404 Not Found from DELETE/////
     private void revokeGitHubAccessToken(String token) {
         String requestBody = mapper.toJson(String.format("""
                 {
@@ -60,7 +67,7 @@ public class CustomLogoutHandler implements LogoutHandler {
                 .method(HttpMethod.DELETE)
                 .uri("https://api.github.com/applications/309e3867b9f10d4a8270/grant")
                 .header("Accept", "application/vnd.github+json")
-                .headers(headers -> headers.setBasicAuth("309e3867b9f10d4a8270", "4dd4599a0644d3f56c0df28a371328d7973e5c29"))
+                .headers(headers -> headers.setBasicAuth(gitGithubClientId, gitGithubSecret))
                 .contentType(MediaType.APPLICATION_JSON)
                 .contentLength(67)
                 .bodyValue(requestBody)
@@ -106,12 +113,10 @@ public class CustomLogoutHandler implements LogoutHandler {
 
 
     private void revokeECommerceAccessToken(String token) {
-        String revoke = "http://localhost:8082/oauth2/revoke?token=" + token;
-
         ResponseEntity<Void> revokeResponse = webClient
                 .post()
-                .uri(revoke)
-                .headers(headers -> headers.setBasicAuth("gateway", "secret"))
+                .uri("http://localhost:8082/oauth2/revoke?token=" + token)
+                .headers(headers -> headers.setBasicAuth(ecommerceOAuth2ClientId, ecommerceOAuth2Secret))
                 .retrieve()
                 .toEntity(Void.class)
                 .block();
@@ -119,7 +124,7 @@ public class CustomLogoutHandler implements LogoutHandler {
                 User login with E-COMMERCE AUTH SERVER successful logout.
                 Token: {}
                 Status: {}
-                """, token, revokeResponse.getStatusCodeValue());
+                """, token, revokeResponse.getStatusCode().value());
     }
 
     private ResponseEntity<Void> revokeTokenPost(String token, String revoke) {

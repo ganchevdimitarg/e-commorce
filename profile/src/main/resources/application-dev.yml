@@ -156,3 +156,12 @@ payment:
 webClient:
   oath2Client:
     defaultClientRegistrationId: "gateway-client-oidc"
+
+github:
+  clientId: ${GITHUB_CLIENT_ID}
+  secret: ${GITHUB_SECRET}
+ecommerce:
+  oauth2:
+    clientId: ${ECOMMERCE_OAUTH2_CLIENTID}
+    secret: ${ECOMMERCE_OAUTH2_SECRET}
+
