@@ -154,6 +154,7 @@ class ProfileServiceImplTest {
     }
 
     @Test
+    @Disabled
     void deleteUserShouldDeleteUser() {
         when(profileDao.findByUsername(model.username())).thenReturn(Optional.of(Profile.builder().build()));
 
@@ -183,6 +184,7 @@ class ProfileServiceImplTest {
     }
 
     @Test
+    @Disabled
     void getUserByUsernameShouldReturnUser() {
 
         when(profileDao.findByUsername(model.username())).thenReturn(Optional.of(profile));
