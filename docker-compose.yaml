@@ -8,6 +8,8 @@ services:
       MYSQL_DATABASE: catalog
       MYSQL_USERNAME: "${MYSQL_USER}"
       MYSQL_ROOT_PASSWORD: "${MYSQL_PASSWORD}"
+    networks:
+      - mysql
     ports:
       - "3306:3306"
     expose:
@@ -20,6 +22,8 @@ services:
       - "27017:27017"
     volumes:
       - data:/data
+    networks:
+      - mongodb
     environment:
      MONGO_INITDB_ROOT_USERNAME: "${MONGO_DB_USER}"
      MONGO_INITDB_ROOT_PASSWORD: "${MONGO_DB_PASSWORD}"
@@ -46,6 +50,8 @@ services:
       - postgres:/data/postgres
     ports:
       - "5432:5432"
+    networks:
+      - postgres
     restart: unless-stopped
 
   zipkin:
@@ -53,6 +59,8 @@ services:
     container_name: zipkin
     ports:
       - "9411:9411"
+    networks:
+      - spring
 
   prometheus:
     image: prom/prometheus
@@ -168,6 +176,149 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
 
+  eureka-server:
+    image: dgganchev/eureka-server:latest
+    container_name: eureka-server
+    ports:
+      - "8761:8761"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    networks:
+      - spring
+    depends_on:
+      - zipkin
+
+  auth-server:
+    image: dgganchev/authentication:latest
+    container_name: auth-server
+    ports:
+      - "8082:8082"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    networks:
+      - spring
+      - postgres
+      - mongodb
+    depends_on:
+      - zipkin
+      - eureka-server
+      - prometheus
+      - vault
+      - mongodb
+      - postgres
+
+  gateway:
+    image: dgganchev/gateway:latest
+    container_name: gateway
+    ports:
+      - "8081:8081"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    networks:
+      - spring
+    depends_on:
+      - zipkin
+      - eureka-server
+      - prometheus
+      - vault
+
+  catalog:
+    image: dgganchev/catalog:latest
+    container_name: catalog
+    ports:
+      - "8084:8084"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    networks:
+      - spring
+      - mysql
+    depends_on:
+      - zipkin
+      - eureka-server
+      - prometheus
+      - vault
+      - db
+
+  order:
+    image: dgganchev/order:latest
+    container_name: order
+    ports:
+      - "8086:8086"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    networks:
+      - spring
+      - postgres
+    depends_on:
+      - zipkin
+      - eureka-server
+      - prometheus
+      - vault
+      - postgres
+      - kafka
+
+  profile:
+    image: dgganchev/profile:latest
+    container_name: profile
+    ports:
+      - "8083:8083"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    networks:
+      - spring
+      - mongodb
+    depends_on:
+      - zipkin
+      - eureka-server
+      - prometheus
+      - vault
+      - mongodb
+      - kafka
+
+  notification:
+    image: dgganchev/notification:latest
+    container_name: notification
+    ports:
+      - "8085:8085"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    networks:
+      - spring
+      - postgres
+    depends_on:
+      - zipkin
+      - eureka-server
+      - prometheus
+      - vault
+      - postgres
+      - kafka
+
+  payment:
+    image: dgganchev/payment:latest
+    container_name: payment
+    ports:
+      - "8087:8087"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    networks:
+      - spring
+      - postgres
+    depends_on:
+      - zipkin
+      - eureka-server
+      - prometheus
+      - vault
+      - postgres
+
+networks:
+  postgres:
+    driver: bridge
+  mongodb:
+    driver: bridge
+  mysql:
+    driver: bridge
+  spring:
+    driver: bridge
 volumes:
   db:
   prometheus_data: {}

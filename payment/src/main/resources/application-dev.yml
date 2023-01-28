@@ -6,7 +6,7 @@ spring:
   datasource:
     username: ${POSTGRES_USER}
     password: ${POSTGRES_PASSWORD}
-    url: jdbc:postgresql://localhost:5432/payments
+    url: jdbc:postgresql://postgres:5432/payments
 
   #JPA Properties
   jpa:
@@ -23,8 +23,8 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: http://localhost:8082
-          jwk-set-uri: http://localhost:8082/oauth2/jwks
+          issuer-uri: http://auth-server:8082
+          jwk-set-uri: http://auth-server:8082/oauth2/jwks
 
   #Pagination
   mvc:
@@ -33,7 +33,7 @@ spring:
 
   #Zipkin
   zipkin:
-    base-url: http://localhost:9411
+    base-url: http://zipkin:9411
 
 #Logging Levels
 #Disable the default loggers
@@ -52,7 +52,7 @@ logging:
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka
+      defaultZone: http://eureka:8761/eureka
 
 #Prometheus (and other data loggers)
 management:
@@ -78,7 +78,7 @@ springdoc:
     path: /v3/api-docs
   swagger-ui:
     disable-swagger-default-url: true
-    oauth2RedirectUrl: http://127.0.0.1:8081/login/oauth2/code/gateway-client-oidc
+    oauth2RedirectUrl: http://gateway:8081/login/oauth2/code/gateway-client-oidc
     oauth:
       client-id: gateway
       client-secret: secret
@@ -88,8 +88,8 @@ springdoc:
         - profile.write
       use-pkce-with-authorization-code-grant: true
   oAuthFlow:
-    authorizationUrl: http://localhost:8082/oauth2/authorize
-    tokenUrl: http://localhost:8082/oauth2/token
+    authorizationUrl: http://auth-server:8082/oauth2/authorize
+    tokenUrl: http://auth-server:8082/oauth2/token
 
 stripe:
   secret:

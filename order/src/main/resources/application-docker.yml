@@ -1,0 +1,201 @@
+server:
+  port: 8086
+
+spring:
+  application:
+    name: order-service
+  devtools:
+    livereload:
+      port: 35730
+  profiles:
+    include: dev
+  cloud:
+    vault:
+      uri: http://vault:8200
+      authentication: TOKEN
+      token: ${VAULT_SERVER_TOKEN}
+      generic:
+        enable: true
+        backend: order-service
+        default-context: credentials
+  #Security
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://auth-server:8082
+          jwk-set-uri: http://auth-server:8082/oauth2/jwks
+      client:
+        registration:
+          gateway-client-oidc:
+            provider: spring
+            client-id: ${$GATEWAY_CLIENT_ID}
+            client-secret: ${GATEWAY_CLIENT_SECRET}
+            authorization-grant-type: client_credentials
+            redirect-uri: "http://gateway:8081/login/oauth2/code/{registrationId}"
+        provider:
+          spring:
+            issuer-uri: http://auth-server:8082
+            authorization-uri: http://auth-server:8082/oauth2/authorize
+            token-uri: http://auth-server:8082/oauth2/token
+
+  #Data Source Properties
+  datasource:
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+    url: jdbc:postgresql://postgres:5432/orders
+
+  #JPA Properties
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+    show-sql: true
+
+  #Pagination
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+
+  #Zipkin
+  zipkin:
+    base-url: http://zipkin:9411
+
+#Show SQL executed with parameter bindings
+#Logging Levels
+#Disable the default loggers
+logging:
+  level:
+    blog: WARN
+    root: INFO
+    org:
+      springframework:
+        web: INFO
+        security: INFO
+        oauth2: INFO
+      hibernate:
+        SQL: DEBUG
+        type:
+          descriptor: TRACE
+
+
+#Eureka
+eureka:
+  client:
+    service-url:
+      defaultZone: http://eureka-server:8761/eureka
+
+
+#Prometheus (and other data loggers)
+management:
+  endpoint:
+    metrics:
+      enabled: true
+    prometheus:
+      enabled: true
+    health:
+      show-details: always
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+  health:
+    circuitbreakers:
+      enabled: true
+
+#Spring Doc
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    disable-swagger-default-url: true
+    oauth2RedirectUrl: http://gateway:8081/login/oauth2/code/gateway-client-oidc
+    oauth:
+      client-id: gateway
+      client-secret: secret
+      scopes:
+        - openid
+        - order.read
+        - order.write
+      use-pkce-with-authorization-code-grant: true
+  oAuthFlow:
+    authorizationUrl: http://auth-server:8082/oauth2/authorize
+    tokenUrl: http://auth-server:8082/oauth2/token
+
+#Kafka
+kafka:
+  bootstrapAddress: kafka:9092
+
+#Resilience4j
+resilience4j.circuitbreaker:
+  configs:
+    default:
+      failureRateThreshold: 50
+      minimumNumberOfCalls: 10
+      slidingWindowType: TIME_BASED
+      slidingWindowSize: 10
+      waitDurationInOpenState: 1000
+      permittedNumberOfCallsInHalfOpenState: 5
+      registerHealthIndicator: true
+      recordExceptions:
+        - org.springframework.web.client.HttpServerErrorException
+        - java.util.concurrent.TimeoutException
+        - java.io.IOException
+  instances:
+    orderService:
+      baseConfig: default
+
+resilience4j.timelimiter:
+  configs:
+    default:
+      timeoutDuration: 5s
+      cancelRunningFuture: true
+  instances:
+    orderService:
+      baseConfig: default
+
+catalog:
+  base:
+    uri: http://catalog:8084/api/v1
+  service:
+    products:
+      get:
+        uri: ${catalog.base.uri}/catalog/product/get-products-id
+
+profile:
+  base:
+    uri: http://profile:8083/api/v1
+  service:
+    get:
+      uri: ${profile.base.uri}/profile/get-by-username?username=
+    post:
+      uri: ${profile.base.uri}/profile/register-user
+
+payment:
+  base:
+    uri: http://payment:8087/api/v1
+  service:
+    customer:
+      post:
+        uri: ${payment.base.uri}/payment/customer/create-customer
+      get:
+        uri: ${payment.base.uri}/payment/customer/get-customer?username=
+    card:
+      post:
+        uri: ${payment.base.uri}/payment/card/create-card
+      get:
+        uri: ${payment.base.uri}/payment/card/get-cards?username=
+    charge:
+      post:
+        uri: ${payment.base.uri}/payment/charge/create-charge
+
+webClient:
+  oath2Client:
+    defaultClientRegistrationId: "gateway-client-oidc"

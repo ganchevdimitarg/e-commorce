@@ -37,6 +37,7 @@
         <spring.boot.dependecies.version>2.5.7</spring.boot.dependecies.version>
         <spring.cloud-version>2020.0.3</spring.cloud-version>
         <metrics.version>0.5.1.RELEASE</metrics.version>
+        <image>dgganchev/${project.artifactId}:${project.version}</image>
     </properties>
 
     <dependencyManagement>
@@ -100,6 +101,39 @@
                         <execution>
                             <goals>
                                 <goal>repackage</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
+                    <groupId>com.google.cloud.tools</groupId>
+                    <artifactId>jib-maven-plugin</artifactId>
+                    <version>3.3.1</version>
+                    <configuration>
+                        <from>
+                            <image>eclipse-temurin:17</image>
+                            <platforms>
+                                <platform>
+                                    <architecture>arm64</architecture>
+                                    <os>linux</os>
+                                </platform>
+                                <platform>
+                                    <architecture>amd64</architecture>
+                                    <os>linux</os>
+                                </platform>
+                            </platforms>
+                        </from>
+                        <to>
+                            <tags>
+                                <tag>latest</tag>
+                            </tags>
+                        </to>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <phase>package</phase>
+                            <goals>
+                                <goal>build</goal>
                             </goals>
                         </execution>
                     </executions>
