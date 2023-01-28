@@ -1,0 +1,85 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: auth-service
+  devtools:
+    livereload:
+      port: 35730
+  profiles:
+    include: dev
+  cloud:
+    vault:
+      uri: http://vault:8200
+      authentication: TOKEN
+      token: ${VAULT_SERVER_TOKEN}
+      generic:
+        enable: true
+        backend: auth-service
+        default-context: credentials
+  #Data Source Properties
+  data:
+    mongodb:
+      authentication-database: admin
+      username: ${MONGO_DB_USER}
+      password: ${MONGO_DB_PASSWORD}
+      database: authentication
+      port: 27017
+      host: mongodb
+
+  #Data Source Properties
+  datasource:
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+    url: jdbc:postgresql://postgres:5432/registered_client
+
+  #JPA Properties
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+    show-sql: true
+
+  #Zipkin
+  zipkin:
+    base-url: http://zipkin:9411
+
+#Logging Levels
+#Disable the default loggers
+logging:
+  level:
+    blog: WARN
+    root: INFO
+    org:
+      springframework:
+        web: INFO
+        security: INFO
+        oauth2: INFO
+
+#Eureka
+eureka:
+  client:
+    service-url:
+      defaultZone: http://eureka-server:8761/eureka
+
+#Prometheus (and other data loggers)
+management:
+  endpoint:
+    metrics:
+      enabled: true
+    prometheus:
+      enabled: true
+    health:
+      show-details: always
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  metrics:
+    export:
+      prometheus:
+        enabled: true

@@ -15,5 +15,5 @@ spring:
       token: ${VAULT_SERVER_TOKEN}
       generic:
         enable: true
-        backend: auth-service
+        backend: gateway-service
         default-context: credentials

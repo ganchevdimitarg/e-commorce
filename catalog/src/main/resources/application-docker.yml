@@ -1,0 +1,118 @@
+server:
+  port: 8084
+
+spring:
+  spring:
+    application:
+      name: cagalog-service
+    devtools:
+      livereload:
+        port: 35730
+    profiles:
+      include: dev
+    cloud:
+      vault:
+        uri: http://vault:8200
+        authentication: TOKEN
+        token: ${VAULT_SERVER_TOKEN}
+        generic:
+          enable: true
+          backend: catalog-service
+          default-context: credentials
+  #Data Source Properties
+  datasource:
+    driverClassName: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://db:3306/catalog?useSSL=false&createDatabaseIfNotExist=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    username: ${MYSQL_USER}
+    password: ${MYSQL_PASSWORD}
+
+  #JPA Properties
+  jpa:
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MariaDBDialect
+        format_sql: FALSE
+    show_sql: true
+    hibernate:
+      ddl-auto: validate
+
+  #Security
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://auth-server:8082
+          jwk-set-uri: http://auth-server:8082/oauth2/jwks
+
+  #Pagination
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+
+  #Zipkin
+  zipkin:
+    base-url: http://zipkin:9411
+
+#Show SQL executed with parameter bindings
+#Logging Levels
+#Disable the default loggers
+logging:
+  level:
+    blog: WARN
+    root: INFO
+    org:
+      springframework:
+        web: INFO
+        security: INFO
+        oauth2: INFO
+      hibernate:
+        SQL: DEBUG
+        type:
+          descriptor: TRACE
+
+#Eureka
+eureka:
+  client:
+    service-url:
+      defaultZone: http://eureka-server:8761/eureka
+
+
+#Prometheus (and other data loggers)
+management:
+  endpoint:
+    metrics:
+      enabled: true
+    prometheus:
+      enabled: true
+    health:
+      show-details: always
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+  health:
+    circuitbreakers:
+      enabled: true
+
+#Spring Doc
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    disable-swagger-default-url: true
+    oauth2RedirectUrl: http://gateway:8081/login/oauth2/code/gateway-client-oidc
+    oauth:
+      client-id: gateway
+      client-secret: secret
+      scopes:
+        - openid
+        - catalog.read
+        - catalog.write
+      use-pkce-with-authorization-code-grant: true
+  oAuthFlow:
+    authorizationUrl: http://auth-server:8082/oauth2/authorize
+    tokenUrl: http://auth-server:8082/oauth2/token

@@ -1,0 +1,225 @@
+#  port: 8443
+#  ssl:
+#    enabled: true
+#    key-store: classpath:bootsecurity.p12
+#    key-store-type: PKCS12
+#    key-store-password: ${KEY_STORE_TYPE}
+server:
+  port: 8081
+
+spring:
+  application:
+    name: gateway-service
+  devtools:
+    livereload:
+      port: 35730
+  profiles:
+    include: dev
+
+  #Zipkin
+  zipkin:
+    base-url: http://zipkin:9411
+
+  #Security
+  security:
+    oauth2:
+      client:
+        registration:
+          gateway-client-oidc:
+            provider: spring
+            client-id: ${$GATEWAY_CLIENT_ID}
+            client-secret: ${GATEWAY_CLIENT_SECRET}
+            authorization-grant-type: authorization_code
+            redirect-uri: "http://gateway:8081/login/oauth2/code/{registrationId}"
+            scope:
+              - openid
+              - catalog.read
+              - catalog.write
+              - profile.read
+              - profile.write
+              - order.read
+              - order.write
+              - notification.read
+              - notification.write
+            client-name: gateway-client-oidc
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            redirect-uri: http://gateway:8081/login/oauth2/code/{registrationId}
+            scope:
+              - openid
+              - email
+              - profile
+          github:
+            client-id: ${GITHUB_CLIENT_ID}
+            client-secret: ${GITHUB_CLIENT_SECRET}
+            redirect-uri: http://gateway:8081/login/oauth2/code/{registrationId}
+          facebook:
+            client-id: ${FACEBOOK_CLIENT_ID}
+            client-secret: ${FACEBOOK_CLIENT_SECRET}
+            redirect-uri: http://gateway:8081/login/oauth2/code/{registrationId}
+        provider:
+          spring:
+            issuer-uri: http://auth-server:8082
+            authorization-uri: http://auth-server:8082/oauth2/authorize
+            token-uri: http://auth-server:8082/oauth2/token
+
+  #Gateway
+  cloud:
+    vault:
+      uri: http://vault:8200
+      authentication: TOKEN
+      token: ${VAULT_SERVER_TOKEN}
+      generic:
+        enable: true
+        backend: gateway-service
+        default-context: credentials
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lowerCaseServiceId: true
+      default-filters:
+        - TokenRelay
+        - name: Retry
+          args:
+            retries: 3
+            method: GET
+            backoff:
+              firstBackoff: 50ms
+              maxBackoff: 500ms
+      routes:
+        - id: catalog-service
+          uri: lb://catalog-service
+          predicates:
+            Path=/api/v1/catalog/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: catalogService
+                fallbackUri: forward:/fallback
+        - id: profile-service
+          uri: lb://profile-service
+          predicates:
+            - Path=/api/v1/profile/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: profileService
+                fallbackUri: /fallback
+        - id: notification-service
+          uri: lb://notification-service
+          predicates:
+            - Path=/api/v1/notification/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: notificationService
+                fallbackUri: forward:/fallback
+        - id: order-service
+          uri: lb://order-service
+          predicates:
+            - Path=/api/v1/order/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: orderService
+                fallbackUri: forward:/fallback
+        - id: payment-service
+          uri: lb://payment-service
+          predicates:
+            - Path=/api/v1/payment/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: paymentService
+                fallbackUri: forward:/fallback
+
+#Resilience4j
+resilience4j.circuitbreaker:
+  configs:
+    default:
+      failureRateThreshold: 50
+      minimumNumberOfCalls: 10
+      slidingWindowType: TIME_BASED
+      slidingWindowSize: 10
+      waitDurationInOpenState: 1000
+      permittedNumberOfCallsInHalfOpenState: 5
+      registerHealthIndicator: true
+      recordExceptions:
+        - org.springframework.web.client.HttpServerErrorException
+        - java.util.concurrent.TimeoutException
+        - java.io.IOException
+  instances:
+    catalogService:
+      baseConfig: default
+    profileService:
+      baseConfig: default
+    notificationService:
+      baseConfig: default
+    orderService:
+      baseConfig: default
+    paymentService:
+      baseConfig: default
+
+resilience4j.timelimiter:
+  configs:
+    default:
+      timeoutDuration: 5s
+      cancelRunningFuture: true
+  instances:
+    catalogService:
+      baseConfig: default
+    profileService:
+      baseConfig: default
+    notificationService:
+      baseConfig: default
+    orderService:
+      baseConfig: default
+    paymentService:
+      baseConfig: default
+
+#Logging Levels
+#Disable the default loggers
+logging:
+  level:
+    root: INFO
+    org.springframework.web: INFO
+    org.springframework.security: INFO
+    org.springframework.security.oauth2: INFO
+    logging.level.io.github.resilience4j: DEBUG
+
+#Prometheus (and other data loggers)
+management:
+  #  server:
+  #    port: 8081
+  #    ssl:
+  #      enabled: false
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+  endpoint:
+    prometheus:
+      enabled: 'true'
+    metrics:
+      enabled: 'true'
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: 'true'
+  health:
+    circuitbreakers:
+      enabled: true
+    ratelimiters:
+      enabled: true
+
+#Eureka
+eureka:
+  client:
+    service-url:
+      defaultZone: http://eureka-server:8761/eureka
+
+
