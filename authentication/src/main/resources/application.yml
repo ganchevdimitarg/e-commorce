@@ -1,4 +1,29 @@
+server:
+  port: 8082
+
 spring:
+  application:
+    name: auth-service
+  devtools:
+    livereload:
+      port: 35730
+  cloud:
+    vault:
+      authentication: TOKEN
+      token: ${VAULT_SERVER_TOKEN}
+      kv:
+        enabled: true
+      scheme: http
+      host: 127.0.0.1
+      port: 8201
+      application-name: auth-service/dev
+      generic:
+        enabled: true
+        backend: auth-service
+
+  config:
+    import: optional:vault://
+
   #Data Source Properties
   data:
     mongodb:
@@ -28,6 +53,7 @@ spring:
   #Zipkin
   zipkin:
     base-url: http://localhost:9411
+
 
 #Logging Levels
 #Disable the default loggers

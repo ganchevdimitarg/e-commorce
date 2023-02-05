@@ -1,10 +1,13 @@
-#  port: 8443
-#  ssl:
-#    enabled: true
-#    key-store: classpath:bootsecurity.p12
-#    key-store-type: PKCS12
-#    key-store-password: ${KEY_STORE_TYPE}
+server:
+  port: 8081
+
 spring:
+  application:
+    name: gateway-service
+  devtools:
+    livereload:
+      port: 35730
+
   #Zipkin
   zipkin:
     base-url: http://localhost:9411
@@ -16,7 +19,7 @@ spring:
         registration:
           gateway-client-oidc:
             provider: spring
-            client-id: ${$GATEWAY_CLIENT_ID}
+            client-id: ${GATEWAY_CLIENT_ID}
             client-secret: ${GATEWAY_CLIENT_SECRET}
             authorization-grant-type: authorization_code
             redirect-uri: "http://127.0.0.1:8081/login/oauth2/code/{registrationId}"
@@ -52,9 +55,24 @@ spring:
             issuer-uri: http://localhost:8082
             authorization-uri: http://localhost:8082/oauth2/authorize
             token-uri: http://localhost:8082/oauth2/token
+  config:
+    import: optional:vault://
 
-  #Gateway
   cloud:
+    vault:
+      authentication: TOKEN
+      token: ${VAULT_SERVER_TOKEN}
+      kv:
+        enabled: true
+      scheme: http
+      host: 127.0.0.1
+      port: 8201
+      application-name: gateway-service/dev
+      generic:
+        enabled: true
+        backend: gateway-service
+
+    #Gateway
     gateway:
       discovery:
         locator:

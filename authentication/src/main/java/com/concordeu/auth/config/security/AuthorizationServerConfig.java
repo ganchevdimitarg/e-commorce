@@ -47,7 +47,8 @@ public class AuthorizationServerConfig {
     @Bean
     public ProviderSettings providerSettings() {
         return ProviderSettings.builder()
-                .issuer("http://localhost:8082")
+//                .issuer("http://localhost:8082")
+                .issuer("http://auth-server:8082")
                 .build();
     }
 

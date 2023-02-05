@@ -2,6 +2,28 @@ server:
   port: 8084
 
 spring:
+  application:
+    name: catalog-service
+  devtools:
+    livereload:
+      port: 35730
+  cloud:
+    vault:
+      authentication: TOKEN
+      token: ${VAULT_SERVER_TOKEN}
+      kv:
+        enabled: true
+      scheme: http
+      host: 127.0.0.1
+      port: 8201
+      application-name: catalog-service/dev
+      generic:
+        enabled: true
+        backend: catalog-service
+
+  config:
+    import: optional:vault://
+
   #Data Source Properties
   datasource:
     driverClassName: com.mysql.cj.jdbc.Driver

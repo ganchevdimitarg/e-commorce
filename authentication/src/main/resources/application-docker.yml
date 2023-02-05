@@ -7,17 +7,23 @@ spring:
   devtools:
     livereload:
       port: 35730
-  profiles:
-    include: dev
   cloud:
     vault:
-      uri: http://vault:8200
       authentication: TOKEN
       token: ${VAULT_SERVER_TOKEN}
+      kv:
+        enabled: true
+      scheme: http
+      host: vault-agent
+      port: 8201
+      application-name: auth-service/docker
       generic:
-        enable: true
+        enabled: true
         backend: auth-service
-        default-context: credentials
+
+  config:
+    import: optional:vault://
+
   #Data Source Properties
   data:
     mongodb:

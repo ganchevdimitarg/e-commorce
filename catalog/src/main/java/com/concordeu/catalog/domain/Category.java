@@ -14,6 +14,10 @@ import java.util.List;
                 @UniqueConstraint(name = "category_name", columnNames = "name")
         },
         indexes = @Index(name = "category_index",columnList = "name"))
+@NamedEntityGraph(
+        name = "graph-catalog-category",
+        attributeNodes = @NamedAttributeNode(value = "products", subgraph = "catalog-products"),
+        subgraphs = @NamedSubgraph(name = "catalog-products", attributeNodes = @NamedAttributeNode("category")))
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder

@@ -1,20 +1,9 @@
-#  port: 8443
-#  ssl:
-#    enabled: true
-#    key-store: classpath:bootsecurity.p12
-#    key-store-type: PKCS12
-#    key-store-password: ${KEY_STORE_TYPE}
 server:
   port: 8081
 
 spring:
   application:
     name: gateway-service
-  devtools:
-    livereload:
-      port: 35730
-  profiles:
-    include: dev
 
   #Zipkin
   zipkin:
@@ -27,10 +16,10 @@ spring:
         registration:
           gateway-client-oidc:
             provider: spring
-            client-id: ${$GATEWAY_CLIENT_ID}
+            client-id: ${GATEWAY_CLIENT_ID}
             client-secret: ${GATEWAY_CLIENT_SECRET}
             authorization-grant-type: authorization_code
-            redirect-uri: "http://gateway:8081/login/oauth2/code/{registrationId}"
+            redirect-uri: "http://gateway-service:8081/login/oauth2/code/{registrationId}"
             scope:
               - openid
               - catalog.read
@@ -45,7 +34,7 @@ spring:
           google:
             client-id: ${GOOGLE_CLIENT_ID}
             client-secret: ${GOOGLE_CLIENT_SECRET}
-            redirect-uri: http://gateway:8081/login/oauth2/code/{registrationId}
+            redirect-uri: http://gateway-service:8081/login/oauth2/code/{registrationId}
             scope:
               - openid
               - email
@@ -53,27 +42,33 @@ spring:
           github:
             client-id: ${GITHUB_CLIENT_ID}
             client-secret: ${GITHUB_CLIENT_SECRET}
-            redirect-uri: http://gateway:8081/login/oauth2/code/{registrationId}
+            redirect-uri: http://gateway-service:8081/login/oauth2/code/{registrationId}
           facebook:
             client-id: ${FACEBOOK_CLIENT_ID}
             client-secret: ${FACEBOOK_CLIENT_SECRET}
-            redirect-uri: http://gateway:8081/login/oauth2/code/{registrationId}
+            redirect-uri: http://gateway-service:8081/login/oauth2/code/{registrationId}
         provider:
           spring:
             issuer-uri: http://auth-server:8082
             authorization-uri: http://auth-server:8082/oauth2/authorize
             token-uri: http://auth-server:8082/oauth2/token
 
+  config:
+    import: optional:vault://
   #Gateway
   cloud:
     vault:
-      uri: http://vault:8200
       authentication: TOKEN
       token: ${VAULT_SERVER_TOKEN}
+      kv:
+        enabled: true
+      scheme: http
+      host: vault-agent
+      port: 8201
+      application-name: gateway-service/docker
       generic:
-        enable: true
+        enabled: true
         backend: gateway-service
-        default-context: credentials
     gateway:
       discovery:
         locator:

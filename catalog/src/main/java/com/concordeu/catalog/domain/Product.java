@@ -1,7 +1,5 @@
 package com.concordeu.catalog.domain;
 
-import com.concordeu.catalog.domain.Category;
-import com.concordeu.catalog.domain.Comment;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.*;
 import org.hibernate.annotations.GenericGenerator;
@@ -18,7 +16,11 @@ import java.util.List;
         uniqueConstraints = {
                 @UniqueConstraint(name = "product_name", columnNames = "name")
         },
-        indexes = @Index(name = "product_index",columnList = "name"))
+        indexes = @Index(name = "product_index", columnList = "name"))
+@NamedEntityGraph(
+        name = "graph-catalog-product",
+        attributeNodes = @NamedAttributeNode(value = "comments", subgraph = "catalog-comments"),
+        subgraphs = @NamedSubgraph(name = "catalog-comments", attributeNodes = @NamedAttributeNode("product")))
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
