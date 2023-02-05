@@ -2,23 +2,27 @@ server:
   port: 8084
 
 spring:
-  spring:
-    application:
-      name: cagalog-service
-    devtools:
-      livereload:
-        port: 35730
-    profiles:
-      include: dev
-    cloud:
-      vault:
-        uri: http://vault:8200
-        authentication: TOKEN
-        token: ${VAULT_SERVER_TOKEN}
-        generic:
-          enable: true
-          backend: catalog-service
-          default-context: credentials
+  application:
+    name: catalog-service
+  devtools:
+    livereload:
+      port: 35730
+  cloud:
+    vault:
+      authentication: TOKEN
+      token: ${VAULT_SERVER_TOKEN}
+      kv:
+        enabled: true
+      scheme: http
+      host: vault-agent
+      port: 8201
+      application-name: catalog-service/docker
+      generic:
+        enabled: true
+        backend: catalog-service
+
+  config:
+    import: optional:vault://
   #Data Source Properties
   datasource:
     driverClassName: com.mysql.cj.jdbc.Driver
@@ -104,7 +108,7 @@ springdoc:
     path: /v3/api-docs
   swagger-ui:
     disable-swagger-default-url: true
-    oauth2RedirectUrl: http://gateway:8081/login/oauth2/code/gateway-client-oidc
+    oauth2RedirectUrl: http://gateway-service:8081/login/oauth2/code/gateway-client-oidc
     oauth:
       client-id: gateway
       client-secret: secret

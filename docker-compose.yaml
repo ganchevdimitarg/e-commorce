@@ -25,8 +25,8 @@ services:
     networks:
       - mongodb
     environment:
-     MONGO_INITDB_ROOT_USERNAME: "${MONGO_DB_USER}"
-     MONGO_INITDB_ROOT_PASSWORD: "${MONGO_DB_PASSWORD}"
+      MONGO_INITDB_ROOT_USERNAME: "${MONGO_DB_USER}"
+      MONGO_INITDB_ROOT_PASSWORD: "${MONGO_DB_PASSWORD}"
   mongo-express:
     image: mongo-express
     container_name: mongo-express
@@ -75,6 +75,8 @@ services:
       - '--web.console.templates=/usr/share/prometheus/consoles'
     ports:
       - "9090:9090"
+    networks:
+      - spring
 
   grafana:
     image: grafana/grafana
@@ -131,6 +133,9 @@ services:
       - IPC_LOCK
     container_name: vault
     entrypoint: "vault server -config=/helpers/vault-config.hcl"
+    networks:
+      - spring
+      - vault
     healthcheck:
       test: wget --no-verbose --tries=1 --spider http://localhost:8200 || exit 1
       interval: 10s
@@ -159,6 +164,8 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - spring
 
   kafka:
     image: confluentinc/cp-kafka
@@ -175,6 +182,8 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+    networks:
+      - spring
 
   eureka-server:
     image: dgganchev/eureka-server:latest
@@ -195,7 +204,13 @@ services:
       - "8082:8082"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
+      - VAULT_SERVER_TOKEN=${VAULT_SERVER_TOKEN}
+      - MONGO_DB_USER=${MONGO_DB_USER}
+      - MONGO_DB_PASSWORD=${MONGO_DB_PASSWORD}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     networks:
+      - vault
       - spring
       - postgres
       - mongodb
@@ -209,11 +224,20 @@ services:
 
   gateway:
     image: dgganchev/gateway:latest
-    container_name: gateway
+    container_name: gateway-service
     ports:
       - "8081:8081"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
+      - VAULT_SERVER_TOKEN=${VAULT_SERVER_TOKEN}
+      - GATEWAY_CLIENT_ID=${GATEWAY_CLIENT_ID}
+      - GATEWAY_CLIENT_SECRET=${GATEWAY_CLIENT_SECRET}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
+      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
+      - FACEBOOK_CLIENT_ID=${FACEBOOK_CLIENT_ID}
+      - FACEBOOK_CLIENT_SECRET=${FACEBOOK_CLIENT_SECRET}
     networks:
       - spring
     depends_on:
@@ -221,14 +245,18 @@ services:
       - eureka-server
       - prometheus
       - vault
+      - auth-server
 
   catalog:
     image: dgganchev/catalog:latest
-    container_name: catalog
+    container_name: catalog-service
     ports:
       - "8084:8084"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
+      - VAULT_SERVER_TOKEN=${VAULT_SERVER_TOKEN}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_USER=${MYSQL_USER}
     networks:
       - spring
       - mysql
@@ -241,11 +269,16 @@ services:
 
   order:
     image: dgganchev/order:latest
-    container_name: order
+    container_name: order-service
     ports:
       - "8086:8086"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
+      - VAULT_SERVER_TOKEN=${VAULT_SERVER_TOKEN}
+      - GATEWAY_CLIENT_ID=${GATEWAY_CLIENT_ID}
+      - GATEWAY_CLIENT_SECRET=${GATEWAY_CLIENT_SECRET}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     networks:
       - spring
       - postgres
@@ -259,11 +292,19 @@ services:
 
   profile:
     image: dgganchev/profile:latest
-    container_name: profile
+    container_name: profile-service
     ports:
       - "8083:8083"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
+      - VAULT_SERVER_TOKEN=${VAULT_SERVER_TOKEN}
+      - ECOMMERCE_OAUTH2_CLIENTID=${ECOMMERCE_OAUTH2_CLIENTID}
+      - ECOMMERCE_OAUTH2_SECRET=${ECOMMERCE_OAUTH2_SECRET}
+      - MONGO_DB_USER=${MONGO_DB_USER}
+      - MONGO_DB_PASSWORD=${MONGO_DB_PASSWORD}
+      - PASSWORD_RESET_TOKEN_SECRET_KEY=${PASSWORD_RESET_TOKEN_SECRET_KEY}
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
+      - GITHUB_SECRET=${GITHUB_SECRET}
     networks:
       - spring
       - mongodb
@@ -277,11 +318,16 @@ services:
 
   notification:
     image: dgganchev/notification:latest
-    container_name: notification
+    container_name: notification-service
     ports:
       - "8085:8085"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
+      - VAULT_SERVER_TOKEN=${VAULT_SERVER_TOKEN}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - MAIL_USERNAME=${MAIL_USERNAME}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
     networks:
       - spring
       - postgres
@@ -295,11 +341,15 @@ services:
 
   payment:
     image: dgganchev/payment:latest
-    container_name: payment
+    container_name: payment-service
     ports:
       - "8087:8087"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
+      - VAULT_SERVER_TOKEN=${VAULT_SERVER_TOKEN}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
     networks:
       - spring
       - postgres
@@ -319,10 +369,12 @@ networks:
     driver: bridge
   spring:
     driver: bridge
+  vault:
+    driver: bridge
 volumes:
   db:
-  prometheus_data: {}
-  grafana_storage: {}
-  data: {}
+  prometheus_data: { }
+  grafana_storage: { }
+  data: { }
   postgres:
-  vault_data: {}
+  vault_data: { }

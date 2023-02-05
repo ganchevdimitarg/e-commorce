@@ -9,6 +9,20 @@ import java.util.UUID;
 
 @Entity(name = "Clients")
 @Table(name = "clients")
+@NamedEntityGraph(
+        name = "graph-auth-client",
+        attributeNodes = {
+                @NamedAttributeNode(value = "redirectUri", subgraph = "client-redirectUri"),
+                @NamedAttributeNode(value = "grantType", subgraph = "client-grantType"),
+                @NamedAttributeNode(value = "scope", subgraph = "client-scope"),
+                @NamedAttributeNode(value = "tokenSettings", subgraph = "client-tokenSettings")
+        },
+        subgraphs = {
+                @NamedSubgraph(name = "client-redirectUri", attributeNodes = @NamedAttributeNode("client")),
+                @NamedSubgraph(name = "client-grantType", attributeNodes = @NamedAttributeNode("client")),
+                @NamedSubgraph(name = "client-scope", attributeNodes = @NamedAttributeNode("client")),
+                @NamedSubgraph(name = "client-tokenSettings", attributeNodes = @NamedAttributeNode("client"))
+        })
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder

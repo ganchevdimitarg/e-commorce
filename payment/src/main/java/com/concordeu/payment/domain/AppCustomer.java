@@ -13,6 +13,16 @@ import java.util.List;
                 @UniqueConstraint(name = "customer_id_stp", columnNames = "customer_id_stp")
         },
         indexes = @Index(name = "customer_id_stp", columnList = "customer_id_stp"))
+@NamedEntityGraph(
+        name = "graph-payment-customer",
+        attributeNodes = {
+                @NamedAttributeNode(value = "charges", subgraph = "payment-charges"),
+                @NamedAttributeNode(value = "cards", subgraph = "payment-cards")
+        },
+        subgraphs = {
+                @NamedSubgraph(name = "payment-charges", attributeNodes = @NamedAttributeNode("customer")),
+                @NamedSubgraph(name = "payment-cards", attributeNodes = @NamedAttributeNode("customer"))
+        })
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder

@@ -7,17 +7,22 @@ spring:
   devtools:
     livereload:
       port: 35730
-  profiles:
-    include: dev
   cloud:
     vault:
-      uri: http://vault:8200
       authentication: TOKEN
       token: ${VAULT_SERVER_TOKEN}
+      kv:
+        enabled: true
+      scheme: http
+      host: vault-agent
+      port: 8201
+      application-name: order-service/docker
       generic:
-        enable: true
+        enabled: true
         backend: order-service
-        default-context: credentials
+
+  config:
+    import: optional:vault://
   #Security
   security:
     oauth2:
@@ -29,10 +34,10 @@ spring:
         registration:
           gateway-client-oidc:
             provider: spring
-            client-id: ${$GATEWAY_CLIENT_ID}
+            client-id: ${GATEWAY_CLIENT_ID}
             client-secret: ${GATEWAY_CLIENT_SECRET}
             authorization-grant-type: client_credentials
-            redirect-uri: "http://gateway:8081/login/oauth2/code/{registrationId}"
+            redirect-uri: "http://gateway-service:8081/login/oauth2/code/{registrationId}"
         provider:
           spring:
             issuer-uri: http://auth-server:8082
@@ -116,7 +121,7 @@ springdoc:
     path: /v3/api-docs
   swagger-ui:
     disable-swagger-default-url: true
-    oauth2RedirectUrl: http://gateway:8081/login/oauth2/code/gateway-client-oidc
+    oauth2RedirectUrl: http://gateway-service:8081/login/oauth2/code/gateway-client-oidc
     oauth:
       client-id: gateway
       client-secret: secret
@@ -163,7 +168,7 @@ resilience4j.timelimiter:
 
 catalog:
   base:
-    uri: http://catalog:8084/api/v1
+    uri: http://catalog-service:8084/api/v1
   service:
     products:
       get:
@@ -171,7 +176,7 @@ catalog:
 
 profile:
   base:
-    uri: http://profile:8083/api/v1
+    uri: http://profile-service:8083/api/v1
   service:
     get:
       uri: ${profile.base.uri}/profile/get-by-username?username=
@@ -180,7 +185,7 @@ profile:
 
 payment:
   base:
-    uri: http://payment:8087/api/v1
+    uri: http://payment-service:8087/api/v1
   service:
     customer:
       post:

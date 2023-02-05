@@ -2,6 +2,29 @@ server:
   port: 8085
 
 spring:
+  application:
+    name: notification-service
+  devtools:
+    livereload:
+      port: 35730
+  cloud:
+    config:
+      enabled: false
+    vault:
+      authentication: TOKEN
+      token: ${VAULT_SERVER_TOKEN}
+      kv:
+        enabled: true
+      scheme: http
+      host: 127.0.0.1
+      port: 8201
+      application-name: notification-service/dev
+      generic:
+        enabled: true
+        backend: notification-service
+
+  config:
+    import: optional:vault://
   #Data Source Properties
   datasource:
     username: ${POSTGRES_USER}

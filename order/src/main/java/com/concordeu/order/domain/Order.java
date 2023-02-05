@@ -15,6 +15,16 @@ import java.util.List;
                 @UniqueConstraint(name = "order_number", columnNames = "order_number")
         },
         indexes = @Index(name = "order_number_index",columnList = "order_number"))
+@NamedEntityGraph(
+        name = "graph-order",
+        attributeNodes = {
+                @NamedAttributeNode(value = "items", subgraph = "order-items"),
+                @NamedAttributeNode(value = "charge", subgraph = "order-charge")
+        },
+        subgraphs = {
+                @NamedSubgraph(name = "order-items", attributeNodes = @NamedAttributeNode("order")),
+                @NamedSubgraph(name = "order-charge", attributeNodes = @NamedAttributeNode("order"))
+        })
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
