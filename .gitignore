@@ -4,6 +4,7 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 vault
+.env
 
 ### STS ###
 .apt_generated
@@ -13,7 +14,7 @@ vault
 .settings
 .springBeans
 .sts4-cache
-.env
+
 
 ### IntelliJ IDEA ###
 .idea
