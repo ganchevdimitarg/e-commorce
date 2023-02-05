@@ -5,6 +5,7 @@ import org.hibernate.annotations.GenericGenerator;
 
 import javax.persistence.*;
 import java.util.List;
+import java.util.Set;
 
 @Entity(name = "Customers")
 @Table(
@@ -42,7 +43,7 @@ public class AppCustomer {
     @Column(name = "customer_id_stp")
     private String customerId;
     @OneToMany(mappedBy = "customer", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    private List<AppCharge> charges;
+    private Set<AppCharge> charges;
     @OneToMany(mappedBy = "customer", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     private List<AppCard> cards;
 }
