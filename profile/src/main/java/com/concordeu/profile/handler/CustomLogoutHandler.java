@@ -69,7 +69,6 @@ public class CustomLogoutHandler implements LogoutHandler {
                 .header("Accept", "application/vnd.github+json")
                 .headers(headers -> headers.setBasicAuth(gitGithubClientId, gitGithubSecret))
                 .contentType(MediaType.APPLICATION_JSON)
-                .contentLength(67)
                 .bodyValue(requestBody)
                 .retrieve()
                 .toEntity(Void.class)

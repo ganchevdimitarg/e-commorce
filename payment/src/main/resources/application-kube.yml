@@ -1,9 +1,9 @@
 server:
-  port: 8082
+  port: 8087
 
 spring:
   application:
-    name: auth-service
+    name: payment-service
   devtools:
     livereload:
       port: 35730
@@ -16,29 +16,18 @@ spring:
       scheme: http
       host: vault-agent
       port: 8201
-      application-name: auth-service/docker
+      application-name: payment-service/docker
       generic:
         enabled: true
-        backend: auth-service
+        backend: payment-service
 
   config:
     import: optional:vault://
-
-  #Data Source Properties
-  data:
-    mongodb:
-      authentication-database: admin
-      username: ${MONGO_DB_USER}
-      password: ${MONGO_DB_PASSWORD}
-      database: authentication
-      port: 27017
-      host: mongodb
-
   #Data Source Properties
   datasource:
     username: ${POSTGRES_USER}
     password: ${POSTGRES_PASSWORD}
-    url: jdbc:postgresql://postgres:5432/registered_client
+    url: jdbc:postgresql://postgres:5432/payments
 
   #JPA Properties
   jpa:
@@ -49,6 +38,19 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
     show-sql: true
+
+  #Security
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://auth-server:8082
+          jwk-set-uri: http://auth-server:8082/oauth2/jwks
+
+  #Pagination
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
 
   #Zipkin
   zipkin:
@@ -62,16 +64,10 @@ logging:
     root: INFO
     org:
       springframework:
+        data: INFO
         web: INFO
         security: INFO
         oauth2: INFO
-
-#Eureka
-eureka:
-  client:
-    service-url:
-      defaultZone: http://eureka-server:8761/eureka
-    enabled: false
 
 #Prometheus (and other data loggers)
 management:
@@ -90,3 +86,26 @@ management:
     export:
       prometheus:
         enabled: true
+
+#Spring Doc
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    disable-swagger-default-url: true
+    oauth2RedirectUrl: http://gateway-service:8081/login/oauth2/code/gateway-client-oidc
+    oauth:
+      client-id: gateway
+      client-secret: secret
+      scopes:
+        - openid
+        - profile.read
+        - profile.write
+      use-pkce-with-authorization-code-grant: true
+  oAuthFlow:
+    authorizationUrl: http://auth-server:8082/oauth2/authorize
+    tokenUrl: http://auth-server:8082/oauth2/token
+
+stripe:
+  secret:
+    key: ${STRIPE_SECRET_KEY}

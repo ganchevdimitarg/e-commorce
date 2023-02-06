@@ -1,9 +1,9 @@
 server:
-  port: 8086
+  port: 8083
 
 spring:
   application:
-    name: order-service
+    name: profile-service
   devtools:
     livereload:
       port: 35730
@@ -16,10 +16,10 @@ spring:
       scheme: http
       host: vault-agent
       port: 8201
-      application-name: order-service/docker
+      application-name: profile-service/docker
       generic:
         enabled: true
-        backend: order-service
+        backend: profile-service
 
   config:
     import: optional:vault://
@@ -45,20 +45,15 @@ spring:
             token-uri: http://auth-server:8082/oauth2/token
 
   #Data Source Properties
-  datasource:
-    username: ${POSTGRES_USER}
-    password: ${POSTGRES_PASSWORD}
-    url: jdbc:postgresql://postgres:5432/orders
-
-  #JPA Properties
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: true
-    show-sql: true
+  data:
+    mongodb:
+      authentication-database: admin
+      username: ${MONGO_DB_USER}
+      password: ${MONGO_DB_PASSWORD}
+      database: authentication
+      port: 27017
+      host: mongodb
+      auto-index-creation: true
 
   #Pagination
   mvc:
@@ -69,7 +64,6 @@ spring:
   zipkin:
     base-url: http://zipkin:9411
 
-#Show SQL executed with parameter bindings
 #Logging Levels
 #Disable the default loggers
 logging:
@@ -78,22 +72,10 @@ logging:
     root: INFO
     org:
       springframework:
+        data: INFO
         web: INFO
         security: INFO
         oauth2: INFO
-      hibernate:
-        SQL: DEBUG
-        type:
-          descriptor: TRACE
-
-
-#Eureka
-eureka:
-  client:
-    service-url:
-      defaultZone: http://eureka-server:8761/eureka
-    enabled: false
-
 
 #Prometheus (and other data loggers)
 management:
@@ -112,9 +94,6 @@ management:
     export:
       prometheus:
         enabled: true
-  health:
-    circuitbreakers:
-      enabled: true
 
 #Spring Doc
 springdoc:
@@ -128,8 +107,8 @@ springdoc:
       client-secret: secret
       scopes:
         - openid
-        - order.read
-        - order.write
+        - profile.read
+        - profile.write
       use-pkce-with-authorization-code-grant: true
   oAuthFlow:
     authorizationUrl: http://auth-server:8082/oauth2/authorize
@@ -155,7 +134,7 @@ resilience4j.circuitbreaker:
         - java.util.concurrent.TimeoutException
         - java.io.IOException
   instances:
-    orderService:
+    profileService:
       baseConfig: default
 
 resilience4j.timelimiter:
@@ -164,25 +143,13 @@ resilience4j.timelimiter:
       timeoutDuration: 5s
       cancelRunningFuture: true
   instances:
-    orderService:
+    profileService:
       baseConfig: default
 
-catalog:
-  base:
-    uri: http://catalog-service:8084/api/v1
-  service:
-    products:
-      get:
-        uri: ${catalog.base.uri}/catalog/product/get-products-id
-
-profile:
-  base:
-    uri: http://profile-service:8083/api/v1
-  service:
-    get:
-      uri: ${profile.base.uri}/profile/get-by-username?username=
-    post:
-      uri: ${profile.base.uri}/profile/register-user
+#JWT secret key
+jwt:
+  secret:
+    key: ${PASSWORD_RESET_TOKEN_SECRET_KEY}
 
 payment:
   base:
@@ -193,15 +160,23 @@ payment:
         uri: ${payment.base.uri}/payment/customer/create-customer
       get:
         uri: ${payment.base.uri}/payment/customer/get-customer?username=
+      delete:
+        uri: ${payment.base.uri}/payment/customer/delete-customer?username=
     card:
       post:
         uri: ${payment.base.uri}/payment/card/create-card
       get:
-        uri: ${payment.base.uri}/payment/card/get-cards?username=
-    charge:
-      post:
-        uri: ${payment.base.uri}/payment/charge/create-charge
+        uri: ${payment.base.uri}/payment/card/get-customer-cards?username=
 
 webClient:
   oath2Client:
     defaultClientRegistrationId: "gateway-client-oidc"
+
+github:
+  clientId: ${GITHUB_CLIENT_ID}
+  secret: ${GITHUB_SECRET}
+ecommerce:
+  oauth2:
+    clientId: ${ECOMMERCE_OAUTH2_CLIENTID}
+    secret: ${ECOMMERCE_OAUTH2_SECRET}
+

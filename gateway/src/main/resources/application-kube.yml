@@ -4,13 +4,10 @@ server:
 spring:
   application:
     name: gateway-service
-  devtools:
-    livereload:
-      port: 35730
 
   #Zipkin
   zipkin:
-    base-url: http://localhost:9411
+    base-url: http://zipkin:9411
 
   #Security
   security:
@@ -22,7 +19,7 @@ spring:
             client-id: ${GATEWAY_CLIENT_ID}
             client-secret: ${GATEWAY_CLIENT_SECRET}
             authorization-grant-type: authorization_code
-            redirect-uri: "http://127.0.0.1:8081/login/oauth2/code/{registrationId}"
+            redirect-uri: "http://gateway-service:8081/login/oauth2/code/{registrationId}"
             scope:
               - openid
               - catalog.read
@@ -37,7 +34,7 @@ spring:
           google:
             client-id: ${GOOGLE_CLIENT_ID}
             client-secret: ${GOOGLE_CLIENT_SECRET}
-            redirect-uri: http://127.0.0.1:8081/login/oauth2/code/{registrationId}
+            redirect-uri: http://gateway-service:8081/login/oauth2/code/{registrationId}
             scope:
               - openid
               - email
@@ -45,19 +42,20 @@ spring:
           github:
             client-id: ${GITHUB_CLIENT_ID}
             client-secret: ${GITHUB_CLIENT_SECRET}
-            redirect-uri: http://127.0.0.1:8081/login/oauth2/code/{registrationId}
+            redirect-uri: http://gateway-service:8081/login/oauth2/code/{registrationId}
           facebook:
             client-id: ${FACEBOOK_CLIENT_ID}
             client-secret: ${FACEBOOK_CLIENT_SECRET}
-            redirect-uri: http://127.0.0.1:8081/login/oauth2/code/{registrationId}
+            redirect-uri: http://gateway-service:8081/login/oauth2/code/{registrationId}
         provider:
           spring:
-            issuer-uri: http://localhost:8082
-            authorization-uri: http://localhost:8082/oauth2/authorize
-            token-uri: http://localhost:8082/oauth2/token
+            issuer-uri: http://auth-server:8082
+            authorization-uri: http://auth-server:8082/oauth2/authorize
+            token-uri: http://auth-server:8082/oauth2/token
+
   config:
     import: optional:vault://
-
+  #Gateway
   cloud:
     vault:
       authentication: TOKEN
@@ -65,14 +63,12 @@ spring:
       kv:
         enabled: true
       scheme: http
-      host: 127.0.0.1
+      host: vault-agent
       port: 8201
-      application-name: gateway-service/dev
+      application-name: gateway-service/docker
       generic:
         enabled: true
         backend: gateway-service
-
-    #Gateway
     gateway:
       discovery:
         locator:
@@ -214,12 +210,5 @@ management:
       enabled: true
     ratelimiters:
       enabled: true
-
-#Eureka
-eureka:
-  client:
-    service-url:
-      defaultZone: http://localhost:8761/eureka
-    enabled: false
 
 
