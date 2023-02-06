@@ -11,5 +11,9 @@ public record UserRequestDto(
         String phoneNumber,
         String city,
         String street,
-        String postCode) {
+        String postCode,
+        String cardNumber,
+        long cardExpMonth,
+        long cardExpYear,
+        String cardCvc) {
 }

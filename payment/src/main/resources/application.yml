@@ -1,0 +1,96 @@
+server:
+  port: 8087
+
+spring:
+  #Data Source Properties
+  datasource:
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+    url: jdbc:postgresql://localhost:5432/payments
+
+  #JPA Properties
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+    show-sql: true
+
+  #Security
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8082
+          jwk-set-uri: http://localhost:8082/oauth2/jwks
+
+  #Pagination
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+
+  #Zipkin
+  zipkin:
+    base-url: http://localhost:9411
+
+#Logging Levels
+#Disable the default loggers
+logging:
+  level:
+    blog: WARN
+    root: INFO
+    org:
+      springframework:
+        data: INFO
+        web: INFO
+        security: INFO
+        oauth2: INFO
+
+#Eureka
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+
+#Prometheus (and other data loggers)
+management:
+  endpoint:
+    metrics:
+      enabled: true
+    prometheus:
+      enabled: true
+    health:
+      show-details: always
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+#Spring Doc
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    disable-swagger-default-url: true
+    oauth2RedirectUrl: http://127.0.0.1:8081/login/oauth2/code/gateway-client-oidc
+    oauth:
+      client-id: gateway
+      client-secret: secret
+      scopes:
+        - openid
+        - profile.read
+        - profile.write
+      use-pkce-with-authorization-code-grant: true
+  oAuthFlow:
+    authorizationUrl: http://localhost:8082/oauth2/authorize
+    tokenUrl: http://localhost:8082/oauth2/token
+
+stripe:
+  secret:
+    key: ${STRIPE_SECRET_KEY}

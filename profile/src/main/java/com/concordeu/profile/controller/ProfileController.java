@@ -12,9 +12,14 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.core.OAuth2AccessToken;
+import org.springframework.security.oauth2.core.OAuth2RefreshToken;
 import org.springframework.web.bind.annotation.*;
+
+import javax.servlet.http.HttpServletRequest;
 
 @RestController
 @RequestMapping("/api/v1/profile")
@@ -24,26 +29,6 @@ public class ProfileController {
     private static final String ADMIN = "admin";
     private final ProfileService profileService;
     private final MailService mailService;
-
-    @Operation(summary = "Get Profile By Username", description = "Get user by username from the database",
-            security = @SecurityRequirement(name = "security_auth"))
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
-            @ApiResponse(responseCode = "401", description = "Unauthenticated"),
-            @ApiResponse(responseCode = "403", description = "Unauthorized"),
-            @ApiResponse(responseCode = "500", description = "Server Error")
-    })
-    @GetMapping("/get-by-username")
-    @PreAuthorize("hasAnyAuthority('SCOPE_profile.read')")
-    public UserDto getUserByUsername(Authentication authentication, @RequestParam String username) {
-        String principalName = authentication.getName();
-
-        if (principalName.equals(username.trim()) || principalName.equals(ADMIN)) {
-            return profileService.getUserByUsername(username.trim());
-        }
-        log.debug("Profile '{}' try to access another account '{}'", principalName, username);
-        throw new IllegalArgumentException("You cannot access this information!");
-    }
 
     @Operation(summary = "Register Admin", description = "Register admin in the database",
             security = @SecurityRequirement(name = "security_auth"))
@@ -93,6 +78,28 @@ public class ProfileController {
         return user;
     }
 
+    @Operation(summary = "Get Profile By Username", description = "Get user by username from the database",
+            security = @SecurityRequirement(name = "security_auth"))
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
+            @ApiResponse(responseCode = "401", description = "Unauthenticated"),
+            @ApiResponse(responseCode = "403", description = "Unauthorized"),
+            @ApiResponse(responseCode = "500", description = "Server Error")
+    })
+    @GetMapping("/get-by-username")
+    public UserDto getUserByUsername(Authentication authentication, @RequestParam String username) {
+        String principalName = authentication.getName();
+
+        if (principalName.equals(username.trim()) ||
+            principalName.equals(ADMIN) ||
+            principalName.equals("gateway")) {
+            return profileService.getUserByUsername(username.trim());
+        }
+
+        log.debug("Profile '{}' try to access another account '{}'", principalName, username);
+        throw new IllegalArgumentException("You cannot access this information!");
+    }
+
     @Operation(summary = "Update Profile", description = "Update user in the database",
             security = @SecurityRequirement(name = "security_auth"))
     @ApiResponses({
@@ -119,8 +126,8 @@ public class ProfileController {
     })
     @DeleteMapping("/delete-user")
     @PreAuthorize("hasAuthority('SCOPE_profile.write')")
-    public void deleteUser(@RequestParam String username) {
-        profileService.deleteUser(username.trim());
+    public void deleteUser(Authentication authentication) {
+        profileService.deleteUser(authentication.getName().trim());
     }
 
     @Operation(summary = "Password Reset", description = "Generates a token and sends it to the submitted user",
@@ -161,6 +168,6 @@ public class ProfileController {
     })
     @GetMapping("/set-new-password")
     public void setNewPassword(@RequestParam String username, @RequestParam String password) {
-         profileService.setNewPassword(username.trim(), password.trim());
+        profileService.setNewPassword(username.trim(), password.trim());
     }
 }

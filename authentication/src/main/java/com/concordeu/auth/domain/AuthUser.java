@@ -28,11 +28,13 @@ public class AuthUser {
     @Size(min = 6, max = 12, message = "Password must be between 6 and 12 characters!")
     @NotBlank(message = "Password can not be empty!")
     @Pattern(regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=])(?=\\S+$).{6,12}$",
-            message = "a digit must occur at least once\n" +
-                    "a lower case letter must occur at least once\n" +
-                    "an upper case letter must occur at least once\n" +
-                    "a special character must occur at least once\n" +
-                    "no whitespace allowed in the entire string")
+            message = """
+                    a digit must occur at least once
+                    a lower case letter must occur at least once
+                    an upper case letter must occur at least once
+                    a special character must occur at least once
+                    no whitespace allowed in the entire string
+                    """)
     private String password;
     private Set<? extends GrantedAuthority> grantedAuthorities;
     @Size(min = 3, max = 12, message = "First name must be between 3 and 12 characters!")
