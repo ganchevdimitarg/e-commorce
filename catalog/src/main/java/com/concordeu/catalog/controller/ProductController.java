@@ -1,5 +1,6 @@
 package com.concordeu.catalog.controller;
 
+import com.concordeu.catalog.dto.product.ItemRequestDto;
 import com.concordeu.catalog.dto.product.ProductRequestDto;
 import com.concordeu.catalog.dto.product.ProductResponseDto;
 import com.concordeu.catalog.mapper.MapStructMapper;
@@ -14,6 +15,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/catalog/product")
@@ -49,7 +52,6 @@ public class ProductController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @GetMapping("/get-products")
-    @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
     public Page<ProductResponseDto> getProducts(@RequestParam int page,
                                                 @RequestParam int size) {
         return productService.getProductsByPage(page, size);
@@ -64,7 +66,6 @@ public class ProductController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @GetMapping("/get-category-products")
-    @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
     public Page<ProductResponseDto> getProductsByCategory(@RequestParam int page,
                                                           @RequestParam int size,
                                                           @RequestParam String categoryName) {
@@ -93,10 +94,16 @@ public class ProductController {
             @ApiResponse(responseCode = "403", description = "Unauthorized"),
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
+
     @GetMapping("/get-product-id")
     @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
     public ProductResponseDto getProductById(@RequestParam String productId) {
         return productService.getProductById(productId);
+    }
+
+    @PostMapping("/get-products-id")
+    public List<ProductResponseDto> getProductsById(@RequestBody ItemRequestDto items) {
+        return productService.getProductsById(items);
     }
 
     @Operation(summary = "Update Product By Product Name", description = "Update product by product name",
@@ -128,4 +135,6 @@ public class ProductController {
     public void deleteProduct(@RequestParam String productName) {
         productService.deleteProduct(productName);
     }
+
+
 }

@@ -37,12 +37,12 @@ public class OrderController {
     @PostMapping("/create-order")
     @ValidationRequest
     @PreAuthorize("hasAuthority('SCOPE_order.write')")
-    public void createOrder(@RequestBody OrderDto orderDto) {
-        orderService.createOrder(orderDto);
+    public void createOrder(@RequestBody OrderDto orderDto, Authentication authentication) {
+        orderService.createOrder(orderDto, authentication.getName());
         mailService.sendUserOrderMail(orderDto.username());
     }
 
-    @Operation(summary = "Delete Order", description = "Delete order by order number",
+    @Operation(summary = "Delete Order", description = "Delete order by order cardNumber",
             security = @SecurityRequirement(name = "security_auth"))
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
@@ -56,7 +56,7 @@ public class OrderController {
         orderService.deleteOrder(orderNumber);
     }
 
-    @Operation(summary = "Get Order", description = "Get order by order number",
+    @Operation(summary = "Get Order", description = "Get order by order cardNumber",
             security = @SecurityRequirement(name = "security_auth"))
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
@@ -66,7 +66,7 @@ public class OrderController {
     })
     @GetMapping("/get-order")
     @PreAuthorize("hasAuthority('SCOPE_order.read')")
-    public OrderResponseDto getOrder(Authentication authentication, @RequestParam long orderNumber, HttpServletRequest request) {
-        return orderService.getOrder(orderNumber, request.getHeader("Authorization"), authentication);
+    public OrderResponseDto getOrder(@RequestParam long orderNumber, Authentication authentication) {
+        return orderService.getOrder(orderNumber, authentication.getName());
     }
 }

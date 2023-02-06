@@ -1,4 +1,3 @@
-
 #  port: 8443
 #  ssl:
 #    enabled: true
@@ -17,8 +16,8 @@ spring:
         registration:
           gateway-client-oidc:
             provider: spring
-            client-id:
-            client-secret:
+            client-id: ${$GATEWAY_CLIENT_ID}
+            client-secret: ${GATEWAY_CLIENT_SECRET}
             authorization-grant-type: authorization_code
             redirect-uri: "http://127.0.0.1:8081/login/oauth2/code/{registrationId}"
             scope:
@@ -79,7 +78,7 @@ spring:
             - name: CircuitBreaker
               args:
                 name: catalogService
-                fallbackUri: forward:/catalog-fallback
+                fallbackUri: forward:/fallback
         - id: profile-service
           uri: lb://profile-service
           predicates:
@@ -87,8 +86,8 @@ spring:
           filters:
             - name: CircuitBreaker
               args:
-                name: catalogService
-                fallbackUri: forward:/profile-fallback
+                name: profileService
+                fallbackUri: /fallback
         - id: notification-service
           uri: lb://notification-service
           predicates:
@@ -96,8 +95,8 @@ spring:
           filters:
             - name: CircuitBreaker
               args:
-                name: catalogService
-                fallbackUri: forward:/notification-fallback
+                name: notificationService
+                fallbackUri: forward:/fallback
         - id: order-service
           uri: lb://order-service
           predicates:
@@ -105,23 +104,61 @@ spring:
           filters:
             - name: CircuitBreaker
               args:
-                name: catalogService
-                fallbackUri: forward:/order-fallback
+                name: orderService
+                fallbackUri: forward:/fallback
+        - id: payment-service
+          uri: lb://payment-service
+          predicates:
+            - Path=/api/v1/payment/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: paymentService
+                fallbackUri: forward:/fallback
 
-resilience4j:
-  circuitbreaker:
-    instances:
-      catalogService:
-        sliding-window-size: 10
-        permitted-number-of-calls-in-half-open-state: 5
-        failure-rate-threshold: 50
-        wait-duration-in-open-state: 1000
-        register-health-indicator: true
-  timelimiter:
-    instances:
-      catalogService:
-        timeout-duration: 3s
+#Resilience4j
+resilience4j.circuitbreaker:
+  configs:
+    default:
+      failureRateThreshold: 50
+      minimumNumberOfCalls: 10
+      slidingWindowType: TIME_BASED
+      slidingWindowSize: 10
+      waitDurationInOpenState: 1000
+      permittedNumberOfCallsInHalfOpenState: 5
+      registerHealthIndicator: true
+      recordExceptions:
+        - org.springframework.web.client.HttpServerErrorException
+        - java.util.concurrent.TimeoutException
+        - java.io.IOException
+  instances:
+    catalogService:
+      baseConfig: default
+    profileService:
+      baseConfig: default
+    notificationService:
+      baseConfig: default
+    orderService:
+      baseConfig: default
+    paymentService:
+      baseConfig: default
 
+resilience4j.timelimiter:
+  configs:
+    default:
+      timeoutDuration: 5s
+      cancelRunningFuture: true
+  instances:
+    catalogService:
+      baseConfig: default
+    profileService:
+      baseConfig: default
+    notificationService:
+      baseConfig: default
+    orderService:
+      baseConfig: default
+    paymentService:
+      baseConfig: default
 
 #Logging Levels
 #Disable the default loggers
@@ -131,13 +168,14 @@ logging:
     org.springframework.web: INFO
     org.springframework.security: INFO
     org.springframework.security.oauth2: INFO
+    logging.level.io.github.resilience4j: DEBUG
 
 #Prometheus (and other data loggers)
 management:
-#  server:
-#    port: 8081
-#    ssl:
-#      enabled: false
+  #  server:
+  #    port: 8081
+  #    ssl:
+  #      enabled: false
   endpoints:
     web:
       exposure:
@@ -153,6 +191,11 @@ management:
     export:
       prometheus:
         enabled: 'true'
+  health:
+    circuitbreakers:
+      enabled: true
+    ratelimiters:
+      enabled: true
 
 #Eureka
 eureka:

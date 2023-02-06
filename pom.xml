@@ -28,6 +28,7 @@
         <module>order</module>
         <module>config-server</module>
         <module>client</module>
+        <module>payment</module>
     </modules>
 
     <properties>

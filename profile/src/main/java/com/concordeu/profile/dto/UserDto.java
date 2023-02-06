@@ -1,9 +1,11 @@
 package com.concordeu.profile.dto;
 
+import lombok.Builder;
 import org.springframework.security.core.GrantedAuthority;
 
 import java.util.Set;
 
+@Builder
 public record UserDto(
         String id,
         String username,
@@ -14,5 +16,10 @@ public record UserDto(
         String phoneNumber,
         String city,
         String street,
-        String postCode) {
+        String postCode,
+        String cardNumber,
+        long cardExpMonth,
+        long cardExpYear,
+        String cardCvc,
+        String cardId) {
 }
