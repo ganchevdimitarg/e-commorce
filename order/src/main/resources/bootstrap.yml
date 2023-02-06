@@ -13,5 +13,5 @@ spring:
       token: ${VAULT_SERVER_TOKEN}
       generic:
         enable: true
-        backend: auth-service
+        backend: order-service
         default-context: credentials

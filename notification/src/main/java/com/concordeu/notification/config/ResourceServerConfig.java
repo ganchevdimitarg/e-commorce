@@ -1,9 +1,6 @@
 package com.concordeu.notification.config;
 
 import com.concordeu.client.introspector.CustomOpaqueTokenIntrospector;
-import com.concordeu.client.introspector.FacebookOAuth2AuthPrincipal;
-import com.concordeu.client.introspector.GitHubOAuth2AuthPrincipal;
-import com.concordeu.client.introspector.GoogleOAuth2AuthPrincipal;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
@@ -29,6 +26,7 @@ import javax.servlet.http.HttpServletRequest;
 @Slf4j
 public class ResourceServerConfig {
     private final JwtDecoder jwtDecoder;
+
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -47,11 +45,7 @@ public class ResourceServerConfig {
 
     @Bean
     public OpaqueTokenIntrospector opaqueTokenIntrospector() {
-        return new CustomOpaqueTokenIntrospector(
-                new GoogleOAuth2AuthPrincipal(),
-                new GitHubOAuth2AuthPrincipal(),
-                new FacebookOAuth2AuthPrincipal()
-        );
+        return new CustomOpaqueTokenIntrospector();
     }
 
     @Bean

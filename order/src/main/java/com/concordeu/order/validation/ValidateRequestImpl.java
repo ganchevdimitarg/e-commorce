@@ -11,9 +11,7 @@ public class ValidateRequestImpl implements ValidateRequest {
 
     @Override
     public boolean validateRequest(OrderDto orderDto) {
-        return isValidUsername(orderDto.username()) &&
-                isValidProductName(orderDto.productName()) &&
-                isValidQuantity(orderDto.quantity());
+        return isValidUsername(orderDto.username());
     }
 
     private boolean isValidUsername(String username) {
@@ -21,25 +19,6 @@ public class ValidateRequestImpl implements ValidateRequest {
             log.warn("Username code is not correct: {}.", username);
             throw new InvalidRequestDataException(
                     String.format("Username code is not correct: %s.", username));
-        }
-        return true;
-    }
-
-    private boolean isValidProductName(String productName) {
-        if (productName.isBlank()) {
-            log.warn("Product name code is not correct: {}", productName);
-            throw new InvalidRequestDataException(
-                    String.format("Product name code is not correct: %s", productName));
-        }
-        return true;
-    }
-
-
-    private boolean isValidQuantity(long quantity) {
-        if (quantity <= 0) {
-            log.warn("Quantity code is not correct: {}.", quantity);
-            throw new InvalidRequestDataException(
-                    String.format("Quantity code is not correct: %s.", quantity));
         }
         return true;
     }

@@ -4,6 +4,7 @@ import com.concordeu.catalog.dao.CategoryDao;
 import com.concordeu.catalog.dao.ProductDao;
 import com.concordeu.catalog.domain.Category;
 import com.concordeu.catalog.domain.Product;
+import com.concordeu.catalog.dto.product.ItemRequestDto;
 import com.concordeu.catalog.dto.product.ProductResponseDto;
 import com.concordeu.catalog.mapper.MapStructMapper;
 import com.concordeu.catalog.validator.ProductDataValidator;
@@ -13,6 +14,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -107,6 +111,11 @@ public class ProductServiceImpl implements ProductService {
     public void deleteProduct(String productName) {
         checkExistenceProduct(productName);
         productDao.deleteByName(productName);
+    }
+
+    @Override
+    public List<ProductResponseDto> getProductsById(ItemRequestDto product) {
+        return product.items().stream().map(this::getProductById).collect(Collectors.toList());
     }
 
 

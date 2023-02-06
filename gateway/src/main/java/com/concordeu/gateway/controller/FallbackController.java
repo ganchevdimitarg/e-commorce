@@ -1,40 +1,29 @@
 package com.concordeu.gateway.controller;
 
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
-
-import java.util.Collection;
 
 @RestController
 public class FallbackController {
 
-    @GetMapping("/google")
-    public Collection<? extends GrantedAuthority> getGoogle() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        return authentication.getAuthorities();
-    }
-
-    @GetMapping("/catalog-fallback")
-    Mono<String> getCategoryFallback() {
+    @GetMapping("/fallback")
+    private Mono<String> fallbackGet() {
         return Mono.just("Oops... Something went wrong, please try again later :)");
     }
 
-    @GetMapping("/order-fallback")
-    Mono<String> getOrderFallback() {
+    @PostMapping("/fallback")
+    private Mono<String> fallbackPost() {
         return Mono.just("Oops... Something went wrong, please try again later :)");
     }
 
-    @GetMapping("/profile-fallback")
-    Mono<String> getProfileFallback() {
+    @PutMapping("/fallback")
+    private Mono<String> fallbackPut() {
         return Mono.just("Oops... Something went wrong, please try again later :)");
     }
 
-    @GetMapping("/notification-fallback")
-    Mono<String> getNotificationFallback() {
+    @DeleteMapping("/fallback")
+    private Mono<String> fallbackDelete() {
         return Mono.just("Oops... Something went wrong, please try again later :)");
     }
 }
+

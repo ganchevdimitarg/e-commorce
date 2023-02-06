@@ -2,6 +2,27 @@ server:
   port: 8086
 
 spring:
+  #Security
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8082
+          jwk-set-uri: http://localhost:8082/oauth2/jwks
+      client:
+        registration:
+          gateway-client-oidc:
+            provider: spring
+            client-id: ${$GATEWAY_CLIENT_ID}
+            client-secret: ${GATEWAY_CLIENT_SECRET}
+            authorization-grant-type: client_credentials
+            redirect-uri: "http://127.0.0.1:8081/login/oauth2/code/{registrationId}"
+        provider:
+          spring:
+            issuer-uri: http://localhost:8082
+            authorization-uri: http://localhost:8082/oauth2/authorize
+            token-uri: http://localhost:8082/oauth2/token
+
   #Data Source Properties
   datasource:
     username: ${POSTGRES_USER}
@@ -17,14 +38,6 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
     show-sql: true
-
-  #Security
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          issuer-uri: http://localhost:8082
-          jwk-set-uri: http://localhost:8082/oauth2/jwks
 
   #Pagination
   mvc:
@@ -103,3 +116,70 @@ springdoc:
 #Kafka
 kafka:
   bootstrapAddress: localhost:9092
+
+#Resilience4j
+resilience4j.circuitbreaker:
+  configs:
+    default:
+      failureRateThreshold: 50
+      minimumNumberOfCalls: 10
+      slidingWindowType: TIME_BASED
+      slidingWindowSize: 10
+      waitDurationInOpenState: 1000
+      permittedNumberOfCallsInHalfOpenState: 5
+      registerHealthIndicator: true
+      recordExceptions:
+        - org.springframework.web.client.HttpServerErrorException
+        - java.util.concurrent.TimeoutException
+        - java.io.IOException
+  instances:
+    orderService:
+      baseConfig: default
+
+resilience4j.timelimiter:
+  configs:
+    default:
+      timeoutDuration: 5s
+      cancelRunningFuture: true
+  instances:
+    orderService:
+      baseConfig: default
+
+catalog:
+  base:
+    uri: http://127.0.0.1:8084/api/v1
+  service:
+    products:
+      get:
+        uri: ${catalog.base.uri}/catalog/product/get-products-id
+
+profile:
+  base:
+    uri: http://127.0.0.1:8083/api/v1
+  service:
+    get:
+      uri: ${profile.base.uri}/profile/get-by-username?username=
+    post:
+      uri: ${profile.base.uri}/profile/register-user
+
+payment:
+  base:
+    uri: http://127.0.0.1:8087/api/v1
+  service:
+    customer:
+      post:
+        uri: ${payment.base.uri}/payment/customer/create-customer
+      get:
+        uri: ${payment.base.uri}/payment/customer/get-customer?username=
+    card:
+      post:
+        uri: ${payment.base.uri}/payment/card/create-card
+      get:
+        uri: ${payment.base.uri}/payment/card/get-cards?username=
+    charge:
+      post:
+        uri: ${payment.base.uri}/payment/charge/create-charge
+
+webClient:
+  oath2Client:
+    defaultClientRegistrationId: "gateway-client-oidc"

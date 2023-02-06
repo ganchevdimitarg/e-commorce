@@ -5,6 +5,8 @@ import org.hibernate.annotations.GenericGenerator;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity(name = "Orders")
 @Table(
@@ -23,20 +25,18 @@ public class Order {
     @GeneratedValue(generator = "uuid-string")
     @GenericGenerator(name = "uuid-string",
             strategy = "org.hibernate.id.UUIDGenerator")
-    @Column(name = "id", unique = true, nullable = false, updatable = false)
+    @Column(name = "order_id", unique = true, nullable = false, updatable = false)
     private String id;
     @Column(name = "order_number", unique = true, nullable = false)
-    long orderNumber;
+    private long orderNumber;
     @Column(name = "username", nullable = false)
-    String username;
-    @Column(name = "product_id", nullable = false)
-    String productId;
-    @Column(name = "product_name", nullable = false)
-    String productName;
-    @Column(name = "quantity", nullable = false)
-    long quantity;
+    private String username;
     @Column(name = "created_on")
-    LocalDateTime createdOn;
+    private LocalDateTime createdOn;
     @Column(name = "delivery_comment")
-    String deliveryComment;
+    private String deliveryComment;
+    @OneToOne(mappedBy = "order", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    private Charge charge;
+    @OneToMany(mappedBy = "order", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    private List<Item> items;
 }
