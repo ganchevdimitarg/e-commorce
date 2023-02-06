@@ -1,0 +1,13 @@
+server:
+  port: 8333
+
+#Logging Levels
+#Disable the default loggers
+logging:
+  level:
+    blog: WARN
+    root: INFO
+    org:
+      springframework:
+        data: INFO
+        web: INFO

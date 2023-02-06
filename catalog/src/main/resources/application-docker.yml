@@ -79,6 +79,7 @@ eureka:
   client:
     service-url:
       defaultZone: http://eureka-server:8761/eureka
+    enabled: false
 
 
 #Prometheus (and other data loggers)
