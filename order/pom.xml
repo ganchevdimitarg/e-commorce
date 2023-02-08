@@ -157,6 +157,11 @@
             <groupId>io.projectreactor.netty</groupId>
             <artifactId>reactor-netty</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-reactive-httpclient</artifactId>
+            <version>1.1.6</version>
+        </dependency>
 
         <!--    Gson    -->
         <dependency>

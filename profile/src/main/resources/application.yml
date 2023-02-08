@@ -75,14 +75,17 @@ logging:
         data: INFO
         web: INFO
         security: INFO
-        oauth2: INFO
-
+        oauth2: DEBUG
+    reactor:
+      netty:
+        http:
+          client: DEBUG
 #Eureka
 eureka:
   client:
     service-url:
       defaultZone: http://localhost:8761/eureka
-    enabled: false
+#    enabled: false
 
 #Prometheus (and other data loggers)
 management:
@@ -180,10 +183,21 @@ webClient:
     defaultClientRegistrationId: "gateway-client-oidc"
 
 github:
+  revoke:
+    uri: https://api.github.com/applications/309e3867b9f10d4a8270/grant
   clientId: ${GITHUB_CLIENT_ID}
   secret: ${GITHUB_SECRET}
 ecommerce:
+  revoke:
+    uri: http://localhost:8082/oauth2/revoke?token=
   oauth2:
     clientId: ${ECOMMERCE_OAUTH2_CLIENTID}
     secret: ${ECOMMERCE_OAUTH2_SECRET}
+google:
+  revoke:
+    uri: https://oauth2.googleapis.com/revoke?token=
+facebook:
+  revoke:
 
+
+    uri: https://graph.facebook.com/v15.0/me/permissions?access_token=
