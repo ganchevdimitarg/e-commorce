@@ -1,12 +1,16 @@
 package com.concordeu.profile.config;
 
+import io.netty.handler.logging.LogLevel;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.security.oauth2.client.*;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.client.web.reactive.function.client.ServletOAuth2AuthorizedClientExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.netty.http.client.HttpClient;
+import reactor.netty.transport.logging.AdvancedByteBufFormat;
 
 @Configuration
 public class WebClientConfig {
@@ -31,15 +35,30 @@ public class WebClientConfig {
         return authorizedClientManager;
     }
 
-    @Bean
+    @Bean(name = "clientCredentials")
     WebClient webClient(OAuth2AuthorizedClientManager authorizedClientManager) {
         ServletOAuth2AuthorizedClientExchangeFilterFunction oauth2Client =
                 new ServletOAuth2AuthorizedClientExchangeFilterFunction(authorizedClientManager);
         oauth2Client.setDefaultClientRegistrationId(defaultClientRegistrationId);
+
         return WebClient.builder()
                 .apply(oauth2Client.oauth2Configuration())
+                .clientConnector(new ReactorClientHttpConnector(
+                        HttpClient
+                                .create()
+                                .wiretap("reactor.netty.http.client.HttpClient",
+                                        LogLevel.DEBUG, AdvancedByteBufFormat.TEXTUAL)))
                 .build();
     }
 
-
+    @Bean(name = "logout")
+    public WebClient webClient() {
+        return WebClient.builder()
+                .clientConnector(new ReactorClientHttpConnector(
+                        HttpClient
+                                .create()
+                                .wiretap("reactor.netty.http.client.HttpClient",
+                                        LogLevel.DEBUG, AdvancedByteBufFormat.TEXTUAL)))
+                .build();
+    }
 }

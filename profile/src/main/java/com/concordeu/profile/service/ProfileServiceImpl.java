@@ -10,8 +10,8 @@ import com.concordeu.profile.dto.UserRequestDto;
 import com.concordeu.profile.excaption.InvalidRequestDataException;
 import com.concordeu.profile.validation.ValidateData;
 import com.google.gson.Gson;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.client.circuitbreaker.ReactiveCircuitBreakerFactory;
 import org.springframework.core.ParameterizedTypeReference;
@@ -31,7 +31,6 @@ import java.util.Set;
 import static com.concordeu.client.security.UserRole.*;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class ProfileServiceImpl implements ProfileService {
     private final PasswordEncoder passwordEncoder;
@@ -50,6 +49,24 @@ public class ProfileServiceImpl implements ProfileService {
     private String paymentServiceCreateCardUri;
     @Value("${payment.service.card.get.uri}")
     private String paymentServiceGetCardsByUsernameUri;
+
+    public ProfileServiceImpl(PasswordEncoder passwordEncoder,
+                              @Qualifier("clientCredentials") WebClient webClient,
+                              Gson mapper,
+                              ReactiveCircuitBreakerFactory reactiveCircuitBreakerFactory,
+                              ProfileDao profileDao,
+                              JwtService jwtService,
+                              MailService mailService,
+                              ValidateData validateData) {
+        this.passwordEncoder = passwordEncoder;
+        this.webClient = webClient;
+        this.mapper = mapper;
+        this.reactiveCircuitBreakerFactory = reactiveCircuitBreakerFactory;
+        this.profileDao = profileDao;
+        this.jwtService = jwtService;
+        this.mailService = mailService;
+        this.validateData = validateData;
+    }
 
     @Override
     public UserDto createAdmin(UserRequestDto userRequestDto) {

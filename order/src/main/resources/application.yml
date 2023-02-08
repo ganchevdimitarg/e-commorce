@@ -85,6 +85,10 @@ logging:
         SQL: DEBUG
         type:
           descriptor: TRACE
+    reactor:
+      netty:
+        http:
+          client: DEBUG
 
 
 #Eureka
@@ -92,7 +96,7 @@ eureka:
   client:
     service-url:
       defaultZone: http://localhost:8761/eureka
-    enabled: false
+#    enabled: false
 
 
 #Prometheus (and other data loggers)

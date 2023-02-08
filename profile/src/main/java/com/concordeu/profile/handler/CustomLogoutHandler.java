@@ -1,9 +1,11 @@
 package com.concordeu.profile.handler;
 
+import com.concordeu.profile.dto.GithubRevokeTokenDto;
 import com.google.gson.Gson;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -18,30 +20,45 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 @Component
-@RequiredArgsConstructor
 @Slf4j
 public class CustomLogoutHandler implements LogoutHandler {
     private static final String GOOGLE_PREFIX = "ya29.";
     private static final String GITHUB_PREFIX = "gho_";
     private final JwtDecoder jwtDecoder;
+
     private final WebClient webClient;
     private final Gson mapper;
 
     @Value("${github.clientId}")
-    private String gitGithubClientId;
+    private String githubClientId;
     @Value("${github.secret}")
-    private String gitGithubSecret;
+    private String githubSecret;
+    @Value("${github.revoke.uri}")
+    private String githubRevokeUri;
     @Value("${ecommerce.oauth2.clientId}")
     private String ecommerceOAuth2ClientId;
     @Value("${ecommerce.oauth2.secret}")
     private String ecommerceOAuth2Secret;
+    @Value("${ecommerce.revoke.uri}")
+    private String ecommerceRevokeUri;
+    @Value("${google.revoke.uri}")
+    private String googleRevokeUri;
+    @Value("${facebook.revoke.uri}")
+    private String facebookRevokeUri;
 
+    public CustomLogoutHandler(JwtDecoder jwtDecoder,
+                               @Qualifier("logout") WebClient webClient,
+                               Gson mapper) {
+        this.jwtDecoder = jwtDecoder;
+        this.webClient = webClient;
+        this.mapper = mapper;
+    }
 
     @Override
     public void logout(HttpServletRequest httpServletRequest,
                        HttpServletResponse httpServletResponse,
                        Authentication authentication) {
-        String token = httpServletRequest.getHeader("Authorization").replace("Bearer ", "");
+        String token = httpServletRequest.getHeader(HttpHeaders.AUTHORIZATION).replace("Bearer ", "");
 
         if (isJwt(token)) {
             revokeECommerceAccessToken(token);
@@ -55,23 +72,22 @@ public class CustomLogoutHandler implements LogoutHandler {
 
     }
 
-    //TODO method does not work. Should return 204 No Content, but returns 404 Not Found from DELETE/////
     private void revokeGitHubAccessToken(String token) {
-        String requestBody = mapper.toJson(String.format("""
-                {
-                    "access_token":"%s"
-                }
-                """, token));
+        String requestBody = mapper.toJson(
+                GithubRevokeTokenDto.builder()
+                        .accessToken(token)
+                        .build()
+        );
 
         ResponseEntity<Void> response = webClient
                 .method(HttpMethod.DELETE)
-                .uri("https://api.github.com/applications/309e3867b9f10d4a8270/grant")
-                .header("Accept", "application/vnd.github+json")
-                .headers(headers -> headers.setBasicAuth(gitGithubClientId, gitGithubSecret))
+                .uri(githubRevokeUri)
+                .headers(headers -> headers.setBasicAuth(githubClientId, githubSecret))
+                .accept(MediaType.valueOf("application/vnd.github+json"))
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(requestBody)
                 .retrieve()
-                .toEntity(Void.class)
+                .toBodilessEntity()
                 .block();
 
         log.info("""
@@ -79,17 +95,15 @@ public class CustomLogoutHandler implements LogoutHandler {
                 Token: {}
                 Status: {}
                 """, token, response.getStatusCodeValue());
-
     }
 
     private void revokeFacebookAccessToken(String token) {
-        String revoke = "https://graph.facebook.com/v15.0/me/permissions?access_token=" + token;
         ResponseEntity<Void> response = webClient
                 .delete()
-                .uri(revoke)
-                .header("Authorization", token)
+                .uri(facebookRevokeUri + token)
+                .header(HttpHeaders.AUTHORIZATION, token)
                 .retrieve()
-                .toEntity(Void.class)
+                .toBodilessEntity()
                 .block();
 
         log.info("""
@@ -100,8 +114,13 @@ public class CustomLogoutHandler implements LogoutHandler {
     }
 
     private void revokeGoogleAccessToken(String token) {
-        String revoke = "https://oauth2.googleapis.com/revoke?token=" + token;
-        ResponseEntity<Void> revokeResponse = revokeTokenPost(token, revoke);
+        ResponseEntity<Void> revokeResponse = webClient
+                .post()
+                .uri(googleRevokeUri + token)
+                .header(HttpHeaders.AUTHORIZATION, token)
+                .retrieve()
+                .toBodilessEntity()
+                .block();
 
         log.info("""
                 User login with GOOGLE AUTH SERVER successful logout.
@@ -114,10 +133,10 @@ public class CustomLogoutHandler implements LogoutHandler {
     private void revokeECommerceAccessToken(String token) {
         ResponseEntity<Void> revokeResponse = webClient
                 .post()
-                .uri("http://localhost:8082/oauth2/revoke?token=" + token)
+                .uri(ecommerceRevokeUri + token)
                 .headers(headers -> headers.setBasicAuth(ecommerceOAuth2ClientId, ecommerceOAuth2Secret))
                 .retrieve()
-                .toEntity(Void.class)
+                .toBodilessEntity()
                 .block();
         log.info("""
                 User login with E-COMMERCE AUTH SERVER successful logout.
@@ -126,15 +145,6 @@ public class CustomLogoutHandler implements LogoutHandler {
                 """, token, revokeResponse.getStatusCode().value());
     }
 
-    private ResponseEntity<Void> revokeTokenPost(String token, String revoke) {
-        return webClient
-                .post()
-                .uri(revoke)
-                .header("Authorization", token)
-                .retrieve()
-                .toEntity(Void.class)
-                .block();
-    }
 
     private boolean isJwt(String token) {
         try {

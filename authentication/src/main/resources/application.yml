@@ -65,14 +65,14 @@ logging:
       springframework:
         web: INFO
         security: INFO
-        oauth2: INFO
+        oauth2: DEBUG
 
 #Eureka
 eureka:
   client:
     service-url:
       defaultZone: http://localhost:8761/eureka
-    enabled: false
+#    enabled: false
 
 #Prometheus (and other data loggers)
 management:
