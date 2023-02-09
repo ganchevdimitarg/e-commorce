@@ -132,10 +132,7 @@ services:
     cap_add:
       - IPC_LOCK
     container_name: vault
-    entrypoint: "vault server -config=/helpers/vault-config.hcl"
-    networks:
-      - spring
-      - vault
+    entrypoint: "vault server -log-level info -config=/helpers/vault-config.hcl"
     healthcheck:
       test: wget --no-verbose --tries=1 --spider http://localhost:8200 || exit 1
       interval: 10s
@@ -151,9 +148,12 @@ services:
     volumes:
       - ./vault/config/:/helpers
     environment:
-      VAULT_ADDR: "http://vault:8200"
+      VAULT_ADDR: "http://0.0.0.0:8200"
     container_name: vault-agent
-    entrypoint: "vault agent -log-level debug -config=/helpers/vault-agent.hcl"
+    networks:
+      - spring
+      - vault
+    entrypoint: "vault agent -log-level info -config=/helpers/vault-agent.hcl"
     depends_on:
       vault:
         condition: service_healthy
@@ -205,8 +205,8 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - VAULT_SERVER_TOKEN=${VAULT_SERVER_TOKEN}
-      - MONGO_DB_USER=${MONGO_DB_USER}
       - MONGO_DB_PASSWORD=${MONGO_DB_PASSWORD}
+      - MONGO_DB_USER=${MONGO_DB_USER}
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     networks:
@@ -301,8 +301,8 @@ services:
       - VAULT_SERVER_TOKEN=${VAULT_SERVER_TOKEN}
       - ECOMMERCE_OAUTH2_CLIENTID=${ECOMMERCE_OAUTH2_CLIENTID}
       - ECOMMERCE_OAUTH2_SECRET=${ECOMMERCE_OAUTH2_SECRET}
-      - MONGO_DB_USER=${MONGO_DB_USER}
-      - MONGO_DB_PASSWORD=${MONGO_DB_PASSWORD}
+      - MONGO_DB_PASSWORD=rootpassword
+      - MONGO_DB_USER=rootuser
       - PASSWORD_RESET_TOKEN_SECRET_KEY=${PASSWORD_RESET_TOKEN_SECRET_KEY}
       - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
       - GITHUB_SECRET=${GITHUB_SECRET}

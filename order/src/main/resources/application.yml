@@ -11,15 +11,11 @@ spring:
     vault:
       authentication: TOKEN
       token: ${VAULT_SERVER_TOKEN}
-      kv:
-        enabled: true
-      scheme: http
-      host: 127.0.0.1
-      port: 8201
+      uri: http://localhost:8201
       application-name: order-service/dev
       generic:
         enabled: true
-        backend: order-service
+        backend: secret
 
   config:
     import: optional:vault://
