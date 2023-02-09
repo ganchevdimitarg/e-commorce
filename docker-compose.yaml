@@ -311,6 +311,7 @@ services:
       - GATEWAY_CLIENT_ID=${GATEWAY_CLIENT_ID}
       - GATEWAY_CLIENT_SECRET=${GATEWAY_CLIENT_SECRET}
       - JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:8083
+    command: java -Djava.security.egd=file:/dev/./urandom -jar profile-0.0.1-SNAPSHOT.jar
     networks:
       - spring
       - mongodb
