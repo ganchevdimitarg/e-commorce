@@ -11,15 +11,12 @@ spring:
     vault:
       authentication: TOKEN
       token: ${VAULT_SERVER_TOKEN}
-      kv:
-        enabled: true
-      scheme: http
-      host: vault-agent
-      port: 8201
-      application-name: order-service/docker
+      uri: http://vault-agent:8201
+      application-name: order-service/dev
       generic:
         enabled: true
-        backend: order-service
+        backend: secret
+
 
   config:
     import: optional:vault://
@@ -92,7 +89,7 @@ eureka:
   client:
     service-url:
       defaultZone: http://eureka-server:8761/eureka
-    enabled: false
+#    enabled: false
 
 
 #Prometheus (and other data loggers)
