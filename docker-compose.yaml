@@ -139,6 +139,9 @@ services:
       retries: 12
       start_period: 10s
       timeout: 10s
+    networks:
+      - spring
+      - vault
 
   vault-agent:
     image: hashicorp/vault
@@ -331,13 +334,10 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - VAULT_SERVER_TOKEN=${VAULT_SERVER_TOKEN}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - MAIL_USERNAME=${MAIL_USERNAME}
-      - MAIL_PASSWORD=${MAIL_PASSWORD}
     networks:
       - spring
       - postgres
+      - vault
     depends_on:
       - zipkin
       - eureka-server
