@@ -135,10 +135,6 @@ springdoc:
     authorizationUrl: http://localhost:8082/oauth2/authorize
     tokenUrl: http://localhost:8082/oauth2/token
 
-#Kafka
-kafka:
-  bootstrapAddress: localhost:9092
-
 #Resilience4j
 resilience4j.circuitbreaker:
   configs:
@@ -205,3 +201,7 @@ payment:
 webClient:
   oath2Client:
     defaultClientRegistrationId: "gateway-client-oidc"
+
+#Kafka
+kafka:
+  bootstrapAddress: localhost:9092
