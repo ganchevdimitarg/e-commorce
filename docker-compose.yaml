@@ -208,10 +208,6 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - VAULT_SERVER_TOKEN=${VAULT_SERVER_TOKEN}
-      - MONGO_DB_PASSWORD=rootpassword
-      - MONGO_DB_USER=rootuser
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     networks:
       - vault
       - spring
@@ -233,16 +229,9 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - VAULT_SERVER_TOKEN=${VAULT_SERVER_TOKEN}
-      - GATEWAY_CLIENT_ID=${GATEWAY_CLIENT_ID}
-      - GATEWAY_CLIENT_SECRET=${GATEWAY_CLIENT_SECRET}
-      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
-      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
-      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
-      - FACEBOOK_CLIENT_ID=${FACEBOOK_CLIENT_ID}
-      - FACEBOOK_CLIENT_SECRET=${FACEBOOK_CLIENT_SECRET}
     networks:
       - spring
+      - vault
     depends_on:
       - zipkin
       - eureka-server
@@ -258,13 +247,10 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - VAULT_SERVER_TOKEN=${VAULT_SERVER_TOKEN}
-      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
-      - MYSQL_USER=${MYSQL_USER}
-      - GATEWAY_CLIENT_ID=${GATEWAY_CLIENT_ID}
-      - GATEWAY_CLIENT_SECRET=${GATEWAY_CLIENT_SECRET}
     networks:
       - spring
       - mysql
+      - vault
     depends_on:
       - zipkin
       - eureka-server
@@ -280,14 +266,10 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - VAULT_SERVER_TOKEN=${VAULT_SERVER_TOKEN}
-      - GATEWAY_CLIENT_ID=${GATEWAY_CLIENT_ID}
-      - GATEWAY_CLIENT_SECRET=${GATEWAY_CLIENT_SECRET}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-    command: java -Djava.security.egd=file:/dev/./urandom -jar /project/target/order-0.0.1-SNAPSHOT.jar
     networks:
       - spring
       - postgres
+      - vault
     depends_on:
       - zipkin
       - eureka-server
@@ -304,20 +286,12 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - VAULT_SERVER_TOKEN=${VAULT_SERVER_TOKEN}
-      - ECOMMERCE_OAUTH2_CLIENTID=${ECOMMERCE_OAUTH2_CLIENTID}
-      - ECOMMERCE_OAUTH2_SECRET=${ECOMMERCE_OAUTH2_SECRET}
-      - MONGO_DB_PASSWORD=rootpassword
-      - MONGO_DB_USER=rootuser
-      - PASSWORD_RESET_TOKEN_SECRET_KEY=${PASSWORD_RESET_TOKEN_SECRET_KEY}
-      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
-      - GITHUB_SECRET=${GITHUB_SECRET}
-      - GATEWAY_CLIENT_ID=${GATEWAY_CLIENT_ID}
-      - GATEWAY_CLIENT_SECRET=${GATEWAY_CLIENT_SECRET}
       - JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
     command: java -Djava.security.egd=file:/dev/./urandom -jar profile-0.0.1-SNAPSHOT.jar
     networks:
       - spring
       - mongodb
+      - vault
     depends_on:
       - zipkin
       - eureka-server
@@ -354,12 +328,10 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - VAULT_SERVER_TOKEN=${VAULT_SERVER_TOKEN}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
     networks:
       - spring
       - postgres
+      - vault
     depends_on:
       - zipkin
       - eureka-server

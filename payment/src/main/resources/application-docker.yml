@@ -11,8 +11,8 @@ spring:
     vault:
       authentication: TOKEN
       token: ${VAULT_SERVER_TOKEN}
-      uri: http://vault-agent:8201
-      application-name: payment-service/dev
+      uri: http://vault-agent:8200
+      application-name: payment-service
       generic:
         enabled: true
         backend: secret

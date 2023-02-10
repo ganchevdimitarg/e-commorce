@@ -194,6 +194,4 @@ google:
     uri: https://oauth2.googleapis.com/revoke?token=
 facebook:
   revoke:
-
-
     uri: https://graph.facebook.com/v15.0/me/permissions?access_token=
