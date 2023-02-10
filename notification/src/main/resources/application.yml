@@ -8,19 +8,19 @@ spring:
     livereload:
       port: 35730
   cloud:
-    config:
-      enabled: false
-    vault:
-      authentication: TOKEN
-      token: ${VAULT_SERVER_TOKEN}
-      uri: http://localhost:8201
-      application-name: notification-service/dev
-      generic:
-        enabled: true
-        backend: secret
+#    config:
+#      enabled: false
+#    vault:
+#      authentication: TOKEN
+#      token: ${VAULT_SERVER_TOKEN}
+#      uri: http://localhost:8201
+#      application-name: notification-service/dev
+#      generic:
+#        enabled: true
+#        backend: secret
 
-  config:
-    import: optional:vault://
+#  config:
+#    import: optional:vault://
   #Data Source Properties
   datasource:
     username: ${POSTGRES_USER}
