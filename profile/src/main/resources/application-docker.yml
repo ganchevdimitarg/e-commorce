@@ -11,8 +11,8 @@ spring:
     vault:
       authentication: TOKEN
       token: ${VAULT_SERVER_TOKEN}
-      uri: http://vault-agent:8201
-      application-name: profile-service/dev
+      uri: http://vault-agent:8200
+      application-name: profile-service
       generic:
         enabled: true
         backend: secret
@@ -176,10 +176,20 @@ webClient:
     defaultClientRegistrationId: "gateway-client-oidc"
 
 github:
+  revoke:
+    uri: https://api.github.com/applications/309e3867b9f10d4a8270/grant
   clientId: ${GITHUB_CLIENT_ID}
   secret: ${GITHUB_SECRET}
 ecommerce:
+  revoke:
+    uri: http://localhost:8082/oauth2/revoke?token=
   oauth2:
     clientId: ${ECOMMERCE_OAUTH2_CLIENTID}
     secret: ${ECOMMERCE_OAUTH2_SECRET}
+google:
+  revoke:
+    uri: https://oauth2.googleapis.com/revoke?token=
+facebook:
+  revoke:
+    uri: https://graph.facebook.com/v15.0/me/permissions?access_token=
 
