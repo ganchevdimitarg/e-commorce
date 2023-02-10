@@ -120,10 +120,6 @@ springdoc:
     authorizationUrl: http://localhost:8082/oauth2/authorize
     tokenUrl: http://localhost:8082/oauth2/token
 
-#Kafka
-kafka:
-  bootstrapAddress: localhost:9092
-
 #Resilience4j
 resilience4j.circuitbreaker:
   configs:
@@ -195,3 +191,7 @@ google:
 facebook:
   revoke:
     uri: https://graph.facebook.com/v15.0/me/permissions?access_token=
+
+#Kafka
+kafka:
+  bootstrapAddress: localhost:9092
