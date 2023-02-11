@@ -132,4 +132,4 @@ springdoc:
 
 #Kafka
 kafka:
-  bootstrapAddress: kafka:9092
+  bootstrapAddress: http://kafka:9092
