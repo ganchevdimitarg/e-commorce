@@ -178,7 +178,7 @@ github:
   secret: ${GITHUB_SECRET}
 ecommerce:
   revoke:
-    uri: http://localhost:8082/oauth2/revoke?token=
+    uri: http://auth-server:8082/oauth2/revoke?token=
   oauth2:
     clientId: ${ECOMMERCE_OAUTH2_CLIENTID}
     secret: ${ECOMMERCE_OAUTH2_SECRET}
@@ -191,4 +191,4 @@ facebook:
 
 #Kafka
 kafka:
-  bootstrapAddress: kafka:9092
+  bootstrapAddress: http://kafka:9092
