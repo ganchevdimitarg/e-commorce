@@ -195,7 +195,7 @@ services:
     ports:
       - "8761:8761"
     environment:
-      - SPRING_PROFILES_ACTIVE=docker
+      SPRING_PROFILES_ACTIVE: "docker"
     networks:
       - spring
     depends_on:
@@ -207,8 +207,8 @@ services:
     ports:
       - "8082:8082"
     environment:
-      - SPRING_PROFILES_ACTIVE=docker
-      - VAULT_SERVER_TOKEN=${VAULT_SERVER_TOKEN}
+      -SPRING_PROFILES_ACTIVE: "docker"
+      -VAULT_SERVER_TOKEN: "${VAULT_SERVER_TOKEN}"
     networks:
       - vault
       - spring
@@ -228,8 +228,8 @@ services:
     ports:
       - "8081:8081"
     environment:
-      - SPRING_PROFILES_ACTIVE=docker
-      - VAULT_SERVER_TOKEN=${VAULT_SERVER_TOKEN}
+      SPRING_PROFILES_ACTIVE: "docker"
+      VAULT_SERVER_TOKEN: "${VAULT_SERVER_TOKEN}"
     networks:
       - spring
       - vault
@@ -246,8 +246,8 @@ services:
     ports:
       - "8084:8084"
     environment:
-      - SPRING_PROFILES_ACTIVE=docker
-      - VAULT_SERVER_TOKEN=${VAULT_SERVER_TOKEN}
+      SPRING_PROFILES_ACTIVE: "docker"
+      VAULT_SERVER_TOKEN: "${VAULT_SERVER_TOKEN}"
     networks:
       - spring
       - mysql
@@ -265,8 +265,8 @@ services:
     ports:
       - "8086:8086"
     environment:
-      - SPRING_PROFILES_ACTIVE=docker
-      - VAULT_SERVER_TOKEN=${VAULT_SERVER_TOKEN}
+      SPRING_PROFILES_ACTIVE: "docker"
+      VAULT_SERVER_TOKEN: "${VAULT_SERVER_TOKEN}"
     networks:
       - spring
       - postgres
@@ -285,9 +285,9 @@ services:
     ports:
       - "8083:8083"
     environment:
-      - SPRING_PROFILES_ACTIVE=docker
-      - VAULT_SERVER_TOKEN=${VAULT_SERVER_TOKEN}
-      - JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
+      SPRING_PROFILES_ACTIVE: "docker"
+      VAULT_SERVER_TOKEN: "${VAULT_SERVER_TOKEN}"
+      JAVA_TOOL_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
     command: java -Djava.security.egd=file:/dev/./urandom -jar profile-0.0.1-SNAPSHOT.jar
     networks:
       - spring
@@ -307,8 +307,8 @@ services:
     ports:
       - "8085:8085"
     environment:
-      - SPRING_PROFILES_ACTIVE=docker
-      - VAULT_SERVER_TOKEN=${VAULT_SERVER_TOKEN}
+      SPRING_PROFILES_ACTIVE: "docker"
+      VAULT_SERVER_TOKEN: "${VAULT_SERVER_TOKEN}"
     networks:
       - spring
       - postgres
@@ -327,8 +327,8 @@ services:
     ports:
       - "8087:8087"
     environment:
-      - SPRING_PROFILES_ACTIVE=docker
-      - VAULT_SERVER_TOKEN=${VAULT_SERVER_TOKEN}
+      SPRING_PROFILES_ACTIVE: "docker"
+      VAULT_SERVER_TOKEN: "${VAULT_SERVER_TOKEN}"
     networks:
       - spring
       - postgres
