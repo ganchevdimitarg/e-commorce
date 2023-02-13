@@ -1,4 +1,4 @@
-create table notification
+create table notifications
 (
     id         varchar(255) not null unique,
     recipient  text         not null,

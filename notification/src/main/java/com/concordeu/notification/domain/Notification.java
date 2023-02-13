@@ -8,8 +8,8 @@ import javax.validation.constraints.Email;
 import javax.validation.constraints.Size;
 import java.time.LocalDateTime;
 
-@Entity(name = "Notification")
-@Table(name="notification" )
+@Entity(name = "Notifications")
+@Table(name="notifications" )
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder

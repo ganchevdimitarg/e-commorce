@@ -207,8 +207,8 @@ services:
     ports:
       - "8082:8082"
     environment:
-      -SPRING_PROFILES_ACTIVE: "docker"
-      -VAULT_SERVER_TOKEN: "${VAULT_SERVER_TOKEN}"
+      SPRING_PROFILES_ACTIVE: "docker"
+      VAULT_SERVER_TOKEN: "${VAULT_SERVER_TOKEN}"
     networks:
       - vault
       - spring
