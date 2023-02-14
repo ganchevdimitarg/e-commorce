@@ -3,7 +3,10 @@ target/
 !.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
-vault
+vault/keys.json
+vault/role_id
+vault/secret_id
+
 
 
 ### STS ###
