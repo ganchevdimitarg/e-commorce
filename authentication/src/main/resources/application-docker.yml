@@ -36,7 +36,7 @@ spring:
   datasource:
     username: ${POSTGRES_USER}
     password: ${POSTGRES_PASSWORD}
-    url: jdbc:postgresql://postgres:5432/registered_client
+    url: jdbc:postgresql://postgres:5432/registered_clients
 
   #JPA Properties
   jpa:
