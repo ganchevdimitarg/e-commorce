@@ -79,19 +79,44 @@ services:
       - spring
 
   grafana:
-    image: grafana/grafana
+    image: grafana/grafana:latest
     container_name: grafana
-    user: "104"
+    user: "4096"
     depends_on:
       - prometheus
     ports:
-      - "${GRAFANA_PORT:-3000}:3000"
+      - "3000:3000"
     volumes:
-      - grafana_storage:/var/lib/grafana
-      - ./grafana/provisioning/:/etc/grafana/provisioning/
+      - /grafana/provisioning/:/etc/grafana/provisioning/
     env_file:
       - grafana/config.monitoring
-    restart: always
+    restart: unless-stopped
+    networks:
+      - loki
+      - spring
+
+  loki:
+    image: grafana/loki:2.4.0
+    container_name: loki
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./loki/loki/loki-config.yml:/etc/loki/loki-config.yml
+    command: -config.file=/etc/loki/loki-config.yml
+    restart: unless-stopped
+    networks:
+      - loki
+
+  promtail:
+    image: grafana/promtail:2.4.0
+    container_name: promtail
+    volumes:
+      - ./loki/promtail/promtail-config.yml:/etc/promtail/promtail-config.yml
+      - /var/log:/var/log
+    command: -config.file=/etc/promtail/promtail-config.yml
+    restart: unless-stopped
+    networks:
+      - loki
 
   node-exporter:
     image: prom/node-exporter
@@ -287,8 +312,8 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: "docker"
       VAULT_SERVER_TOKEN: "${VAULT_SERVER_TOKEN}"
-      JAVA_TOOL_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
-    command: java -Djava.security.egd=file:/dev/./urandom -jar profile-0.0.1-SNAPSHOT.jar
+#      JAVA_TOOL_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
+#    command: java -Djava.security.egd=file:/dev/./urandom -jar profile-0.0.1-SNAPSHOT.jar
     networks:
       - spring
       - mongodb
@@ -351,6 +376,7 @@ networks:
     driver: bridge
   vault:
     driver: bridge
+  loki:
 volumes:
   db:
   prometheus_data: { }
