@@ -27,22 +27,10 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: "${MONGO_DB_USER}"
       MONGO_INITDB_ROOT_PASSWORD: "${MONGO_DB_PASSWORD}"
-  mongo-express:
-    image: mongo-express
-    container_name: mongo-express
-    restart: always
-    ports:
-      - "8090:8081"
-    environment:
-      ME_CONFIG_MONGODB_ADMINUSERNAME: "${MONGO_EXPRESS_USER}"
-      ME_CONFIG_MONGODB_ADMINPASSWORD: "${MONGO_EXPRESS_PASSWORD}"
-      ME_CONFIG_MONGODB_SERVER: "mongodb"
-    links:
-      - mongodb
 
   postgres:
-    container_name: postgres
     image: postgres
+    container_name: postgres
     environment:
       POSTGRES_USER: "${POSTGRES_USER}"
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
@@ -148,15 +136,15 @@ services:
 
   vault:
     image: hashicorp/vault
-    restart: always
+    container_name: vault
+    restart: unless-stopped
     volumes:
-      - ./vault/config/:/helpers
+      - ./vault:/helpers
       - vault_data:/vault/file
     ports:
       - "8201:8200/tcp"
     cap_add:
       - IPC_LOCK
-    container_name: vault
     entrypoint: "vault server -config=/helpers/vault-config.hcl"
     healthcheck:
       test: wget --no-verbose --tries=1 --spider http://localhost:8200 || exit 1
@@ -170,14 +158,14 @@ services:
 
   vault-agent:
     image: hashicorp/vault
-    restart: always
+    container_name: vault-agent
+    restart: unless-stopped
     ports:
       - "8200:8200"
     volumes:
-      - ./vault/config/:/helpers
+      - ./vault:/helpers
     environment:
       VAULT_ADDR: "http://0.0.0.0:8200"
-    container_name: vault-agent
     networks:
       - spring
       - vault
