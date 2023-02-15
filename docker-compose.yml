@@ -84,7 +84,7 @@ services:
       - spring
 
   loki:
-    image: grafana/loki:2.4.0
+    image: grafana/loki:2.7.0
     container_name: loki
     ports:
       - "3100:3100"
@@ -96,7 +96,7 @@ services:
       - loki
 
   promtail:
-    image: grafana/promtail:2.4.0
+    image: grafana/promtail:2.7.0
     container_name: promtail
     volumes:
       - ./loki/promtail/promtail-config.yaml:/etc/promtail/promtail-config.yaml
