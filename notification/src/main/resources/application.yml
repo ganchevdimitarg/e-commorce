@@ -131,4 +131,5 @@ springdoc:
 
 #Kafka
 kafka:
-  bootstrapAddress: localhost:9092
+  localhost:
+    bootstrapAddress: localhost:9092
