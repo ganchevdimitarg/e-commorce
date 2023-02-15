@@ -291,6 +291,7 @@ services:
       - vault
       - postgres
       - kafka
+      - auth-server
 
   profile:
     image: dgganchev/profile:latest
@@ -313,6 +314,7 @@ services:
       - vault
       - mongodb
       - kafka
+      - auth-server
 
   notification:
     image: dgganchev/notification:latest
