@@ -99,9 +99,9 @@ services:
     image: grafana/promtail:2.4.0
     container_name: promtail
     volumes:
-      - ./loki/promtail/promtail-config.yml:/etc/promtail/promtail-config.yml
+      - ./loki/promtail/promtail-config.yaml:/etc/promtail/promtail-config.yaml
       - /var/log:/var/log
-    command: -config.file=/etc/promtail/promtail-config.yml
+    command: -config.file=/etc/promtail/promtail-config.yaml
     restart: unless-stopped
     networks:
       - loki

@@ -18,6 +18,8 @@ client:
 #          __path__: /var/log/*log
 scrape_configs:
   - job_name: docker
+    pipeline_stages:
+      - docker: {}
     static_configs:
       - labels:
           job: docker
