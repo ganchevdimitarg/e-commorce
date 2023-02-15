@@ -61,7 +61,7 @@ spring:
       authentication: TOKEN
       token: ${VAULT_SERVER_TOKEN}
       uri: http://vault-agent:8200
-      application-name: gateway-service
+      application-name: gateway-service/docker
       generic:
         enabled: true
         backend: secret

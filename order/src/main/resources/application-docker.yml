@@ -12,7 +12,7 @@ spring:
       authentication: TOKEN
       token: ${VAULT_SERVER_TOKEN}
       uri: http://vault-agent:8200
-      application-name: order-service
+      application-name: order-service/docker
       generic:
         enabled: true
         backend: secret
