@@ -7,6 +7,8 @@ deleteDatasources:
     orgId: 1
   - name: Loki
     orgId: 1
+  - name: Tempo
+    orgId: 1
 
 # list of datasources to insert/update depending
 # whats available in the database
@@ -57,3 +59,14 @@ datasources:
   url: http://loki:3100
   jsonData:
     maxLines: 1000
+
+- name: Tempo
+  type: tempo
+  access: proxy
+  url: http://tempo:3200
+  basicAuth: false
+  isDefault: true
+  version: 1
+  editable: false
+  apiVersion: 1
+  uid: tempo

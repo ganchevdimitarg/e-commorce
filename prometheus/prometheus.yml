@@ -38,7 +38,7 @@ scrape_configs:
     scrape_interval: 10s
 
     static_configs:
-      - targets: ['172.18.0.7:7071']
+      - targets: ['kafka:7071']
 
   - job_name: 'microservice-gateway'
     scrape_interval: 2s
@@ -75,3 +75,8 @@ scrape_configs:
     metrics_path: '/actuator/prometheus'
     static_configs:
       - targets: [ 'host.docker.internal:8086' ]
+
+  - job_name: 'collector'
+    scrape_interval: 5s
+    static_configs:
+      - targets: [ 'host.docker.internal:6666' ]

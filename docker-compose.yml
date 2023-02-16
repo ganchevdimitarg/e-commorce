@@ -72,10 +72,12 @@ services:
     user: "4096"
     depends_on:
       - prometheus
+      - tempo
     ports:
       - "3000:3000"
     volumes:
-      - /grafana/provisioning/:/etc/grafana/provisioning/
+      - ./grafana/provisioning/grafana-bootstrap.ini:/etc/grafana/grafana.ini
+      - ./grafana/provisioning/:/etc/grafana/provisioning/
     env_file:
       - grafana/config.monitoring
     restart: unless-stopped
@@ -105,6 +107,37 @@ services:
     restart: unless-stopped
     networks:
       - loki
+
+  collector:
+    image: otel/opentelemetry-collector:latest
+    container_name: collector
+    hostname: collector
+    depends_on:
+      - tempo
+      - prometheus
+    command: [ "--config=/etc/collector-config.yaml" ]
+    volumes:
+      - ./tempo/collector-config-local.yml:/etc/collector-config.yaml
+    ports:
+      - "5555:5555"
+      - "6666:6666"
+
+  tempo:
+    image: grafana/tempo:latest
+    command: [ "-config.file=/etc/tempo.yaml" ]
+    container_name: tempo
+    hostname: tempo
+    volumes:
+      - ./tempo/tempo-config.yml:/etc/tempo.yaml
+      - ./tempo/tempo-overrides.yml:/etc/overrides.yaml
+      - ./tempo/tempo-data:/tmp/tempo
+    ports:
+      - "3200:3200"
+      - "4317:4317"
+    healthcheck:
+      interval: 5s
+      retries: 10
+      test: wget --no-verbose --tries=1 --spider http://localhost:3200/status || exit 1
 
   node-exporter:
     image: prom/node-exporter
