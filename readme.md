@@ -1,4 +1,3 @@
-```markdown
 # E-Commerce Project
 
 Welcome to the E-Commerce project! This project aims to provide a robust and scalable e-commerce solution. It includes a variety of features to support online shopping, such as product management, cart functionality, user authentication, and more.
@@ -6,6 +5,7 @@ Welcome to the E-Commerce project! This project aims to provide a robust and sca
 ## Table of Contents
 
 - [Features](#features)
+- [Technologies Used](#technologies-used)
 - [Installation](#installation)
 - [Usage](#usage)
 - [Contributing](#contributing)
@@ -26,6 +26,39 @@ This e-commerce project includes the following features:
 - Wishlist: Users can add products to their wishlist for future reference.
 - Order tracking: Users can track the status of their orders.
 - Inventory management: Admins can track product availability and stock levels.
+
+## Technologies Used
+
+The E-Commerce project is built using the following technologies:
+
+- Frontend:
+
+- Backend:
+  - Spring Boot
+  - Spring Data JPA
+  - Spring Security
+  - Spring DevTools
+  - Spring Vault
+  - Spring Gateway
+  - OAuth 2.0 Resource Server
+  - OAuth 2.0 Client
+  - Spring WebFlux
+  - Flyway
+  - Zipkin
+  - Docker
+  - Kafka
+  
+  - Database: 
+    - MongoDB
+    - Postgres
+
+- Authentication:
+  - Spring Authorization Server
+    - JSON Web Tokens (JWT)
+    - Opaque token
+
+- Payment Integration:
+  - Stripe
 
 ## Installation
 
@@ -51,14 +84,14 @@ To get started with the E-Commerce project, follow these steps:
 
 4. Set up the environment variables:
 
-    - Create a new file named `.env` in the project root directory.
-    - Copy the contents of `.env.example` file into the new `.env` file.
-    - Modify the environment variables with your own configuration values (e.g., database credentials, API keys).
+   - Create a new file named `.env` in the project root directory.
+   - Copy the contents of `.env.example` file into the new `.env` file.
+   - Modify the environment variables with your own configuration values (e.g., database credentials, API keys).
 
 5. Set up the database:
 
-    - Ensure you have a running instance of a compatible database system (e.g., MySQL, PostgreSQL).
-    - Update the database configuration in the `.env` file.
+   - Ensure you have a running instance of a compatible database system (e.g., MySQL, PostgreSQL).
+   - Update the database configuration in the `.env` file.
 
 6. Run the database migrations:
 
@@ -80,7 +113,7 @@ To get started with the E-Commerce project, follow these steps:
 
 9. Access the application:
 
-   Open your web browser and visit `http://localhost:3000`.
+   Open your web browser and visit `http://localhost:8081`.
 
 ## Usage
 
@@ -115,7 +148,6 @@ Contributions to the E-Commerce project are welcome! If you would like to contri
 ## License
 
 The E-Commerce project is licensed under the MIT License. For more information, please refer to the [LICENSE](LICENSE) file.
-
 ```
 
 Feel free to modify and customize the README file according to your specific requirements and project details.
