@@ -1,4 +1,3 @@
-```markdown
 # E-Commerce Project
 
 Welcome to the E-Commerce project! This project aims to provide a robust and scalable e-commerce solution. It includes a variety of features to support online shopping, such as product management, cart functionality, user authentication, and more.
