@@ -37,7 +37,6 @@ The E-Commerce project is built using the following technologies:
   - Spring Boot
   - Spring Data
   - Spring Security
-  - Spring DevTools
   - Spring Vault
   - Spring Gateway
   - OAuth 2.0 Resource Server
