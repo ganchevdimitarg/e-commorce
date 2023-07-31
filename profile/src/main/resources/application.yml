@@ -11,7 +11,7 @@ spring:
     vault:
       authentication: TOKEN
       token: ${VAULT_SERVER_TOKEN}
-      uri: http://localhost:8201
+      uri: http://localhost:8200
       application-name: profile-service/dev
       generic:
         enabled: true

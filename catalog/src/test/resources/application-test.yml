@@ -1,0 +1,12 @@
+spring:
+  cloud:
+    vault:
+      enabled: false
+  flyway:
+    enabled: false
+
+eureka:
+  client:
+    fetch-registry: false
+    register-with-eureka: false
+

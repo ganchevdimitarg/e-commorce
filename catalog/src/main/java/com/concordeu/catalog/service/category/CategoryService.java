@@ -1,13 +1,13 @@
 package com.concordeu.catalog.service.category;
 
-import com.concordeu.catalog.dto.category.CategoryResponseDto;
+import com.concordeu.catalog.dto.CategoryDTO;
 import org.springframework.data.domain.Page;
 
 public interface CategoryService {
-    CategoryResponseDto createCategory(CategoryResponseDto categoryResponseDto);
-    CategoryResponseDto getCategory(String categoryFrom);
+    CategoryDTO createCategory(CategoryDTO categoryDto);
+    CategoryDTO getCategory(String categoryFrom);
     void deleteCategory(String categoryName);
     void moveOneProduct(String categoryNameFrom, String categoryNameTo, String productName);
     void moveAllProducts(String categoryNameFrom, String categoryNameTo);
-    Page<CategoryResponseDto> getCategoriesByPage(int page, int size);
+    Page<CategoryDTO> getCategoriesByPage(int page, int size);
 }

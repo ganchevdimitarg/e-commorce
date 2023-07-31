@@ -1,32 +1,20 @@
 package com.concordeu.catalog.product;
 
 import com.concordeu.catalog.controller.ProductController;
-import com.concordeu.catalog.dto.product.ProductRequestDto;
-import com.concordeu.catalog.dto.product.ProductResponseDto;
-import com.concordeu.catalog.mapper.MapStructMapper;
+import com.concordeu.catalog.mapper.ProductMapper;
 import com.concordeu.catalog.service.product.ProductService;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.web.reactive.server.WebTestClient;
-
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+import org.testcontainers.containers.MySQLContainer;
+import org.testcontainers.lifecycle.Startables;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.when;
-import static org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.csrf;
 import static org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockUser;
 
 
@@ -34,7 +22,29 @@ import static org.springframework.security.test.web.reactive.server.SecurityMock
 @ActiveProfiles("test")
 @Tag("integration")
 class ProductControllerTest {
+
+    @MockBean
+    ProductService productService;
+    @MockBean
+    ProductMapper mapper;
 /*
+    private static MySQLContainer<?> mySQLContainer = new MySQLContainer<>("mysql:8.0.26");
+
+    @DynamicPropertySource
+    public static void setUpContainers(DynamicPropertyRegistry registry) {
+        Startables.deepStart(mySQLContainer).join();
+
+        registry.add("spring.datasource.url", mySQLContainer::getJdbcUrl);
+        registry.add("spring.datasource.username", mySQLContainer::getUsername);
+        registry.add("spring.datasource.password", mySQLContainer::getPassword);
+    }
+
+    @Test
+    void something(){
+        Assertions.assertTrue(true);
+    }
+
+
     @Autowired
     WebTestClient client;
     @MockBean
@@ -51,7 +61,7 @@ class ProductControllerTest {
 
     @Test
     void createProductShouldCreateProduct() {
-        when(mapper.mapProductRequestDtoToProductResponseDto(any(ProductRequestDto.class))).thenReturn(productResponseDto);
+        when(mapper.mapProductRequestDtoToProductResponseDto(any(ProductDTO.class))).thenReturn(productResponseDto);
 
         this.client.mutateWith(csrf())
                 .mutateWith(mockUser("admin"))
@@ -109,7 +119,7 @@ class ProductControllerTest {
 
     @Test
     void updateProductShouldUpdateProduct() {
-        when(mapper.mapProductRequestDtoToProductResponseDto(any(ProductRequestDto.class))).thenReturn(productResponseDto);
+        when(mapper.mapProductRequestDtoToProductResponseDto(any(ProductDTO.class))).thenReturn(productResponseDto);
 
         this.client.mutateWith(csrf())
                 .mutateWith(mockUser("admin"))

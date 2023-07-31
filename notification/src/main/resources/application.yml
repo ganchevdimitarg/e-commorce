@@ -13,7 +13,7 @@ spring:
     vault:
       authentication: TOKEN
       token: ${VAULT_SERVER_TOKEN}
-      uri: http://localhost:8201
+      uri: http://localhost:8200
       application-name: notification-service/dev
       generic:
         enabled: true
@@ -63,6 +63,10 @@ spring:
     properties:
       mail.smtp.auth: true
       mail.smtp.starttls.enable: true
+
+  #Kafka
+  kafka:
+    bootstrap-servers: http://localhost:9092
 
 #Show SQL executed with parameter bindings
 #Logging Levels
@@ -128,7 +132,3 @@ springdoc:
   oAuthFlow:
     authorizationUrl: http://localhost:8082/oauth2/authorize
     tokenUrl: http://localhost:8082/oauth2/token
-
-#Kafka
-kafka:
-    bootstrapAddress: localhost:9092

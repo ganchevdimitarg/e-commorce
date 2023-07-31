@@ -1,11 +1,15 @@
 package com.concordeu.auth.domain;
 
+import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.GenericGenerator;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.id.uuid.UuidGenerator;
 
-import javax.persistence.*;
 import java.util.Set;
 import java.util.UUID;
+
+import static org.hibernate.type.SqlTypes.CHAR;
 
 @Entity(name = "Scopes")
 @Table(name = "scopes")
@@ -16,10 +20,10 @@ import java.util.UUID;
 @Getter
 public class Scope {
     @Id
-    @GeneratedValue(generator = "uuid-string")
-    @GenericGenerator(name = "uuid-string",
-            strategy = "org.hibernate.id.UUIDGenerator")
-    @Column(name = "scope_id", unique = true, nullable = false, updatable = false)
+    @GeneratedValue(generator = "UUID")
+    @GenericGenerator(name = "UUID", type = UuidGenerator.class)
+    @JdbcTypeCode(CHAR)
+    @Column(name = "scope_id", length = 36, columnDefinition = "varchar(36)", unique = true, nullable = false, updatable = false)
     private UUID id;
     @Column(name = "scope", nullable = false)
     private String scope;

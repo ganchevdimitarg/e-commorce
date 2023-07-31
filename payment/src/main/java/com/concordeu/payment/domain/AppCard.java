@@ -3,7 +3,7 @@ package com.concordeu.payment.domain;
 import lombok.*;
 import org.hibernate.annotations.GenericGenerator;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 
 @Entity(name = "Cards")
 @Table(

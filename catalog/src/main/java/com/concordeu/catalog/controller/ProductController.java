@@ -1,9 +1,9 @@
 package com.concordeu.catalog.controller;
 
-import com.concordeu.catalog.dto.product.ItemRequestDto;
-import com.concordeu.catalog.dto.product.ProductRequestDto;
-import com.concordeu.catalog.dto.product.ProductResponseDto;
-import com.concordeu.catalog.mapper.MapStructMapper;
+import com.concordeu.catalog.dto.ItemRequestDTO;
+import com.concordeu.catalog.dto.ProductDTO;
+import com.concordeu.catalog.entities.Product;
+import com.concordeu.catalog.mapper.ProductMapper;
 import com.concordeu.catalog.service.product.ProductService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -25,7 +25,7 @@ import java.util.List;
 public class ProductController {
 
     private final ProductService productService;
-    private final MapStructMapper mapper;
+    private final ProductMapper mapper;
 
     @Operation(summary = "Create Product", description = "Create a product in the database",
             security = @SecurityRequirement(name = "security_auth"))
@@ -37,10 +37,9 @@ public class ProductController {
     })
     @PostMapping("/create-product")
     @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
-    public ProductResponseDto createProduct(@RequestBody ProductRequestDto requestDto,
+    public ProductDTO createProduct(@RequestBody ProductDTO requestDto,
                                             @RequestParam String categoryName) {
-        ProductResponseDto productResponseDto = mapper.mapProductRequestDtoToProductResponseDto(requestDto);
-        return productService.createProduct(productResponseDto, categoryName);
+        return productService.createProduct(requestDto, categoryName);
     }
 
     @Operation(summary = "Get Products", description = "Get all products from the database",
@@ -52,7 +51,7 @@ public class ProductController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @GetMapping("/get-products")
-    public Page<ProductResponseDto> getProducts(@RequestParam int page,
+    public Page<ProductDTO> getProducts(@RequestParam int page,
                                                 @RequestParam int size) {
         return productService.getProductsByPage(page, size);
     }
@@ -66,7 +65,7 @@ public class ProductController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @GetMapping("/get-category-products")
-    public Page<ProductResponseDto> getProductsByCategory(@RequestParam int page,
+    public Page<ProductDTO> getProductsByCategory(@RequestParam int page,
                                                           @RequestParam int size,
                                                           @RequestParam String categoryName) {
         return productService.getProductsByCategoryByPage(page, size, categoryName);
@@ -82,7 +81,7 @@ public class ProductController {
     })
     @GetMapping("/get-product")
     @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
-    public ProductResponseDto getProductByName(@RequestParam String productName) {
+    public ProductDTO getProductByName(@RequestParam String productName) {
         return productService.getProductByName(productName);
     }
 
@@ -97,12 +96,12 @@ public class ProductController {
 
     @GetMapping("/get-product-id")
     @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
-    public ProductResponseDto getProductById(@RequestParam String productId) {
+    public ProductDTO getProductById(@RequestParam String productId) {
         return productService.getProductById(productId);
     }
 
     @PostMapping("/get-products-id")
-    public List<ProductResponseDto> getProductsById(@RequestBody ItemRequestDto items) {
+    public List<ProductDTO> getProductsById(@RequestBody ItemRequestDTO items) {
         return productService.getProductsById(items);
     }
 
@@ -116,10 +115,10 @@ public class ProductController {
     })
     @PutMapping("/update-product")
     @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
-    public void updateProduct(@RequestBody ProductRequestDto requestDto,
+    public void updateProduct(@RequestBody ProductDTO requestDto,
                               @RequestParam String productName) {
-        ProductResponseDto productResponseDto = mapper.mapProductRequestDtoToProductResponseDto(requestDto);
-        productService.updateProduct(productResponseDto, productName);
+
+        productService.updateProduct(requestDto, productName);
     }
 
     @Operation(summary = "Delete Product By Product Name", description = "Delete product by product name",

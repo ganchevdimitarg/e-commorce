@@ -1,0 +1,65 @@
+spring:
+  cloud:
+    vault:
+      enabled: true
+      token: test
+  flyway:
+    enabled: false
+
+logging:
+  level:
+    org: WARN
+    blog: WARN
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor: TRACE
+
+eureka:
+  client:
+    fetch-registry: false
+    register-with-eureka: false
+
+jwt:
+  secret:
+    key: test
+
+payment:
+  base:
+    uri: http://127.0.0.1:8087/api/v1
+  service:
+    customer:
+      post:
+        uri: ${payment.base.uri}/payment/customer/create-customer
+      get:
+        uri: ${payment.base.uri}/payment/customer/get-customer?username=
+      delete:
+        uri: ${payment.base.uri}/payment/customer/delete-customer?username=
+    card:
+      post:
+        uri: ${payment.base.uri}/payment/card/create-card
+      get:
+        uri: ${payment.base.uri}/payment/card/get-customer-cards?username=
+
+webClient:
+  oath2Client:
+    defaultClientRegistrationId:
+
+github:
+  revoke:
+    uri: https://api.github.com/applications/309e3867b9f10d4a8270/grant
+  clientId:
+  secret:
+ecommerce:
+  revoke:
+    uri: http://localhost:8082/oauth2/revoke?token=
+  oauth2:
+    clientId:
+    secret:
+google:
+  revoke:
+    uri: https://oauth2.googleapis.com/revoke?token=
+facebook:
+  revoke:
+    uri: https://graph.facebook.com/v15.0/me/permissions?access_token=
+
+kafka:
+  bootstrapAddress: test

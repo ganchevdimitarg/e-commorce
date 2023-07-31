@@ -1,15 +1,15 @@
 package com.concordeu.catalog.validator;
 
-import com.concordeu.catalog.dto.comment.CommentResponseDto;
+import com.concordeu.catalog.dto.CommentDTO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 @Service
 @Slf4j
 public class CommentDataValidator {
-    public boolean validateData(CommentResponseDto commentResponseDto) {
-        return isValidTitle(commentResponseDto.title())
-                && isValidText(commentResponseDto.text());
+    public boolean validateData(CommentDTO commentDTO) {
+        return isValidTitle(commentDTO.title())
+                && isValidText(commentDTO.text());
     }
 
     private boolean isValidText(String text) {

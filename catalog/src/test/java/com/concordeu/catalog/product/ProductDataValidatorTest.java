@@ -1,6 +1,6 @@
 package com.concordeu.catalog.product;
 
-import com.concordeu.catalog.dto.product.ProductResponseDto;
+import com.concordeu.catalog.dto.ProductDTO;
 import com.concordeu.catalog.validator.ProductDataValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -24,86 +24,122 @@ class ProductDataValidatorTest {
 
     @Test
     void validateDataShouldReturnTrueIfAllDataIsCorrect() {
-        ProductResponseDto productResponseDto = new ProductResponseDto("", "mouse", "WiFi mouse",
-                BigDecimal.ONE, true, "", null, new ArrayList<>());
+        ProductDTO productDTO = ProductDTO.builder()
+                .name("test1")
+                .description("testtesttest")
+                .price(BigDecimal.ONE)
+                .inStock(true)
+                .build();
 
-        assertThat(testValidator.validateData(productResponseDto, "PC")).isTrue();
+        assertThat(testValidator.validateData(productDTO, "test2")).isTrue();
     }
 
     @Test
     void validateDataShouldThrowExceptionIfProductNameMissing() {
-        ProductResponseDto productResponseDto = new ProductResponseDto("", "", "WiFi mouse",
-                BigDecimal.ONE, true, "", null, new ArrayList<>());
+        ProductDTO productDTO = ProductDTO.builder()
+                .description("testtest")
+                .price(BigDecimal.ONE)
+                .inStock(true)
+                .build();
 
-        assertThatThrownBy(() -> testValidator.validateData(productResponseDto, "PC"))
+        assertThatThrownBy(() -> testValidator.validateData(productDTO, "test2"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("The name is not correct!");
     }
 
     @Test
     void validateDataShouldThrowExceptionIfProductNameLengthIsLessThanThree() {
-        ProductResponseDto productResponseDto = new ProductResponseDto("", "aa", "WiFi mouse",
-                BigDecimal.ONE, true, "", null, new ArrayList<>());
-        assertThatThrownBy(() -> testValidator.validateData(productResponseDto, "PC"))
+        ProductDTO productDTO = ProductDTO.builder()
+                .name("te")
+                .description("testtest")
+                .price(BigDecimal.ONE)
+                .inStock(true)
+                .build();
+
+        assertThatThrownBy(() -> testValidator.validateData(productDTO, "test2"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("The name is not correct!");
     }
 
     @Test
     void validateDataShouldThrowExceptionIfProductNameLengthIsGreaterThanTwenty() {
-        ProductResponseDto productResponseDto = new ProductResponseDto("", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "WiFi mouse",
-                BigDecimal.ONE, true, "", null, new ArrayList<>());
-        assertThatThrownBy(() -> testValidator.validateData(productResponseDto, "PC"))
+        ProductDTO productDTO = ProductDTO.builder()
+                .name("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+                .description("testtest")
+                .price(BigDecimal.ONE)
+                .inStock(true)
+                .build();
+
+        assertThatThrownBy(() -> testValidator.validateData(productDTO, "PC"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("The name is not correct!");
     }
 
     @Test
     void validateDataShouldThrowExceptionIfDescriptionMissing() {
-        ProductResponseDto productResponseDto = new ProductResponseDto("", "mouse", "",
-                BigDecimal.ONE, true, "", null, new ArrayList<>());
+        ProductDTO productDTO = ProductDTO.builder()
+                .name("test1")
+                .price(BigDecimal.ONE)
+                .inStock(true)
+                .build();
 
-        assertThatThrownBy(() -> testValidator.validateData(productResponseDto, "PC"))
+        assertThatThrownBy(() -> testValidator.validateData(productDTO, "PC"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("The description is not correct!");
     }
 
     @Test
     void validateDataShouldThrowExceptionIfDescriptionLengthIsLessThanTen() {
-        ProductResponseDto productResponseDto = new ProductResponseDto("", "mouse", "aaaaa",
-                BigDecimal.ONE, true, "", null, new ArrayList<>());
+        ProductDTO productDTO = ProductDTO.builder()
+                .name("test1")
+                .description("test")
+                .price(BigDecimal.ONE)
+                .inStock(true)
+                .build();
 
-        assertThatThrownBy(() -> testValidator.validateData(productResponseDto, "PC"))
+        assertThatThrownBy(() -> testValidator.validateData(productDTO, "PC"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("The description is not correct!");
     }
 
     @Test
     void validateDataShouldThrowExceptionIfDescriptionLengthIsGreaterThanFifty() {
-        ProductResponseDto productResponseDto = new ProductResponseDto("", "mouse", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-                BigDecimal.ONE, true, "", null, new ArrayList<>());
-        assertThatThrownBy(() -> testValidator.validateData(productResponseDto, "PC"))
+        ProductDTO productDTO = ProductDTO.builder()
+                .name("test1")
+                .description("testtesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttest")
+                .price(BigDecimal.ONE)
+                .inStock(true)
+                .build();
+
+        assertThatThrownBy(() -> testValidator.validateData(productDTO, "PC"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("The description is not correct!");
     }
 
     @Test
     void validateDataShouldThrowExceptionIfPriceIsEmpty() {
-        ProductResponseDto productResponseDto = new ProductResponseDto("", "mouse", "aaaaaaaaaaaaaaaaaaaaaaaaaa",
-                null, true, "", null, new ArrayList<>());
+        ProductDTO productDTO = ProductDTO.builder()
+                .name("test1")
+                .description("aaaaaaaaaaaaaaaaaaaaaaaaaa")
+                .inStock(true)
+                .build();
 
-        assertThatThrownBy(() -> testValidator.validateData(productResponseDto, "PC"))
+        assertThatThrownBy(() -> testValidator.validateData(productDTO, "PC"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("The price is not correct!");
     }
 
     @Test
     void validateDataShouldThrowExceptionIfSecondParameterIsEmpty() {
-        ProductResponseDto productResponseDto = new ProductResponseDto("", "mouse", "aaaaaaaaaaaaaaaaaaaaaaa",
-                BigDecimal.ONE, true, "", null, new ArrayList<>());
+        ProductDTO productDTO = ProductDTO.builder()
+                .name("test1")
+                .description("aaaaaaaaaaaaaaaaaaaaaaa")
+                .price(BigDecimal.ONE)
+                .inStock(true)
+                .build();
         String secParam = "";
 
-        assertThatThrownBy(() -> testValidator.validateData(productResponseDto, secParam))
+        assertThatThrownBy(() -> testValidator.validateData(productDTO, secParam))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("No such name: " + secParam);
     }

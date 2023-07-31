@@ -1,14 +1,14 @@
 package com.concordeu.auth.service;
 
-import com.concordeu.auth.dao.ClientDao;
 import com.concordeu.auth.domain.*;
+import com.concordeu.auth.repository.ClientRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
-import org.springframework.security.oauth2.server.authorization.config.TokenSettings;
+import org.springframework.security.oauth2.server.authorization.settings.TokenSettings;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,23 +23,23 @@ import java.util.stream.Collectors;
 @Transactional
 public class ClientService implements RegisteredClientRepository {
 
-    private final ClientDao clientDao;
+    private final ClientRepository clientRepository;
 
     @Override
     public void save(RegisteredClient registeredClient) {
-        clientDao.save(getClient(registeredClient));
+        clientRepository.save(getClient(registeredClient));
     }
 
     @Override
     public RegisteredClient findById(String id) {
-        Client client = clientDao.findById(id)
+        Client client = clientRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("No such client"));
         return getRegisteredClient(client);
     }
 
     @Override
     public RegisteredClient findByClientId(String clientId) {
-        Client client = clientDao.findByClientId(clientId)
+        Client client = clientRepository.findByClientId(clientId)
                 .orElseThrow(() -> new IllegalArgumentException("No such client"));
         return getRegisteredClient(client);
     }
