@@ -65,6 +65,10 @@ spring:
       mail.smtp.auth: true
       mail.smtp.starttls.enable: true
 
+  #Kafka
+  kafka:
+    bootstrap-servers: http://kafka:9092
+
 #Show SQL executed with parameter bindings
 #Logging Levels
 #Disable the default loggers
@@ -129,7 +133,3 @@ springdoc:
   oAuthFlow:
     authorizationUrl: http://auth-server:8082/oauth2/authorize
     tokenUrl: http://auth-server:8082/oauth2/token
-
-#Kafka
-kafka:
-  bootstrapAddress: http://kafka:9092

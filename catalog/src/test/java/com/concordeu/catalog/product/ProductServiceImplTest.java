@@ -1,35 +1,12 @@
 package com.concordeu.catalog.product;
 
 
-import com.concordeu.catalog.dao.CategoryDao;
-import com.concordeu.catalog.dao.ProductDao;
-import com.concordeu.catalog.domain.Category;
-import com.concordeu.catalog.domain.Product;
-import com.concordeu.catalog.dto.product.ProductResponseDto;
-import com.concordeu.catalog.mapper.MapStructMapper;
-import com.concordeu.catalog.service.product.ProductService;
-import com.concordeu.catalog.service.product.ProductServiceImpl;
-import com.concordeu.catalog.validator.ProductDataValidator;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
-import static org.mockito.Mockito.*;
 
 @Tag("unit")
 @ExtendWith(MockitoExtension.class)
@@ -37,9 +14,9 @@ class ProductServiceImplTest {
 /*
     private ProductService testService;
     @Mock
-    ProductDao productDao;
+    ProductRepository productDao;
     @Mock
-    CategoryDao categoryDao;
+    CategoryRepository categoryDao;
     @Mock
     MapStructMapper mapStructMapper;
     @Mock

@@ -1,9 +1,12 @@
 package com.concordeu.auth.domain;
 
+import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.GenericGenerator;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.id.uuid.UuidGenerator;
+import org.hibernate.type.SqlTypes;
 
-import javax.persistence.*;
 import java.util.Set;
 import java.util.UUID;
 
@@ -16,10 +19,10 @@ import java.util.UUID;
 @Getter
 public class TokenSetting {
     @Id
-    @GeneratedValue(generator = "uuid-string")
-    @GenericGenerator(name = "uuid-string",
-            strategy = "org.hibernate.id.UUIDGenerator")
-    @Column(name = "token_setting_id", unique = true, nullable = false, updatable = false)
+    @GeneratedValue(generator = "UUID")
+    @GenericGenerator(name = "UUID", type = UuidGenerator.class)
+    @JdbcTypeCode(SqlTypes.CHAR)
+    @Column(name = "token_setting_id", length = 36, columnDefinition = "varchar(36)", unique = true, nullable = false, updatable = false)
     private UUID id;
     @Column(name = "access_token_time_to_live")
     private long accessTokenTimeToLive;

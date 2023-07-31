@@ -1,71 +1,72 @@
 package com.concordeu.catalog.service.category;
 
-import com.concordeu.catalog.dao.CategoryDao;
-import com.concordeu.catalog.dao.ProductDao;
-import com.concordeu.catalog.domain.Category;
-import com.concordeu.catalog.domain.Product;
-import com.concordeu.catalog.dto.category.CategoryResponseDto;
-import com.concordeu.catalog.mapper.MapStructMapper;
+import com.concordeu.catalog.mapper.CategoryMapper;
+import com.concordeu.catalog.repositories.CategoryRepository;
+import com.concordeu.catalog.repositories.ProductRepository;
+import com.concordeu.catalog.dto.CategoryDTO;
+import com.concordeu.catalog.entities.Category;
+import com.concordeu.catalog.entities.Product;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class CategoryServiceImpl implements CategoryService {
 
-    private final CategoryDao categoryDao;
-    private final ProductDao productDao;
-    private final MapStructMapper mapper;
+    private final CategoryRepository categoryRepository;
+    private final ProductRepository productRepository;
+    private final CategoryMapper mapper;
 
-    public CategoryResponseDto createCategory(CategoryResponseDto categoryResponseDto) {
-        if (categoryResponseDto.name().isEmpty()) {
-            log.warn("Category name is empty: " + categoryResponseDto.name());
-            throw new IllegalArgumentException("Category name is empty: " + categoryResponseDto.name());
+    public CategoryDTO createCategory(CategoryDTO categoryDto) {
+        if (categoryDto.name().isEmpty()) {
+            log.warn("Category name is empty: " + categoryDto.name());
+            throw new IllegalArgumentException("Category name is empty: " + categoryDto.name());
         }
 
-        if (categoryDao.findByName(categoryResponseDto.name()).isPresent()) {
-            log.warn("Category with the name: " + categoryResponseDto.name() + " already exist.");
-            throw new IllegalArgumentException("Category with the name: " + categoryResponseDto.name() + " already exist.");
+        if (categoryRepository.findByName(categoryDto.name()).isPresent()) {
+            log.warn("Category with the name: " + categoryDto.name() + " already exist.");
+            throw new IllegalArgumentException("Category with the name: " + categoryDto.name() + " already exist.");
         }
 
-        Category category = categoryDao.saveAndFlush(Category.builder().name(categoryResponseDto.name()).build());
+        Category category = categoryRepository.saveAndFlush(Category.builder().name(categoryDto.name()).build());
 
-        return mapper.mapCategoryToCategoryResponseDto(category);
+        return mapper.mapCategoryToCategoryDTO(category);
     }
 
     @Override
-    public CategoryResponseDto getCategory(String categoryName) {
-        Category category = categoryDao.findByName(categoryName)
+    public CategoryDTO getCategory(String categoryName) {
+        Category category = categoryRepository.findByName(categoryName)
                 .orElseThrow(() -> new IllegalArgumentException("No such category: " + categoryName));
         return convertCategory(category);
     }
-
+    @Transactional
     @Override
     public void deleteCategory(String categoryName) {
         if (categoryName.isEmpty()) {
             log.warn("Category name is empty: " + categoryName);
             throw new IllegalArgumentException("Category name is empty: " + categoryName);
         }
-        if (categoryDao.findByName(categoryName).isEmpty()) {
+        if (categoryRepository.findByName(categoryName).isEmpty()) {
             log.warn("No such category: " + categoryName);
             throw new IllegalArgumentException("No such category: " + categoryName);
         }
 
-        categoryDao.deleteByName(categoryName);
+        categoryRepository.deleteByName(categoryName);
     }
 
     @Override
     public void moveOneProduct(String categoryNameFrom, String categoryNameTo, String productName) {
-        CategoryResponseDto categoryFrom = getCategory(categoryNameFrom);
-        CategoryResponseDto categoryTo = getCategory(categoryNameTo);
+        CategoryDTO categoryFrom = getCategory(categoryNameFrom);
+        CategoryDTO categoryTo = getCategory(categoryNameTo);
 
-        Product product = categoryDao.getById(categoryFrom.id())
+        Product product = categoryRepository.getById(categoryFrom.id())
                 .getProducts()
                 .stream()
                 .filter(p -> p.getName().equals(productName))
@@ -75,23 +76,24 @@ public class CategoryServiceImpl implements CategoryService {
                     return new IllegalArgumentException("No such product: " + productName);
                 });
 
-        productDao.changeCategory(product.getName(), categoryTo.id());
+        productRepository.changeCategory(product.getName(), categoryTo.id());
     }
 
+    @Transactional
     @Override
     public void moveAllProducts(String categoryNameFrom, String categoryNameTo) {
-        CategoryResponseDto categoryFrom = getCategory(categoryNameFrom);
-        CategoryResponseDto categoryTo = getCategory(categoryNameTo);
+        CategoryDTO categoryFrom = getCategory(categoryNameFrom);
+        CategoryDTO categoryTo = getCategory(categoryNameTo);
 
-        List<Product> category = categoryDao.getById(categoryFrom.id()).getProducts();
+        Set<Product> category = categoryRepository.getById(categoryFrom.id()).getProducts();
         for (Product product : category) {
             moveOneProduct(categoryFrom.name(), categoryTo.name(), product.getName());
         }
     }
 
     @Override
-    public Page<CategoryResponseDto> getCategoriesByPage(int page, int size) {
-        Page<CategoryResponseDto> categories = categoryDao
+    public Page<CategoryDTO> getCategoriesByPage(int page, int size) {
+        Page<CategoryDTO> categories = categoryRepository
                 .findAll(PageRequest.of(page, size))
                 .map(this::convertCategory);
 
@@ -100,10 +102,7 @@ public class CategoryServiceImpl implements CategoryService {
         return categories;
     }
 
-    private CategoryResponseDto convertCategory(Category category) {
-        return new CategoryResponseDto(
-                category.getId(),
-                category.getName(),
-                mapper.mapProductsToProductRequestDtos(category.getProducts()));
+    private CategoryDTO convertCategory(Category category) {
+        return mapper.mapCategoryToCategoryDTO(category);
     }
 }

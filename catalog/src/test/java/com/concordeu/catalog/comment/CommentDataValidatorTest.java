@@ -1,10 +1,11 @@
 package com.concordeu.catalog.comment;
 
-import com.concordeu.catalog.dto.comment.CommentResponseDto;
+import com.concordeu.catalog.dto.CommentDTO;
 import com.concordeu.catalog.validator.CommentDataValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.springframework.util.StringUtils;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
@@ -20,54 +21,73 @@ class CommentDataValidatorTest {
 
     @Test
     void validateDataShouldReturnTrue() {
-        CommentResponseDto commentResponseDto = new CommentResponseDto("tttt", "ttttttttttt", 0, "", null);
+        CommentDTO commentDTO = CommentDTO.builder()
+                .title("tttt")
+                .text("ttttttttttt")
+                .star(Double.MIN_VALUE)
+                .build();
 
-        assertThat(testService.validateData(commentResponseDto)).isTrue();
+        assertThat(testService.validateData(commentDTO)).isTrue();
     }
 
     @Test
     void validateDataShouldThrowExceptionIfTitleIsEmpty() {
-        CommentResponseDto commentResponseDto = new CommentResponseDto("", "ttttttttttt", 0, "", null);
+        CommentDTO commentDTO = CommentDTO.builder()
+                .title("")
+                .text("tttttttttttt")
+                .build();
 
-        assertThatThrownBy(() -> testService.validateData(commentResponseDto))
+        assertThatThrownBy(() -> testService.validateData(commentDTO))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("The title is not correct!");
     }
 
     @Test
     void validateDataShouldThrowExceptionIfTitleLengthIsLessThanThree() {
-        CommentResponseDto commentResponseDto = new CommentResponseDto("tt", "ttttttttttt", 0, "", null);
+        CommentDTO commentDTO = CommentDTO.builder()
+                .title("tt")
+                .text("ttttttttttt")
+                .star(Double.MIN_VALUE)
+                .build();
 
-        assertThatThrownBy(() -> testService.validateData(commentResponseDto))
+        assertThatThrownBy(() -> testService.validateData(commentDTO))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("The title is not correct!");
     }
 
     @Test
     void validateDataShouldThrowExceptionIfTitleLengthIsGreaterThanFifteen() {
-        CommentResponseDto commentResponseDto = new CommentResponseDto("tttttttttttttttttttttttttttttttttttt", "ttttttttttt", 0, "", null);
-
-        assertThatThrownBy(() -> testService.validateData(commentResponseDto))
+        CommentDTO commentDTO = CommentDTO.builder()
+                .title("tttttttttttttttttttttttttttttttttttt")
+                .text("ttttttttttt")
+                .star(Double.MIN_VALUE)
+                .build();
+        assertThatThrownBy(() -> testService.validateData(commentDTO))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("The title is not correct!");
     }
 
     @Test
     void validateDataShouldThrowExceptionIfTextLengthIsLessThanTen() {
-        CommentResponseDto commentResponseDto = new CommentResponseDto("tttt", "ttttttt", 0, "", null);
+        CommentDTO commentDTO = CommentDTO.builder()
+                .title("tttt")
+                .text("ttttttt")
+                .star(Double.MIN_VALUE)
+                .build();
 
-        assertThatThrownBy(() -> testService.validateData(commentResponseDto))
+        assertThatThrownBy(() -> testService.validateData(commentDTO))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("The text is not correct!");
     }
 
     @Test
     void validateDataShouldThrowExceptionIfTextLengthIsGreaterThanOneHundredFifty() {
-        CommentResponseDto commentResponseDto =
-                new CommentResponseDto("tttt", "tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt",
-                        0, "", null);
-
-        assertThatThrownBy(() -> testService.validateData(commentResponseDto))
+        CommentDTO commentDTO = CommentDTO.builder()
+                .title("tttt")
+                .text("tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt")
+                .star(Double.MIN_VALUE)
+                .build();
+        assertThatThrownBy(() -> testService.validateData(commentDTO))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("The text is not correct!");
     }

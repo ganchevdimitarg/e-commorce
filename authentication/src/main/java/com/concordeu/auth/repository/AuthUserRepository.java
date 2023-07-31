@@ -1,11 +1,11 @@
-package com.concordeu.auth.dao;
+package com.concordeu.auth.repository;
 
 import com.concordeu.auth.domain.AuthUser;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
 import java.util.Optional;
 
-public interface AuthUserDao extends MongoRepository<AuthUser, String> {
+public interface AuthUserRepository extends MongoRepository<AuthUser, String> {
 
     Optional<AuthUser> findByUsername(String username);
 

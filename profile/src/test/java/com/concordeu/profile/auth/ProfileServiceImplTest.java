@@ -93,7 +93,7 @@ class ProfileServiceImplTest {
     }
 
     @Test
-    @Disabled
+//    @Disabled
     void createUserShouldCreateUserIfUserNotExist() {
         when(profileDao.findByUsername(model.username())).thenReturn(Optional.empty());
         testService.createUser(model);

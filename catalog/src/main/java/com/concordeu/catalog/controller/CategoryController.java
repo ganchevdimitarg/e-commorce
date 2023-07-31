@@ -1,8 +1,7 @@
 package com.concordeu.catalog.controller;
 
-import com.concordeu.catalog.dto.category.CategoryRequestDto;
-import com.concordeu.catalog.dto.category.CategoryResponseDto;
-import com.concordeu.catalog.mapper.MapStructMapper;
+import com.concordeu.catalog.dto.CategoryDTO;
+import com.concordeu.catalog.mapper.CategoryMapper;
 import com.concordeu.catalog.service.category.CategoryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -15,8 +14,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.security.Principal;
-
 @RestController
 @RequestMapping("/api/v1/catalog/category")
 @RequiredArgsConstructor
@@ -24,7 +21,6 @@ import java.security.Principal;
 public class CategoryController {
 
     private final CategoryService categoryService;
-    private final MapStructMapper mapper;
 
     @Operation(summary = "Create Category",  description = "Create a category in the database",
             security = @SecurityRequirement(name = "security_auth"))
@@ -36,8 +32,8 @@ public class CategoryController {
     })
     @PostMapping("/create-category")
     @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
-    public CategoryResponseDto createCategory(@RequestBody CategoryRequestDto requestDto) {
-        return categoryService.createCategory(mapper.mapCategoryRequestDtoToCategoryDto(requestDto));
+    public CategoryDTO createCategory(@RequestBody CategoryDTO requestDto) {
+        return categoryService.createCategory(requestDto);
     }
 
     @Operation(summary = "Delete Category",  description = "Delete category from the database",
@@ -64,7 +60,7 @@ public class CategoryController {
     })
     @GetMapping("/get-categories")
     @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
-    public Page<CategoryResponseDto> getCategories(@RequestParam int page, @RequestParam int size) {
+    public Page<CategoryDTO> getCategories(@RequestParam int page, @RequestParam int size) {
         return categoryService.getCategoriesByPage(page, size);
     }
 

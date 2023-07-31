@@ -35,6 +35,7 @@ spring:
               - notification.write
             client-name: gateway-client-oidc
           google:
+            provider: google
             client-id: ${GOOGLE_CLIENT_ID}
             client-secret: ${GOOGLE_CLIENT_SECRET}
             redirect-uri: http://127.0.0.1:8081/login/oauth2/code/{registrationId}
@@ -43,10 +44,12 @@ spring:
               - email
               - profile
           github:
+            provider: github
             client-id: ${GITHUB_CLIENT_ID}
             client-secret: ${GITHUB_CLIENT_SECRET}
             redirect-uri: http://127.0.0.1:8081/login/oauth2/code/{registrationId}
           facebook:
+            provider: facebook
             client-id: ${FACEBOOK_CLIENT_ID}
             client-secret: ${FACEBOOK_CLIENT_SECRET}
             redirect-uri: http://127.0.0.1:8081/login/oauth2/code/{registrationId}
@@ -55,6 +58,19 @@ spring:
             issuer-uri: http://localhost:8082
             authorization-uri: http://localhost:8082/oauth2/authorize
             token-uri: http://localhost:8082/oauth2/token
+          google:
+            issuer-uri: https://accounts.google.com
+            authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
+            token-uri: https://oauth2.googleapis.com/token
+            user-info-uri: https://openidconnect.googleapis.com/v1/userinfo
+            jwk-set-uri: https://www.googleapis.com/oauth2/v3/certs
+          github:
+            issuer-uri: https://token.actions.githubusercontent.com
+            jwk-set-uri: https://token.actions.githubusercontent.com/.well-known/jwks
+          facebook:
+            issuer-uri: https://www.facebook.com
+            authorization-uri: https://facebook.com/dialog/oauth/
+            jwk-set-uri: https://www.facebook.com/.well-known/oauth/openid/jwks/
   config:
     import: optional:vault://
 
@@ -62,7 +78,7 @@ spring:
     vault:
       authentication: TOKEN
       token: ${VAULT_SERVER_TOKEN}
-      uri: http://localhost:8201
+      uri: http://localhost:8200
       application-name: gateway-service/dev
       generic:
         enabled: true

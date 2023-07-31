@@ -1,11 +1,11 @@
 package com.concordeu.catalog.comment;
 
-import com.concordeu.catalog.dao.CommentDao;
-import com.concordeu.catalog.dao.ProductDao;
-import com.concordeu.catalog.domain.Comment;
-import com.concordeu.catalog.domain.Product;
-import com.concordeu.catalog.dto.comment.CommentResponseDto;
-import com.concordeu.catalog.mapper.MapStructMapper;
+import com.concordeu.catalog.dto.CommentDTO;
+import com.concordeu.catalog.mapper.CommentMapper;
+import com.concordeu.catalog.repositories.CommentRepository;
+import com.concordeu.catalog.repositories.ProductRepository;
+import com.concordeu.catalog.entities.Comment;
+import com.concordeu.catalog.entities.Product;
 import com.concordeu.catalog.service.comment.CommentService;
 import com.concordeu.catalog.service.comment.CommentServiceImpl;
 import com.concordeu.catalog.validator.CommentDataValidator;
@@ -23,6 +23,7 @@ import org.springframework.data.domain.PageRequest;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
@@ -36,32 +37,34 @@ class CommentServerImplTest {
     CommentService testService;
 
     @Mock
-    CommentDao commentDao;
+    CommentRepository commentDao;
     @Mock
-    ProductDao productDao;
+    ProductRepository productRepository;
     @Mock
     CommentDataValidator validator;
     @Mock
-    MapStructMapper mapStructMapper;
+    CommentMapper mapper;
+
+    CommentDTO commentDTO;
 
     @BeforeEach
     void setUp() {
-        testService = new CommentServiceImpl(commentDao, productDao, validator, mapStructMapper);
+        testService = new CommentServiceImpl(commentDao, productRepository, validator, mapper);
+        commentDTO = CommentDTO.builder().build();
     }
 
     @Test
     void createCommentShouldCreateComment() {
-        CommentResponseDto commentResponseDto = new CommentResponseDto("", "", 0, "", null);
-        when(validator.validateData(commentResponseDto)).thenReturn(true);
+        when(validator.validateData(commentDTO)).thenReturn(true);
 
         String productName = "aaa";
         Product product = Product.builder().name(productName).build();
-        when(productDao.findByName(productName)).thenReturn(Optional.of(product));
+        when(productRepository.findByName(productName)).thenReturn(Optional.of(product));
 
         Comment comment = Comment.builder().build();
-        when(mapStructMapper.mapCommentResponseDtoToComment(commentResponseDto)).thenReturn(comment);
+        when(mapper.mapCommentDTOToComment(commentDTO)).thenReturn(comment);
 
-        testService.createComment(commentResponseDto, productName);
+        testService.createComment(commentDTO, productName);
 
         ArgumentCaptor<Comment> argument = ArgumentCaptor.forClass(Comment.class);
         verify(commentDao).saveAndFlush(argument.capture());
@@ -73,11 +76,10 @@ class CommentServerImplTest {
 
     @Test
     void createCommentShouldThrowExceptionIfProductDoesNotExist() {
-        CommentResponseDto commentResponseDto = new CommentResponseDto("", "", 0, "", null);
-        when(validator.validateData(commentResponseDto)).thenReturn(true);
+        when(validator.validateData(commentDTO)).thenReturn(true);
 
         String productName = "aaa";
-        assertThatThrownBy(() -> testService.createComment(commentResponseDto, productName))
+        assertThatThrownBy(() -> testService.createComment(commentDTO, productName))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("No such product: " + productName);
 
@@ -89,10 +91,10 @@ class CommentServerImplTest {
         PageRequest pageRequest = PageRequest.of(1, 5);
         List<Comment> products = Arrays.asList(new Comment(), new Comment());
         Page<Comment> page = new PageImpl<>(products, pageRequest, products.size());
-        String productId = "0030223b-fdb9-40e2-a4b0-81bdf54479a2";
+        UUID productId = UUID.randomUUID();
         Product product = Product.builder().id(productId).name("aaaa89").build();
 
-        when(productDao.findByName(any(String.class))).thenReturn(Optional.of(product));
+        when(productRepository.findByName(any(String.class))).thenReturn(Optional.of(product));
         when(commentDao.findAllByProductIdByPage(productId, pageRequest)).thenReturn(page);
 
         testService.findAllByProductNameByPage("aaaa89", 1, 5);
@@ -106,7 +108,7 @@ class CommentServerImplTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("No such product: ");
 
-        verify(commentDao, never()).findAllByProductIdByPage(any(String.class), any(PageRequest.class));
+        verify(commentDao, never()).findAllByProductIdByPage(any(UUID.class), any(PageRequest.class));
     }
 
     @Test
@@ -115,7 +117,7 @@ class CommentServerImplTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("No such product: ");
 
-        verify(commentDao, never()).findAllByProductIdByPage(any(String.class), any(PageRequest.class));
+        verify(commentDao, never()).findAllByProductIdByPage(any(UUID.class), any(PageRequest.class));
     }
 
     @Test

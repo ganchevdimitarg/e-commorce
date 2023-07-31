@@ -1,20 +1,20 @@
 package com.concordeu.catalog.service.product;
 
-import com.concordeu.catalog.dto.product.ItemRequestDto;
-import com.concordeu.catalog.dto.product.ProductResponseDto;
+import com.concordeu.catalog.dto.ItemRequestDTO;
+import com.concordeu.catalog.dto.ProductDTO;
 import org.springframework.data.domain.Page;
 
 import java.util.List;
 
 public interface ProductService {
 
-    ProductResponseDto createProduct(ProductResponseDto productResponseDto, String categoryName);
-    Page<ProductResponseDto> getProductsByPage(int page, int size);
-    Page<ProductResponseDto> getProductsByCategoryByPage(int page, int size, String categoryName);
-    ProductResponseDto getProductByName(String name);
-    ProductResponseDto getProductById(String id);
-    void updateProduct(ProductResponseDto productResponseDto, String productName);
+    ProductDTO createProduct(ProductDTO productResponseDto, String categoryName);
+    Page<ProductDTO> getProductsByPage(int page, int size);
+    Page<ProductDTO> getProductsByCategoryByPage(int page, int size, String categoryName);
+    ProductDTO getProductByName(String name);
+    ProductDTO getProductById(String id);
+    void updateProduct(ProductDTO productResponseDto, String productName);
     void deleteProduct(String productName);
 
-    List<ProductResponseDto> getProductsById(ItemRequestDto items);
+    List<ProductDTO> getProductsById(ItemRequestDTO items);
 }

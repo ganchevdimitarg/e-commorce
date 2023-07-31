@@ -1,21 +1,23 @@
 package com.concordeu.catalog.service.product;
 
-import com.concordeu.catalog.dao.CategoryDao;
-import com.concordeu.catalog.dao.ProductDao;
-import com.concordeu.catalog.domain.Category;
-import com.concordeu.catalog.domain.Product;
-import com.concordeu.catalog.dto.product.ItemRequestDto;
-import com.concordeu.catalog.dto.product.ProductResponseDto;
-import com.concordeu.catalog.mapper.MapStructMapper;
+import com.concordeu.catalog.dto.ItemRequestDTO;
+import com.concordeu.catalog.dto.ProductDTO;
+import com.concordeu.catalog.entities.Category;
+import com.concordeu.catalog.entities.Product;
+import com.concordeu.catalog.mapper.ProductMapper;
+import com.concordeu.catalog.repositories.CategoryRepository;
+import com.concordeu.catalog.repositories.ProductRepository;
 import com.concordeu.catalog.validator.ProductDataValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -23,40 +25,40 @@ import java.util.stream.Collectors;
 @Slf4j
 public class ProductServiceImpl implements ProductService {
 
-    private final ProductDao productDao;
-    private final CategoryDao categoryDao;
+    private final ProductRepository productRepository;
+    private final CategoryRepository categoryRepository;
     private final ProductDataValidator validator;
-    private final MapStructMapper mapper;
+    private final ProductMapper mapper;
 
     @Override
-    public ProductResponseDto createProduct(ProductResponseDto productResponseDto, String categoryName) {
-        validator.validateData(productResponseDto, categoryName);
+    public ProductDTO createProduct(ProductDTO productDTO, String categoryName) {
+        validator.validateData(productDTO, categoryName);
 
-        Category category = categoryDao
+        Category category = categoryRepository
                 .findByName(categoryName)
                 .orElseThrow(() -> {
                     log.warn("No such category: " + categoryName);
-                    throw new IllegalArgumentException("No such category: " + categoryName);
+                    return new IllegalArgumentException("No such category: " + categoryName);
                 });
 
-        if (productDao.findByName(productResponseDto.name()).isPresent()) {
-            log.warn("Product with the name: " + productResponseDto.name() + " already exists.");
-            throw new IllegalArgumentException("Product with the name: " + productResponseDto.name() + " already exist.");
+        if (productRepository.findByName(productDTO.name()).isPresent()) {
+            log.warn("Product with the name: " + productDTO.name() + " already exists.");
+            throw new IllegalArgumentException("Product with the name: " + productDTO.name() + " already exist.");
         }
 
-        Product product = mapper.mapProductResponseDtoToProduct(productResponseDto);
+        Product product = mapper.mapProductDTOToProduct(productDTO);
         product.setCategory(category);
         product.setInStock(true);
 
         log.info("The product " + product.getName() + " is save successful");
-        productDao.saveAndFlush(product);
+        productRepository.saveAndFlush(product);
 
-        return mapper.mapProductToProductResponseDto(product);
+        return mapper.mapProductToProductDTO(product);
     }
 
     @Override
-    public Page<ProductResponseDto> getProductsByPage(int page, int size) {
-        Page<ProductResponseDto> products = productDao
+    public Page<ProductDTO> getProductsByPage(int page, int size) {
+        Page<ProductDTO> products = productRepository
                 .findAll(PageRequest.of(page, size))
                 .map(this::convertProduct);
         log.info("Successful get products: " + products.getSize());
@@ -65,12 +67,12 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public Page<ProductResponseDto> getProductsByCategoryByPage(int page, int size, String categoryName) {
-        Category category = categoryDao
+    public Page<ProductDTO> getProductsByCategoryByPage(int page, int size, String categoryName) {
+        Category category = categoryRepository
                 .findByName(categoryName)
                 .orElseThrow(() -> new IllegalArgumentException("No such category: " + categoryName));
 
-        Page<ProductResponseDto> products = productDao
+        Page<ProductDTO> products = productRepository
                 .findAllByCategoryIdByPage(category.getId(), PageRequest.of(page, size))
                 .map(this::convertProduct);
         log.info("Successful get products by category: " + categoryName);
@@ -79,62 +81,54 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public ProductResponseDto getProductByName(String name) {
+    public ProductDTO getProductByName(String name) {
         Assert.notNull(name, "Name is empty");
-        Product product = productDao.findByName(name).orElseThrow(() -> new IllegalArgumentException("No such product"));
-        return mapper.mapProductToProductResponseDto(product);
+        Product product = productRepository.findByName(name).orElseThrow(() -> new IllegalArgumentException("No such product"));
+        return mapper.mapProductToProductDTO(product);
     }
 
     @Override
-    public ProductResponseDto getProductById(String id) {
+    public ProductDTO getProductById(String id) {
         Assert.notNull(id, "Id is empty");
-        Product product = productDao.findById(id).orElseThrow(() -> new IllegalArgumentException("No such product"));
-        return mapper.mapProductToProductResponseDto(product);
+        Product product = productRepository.findById(UUID.fromString(id)).orElseThrow(() -> new IllegalArgumentException("No such product"));
+        return mapper.mapProductToProductDTO(product);
     }
 
-
+    @Transactional
     @Override
-    public void updateProduct(ProductResponseDto productResponseDto, String productName) {
-        validator.validateData(productResponseDto, productName);
+    public void updateProduct(ProductDTO productDTO, String productName) {
+        validator.validateData(productDTO, productName);
 
         checkExistenceProduct(productName);
 
-        productDao.update(productName,
-                productResponseDto.description(),
-                productResponseDto.price(),
-                productResponseDto.characteristics(),
-                productResponseDto.inStock());
+        productRepository.update(productName,
+                productDTO.description(),
+                productDTO.price(),
+                productDTO.characteristics(),
+                productDTO.inStock());
         log.info("The updates were successful on product: " + productName);
     }
 
+    @Transactional
     @Override
     public void deleteProduct(String productName) {
         checkExistenceProduct(productName);
-        productDao.deleteByName(productName);
+        productRepository.deleteByName(productName);
     }
 
     @Override
-    public List<ProductResponseDto> getProductsById(ItemRequestDto product) {
+    public List<ProductDTO> getProductsById(ItemRequestDTO product) {
         return product.items().stream().map(this::getProductById).collect(Collectors.toList());
     }
 
-
     private void checkExistenceProduct(String productName) {
-        if (productDao.findByName(productName).isEmpty()) {
+        if (productRepository.findByName(productName).isEmpty()) {
             log.warn("Product with the name: " + productName + " does not exist.");
             throw new IllegalArgumentException("Product with the name: " + productName + " does not exist.");
         }
     }
 
-    public ProductResponseDto convertProduct(Product product){
-        return new ProductResponseDto(
-                product.getId(),
-                product.getName(),
-                product.getDescription(),
-                product.getPrice(),
-                product.isInStock(),
-                product.getCharacteristics(),
-                mapper.mapCategoryToCategoryResponseDto(product.getCategory()),
-                mapper.mapCommentsToCommentResponseDtos(product.getComments()));
+    public ProductDTO convertProduct(Product product){
+        return mapper.mapProductToProductDTO(product);
     }
 }
