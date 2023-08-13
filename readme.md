@@ -75,52 +75,72 @@ To get started with the E-Commerce project, follow these steps:
    cd e-commerce
    ```
 
-3. Install the project dependencies:
+3. Initiate the containers for Spring Cloud Vault:
 
    ```bash
-   npm install
+   docker compose up -d vault vault-agent
    ```
 
-4. Set up the environment variables:
-
-   - Create a new file named `.env` in the project root directory.
-   - Copy the contents of `.env.example` file into the new `.env` file.
-   - Modify the environment variables with your own configuration values (e.g., database credentials, API keys).
-
-5. Set up the database:
-
-   - Ensure you have a running instance of a compatible database system (e.g., MySQL, PostgreSQL).
-   - Update the database configuration in the `.env` file.
-
-6. Run the database migrations:
+4. Execute these two lines from the startVault.sh script.:
 
    ```bash
-   npx knex migrate:latest
+   docker exec vault /bin/sh -c "source /helpers/init.sh"
+	 docker restart vault-agent
    ```
 
-7. Seed the database (optional):
+5. Start the following containers:
+   -  MySQL,
+   -  MongoDB,
+   -  PostgreSQL
+   -  Zipkin
+   -  Prometheus
+   -  Grafana
+   -  Loki
+   -  Promtail
+   -  Node-exporter
+   -  Cadvisor
+   -  Zookeeper
+   -  Kafka
 
    ```bash
-   npx knex seed:run
+   docker compose up -d db mongodb postgres zipkin prometheus grafana loki promtail node-exporter cadvisor zookeeper kafka
    ```
 
-8. Start the application:
+7. Initiate the Eureka server
 
    ```bash
-   npm start
+	 docker compose up -d eureka-server
    ```
+8. Initiate the Spring Authorization Server
 
-9. Access the application:
+   ```bash
+   docker compose up -d auth-server
+   ```
+   
+9. Start the following containers:
+  -  Spring Cloud Gateway
+  -  Spring Resource Servers:
+    -  Catalog
+    -  Order
+    -  Profile
+    -  Notification
+    -  Payment
+
+  ```bash
+  docker compose up -d gateway catalog order profile notification payment
+  ```
+
+10. Access the application:
 
    Open your web browser and visit `http://localhost:8081`.
 
 ## Usage
 
-Once the application is up and running, you can access the various features through the provided user interface. Here are some usage instructions:
+Once the application is running, you can access the various features through the provided user interface. Here are some usage instructions:
 
 - Create an account or log in with your existing credentials.
 - Browse the product catalog and add items to your cart.
-- Proceed to the checkout process and provide the necessary details.
+- Please go ahead and go to the checkout process and provide the necessary details.
 - Review your order and complete the payment.
 - Track the status of your orders.
 - Admins can access the admin panel to manage products, categories, and orders.
@@ -146,7 +166,7 @@ Contributions to the E-Commerce project are welcome! If you would like to contri
 
 ## License
 
-The E-Commerce project is licensed under the MIT License. For more information, please refer to the [LICENSE](LICENSE) file.
+The E-Commerce project is licensed under the MIT License. Please refer to the [LICENSE](LICENSE) file for more information.
 ```
 
 Feel free to modify and customize the README file according to your specific requirements and project details.
