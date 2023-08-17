@@ -3,7 +3,7 @@ package com.concordeu.gateway.controller;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
-@RestController
+//@RestController
 public class FallbackController {
 
     @GetMapping("/fallback")
