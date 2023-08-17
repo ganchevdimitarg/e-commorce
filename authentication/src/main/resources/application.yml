@@ -49,10 +49,10 @@ spring:
             user-info-uri: https://openidconnect.googleapis.com/v1/userinfo
             jwk-set-uri: https://www.googleapis.com/oauth2/v3/certs
           github:
-            issuer-uri: https://token.actions.githubusercontent.com
+            #issuer-uri: https://token.actions.githubusercontent.com
             jwk-set-uri: https://token.actions.githubusercontent.com/.well-known/jwks
           facebook:
-            issuer-uri: https://www.facebook.com
+            #issuer-uri: https://www.facebook.com
             authorization-uri: https://facebook.com/dialog/oauth/
             jwk-set-uri: https://www.facebook.com/.well-known/oauth/openid/jwks/
 
@@ -68,6 +68,7 @@ spring:
       database: authentication
       port: 27017
       host: localhost
+      auto-index-creation: true
 
   #Data Source Properties
   datasource:

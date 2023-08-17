@@ -3,7 +3,6 @@ package com.concordeu.catalog.repositories;
 import com.concordeu.catalog.entities.Category;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 import java.util.UUID;

@@ -1,9 +1,9 @@
 package com.concordeu.order.service;
 
-import com.concordeu.order.dao.ItemDao;
-import com.concordeu.order.dao.OrderDao;
-import com.concordeu.order.domain.Item;
-import com.concordeu.order.domain.Order;
+import com.concordeu.order.repositories.ItemRepository;
+import com.concordeu.order.repositories.OrderRepository;
+import com.concordeu.order.entities.Item;
+import com.concordeu.order.entities.Order;
 import com.concordeu.order.dto.*;
 import com.concordeu.order.excaption.InvalidRequestDataException;
 import lombok.RequiredArgsConstructor;
@@ -26,8 +26,8 @@ import java.util.Optional;
 @RequiredArgsConstructor
 @Slf4j
 public class OrderServiceImpl implements OrderService {
-    private final OrderDao orderDao;
-    private final ItemDao itemDao;
+    private final OrderRepository orderRepository;
+    private final ItemRepository itemRepository;
     private final WebClient webClient;
     private final ReactiveCircuitBreakerFactory reactiveCircuitBreakerFactory;
     private final ChargeService chargeService;
@@ -36,7 +36,7 @@ public class OrderServiceImpl implements OrderService {
 
     @PostConstruct
     public void init() {
-        orderCounter = orderDao.count();
+        orderCounter = orderRepository.count();
     }
 
     @Value("${catalog.service.products.get.uri}")
@@ -84,12 +84,12 @@ public class OrderServiceImpl implements OrderService {
                 .orderNumber(++orderCounter)
                 .createdOn(LocalDateTime.now())
                 .build();
-        Order orderSave = orderDao.saveAndFlush(order);
+        Order orderSave = orderRepository.saveAndFlush(order);
         log.info("Order was successfully created");
 
         List<Item> items = orderDto.items();
         items.forEach(item -> item.setOrder(orderSave));
-        itemDao.saveAllAndFlush(items);
+        itemRepository.saveAllAndFlush(items);
         log.info("Items was successfully created");
 
         chargeService.saveCharge(order, payment);
@@ -97,13 +97,13 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public void deleteOrder(long orderNumber) {
-        orderDao.deleteByOrderNumber(orderNumber);
+        orderRepository.deleteByOrderNumber(orderNumber);
         log.info("Order was successfully delete");
     }
 
     @Override
     public OrderResponseDto getOrder(long orderNumber, String authenticationName) {
-        Optional<Order> order = orderDao.findByOrderNumber(orderNumber);
+        Optional<Order> order = orderRepository.findByOrderNumber(orderNumber);
         if (order.isEmpty()) {
             log.warn("No such order");
             throw new IllegalArgumentException("No such order");

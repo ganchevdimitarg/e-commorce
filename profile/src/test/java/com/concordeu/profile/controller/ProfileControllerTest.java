@@ -4,61 +4,39 @@ import com.concordeu.profile.dto.UserDto;
 import com.concordeu.profile.dto.UserRequestDto;
 import com.concordeu.profile.service.MailService;
 import com.concordeu.profile.service.ProfileService;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.context.annotation.Bean;
-import org.springframework.data.convert.CustomConversions;
 import org.springframework.http.MediaType;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
-import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
-import org.springframework.security.oauth2.jwt.JwtDecoder;
-import org.springframework.stereotype.Service;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.reactive.server.WebTestClient;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.KafkaContainer;
-import org.testcontainers.containers.MongoDBContainer;
-import org.testcontainers.containers.Network;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.lifecycle.Startables;
-import org.testcontainers.utility.DockerImageName;
-import org.testcontainers.vault.VaultContainer;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.*;
 
-//@WebFluxTest(controllers = ProfileController.class)
-//@ActiveProfiles("test")
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@WebFluxTest(controllers = ProfileController.class)
+@ActiveProfiles("test")
+//@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Tag("integration")
 class ProfileControllerTest {
     @Autowired
     WebTestClient client;
 
     @MockBean
-    PasswordEncoder passwordEncoder;
+    ProfileService profileService;
     @MockBean
     MailService mailService;
     @MockBean
-    JwtDecoder jwtDecoder;
-    @MockBean
-    ClientRegistrationRepository registrationRepository;
-    @MockBean
-    OAuth2AuthorizedClientService oAuth2AuthorizedClientService;
+    Authentication authentication;
 
 
-    public static MongoDBContainer mongoDBContainer = new MongoDBContainer(DockerImageName.parse("mongo:latest"));
+    /*public static MongoDBContainer mongoDBContainer = new MongoDBContainer(DockerImageName.parse("mongo:latest"));
     public static VaultContainer<?> vaultContainer = new VaultContainer<>(DockerImageName.parse("vault:latest"));
     public static KafkaContainer kafka = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:latest"));
 
@@ -85,15 +63,17 @@ class ProfileControllerTest {
                 "spring.security.oauth2.client.registration.gateway-client-oidc.client-id=test",
                 "spring.security.oauth2.client.registration.gateway-client-oidc.client-secret=test"
         );
-    }
+    }*/
 
     @Test
+    @WithMockUser
     void getUserByEmailShouldReturnUser() {
+        String username = "user";
+        when(profileService.getUserByUsername(username)).thenReturn(UserDto.builder().username(username).build());
 
         this.client
-                .mutateWith(mockOAuth2Login())
                 .get()
-                .uri("/api/v1/profile/get-by-username?username={email}", "example@gmail.com")
+                .uri("/api/v1/profile/get-by-username?username={email}", username)
                 .accept(MediaType.APPLICATION_JSON)
                 .exchange()
                 .expectStatus().isOk();
@@ -101,9 +81,12 @@ class ProfileControllerTest {
 
     @Test
     void registerUserShouldCreateUser() {
+        doNothing().when(mailService).sendUserWelcomeMail(any(String.class));
+        String username = "ivanIvanov@gmail.com";
+        when(profileService.createUser(UserRequestDto.builder().username(username).build())).thenReturn(UserDto.builder().username(username).build());
         this.client
                 .mutateWith(csrf())
-//                .mutateWith(mockUser())
+                .mutateWith(mockJwt())
                 .post()
                 .uri("/api/v1/profile/register-user")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -122,13 +105,14 @@ class ProfileControllerTest {
                         }
                         """)
                 .exchange()
-                .expectStatus().isOk();
+                .expectStatus().isOk()
+                .expectBody().jsonPath("$.username", username);
     }
 
     @Test
     void registerAdminShouldCreateAdmin() {
         this.client.mutateWith(csrf())
-                .mutateWith(mockUser("admin"))
+                .mutateWith(mockOAuth2Login())
                 .post()
                 .uri("/api/v1/profile/register-user")
                 .contentType(MediaType.APPLICATION_JSON)

@@ -1,6 +1,6 @@
 package com.concordeu.profile.config;
 
-import com.concordeu.profile.dto.NotificationDto;
+import com.concordeu.profile.dto.NotificationDTO;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,13 +29,13 @@ public class KafkaProducerConfig {
     }
 
     @Bean
-    public ProducerFactory<String, NotificationDto> producerFactory() {
+    public ProducerFactory<String, NotificationDTO> producerFactory() {
         return new DefaultKafkaProducerFactory<>(producerConfig());
     }
 
     @Bean
-    public KafkaTemplate<String, NotificationDto> kafkaTemplate(
-            ProducerFactory<String, NotificationDto> producerFactory) {
+    public KafkaTemplate<String, NotificationDTO> kafkaTemplate(
+            ProducerFactory<String, NotificationDTO> producerFactory) {
         return new KafkaTemplate<>(producerFactory);
     }
 }

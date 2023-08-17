@@ -1,13 +1,11 @@
 package com.concordeu.auth.repository;
 
-import com.concordeu.auth.domain.Client;
-import org.springframework.data.jpa.repository.EntityGraph;
-import org.springframework.data.jpa.repository.JpaRepository;
+import com.concordeu.auth.entities.Client;
+import org.springframework.data.mongodb.repository.MongoRepository;
 
 import java.util.Optional;
 
-public interface ClientRepository extends JpaRepository<Client, String> {
-
-    @EntityGraph(value = "graph-auth-client")
+public interface ClientRepository extends MongoRepository<Client, String> {
     Optional<Client> findByClientId(String clientId);
+
 }

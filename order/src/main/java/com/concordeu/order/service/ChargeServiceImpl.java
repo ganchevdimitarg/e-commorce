@@ -1,8 +1,8 @@
 package com.concordeu.order.service;
 
-import com.concordeu.order.dao.ChargeDao;
-import com.concordeu.order.domain.Charge;
-import com.concordeu.order.domain.Order;
+import com.concordeu.order.repositories.ChargeRepository;
+import com.concordeu.order.entities.Charge;
+import com.concordeu.order.entities.Order;
 import com.concordeu.order.dto.PaymentDto;
 import com.concordeu.order.excaption.InvalidRequestDataException;
 import com.google.gson.Gson;
@@ -19,7 +19,7 @@ import reactor.core.publisher.Mono;
 @RequiredArgsConstructor
 @Slf4j
 public class ChargeServiceImpl implements ChargeService {
-    private final ChargeDao chargeDao;
+    private final ChargeRepository chargeRepository;
     private final Gson mapper;
     private final WebClient webClient;
     private final ReactiveCircuitBreakerFactory reactiveCircuitBreakerFactory;
@@ -48,7 +48,7 @@ public class ChargeServiceImpl implements ChargeService {
                 .order(order)
                 .build();
 
-        chargeDao.save(charge);
+        chargeRepository.save(charge);
         log.info("Charge was successfully created");
     }
 

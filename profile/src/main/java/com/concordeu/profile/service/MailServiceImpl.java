@@ -1,6 +1,6 @@
 package com.concordeu.profile.service;
 
-import com.concordeu.profile.dto.NotificationDto;
+import com.concordeu.profile.dto.NotificationDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -10,13 +10,13 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 @Slf4j
 public class MailServiceImpl implements MailService {
-    private final KafkaTemplate<String, NotificationDto> kafkaTemplate;
+    private final KafkaTemplate<String, NotificationDTO> kafkaTemplate;
 
     @Override
     public void sendUserWelcomeMail(String username) {
         kafkaTemplate.send(
                 "sentMail",
-                new NotificationDto(
+                new NotificationDTO(
                         username,
                         "Registration",
                         "You have successfully registered. Please log in to your account."
@@ -29,7 +29,7 @@ public class MailServiceImpl implements MailService {
     public void sendPasswordResetTokenMail(String username, String token) {
         kafkaTemplate.send(
                 "sentMail",
-                new NotificationDto(
+                new NotificationDTO(
                         username,
                         "Password reset token",
                         String.format("""

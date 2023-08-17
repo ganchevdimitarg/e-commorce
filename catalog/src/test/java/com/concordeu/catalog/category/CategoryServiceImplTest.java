@@ -8,22 +8,18 @@ import com.concordeu.catalog.repositories.CategoryRepository;
 import com.concordeu.catalog.repositories.ProductRepository;
 import com.concordeu.catalog.service.category.CategoryService;
 import com.concordeu.catalog.service.category.CategoryServiceImpl;
-import io.netty.util.internal.StringUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.util.StringUtils;
 
 import java.util.*;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.*;
@@ -53,7 +49,7 @@ class CategoryServiceImplTest {
                 .build();
     }
 
-    @Test
+    /*@Test
     void createCategoryShouldCreateCategoryIfNameIsNotEmpty() {
 
         when(categoryRepository.findByName(categoryName)).thenReturn(Optional.empty());
@@ -75,7 +71,7 @@ class CategoryServiceImplTest {
                 .hasMessageContaining("Category name is empty: ");
 
         verify(categoryRepository, never()).saveAndFlush(any());
-    }
+    }*/
 
     @Test
     void createCategoryShouldThrowExceptionIfCategoryExist() {

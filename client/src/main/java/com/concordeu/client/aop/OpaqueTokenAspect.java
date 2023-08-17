@@ -1,7 +1,7 @@
 package com.concordeu.client.aop;
 
-import com.concordeu.client.dao.OpaqueTokenDao;
-import com.concordeu.client.domain.OpaqueToken;
+import com.concordeu.client.repositories.OpaqueTokenRepository;
+import com.concordeu.client.entities.OpaqueToken;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -19,17 +19,17 @@ import java.util.Optional;
 @RequiredArgsConstructor
 @Slf4j
 public class OpaqueTokenAspect {
-    private final OpaqueTokenDao opaqueTokenDao;
+    private final OpaqueTokenRepository opaqueTokenRepository;
 
     @Around("execution(* com.concordeu.client.introspector.CustomOpaqueTokenIntrospector.introspect(..))")
     public Object addTokenExp(ProceedingJoinPoint point) throws Throwable {
         Object[] pointArgs = point.getArgs();
 
         if (pointArgs.length > 0 && pointArgs[0] instanceof String token) {
-            Optional<OpaqueToken> opaqueToken = opaqueTokenDao.findByToken(token);
+            Optional<OpaqueToken> opaqueToken = opaqueTokenRepository.findByToken(token);
             Instant currentTime = Instant.ofEpochSecond(Long.parseLong(new Date(System.currentTimeMillis()).toString()));
             if (opaqueToken.isEmpty()) {
-                opaqueTokenDao.insert(OpaqueToken.builder()
+                opaqueTokenRepository.insert(OpaqueToken.builder()
                         .token(token)
                         .iat(currentTime)
                         .exp(Instant.ofEpochSecond(Long.parseLong(new Date(System.currentTimeMillis() + 1000 * 60 * 10).toString())))

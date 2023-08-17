@@ -24,18 +24,14 @@ public class CategoryServiceImpl implements CategoryService {
     private final ProductRepository productRepository;
     private final CategoryMapper mapper;
 
-    public CategoryDTO createCategory(CategoryDTO categoryDto) {
-        if (categoryDto.name().isEmpty()) {
-            log.warn("Category name is empty: " + categoryDto.name());
-            throw new IllegalArgumentException("Category name is empty: " + categoryDto.name());
+    public CategoryDTO createCategory(CategoryDTO categoryDTO) {
+
+        if (categoryRepository.findByName(categoryDTO.name()).isPresent()) {
+            log.warn("Category with the name: " + categoryDTO.name() + " already exist.");
+            throw new IllegalArgumentException("Category with the name: " + categoryDTO.name() + " already exist.");
         }
 
-        if (categoryRepository.findByName(categoryDto.name()).isPresent()) {
-            log.warn("Category with the name: " + categoryDto.name() + " already exist.");
-            throw new IllegalArgumentException("Category with the name: " + categoryDto.name() + " already exist.");
-        }
-
-        Category category = categoryRepository.saveAndFlush(Category.builder().name(categoryDto.name()).build());
+        Category category = categoryRepository.saveAndFlush(mapper.mapCategoryDTOToCategory(categoryDTO));
 
         return mapper.mapCategoryToCategoryDTO(category);
     }

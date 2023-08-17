@@ -6,7 +6,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.1.1</version>
+        <version>3.0.9</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
 
@@ -35,7 +35,7 @@
         <java.version>17</java.version>
         <spring.boot.maven.plugin.version>3.1.1</spring.boot.maven.plugin.version>
         <spring.boot.dependecies.version>3.1.1</spring.boot.dependecies.version>
-        <spring.cloud-version>2022.0.1</spring.cloud-version>
+        <spring.cloud-version>2022.0.3</spring.cloud-version>
         <metrics.version>0.5.1.RELEASE</metrics.version>
         <image>dgganchev/${project.artifactId}:${project.version}</image>
     </properties>
@@ -65,15 +65,6 @@
             <artifactId>lombok</artifactId>
             <optional>true</optional>
         </dependency>
-        <!-- Spring Cloud Sleuth will not work with Spring Boot 3.x onward. The last major version of Spring Boot that Sleuth will support is 2.x.
-        <dependency>
-            <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-starter-sleuth</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-sleuth-zipkin</artifactId>
-        </dependency>-->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>

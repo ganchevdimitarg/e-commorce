@@ -1,8 +1,8 @@
 package com.concordeu.profile.service;
 
-import com.concordeu.profile.dao.PasswordResetDao;
-import com.concordeu.profile.dao.ProfileDao;
-import com.concordeu.profile.domain.PasswordReset;
+import com.concordeu.profile.repositories.PasswordResetRepository;
+import com.concordeu.profile.repositories.ProfileRepository;
+import com.concordeu.profile.entities.PasswordReset;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -25,14 +25,14 @@ import java.util.function.Function;
 @RequiredArgsConstructor
 @Slf4j
 public class JwtServiceImpl implements JwtService {
-    private final PasswordResetDao passwordResetDao;
-    private final ProfileDao profileDao;
+    private final PasswordResetRepository passwordResetRepository;
+    private final ProfileRepository profileRepository;
     @Value("${jwt.secret.key}")
     private String secretKey;
 
     @Override
     public void saveToken(String token, String username) {
-        passwordResetDao.insert(PasswordReset.builder()
+        passwordResetRepository.insert(PasswordReset.builder()
                 .token(token)
                 .username(username)
                 .createdOn(LocalDateTime.now())
@@ -73,8 +73,8 @@ public class JwtServiceImpl implements JwtService {
     @Override
     public boolean isTokenValid(String token) {
         String username = extractUsername(token);
-        return (profileDao.findByUsername(username).isPresent() &&
-                passwordResetDao.findByToken(token).isPresent() &&
+        return (profileRepository.findByUsername(username).isPresent() &&
+                passwordResetRepository.findByToken(token).isPresent() &&
                 !isTokenExpired(token));
     }
 

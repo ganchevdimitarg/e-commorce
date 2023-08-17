@@ -1,6 +1,6 @@
 package com.concordeu.notification.service;
 
-import com.concordeu.notification.dto.NotificationDto;
+import com.concordeu.notification.dto.NotificationDTO;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,7 +23,7 @@ public class EmailServiceImpl implements EmailService {
     @Value("${spring.mail.username}")
     private String sender;
 
-    public String sendSimpleMail(NotificationDto notificationDto) {
+    public String sendSimpleMail(NotificationDTO notificationDto) {
 
         try {
             SimpleMailMessage mailMessage = new SimpleMailMessage();
@@ -43,7 +43,7 @@ public class EmailServiceImpl implements EmailService {
         }
     }
 
-    public String sendMailWithAttachment(NotificationDto notificationDto) {
+    public String sendMailWithAttachment(NotificationDTO notificationDto) {
        /* MimeMessage mimeMessage = javaMailSender.createMimeMessage();
         MimeMessageHelper mimeMessageHelper;
         try {

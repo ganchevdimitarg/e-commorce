@@ -1,3 +1,5 @@
-create index category_index on categories (name);
-create index comment_index on comments (author);
-create index product_index on products (name);
+CREATE INDEX category_index ON categories (name);
+
+CREATE INDEX comment_index ON comments (author);
+
+CREATE INDEX product_index ON products (name);

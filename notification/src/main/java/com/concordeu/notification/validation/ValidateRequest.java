@@ -1,7 +1,7 @@
 package com.concordeu.notification.validation;
 
-import com.concordeu.notification.dto.NotificationDto;
+import com.concordeu.notification.dto.NotificationDTO;
 
 public interface ValidateRequest {
-    boolean validateRequest(NotificationDto notificationDto);
+    boolean validateRequest(NotificationDTO notificationDto);
 }
