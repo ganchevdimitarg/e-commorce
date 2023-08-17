@@ -52,9 +52,9 @@ spring:
             redirect-uri: http://127.0.0.1:8081/login/oauth2/code/{registrationId}
         provider:
           spring:
-            issuer-uri: http://localhost:8082
-            authorization-uri: http://localhost:8082/oauth2/authorize
-            token-uri: http://localhost:8082/oauth2/token
+            issuer-uri: http://127.0.0.1:8082
+            authorization-uri: http://127.0.0.1:8082/oauth2/authorize
+            token-uri: http://127.0.0.1:8082/oauth2/token
           google:
             issuer-uri: https://accounts.google.com
             authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
@@ -98,16 +98,16 @@ spring:
               maxBackoff: 500ms
       routes:
         - id: catalog-service
-          uri: lb://catalog-service
+          uri: http://127.0.0.1:8084
           predicates:
-            Path=/api/v1/catalog/**
+            - Path=/api/v1/catalog/**
           filters:
             - name: CircuitBreaker
               args:
                 name: catalogService
                 fallbackUri: forward:/fallback
         - id: profile-service
-          uri: lb://profile-service
+          uri: http://127.0.0.1:8083
           predicates:
             - Path=/api/v1/profile/**
           filters:
@@ -116,7 +116,7 @@ spring:
                 name: profileService
                 fallbackUri: /fallback
         - id: notification-service
-          uri: lb://notification-service
+          uri: http://127.0.0.1:8085
           predicates:
             - Path=/api/v1/notification/**
           filters:
@@ -125,7 +125,7 @@ spring:
                 name: notificationService
                 fallbackUri: forward:/fallback
         - id: order-service
-          uri: lb://order-service
+          uri: http://127.0.0.1:8086
           predicates:
             - Path=/api/v1/order/**
           filters:
@@ -134,7 +134,7 @@ spring:
                 name: orderService
                 fallbackUri: forward:/fallback
         - id: payment-service
-          uri: lb://payment-service
+          uri: http://127.0.0.1:8087
           predicates:
             - Path=/api/v1/payment/**
           filters:
@@ -196,12 +196,10 @@ resilience4j.timelimiter:
 logging:
   level:
     root: ERROR
-    org.springframework.web: trace
-    org.springframework.security: trace
-    org.springframework.security.oauth2: trace
+    org.springframework.web: trace*
     org.springframework.cloud.gateway: trace
-#    org.springframework.http.server.reactive: trace
     logging.level.io.github.resilience4j: trace
+#    org.springframework.http.server.reactive: trace
 #    reactor.netty: trace
 
 #Prometheus (and other data loggers)
