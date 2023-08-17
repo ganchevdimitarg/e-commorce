@@ -25,6 +25,8 @@ import org.springframework.security.web.server.authentication.logout.HttpStatusR
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
+import java.util.Objects;
+
 @Configuration
 @EnableWebFluxSecurity
 @EnableMethodSecurity
@@ -48,9 +50,9 @@ public class ResourceServerConfig {
                         .anyExchange().authenticated()
                 )
                 .logout((logout) -> logout
-                                .logoutUrl("/api/v1/profile/logout")
-                                .logoutHandler(logoutHandler)
-                                .logoutSuccessHandler(new HttpStatusReturningServerLogoutSuccessHandler(HttpStatus.OK))
+                        .logoutUrl("/api/v1/profile/logout")
+                        .logoutHandler(logoutHandler)
+                        .logoutSuccessHandler(new HttpStatusReturningServerLogoutSuccessHandler(HttpStatus.OK))
                 )
                 .oauth2ResourceServer((oauth2ResourceServer) -> oauth2ResourceServer
                         .authenticationManagerResolver(this.tokenAuthenticationManagerResolver())
@@ -76,7 +78,19 @@ public class ResourceServerConfig {
                         new ProviderManager(new OpaqueTokenAuthenticationProvider(opaqueTokenIntrospector()))
                 )
         );
-        return context -> this.isJwt(context.getAttribute(HttpHeaders.AUTHORIZATION).toString().replace("Bearer ", ""), jwtDecoder) ? jwt : opaqueToken;
+
+        return context -> ResourceServerConfig.this.
+                isJwt(
+                        Objects.requireNonNull(
+                                        context
+                                                .getRequest()
+                                                .getHeaders()
+                                                .get(HttpHeaders.AUTHORIZATION)
+                                )
+                                .get(0)
+                                .replace("Bearer ", ""),
+                        jwtDecoder
+                ) ? jwt : opaqueToken;
     }
 
     private boolean isJwt(String token, JwtDecoder jwtDecoder) {
