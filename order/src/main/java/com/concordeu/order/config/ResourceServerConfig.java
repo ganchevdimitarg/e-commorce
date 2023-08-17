@@ -1,44 +1,49 @@
 package com.concordeu.order.config;
 
 import com.concordeu.client.introspector.CustomOpaqueTokenIntrospector;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationManagerResolver;
 import org.springframework.security.authentication.ProviderManager;
-import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.oauth2.jwt.BadJwtException;
-import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2TokenValidator;
+import org.springframework.security.oauth2.jwt.*;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationProvider;
 import org.springframework.security.oauth2.server.resource.authentication.OpaqueTokenAuthenticationProvider;
 import org.springframework.security.oauth2.server.resource.introspection.OpaqueTokenIntrospector;
 import org.springframework.security.web.SecurityFilterChain;
 
-import jakarta.servlet.http.HttpServletRequest;
-
+@Configuration
 @EnableWebSecurity
-@EnableGlobalMethodSecurity(prePostEnabled = true)
+@EnableMethodSecurity
 @RequiredArgsConstructor
 @Slf4j
 public class ResourceServerConfig {
-    private final JwtDecoder jwtDecoder;
+    @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri}")
+    private String jwkIssuerUri;
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                .and()
-                .authorizeRequests()
-                .mvcMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                .mvcMatchers("/actuator/**").permitAll()
-                .anyRequest().authenticated()
-                .and()
-                .oauth2ResourceServer()
-                .authenticationManagerResolver(this.tokenAuthenticationManagerResolver());
+                .sessionManagement(manager  -> manager.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests((auth) -> auth
+                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                        .requestMatchers("/actuator/**").permitAll()
+                        .anyRequest().authenticated()
+                )
+                .oauth2ResourceServer((oauth2ResourceServer) ->
+                        oauth2ResourceServer
+                                .authenticationManagerResolver(this.tokenAuthenticationManagerResolver())
+                );
         return http.build();
     }
 
@@ -48,14 +53,23 @@ public class ResourceServerConfig {
     }
 
     @Bean
-    AuthenticationManagerResolver<HttpServletRequest> tokenAuthenticationManagerResolver() {
-        AuthenticationManager jwt = new ProviderManager(new JwtAuthenticationProvider(jwtDecoder));
-        AuthenticationManager opaqueToken = new ProviderManager(
-                new OpaqueTokenAuthenticationProvider(opaqueTokenIntrospector()));
-        return (request) -> isJwt(request) ? jwt : opaqueToken;
+    JwtDecoder jwtDecoder() {
+        NimbusJwtDecoder jwtDecoder = JwtDecoders.fromIssuerLocation(this.jwkIssuerUri);
+        OAuth2TokenValidator<Jwt> withIssuer = JwtValidators.createDefaultWithIssuer(this.jwkIssuerUri);
+        OAuth2TokenValidator<Jwt> withAudience = new DelegatingOAuth2TokenValidator<>(withIssuer);
+        jwtDecoder.setJwtValidator(withAudience);
+        return jwtDecoder;
     }
 
-    private boolean isJwt(HttpServletRequest request) {
+    @Bean
+    AuthenticationManagerResolver<HttpServletRequest> tokenAuthenticationManagerResolver() {
+        AuthenticationManager jwt = new ProviderManager(new JwtAuthenticationProvider(jwtDecoder()));
+        AuthenticationManager opaqueToken = new ProviderManager(
+                new OpaqueTokenAuthenticationProvider(opaqueTokenIntrospector()));
+        return (request) -> isJwt(request, jwtDecoder()) ? jwt : opaqueToken;
+    }
+
+    private boolean isJwt(HttpServletRequest request, JwtDecoder jwtDecoder) {
         try {
             jwtDecoder.decode(request
                     .getHeader("Authorization")

@@ -1,17 +1,16 @@
 package com.concordeu.profile.service;
 
-import com.concordeu.profile.dao.ProfileDao;
-import com.concordeu.profile.domain.Address;
-import com.concordeu.profile.domain.Profile;
 import com.concordeu.profile.dto.CardDto;
 import com.concordeu.profile.dto.PaymentDto;
 import com.concordeu.profile.dto.UserDto;
 import com.concordeu.profile.dto.UserRequestDto;
+import com.concordeu.profile.entities.Address;
+import com.concordeu.profile.entities.Profile;
 import com.concordeu.profile.excaption.InvalidRequestDataException;
+import com.concordeu.profile.repositories.ProfileRepository;
 import com.concordeu.profile.validation.ValidateData;
 import com.google.gson.Gson;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.client.circuitbreaker.ReactiveCircuitBreakerFactory;
 import org.springframework.core.ParameterizedTypeReference;
@@ -26,6 +25,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 import java.util.Set;
 
 import static com.concordeu.client.security.UserRole.*;
@@ -37,36 +37,41 @@ public class ProfileServiceImpl implements ProfileService {
     private final WebClient webClient;
     private final Gson mapper;
     private final ReactiveCircuitBreakerFactory reactiveCircuitBreakerFactory;
-    private final ProfileDao profileDao;
+    private final ProfileRepository profileRepository;
     private final JwtService jwtService;
     private final MailService mailService;
     private final ValidateData validateData;
-    @Value("${payment.service.customer.post.uri}")
-    private String paymentServiceCreateNewCustomerUri;
-    @Value("${payment.service.customer.delete.uri}")
-    private String paymentServiceDeleteCustomerByUsernameUri;
-    @Value("${payment.service.card.post.uri}")
-    private String paymentServiceCreateCardUri;
-    @Value("${payment.service.card.get.uri}")
-    private String paymentServiceGetCardsByUsernameUri;
+    private final String paymentServiceCreateNewCustomerUri;
+    private final String paymentServiceDeleteCustomerByUsernameUri;
+    private final String paymentServiceCreateCardUri;
+    private final String paymentServiceGetCardsByUsernameUri;
 
     public ProfileServiceImpl(PasswordEncoder passwordEncoder,
-                              @Qualifier("clientCredentials") WebClient webClient,
+                              WebClient.Builder webClientBuilder,
                               Gson mapper,
                               ReactiveCircuitBreakerFactory reactiveCircuitBreakerFactory,
-                              ProfileDao profileDao,
+                              ProfileRepository profileRepository,
                               JwtService jwtService,
                               MailService mailService,
-                              ValidateData validateData) {
+                              ValidateData validateData,
+                              @Value("${payment.service.customer.post.uri}") String paymentServiceCreateNewCustomerUri,
+                              @Value("${payment.service.customer.delete.uri}") String paymentServiceDeleteCustomerByUsernameUri,
+                              @Value("${payment.service.card.post.uri}") String paymentServiceCreateCardUri,
+                              @Value("${payment.service.card.get.uri}") String paymentServiceGetCardsByUsernameUri) {
         this.passwordEncoder = passwordEncoder;
-        this.webClient = webClient;
+        this.webClient = webClientBuilder.build();
         this.mapper = mapper;
         this.reactiveCircuitBreakerFactory = reactiveCircuitBreakerFactory;
-        this.profileDao = profileDao;
+        this.profileRepository = profileRepository;
         this.jwtService = jwtService;
         this.mailService = mailService;
         this.validateData = validateData;
+        this.paymentServiceCreateNewCustomerUri = paymentServiceCreateNewCustomerUri;
+        this.paymentServiceDeleteCustomerByUsernameUri = paymentServiceDeleteCustomerByUsernameUri;
+        this.paymentServiceCreateCardUri = paymentServiceCreateCardUri;
+        this.paymentServiceGetCardsByUsernameUri = paymentServiceGetCardsByUsernameUri;
     }
+
 
     @Override
     public UserDto createAdmin(UserRequestDto userRequestDto) {
@@ -94,7 +99,7 @@ public class ProfileServiceImpl implements ProfileService {
                            UserRequestDto userRequestDto) {
         Assert.hasLength(username, "Username is empty");
 
-        Profile profile = profileDao.findByUsername(username)
+        Profile profile = profileRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("Profile does not exist"));
         Address address = new Address(
                 userRequestDto.city(),
@@ -108,14 +113,14 @@ public class ProfileServiceImpl implements ProfileService {
         profile.setPhoneNumber(userRequestDto.phoneNumber());
         profile.setAddress(address);
 
-        profileDao.save(profile);
+        profileRepository.save(profile);
         log.info("Profile with username {} is update", profile.getUsername());
     }
 
     @Override
     public void deleteUser(String username) {
         Assert.hasLength(username, "Username is empty");
-        Profile profile = profileDao.findByUsername(username)
+        Profile profile = profileRepository.findByUsername(username)
                 .orElseThrow(() -> {
                     log.warn("Profile does not exist");
                     return new UsernameNotFoundException("Profile does not exist");
@@ -123,14 +128,14 @@ public class ProfileServiceImpl implements ProfileService {
 
         deletePaymentCustomer(username);
 
-        profileDao.delete(profile);
+        profileRepository.delete(profile);
         log.info("User with username: {} was successfully deleted", username);
     }
 
     @Override
     public UserDto getUserByUsername(String username) {
         Assert.hasLength(username, "Username is empty");
-        Profile profile = profileDao.findByUsername(username)
+        Profile profile = profileRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("Profile does not exist"));
 
         Set<String> paymentCustomerId = webClient
@@ -148,12 +153,12 @@ public class ProfileServiceImpl implements ProfileService {
                 )
                 .block();
 
-        return getUserDto(profile, paymentCustomerId.stream().findFirst().get());
+        return getUserDto(profile, Objects.requireNonNull(paymentCustomerId).stream().findFirst().get());
     }
 
     @Override
     public String passwordReset(String username) {
-        profileDao.findByUsername(username)
+        profileRepository.findByUsername(username)
                 .orElseThrow(() -> new InvalidRequestDataException("User does not exist"));
         String token = jwtService.generateToken(
                 new User(
@@ -175,11 +180,11 @@ public class ProfileServiceImpl implements ProfileService {
     @Override
     public void setNewPassword(String username,
                                String password) {
-        Profile profile = profileDao.findByUsername(username)
+        Profile profile = profileRepository.findByUsername(username)
                 .orElseThrow(() -> new InvalidRequestDataException("User does not exist"));
         validateData.isValidPassword(password);
         profile.setPassword(passwordEncoder.encode(password));
-        profileDao.save(profile);
+        profileRepository.save(profile);
         log.info("The password of user {} has been changed successfully", username);
     }
 
@@ -203,7 +208,7 @@ public class ProfileServiceImpl implements ProfileService {
                                 Set<SimpleGrantedAuthority> grantedAuthorities) {
         Profile authProfile = builtProfile(userRequestDto, grantedAuthorities);
 
-        Profile profile = profileDao.insert(authProfile);
+        Profile profile = profileRepository.insert(authProfile);
         log.info("The profile was successfully create");
         return profile;
     }
@@ -219,7 +224,7 @@ public class ProfileServiceImpl implements ProfileService {
         PaymentDto paymentDto = addCardToCustomer(userRequestDto, paymentCustomerId.customerId());
         log.info("Payment card id {} was successfully added to payment customer", paymentDto.cardId());
 
-        Profile profile = profileDao.insert(authProfile);
+        Profile profile = profileRepository.insert(authProfile);
         log.info("The profile was successfully create");
         return UserDto.builder()
                 .id(profile.getId())
@@ -237,7 +242,7 @@ public class ProfileServiceImpl implements ProfileService {
     }
 
     private Profile builtProfile(UserRequestDto model, Set<SimpleGrantedAuthority> grantedAuthorities) {
-        if (profileDao.findByUsername(model.username()).isPresent()) {
+        if (profileRepository.findByUsername(model.username()).isPresent()) {
             throw new InvalidRequestDataException(String.format("Profile already exist: %s", model.username()));
         }
         Address address = new Address(
@@ -326,7 +331,7 @@ public class ProfileServiceImpl implements ProfileService {
                 )
                 .block();
 
-        checkAvailabilityOfPaymentService(paymentCustomerId);
+        checkAvailabilityOfPaymentService(Objects.requireNonNull(paymentCustomerId));
     }
 
     private void checkAvailabilityOfPaymentService(String token) {

@@ -1,8 +1,7 @@
 package com.concordeu.order.dto;
 
-import com.concordeu.order.domain.Item;
+import com.concordeu.order.entities.Item;
 import lombok.Builder;
-import lombok.Setter;
 
 import java.util.List;
 

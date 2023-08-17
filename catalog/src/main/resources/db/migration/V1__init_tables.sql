@@ -1,29 +1,43 @@
-create table categories
+CREATE TABLE categories
 (
-    id   varchar(255) not null unique,
-    name varchar(200) not null unique,
-    primary key (id)
+    id        VARCHAR(36)  NOT NULL,
+    version   BIGINT       NULL,
+    name      VARCHAR(200) NOT NULL,
+    create_on DATETIME(6)  NULL,
+    update_on TIMESTAMP    NULL,
+    CONSTRAINT pk_categories PRIMARY KEY (id)
 );
 
-create table comments
+CREATE TABLE comments
 (
-    id         varchar(255)     not null unique,
-    author     varchar(200),
-    star       double precision not null,
-    text       TEXT,
-    title      TEXT,
-    product_id varchar(255),
-    primary key (id)
+    id         VARCHAR(36)      NOT NULL,
+    version    BIGINT           NULL,
+    title      TEXT             NULL,
+    text       TEXT             NULL,
+    star       DOUBLE PRECISION NOT NULL,
+    author     VARCHAR(200)     NULL,
+    create_on  DATETIME(6)      NULL,
+    update_on  TIMESTAMP        NULL,
+    product_id VARCHAR(36)      NULL,
+    CONSTRAINT pk_comments PRIMARY KEY (id)
 );
 
-create table products
+CREATE TABLE products
 (
-    id              varchar(255)   not null unique,
-    name            varchar(200)   not null,
-    characteristics text,
-    description     text           not null,
-    stock           bit,
-    price           decimal(19, 2) not null,
-    category_id     varchar(255),
-    primary key (id)
+    id              VARCHAR(36)  NOT NULL,
+    version         BIGINT       NULL,
+    name            VARCHAR(20)  NOT NULL,
+    description     VARCHAR(50)  NOT NULL,
+    price           DECIMAL      NOT NULL,
+    stock           BIT(1)       NULL,
+    characteristics VARCHAR(255) NULL,
+    create_on       DATETIME(6)  NULL,
+    update_on       TIMESTAMP    NULL,
+    category_id     VARCHAR(36)  NULL,
+    CONSTRAINT pk_products PRIMARY KEY (id)
 );
+
+
+
+
+

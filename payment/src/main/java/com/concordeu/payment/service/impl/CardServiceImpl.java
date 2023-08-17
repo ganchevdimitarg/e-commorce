@@ -1,9 +1,9 @@
 package com.concordeu.payment.service.impl;
 
-import com.concordeu.payment.dao.CardDao;
-import com.concordeu.payment.dao.CustomerDao;
-import com.concordeu.payment.domain.AppCard;
-import com.concordeu.payment.domain.AppCustomer;
+import com.concordeu.payment.repositories.CardRepository;
+import com.concordeu.payment.repositories.CustomerRepository;
+import com.concordeu.payment.entities.AppCard;
+import com.concordeu.payment.entities.AppCustomer;
 import com.concordeu.payment.dto.PaymentDto;
 import com.concordeu.payment.excaption.InvalidPaymentRequestException;
 import com.concordeu.payment.service.CardService;
@@ -28,8 +28,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Slf4j
 public class CardServiceImpl implements CardService {
-    private final CardDao cardDao;
-    private final CustomerDao customerDao;
+    private final CardRepository cardRepository;
+    private final CustomerRepository customerRepository;
     @Value("${stripe.secret.key}")
     private String secretKey;
 
@@ -75,7 +75,7 @@ public class CardServiceImpl implements CardService {
             Card card = (Card) customer.getSources().create(source);
 
             AppCustomer appCustomer = getAppCustomer(customer.getName());
-            cardDao.saveAndFlush(AppCard.builder()
+            cardRepository.saveAndFlush(AppCard.builder()
                     .cardId(card.getId())
                     .brand(card.getBrand())
                     .customerId(card.getCustomer())
@@ -143,14 +143,14 @@ public class CardServiceImpl implements CardService {
 
     @Override
     public Set<String> getCustomerCards(String username) {
-        return cardDao.findAppCardsByCustomerId(getAppCustomer(username).getCustomerId())
+        return cardRepository.findAppCardsByCustomerId(getAppCustomer(username).getCustomerId())
                 .stream()
                 .map(AppCard::getCardId)
                 .collect(Collectors.toSet());
     }
 
     private AppCustomer getAppCustomer(String username) {
-        return customerDao.findByUsername(username).orElseThrow(() -> {
+        return customerRepository.findByUsername(username).orElseThrow(() -> {
             log.warn("Customer with username {} does not exist in db customers", username);
             throw new InvalidPaymentRequestException("Customer with username " + username + " does not exist");
         });

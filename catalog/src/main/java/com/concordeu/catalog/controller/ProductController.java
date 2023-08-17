@@ -2,7 +2,6 @@ package com.concordeu.catalog.controller;
 
 import com.concordeu.catalog.dto.ItemRequestDTO;
 import com.concordeu.catalog.dto.ProductDTO;
-import com.concordeu.catalog.entities.Product;
 import com.concordeu.catalog.mapper.ProductMapper;
 import com.concordeu.catalog.service.product.ProductService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -38,7 +37,7 @@ public class ProductController {
     @PostMapping("/create-product")
     @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
     public ProductDTO createProduct(@RequestBody ProductDTO requestDto,
-                                            @RequestParam String categoryName) {
+                                    @RequestParam String categoryName) {
         return productService.createProduct(requestDto, categoryName);
     }
 
@@ -52,7 +51,7 @@ public class ProductController {
     })
     @GetMapping("/get-products")
     public Page<ProductDTO> getProducts(@RequestParam int page,
-                                                @RequestParam int size) {
+                                        @RequestParam int size) {
         return productService.getProductsByPage(page, size);
     }
 
@@ -66,8 +65,8 @@ public class ProductController {
     })
     @GetMapping("/get-category-products")
     public Page<ProductDTO> getProductsByCategory(@RequestParam int page,
-                                                          @RequestParam int size,
-                                                          @RequestParam String categoryName) {
+                                                  @RequestParam int size,
+                                                  @RequestParam String categoryName) {
         return productService.getProductsByCategoryByPage(page, size, categoryName);
     }
 

@@ -2,6 +2,8 @@ server:
   port: 8083
 
 spring:
+  main:
+    web-application-type: reactive
   application:
     name: profile-service
   devtools:
@@ -16,6 +18,9 @@ spring:
       generic:
         enabled: true
         backend: secret
+#    TODO REMOVE SLEUTH
+    compatibility-verifier:
+      enabled: false
 
   config:
     import: optional:vault://
@@ -30,7 +35,7 @@ spring:
         registration:
           gateway-client-oidc:
             provider: spring
-            client-id: ${$GATEWAY_CLIENT_ID}
+            client-id: ${GATEWAY_CLIENT_ID}
             client-secret: ${GATEWAY_CLIENT_SECRET}
             authorization-grant-type: client_credentials
             redirect-uri: "http://127.0.0.1:8081/login/oauth2/code/{registrationId}"
@@ -71,11 +76,11 @@ logging:
         data: INFO
         web: INFO
         security: INFO
-        oauth2: DEBUG
-    reactor:
-      netty:
-        http:
-          client: DEBUG
+        oauth2: TRACE
+#    reactor:
+#      netty:
+#        http:
+#          client: TRACE
 #Eureka
 eureka:
   client:
@@ -96,9 +101,9 @@ management:
     web:
       exposure:
         include: "*"
-  metrics:
-    export:
-      prometheus:
+  prometheus:
+    metrics:
+      export:
         enabled: true
 
 #Spring Doc

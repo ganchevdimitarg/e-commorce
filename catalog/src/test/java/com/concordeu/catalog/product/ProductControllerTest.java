@@ -1,20 +1,29 @@
 package com.concordeu.catalog.product;
 
 import com.concordeu.catalog.controller.ProductController;
+import com.concordeu.catalog.dto.ProductDTO;
 import com.concordeu.catalog.mapper.ProductMapper;
 import com.concordeu.catalog.service.product.ProductService;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.MySQLContainer;
-import org.testcontainers.lifecycle.Startables;
+import org.springframework.test.web.reactive.server.WebTestClient;
 
-import static org.mockito.ArgumentMatchers.any;
+import java.math.BigDecimal;
+import java.util.Arrays;
+import java.util.List;
+
+import static org.mockito.BDDMockito.given;
+import static org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.csrf;
 import static org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockUser;
 
 
@@ -23,45 +32,32 @@ import static org.springframework.security.test.web.reactive.server.SecurityMock
 @Tag("integration")
 class ProductControllerTest {
 
-    @MockBean
-    ProductService productService;
-    @MockBean
-    ProductMapper mapper;
-/*
-    private static MySQLContainer<?> mySQLContainer = new MySQLContainer<>("mysql:8.0.26");
-
-    @DynamicPropertySource
-    public static void setUpContainers(DynamicPropertyRegistry registry) {
-        Startables.deepStart(mySQLContainer).join();
-
-        registry.add("spring.datasource.url", mySQLContainer::getJdbcUrl);
-        registry.add("spring.datasource.username", mySQLContainer::getUsername);
-        registry.add("spring.datasource.password", mySQLContainer::getPassword);
-    }
-
-    @Test
-    void something(){
-        Assertions.assertTrue(true);
-    }
-
-
     @Autowired
     WebTestClient client;
     @MockBean
     ProductService productService;
     @MockBean
-    MapStructMapper mapper;
-    ProductResponseDto productResponseDto;
+    ProductMapper mapper;
+    ProductDTO productDTO;
+
+    @Test
+    void something() {
+        Assertions.assertTrue(true);
+    }
 
     @BeforeEach
     void setUp() {
-        productResponseDto = new ProductResponseDto("", "aaaa", "aaaaaaaaaaaaaaaaa", BigDecimal.ONE,
-                false, "", null, new ArrayList<>());
+        productDTO = ProductDTO.builder()
+                .name("")
+                .description("aaaa")
+                .characteristics("aaaaaaaaaaaaaaaaa")
+                .price(BigDecimal.ONE)
+                .inStock(false)
+                .build();
     }
 
     @Test
     void createProductShouldCreateProduct() {
-        when(mapper.mapProductRequestDtoToProductResponseDto(any(ProductDTO.class))).thenReturn(productResponseDto);
 
         this.client.mutateWith(csrf())
                 .mutateWith(mockUser("admin"))
@@ -88,8 +84,8 @@ class ProductControllerTest {
     void getProductsByPageShouldGetAllProductsBySearchPage() {
         PageRequest pageRequest = PageRequest.of(1, 5);
 
-        List<ProductResponseDto> products = Arrays.asList(productResponseDto, productResponseDto);
-        Page<ProductResponseDto> page = new PageImpl<>(products, pageRequest, products.size());
+        List<ProductDTO> products = Arrays.asList(productDTO, productDTO);
+        Page<ProductDTO> page = new PageImpl<>(products, pageRequest, products.size());
 
         given(productService.getProductsByPage(0, 5)).willReturn(page);
 
@@ -104,8 +100,8 @@ class ProductControllerTest {
     @Test
     void getProductsByCategoryShouldReturnOnlyProductOneCategory() {
         PageRequest pageRequest = PageRequest.of(1, 5);
-        List<ProductResponseDto> products = Arrays.asList(productResponseDto, productResponseDto);
-        Page<ProductResponseDto> page = new PageImpl<>(products, pageRequest, products.size());
+        List<ProductDTO> products = Arrays.asList(productDTO, productDTO);
+        Page<ProductDTO> page = new PageImpl<>(products, pageRequest, products.size());
 
         given(productService.getProductsByCategoryByPage(1, 5, "pc")).willReturn(page);
 
@@ -119,8 +115,6 @@ class ProductControllerTest {
 
     @Test
     void updateProductShouldUpdateProduct() {
-        when(mapper.mapProductRequestDtoToProductResponseDto(any(ProductDTO.class))).thenReturn(productResponseDto);
-
         this.client.mutateWith(csrf())
                 .mutateWith(mockUser("admin"))
                 .put()
@@ -151,5 +145,4 @@ class ProductControllerTest {
 
     }
 
- */
 }

@@ -1,6 +1,6 @@
 package com.concordeu.notification.validation;
 
-import com.concordeu.notification.dto.NotificationDto;
+import com.concordeu.notification.dto.NotificationDTO;
 import com.concordeu.notification.excaption.InvalidRequestDataException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 public class ValidateRequestImpl implements ValidateRequest {
 
     @Override
-    public boolean validateRequest(NotificationDto notificationDto) {
+    public boolean validateRequest(NotificationDTO notificationDto) {
         return isValidRecipient(notificationDto.recipient()) &&
                 isValidMsgBody(notificationDto.msgBody()) &&
                 isValidSubject(notificationDto.subject());

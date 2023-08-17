@@ -1,8 +1,8 @@
 package com.concordeu.notification.service;
 
-import com.concordeu.notification.dao.NotificationDao;
-import com.concordeu.notification.domain.Notification;
-import com.concordeu.notification.dto.NotificationDto;
+import com.concordeu.notification.repositories.NotificationRepository;
+import com.concordeu.notification.entities.Notification;
+import com.concordeu.notification.dto.NotificationDTO;
 import com.concordeu.notification.mapper.MapStructMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,13 +15,13 @@ import java.time.LocalDateTime;
 @Slf4j
 public class NotificationServiceImpl implements NotificationService {
 
-    private final NotificationDao notificationDao;
+    private final NotificationRepository notificationRepository;
     private final MapStructMapper mapper;
     @Override
-    public NotificationDto createNotification(NotificationDto notificationDto) {
+    public NotificationDTO createNotification(NotificationDTO notificationDto) {
         Notification notification = mapper.mapNotificationDtoToNotification(notificationDto);
         notification.setCreatedOn(LocalDateTime.now());
-        NotificationDto notificationResp = mapper.mapNotificationToNotificationDto(notificationDao.saveAndFlush(notification));
+        NotificationDTO notificationResp = mapper.mapNotificationToNotificationDto(notificationRepository.saveAndFlush(notification));
         log.info("The notification has been created");
         return notificationResp;
     }

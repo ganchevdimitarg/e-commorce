@@ -1,7 +1,7 @@
 package com.concordeu.auth.service;
 
 import com.concordeu.auth.repository.AuthUserRepository;
-import com.concordeu.auth.domain.AuthUser;
+import com.concordeu.auth.entities.AuthUser;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.userdetails.User;

@@ -1,6 +1,6 @@
 package com.concordeu.auth.repository;
 
-import com.concordeu.auth.domain.AuthUser;
+import com.concordeu.auth.entities.AuthUser;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
 import java.util.Optional;

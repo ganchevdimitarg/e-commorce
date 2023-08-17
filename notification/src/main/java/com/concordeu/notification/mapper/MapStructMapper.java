@@ -1,14 +1,14 @@
 package com.concordeu.notification.mapper;
 
-import com.concordeu.notification.domain.Notification;
-import com.concordeu.notification.dto.NotificationDto;
+import com.concordeu.notification.entities.Notification;
+import com.concordeu.notification.dto.NotificationDTO;
 import org.mapstruct.Mapper;
 
 @Mapper(componentModel = "spring")
 public interface MapStructMapper {
 
-    Notification mapNotificationDtoToNotification (NotificationDto notificationDto);
+    Notification mapNotificationDtoToNotification (NotificationDTO notificationDto);
 
-    NotificationDto mapNotificationToNotificationDto (Notification notification);
+    NotificationDTO mapNotificationToNotificationDto (Notification notification);
 
 }

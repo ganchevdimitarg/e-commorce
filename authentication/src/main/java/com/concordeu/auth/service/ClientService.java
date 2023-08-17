@@ -1,6 +1,6 @@
 package com.concordeu.auth.service;
 
-import com.concordeu.auth.domain.*;
+import com.concordeu.auth.entities.*;
 import com.concordeu.auth.repository.ClientRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -46,13 +46,13 @@ public class ClientService implements RegisteredClientRepository {
 
     private RegisteredClient getRegisteredClient(Client client) {
         Consumer<Set<AuthorizationGrantType>> authorizationGrantTypesConsumer = authGrantType -> client.getGrantType()
-                .forEach(grantType -> authGrantType.add(new AuthorizationGrantType(grantType.getGrantType())));
+                .forEach(grantType -> authGrantType.add(new AuthorizationGrantType(grantType.grantType())));
         Consumer<Set<String>> scopesConsumer = scope -> client.getScope()
-                .forEach(s -> scope.add(s.getScope()));
-        Consumer<Set<String>> redirectUrisConsumer = redirectUri -> client.getRedirectUri().forEach(r -> redirectUri.add(r.getRedirectUri()));
+                .forEach(s -> scope.add(s.scope()));
+        Consumer<Set<String>> redirectUrisConsumer = redirectUri -> client.getRedirectUri().forEach(uri -> redirectUri.add(uri.redirectUri()));
         TokenSetting tokenSettings = client.getTokenSettings().stream().findFirst().get();
 
-        return RegisteredClient.withId(client.getId().toString())
+        return RegisteredClient.withId(client.getId())
                 .clientId(client.getClientId())
                 .clientSecret(client.getClientSecret())
                 .clientAuthenticationMethod(new ClientAuthenticationMethod(client.getAuthMethod()))
@@ -60,8 +60,8 @@ public class ClientService implements RegisteredClientRepository {
                 .scopes(scopesConsumer)
                 .redirectUris(redirectUrisConsumer)
                 .tokenSettings(TokenSettings.builder()
-                        .accessTokenTimeToLive(Duration.ofSeconds(tokenSettings.getAccessTokenTimeToLive()))
-                        .refreshTokenTimeToLive(Duration.ofSeconds(tokenSettings.getRefreshTokenTimeToLive()))
+                        .accessTokenTimeToLive(Duration.ofSeconds(tokenSettings.accessTokenTimeToLive()))
+                        .refreshTokenTimeToLive(Duration.ofSeconds(tokenSettings.refreshTokenTimeToLive()))
                         .build())
                 .build();
     }

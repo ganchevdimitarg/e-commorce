@@ -1,13 +1,13 @@
 package com.concordeu.catalog.controller;
 
 import com.concordeu.catalog.dto.CategoryDTO;
-import com.concordeu.catalog.mapper.CategoryMapper;
 import com.concordeu.catalog.service.category.CategoryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -32,7 +32,11 @@ public class CategoryController {
     })
     @PostMapping("/create-category")
     @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
-    public CategoryDTO createCategory(@RequestBody CategoryDTO requestDto) {
+    public CategoryDTO createCategory(@RequestBody @NonNull CategoryDTO requestDto) {
+        if (requestDto.name().isEmpty()) {
+            log.debug("Category name is empty: " + requestDto.name());
+            throw new IllegalArgumentException("Category name is empty: " + requestDto.name());
+        }
         return categoryService.createCategory(requestDto);
     }
 
@@ -46,7 +50,7 @@ public class CategoryController {
     })
     @DeleteMapping("/delete-category")
     @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
-    public void deleteCategory(@RequestParam String categoryName) {
+    public void deleteCategory(@RequestParam @NonNull String categoryName) {
         categoryService.deleteCategory(categoryName);
     }
 
