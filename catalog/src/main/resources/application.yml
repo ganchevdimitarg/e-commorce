@@ -36,7 +36,7 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.MariaDBDialect
         format_sql: FALSE
-    show_sql: true
+    show_sql: false
     hibernate:
       ddl-auto: validate
 
@@ -72,9 +72,9 @@ logging:
         security: INFO
         oauth2: INFO
       hibernate:
-        SQL: DEBUG
+        SQL: off
         type:
-          descriptor: TRACE
+          descriptor: off
 
 #Eureka
 eureka:

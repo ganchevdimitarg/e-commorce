@@ -44,13 +44,13 @@ public class Product {
     private UUID id;
     @Version
     private Long version;
-    @Column(name = "name", nullable = false, length = 20)
+    @Column(name = "name", nullable = false, length = 100)
     @NotBlank
-    @Length(min = 3, max = 20)
+    @Length(min = 3, max = 100)
     private String name;
     @Column(name = "description", nullable = false)
     @NotBlank
-    @Length(min = 10, max = 50)
+    @Length(min = 10, max = 150)
     private String description;
     @Column(name = "price", nullable = false)
     private BigDecimal price;
