@@ -99,6 +99,12 @@
             <groupId>jakarta.validation</groupId>
             <artifactId>jakarta.validation-api</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.opencsv</groupId>
+            <artifactId>opencsv</artifactId>
+            <version>5.7.1</version>
+            <scope>compile</scope>
+        </dependency>
 
         <!--        Map Struct     -->
         <dependency>

@@ -31,7 +31,6 @@ import java.util.UUID;
 @Builder
 @Setter
 @Getter
-@ToString
 public class Category {
     @Id
     @GeneratedValue(generator = "UUID")
@@ -39,7 +38,6 @@ public class Category {
             strategy = "org.hibernate.id.UUIDGenerator")
     @JdbcTypeCode(SqlTypes.CHAR)
     @Column(length = 36, columnDefinition = "varchar(36)", unique = true, nullable = false, updatable = false)
-    @Length(min = 36, max = 36)
     private UUID id;
 
     @Version
