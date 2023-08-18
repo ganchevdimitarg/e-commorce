@@ -39,60 +39,40 @@ public class BootstrapData implements CommandLineRunner {
     @Override
     public void run(String... args) throws Exception {
         loadCategories();
-        loadCsvProductData();
+        loadCsvProductData(ACCESSORIES);
+        loadCsvProductData(BAGS);
+        loadCsvProductData(BEAUTY);
+        loadCsvProductData(JEWELRY);
+        loadCsvProductData(KIDS);
+        loadCsvProductData(MEN);
+        loadCsvProductData(SHOES);
+        loadCsvProductData(WOMEN);
     }
 
     private void loadCategories() {
-        categoryRepository.saveAllAndFlush(List.of(
-                Category.builder().name(ACCESSORIES).build(),
-                Category.builder().name(BAGS).build(),
-                Category.builder().name(BEAUTY).build(),
-                Category.builder().name(JEWELRY).build(),
-                Category.builder().name(KIDS).build(),
-                Category.builder().name(MEN).build(),
-                Category.builder().name(SHOES).build(),
-                Category.builder().name(WOMEN).build())
-        );
+        if (categoryRepository.count() == 0) {
+            categoryRepository.saveAll(List.of(
+                    Category.builder().name(ACCESSORIES).build(),
+                    Category.builder().name(BAGS).build(),
+                    Category.builder().name(BEAUTY).build(),
+                    Category.builder().name(JEWELRY).build(),
+                    Category.builder().name(KIDS).build(),
+                    Category.builder().name(MEN).build(),
+                    Category.builder().name(SHOES).build(),
+                    Category.builder().name(WOMEN).build())
+            );
+        }
     }
 
-    private void loadCsvProductData() throws FileNotFoundException {
+    private void loadCsvProductData(String categoryName) throws FileNotFoundException {
         if (productRepository.count() == 0) {
-            File accessoriesFile = ResourceUtils.getFile("classpath:csvdata/accessories.csv");
-            File bagsFile = ResourceUtils.getFile("classpath:csvdata/bags.csv");
-            File beautyFile = ResourceUtils.getFile("classpath:csvdata/beauty.csv");
-            File jewelryFile = ResourceUtils.getFile("classpath:csvdata/jewelry.csv");
-            File kidsFile = ResourceUtils.getFile("classpath:csvdata/kids.csv");
-            File menFile = ResourceUtils.getFile("classpath:csvdata/men.csv");
-            File shoesFile = ResourceUtils.getFile("classpath:csvdata/shoes.csv");
-            File womenFile = ResourceUtils.getFile("classpath:csvdata/women.csv");
+            File productsFile = ResourceUtils.getFile("classpath:csvdata/" + categoryName + ".csv");
 
-            List<ProductCSVRecord> accessoriesProducts = getProductList(accessoriesFile);
-            List<ProductCSVRecord> bagsProducts = getProductList(bagsFile);
-            List<ProductCSVRecord> beautyProducts = getProductList(beautyFile);
-            List<ProductCSVRecord> jewelryProducts = getProductList(jewelryFile);
-            List<ProductCSVRecord> kidsProducts = getProductList(kidsFile);
-            List<ProductCSVRecord> menProducts = getProductList(menFile);
-            List<ProductCSVRecord> shoesProducts = getProductList(shoesFile);
-            List<ProductCSVRecord> womenProducts = getProductList(womenFile);
+            List<ProductCSVRecord> products = getProductList(productsFile);
 
-            Category accessories = getCategory(ACCESSORIES);
-            Category bags = getCategory(BAGS);
-            Category beauty = getCategory(BEAUTY);
-            Category jewelry = getCategory(JEWELRY);
-            Category kids = getCategory(KIDS);
-            Category men = getCategory(MEN);
-            Category shoes = getCategory(SHOES);
-            Category women = getCategory(WOMEN);
+            Category category = getCategory(categoryName);
 
-            initCsvRecord(accessoriesProducts, accessories);
-            initCsvRecord(bagsProducts, bags);
-            initCsvRecord(beautyProducts, beauty);
-            initCsvRecord(jewelryProducts, jewelry);
-            initCsvRecord(kidsProducts, kids);
-            initCsvRecord(menProducts, men);
-            initCsvRecord(shoesProducts, shoes);
-            initCsvRecord(womenProducts, women);
-
+            initCsvRecord(products, category);
         }
     }
 
@@ -114,8 +94,7 @@ public class BootstrapData implements CommandLineRunner {
                     .inStock(true)
                     .build();
             if (productRepository.findByName(product.getName()).isEmpty()) {
-                category.setProducts(product);
-                productRepository.saveAndFlush(product);
+                productRepository.save(product);
             }
         });
     }
