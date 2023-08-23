@@ -23,7 +23,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.Disposable;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
@@ -140,20 +139,20 @@ public class ProfileServiceImpl implements ProfileService {
         Profile profile = profileRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("Profile does not exist"));
 
-         Disposable paymentCustomerId = webClient
+        Disposable paymentCustomerId = webClient
                 .get()
                 .uri(paymentServiceGetCardsByUsernameUri + username)
                 .retrieve()
-                .bodyToFlux(new ParameterizedTypeReference<Set<String>>() {
+                .bodyToMono(new ParameterizedTypeReference<Set<String>>() {
                 })
                 .transform(it ->
                         reactiveCircuitBreakerFactory.create("profileService")
                                 .run(it, throwable -> {
                                     log.warn("Payment service is down", throwable);
-                                    return Flux.just(Set.of(""));
+                                    return Mono.just(Set.of(""));
                                 })
                 )
-                 .subscribe();
+                .subscribe();
 
         return getUserDto(profile, String.valueOf(paymentCustomerId));
     }
