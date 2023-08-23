@@ -55,9 +55,9 @@ public class ChargeServerImpl implements ChargeService {
         Map<String, Object> params = new HashMap<>();
         params.put("amount", paymentDto.amount());
         params.put("currency", paymentDto.currency());
-        params.put("receipt_email", paymentDto.receiptEmail());
-        params.put("customer", paymentDto.customerId());
-        params.put("source", paymentDto.cardId());
+        params.put("receipt_email", appCustomer.getCards().get(0).getCustomer().getUsername());
+        params.put("customer", appCustomer.getCustomerId());
+        params.put("source", appCustomer.getCards().get(0).getCardId());
 
         try {
             Charge charge = Charge.create(params);

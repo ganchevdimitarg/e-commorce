@@ -95,9 +95,9 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Cacheable(value="Product", key="#id", condition="#id!=null")
-    public ProductDTO getProductById(String id) {
+    public ProductDTO getProductById(UUID id) {
         Assert.notNull(id, "Id is empty");
-        Product product = productRepository.findById(UUID.fromString(id)).orElseThrow(() -> new IllegalArgumentException("No such product"));
+        Product product = productRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("No such product"));
         return ProductDTO.mapProductToProductDTO(product);
     }
 

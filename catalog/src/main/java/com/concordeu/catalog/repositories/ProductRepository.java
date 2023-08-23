@@ -8,7 +8,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.Optional;
@@ -18,6 +17,9 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
 
     @EntityGraph(value = "graph-catalog-product")
     Optional<Product> findByName(String productName);
+
+    @Override
+    Optional<Product> findById(UUID id);
 
     @Query(value = """
             SELECT * FROM products WHERE CATEGORY_ID = ?1

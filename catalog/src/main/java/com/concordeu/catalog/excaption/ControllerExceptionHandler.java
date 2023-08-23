@@ -17,7 +17,7 @@ public class ControllerExceptionHandler {
                 new Date(),
                 ex.getMessage(),
                 request.getDescription(false));*/
-        ProblemDetail message = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST.value());
+        ProblemDetail message = ProblemDetail.forStatus(HttpStatus.NOT_FOUND.value());
         message.setDetail(ex.getLocalizedMessage());
 
         return new ResponseEntity<>(message, HttpStatus.NOT_FOUND);
