@@ -60,11 +60,9 @@ public class CustomLogoutHandler implements ServerLogoutHandler/*LogoutHandler*/
         this.facebookRevokeUri = facebookRevokeUri;
     }
 
-    /*@Override
-    public void logout(HttpServletRequest httpServletRequest,
-                       HttpServletResponse httpServletResponse,
-                       Authentication authentication) {
-        String token = httpServletRequest.getHeader(HttpHeaders.AUTHORIZATION).replace("Bearer ", "");
+    @Override
+    public Mono<Void> logout(WebFilterExchange exchange, Authentication authentication) {
+        String token = exchange.getExchange().getAttribute(HttpHeaders.AUTHORIZATION).toString().replace("Bearer ", "");
 
         if (isJwt(token)) {
             revokeECommerceAccessToken(token);
@@ -75,7 +73,8 @@ public class CustomLogoutHandler implements ServerLogoutHandler/*LogoutHandler*/
         } else {
             revokeFacebookAccessToken(token);
         }
-    }*/
+        return Mono.empty();
+    }
 
     private void revokeGitHubAccessToken(String token) {
         String requestBody = mapper.toJson(
@@ -158,21 +157,5 @@ public class CustomLogoutHandler implements ServerLogoutHandler/*LogoutHandler*/
         } catch (BadJwtException e) {
             return false;
         }
-    }
-
-    @Override
-    public Mono<Void> logout(WebFilterExchange exchange, Authentication authentication) {
-        String token = exchange.getExchange().getAttribute(HttpHeaders.AUTHORIZATION).toString().replace("Bearer ", "");
-
-        if (isJwt(token)) {
-            revokeECommerceAccessToken(token);
-        } else if (token.startsWith(GOOGLE_PREFIX)) {
-            revokeGoogleAccessToken(token);
-        } else if (token.startsWith(GITHUB_PREFIX)) {
-            revokeGitHubAccessToken(token);
-        } else {
-            revokeFacebookAccessToken(token);
-        }
-        return Mono.empty();
     }
 }

@@ -12,45 +12,21 @@ import java.math.BigDecimal;
 @Builder
 public class ProductCSVRecord {
     @CsvBindByName
-    private String category;
-    @CsvBindByName
-    private String subcategory;
-    @CsvBindByName
     private String name;
+    @CsvBindByName(column = "main_category")
+    private String mainCategory;
+    @CsvBindByName(column = "sub_category")
+    private String subCategory;
     @CsvBindByName
-    private BigDecimal currentPrice;
+    private String image;
     @CsvBindByName
-    private BigDecimal rawPrice;
+    private String link;
     @CsvBindByName
-    private String currency;
-    @CsvBindByName
-    private Long discount;
-    @CsvBindByName
-    private Long likesCount;
-    @CsvBindByName
-    private Boolean isNew;
-    @CsvBindByName
-    private String brand;
-    @CsvBindByName
-    private String brandUrl;
-    @CsvBindByName
-    private String codCountry;
-    @CsvBindByName(column = "variation_0_color")
-    private String variationColor0;
-    @CsvBindByName(column = "variation_1_color")
-    private String variationColor1;
-    @CsvBindByName(column = "variation_0_thumbnail")
-    private String variationThumbnail0;
-    @CsvBindByName(column = "variation_1_thumbnail")
-    private String variationThumbnail1;
-    @CsvBindByName(column = "variation_0_image")
-    private String variationImage0;
-    @CsvBindByName(column = "variation_1_image")
-    private String variationImage1;
-    @CsvBindByName(column = "image_url")
-    private String imageUrl;
-    @CsvBindByName
-    private String url;
-    @CsvBindByName
-    private String model;
+    private String ratings;
+    @CsvBindByName(column = "no_of_ratings")
+    private String noOfRatings;
+    @CsvBindByName(column = "discount_price")
+    private String discountPrice;
+    @CsvBindByName(column = "actual_price")
+    private String actualPrice;
 }

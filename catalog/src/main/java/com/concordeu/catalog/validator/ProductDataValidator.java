@@ -11,10 +11,10 @@ import java.math.BigDecimal;
 public class ProductDataValidator {
 
     public boolean validateData(ProductDTO productDTO, String name) {
-        return isValidProductName(productDTO.name())
-               && isValidDescription(productDTO.description())
+        return isValidProductName(productDTO.getName())
+               && isValidDescription(productDTO.getDescription())
                && isValidName(name)
-               && isValidPrice(productDTO.price());
+               && isValidPrice(productDTO.getPrice());
     }
 
     private boolean isValidPrice(BigDecimal price) {

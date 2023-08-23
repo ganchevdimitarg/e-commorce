@@ -37,11 +37,11 @@ public class ResourceServerConfig {
     private final JwtDecoder jwtDecoder;
 
     @Bean
-    SecurityWebFilterChain securityFilterChain(ServerHttpSecurity http) throws Exception {
+    SecurityWebFilterChain securityFilterChain(ServerHttpSecurity http) {
         http
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .authorizeExchange((auth) -> auth
-                        .pathMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                        .pathMatchers("/v3/api-docs**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .pathMatchers("/actuator/**").permitAll()
                         .pathMatchers("/api/v1/profile/register-admin").permitAll()
                         .pathMatchers("/api/v1/profile/register-worker").permitAll()
