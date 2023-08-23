@@ -69,10 +69,12 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
+
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-registry-prometheus</artifactId>
         </dependency>
+
     </dependencies>
 
     <build>
@@ -83,6 +85,8 @@
                     <artifactId>spring-boot-maven-plugin</artifactId>
                     <version>${spring.boot.maven.plugin.version}</version>
                     <configuration>
+                        <jmxPort>9002</jmxPort>
+                        <jvmArguments>-Dspring.application.admin.enabled=true</jvmArguments>
                         <excludes>
                             <exclude>
                                 <groupId>org.projectlombok</groupId>
@@ -92,6 +96,14 @@
                     </configuration>
                     <executions>
                         <execution>
+                            <id>springdoc</id>
+                            <goals>
+                                <goal>start</goal>
+                                <goal>stop</goal>
+                            </goals>
+                        </execution>
+                        <execution>
+                            <id>repackage</id>
                             <goals>
                                 <goal>repackage</goal>
                             </goals>

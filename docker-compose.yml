@@ -42,9 +42,23 @@ services:
       - postgres
     restart: unless-stopped
 
+  redis:
+    image: redis/redis-stack
+    container_name: redis-server
+    volumes:
+      - /local-data/:/data
+    environment:
+      REDIS_ARGS: "--save 60 1000 --appendonly yes"
+      REDISTIMESERIES_ARGS: "RETENTION_POLICY=20"
+    ports:
+      - "6379:6379"
+      - "8001:8001"
+
   zipkin:
     image: openzipkin/zipkin
     container_name: zipkin
+    extra_hosts: ['host.docker.internal:host-gateway']
+    restart: always
     ports:
       - "9411:9411"
     networks:
@@ -53,49 +67,63 @@ services:
   prometheus:
     image: prom/prometheus
     container_name: prometheus
-    volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus_data:/prometheus
+    extra_hosts: [ 'host.docker.internal:host-gateway' ]
     command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
-      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - --enable-feature=exemplar-storage
+      - --web.enable-remote-write-receiver
+      - --config.file=/etc/prometheus/prometheus.yml
+    volumes:
+      - prometheus:/prometheus
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
     ports:
       - "9090:9090"
     networks:
       - spring
 
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana
     container_name: grafana
-    user: "4096"
-    depends_on:
-      - prometheus
-      - tempo
+    extra_hosts: [ 'host.docker.internal:host-gateway' ]
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+    volumes:
+      - ./docker/grafana/grafana.ini:/etc/grafana/grafana.ini:ro
+      - ./docker/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./docker/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./docker/grafana/provisioning/alerting:/etc/grafana/provisioning/alerting:ro
     ports:
       - "3000:3000"
-    volumes:
-      - ./grafana/provisioning/grafana-bootstrap.ini:/etc/grafana/grafana.ini
-      - ./grafana/provisioning/:/etc/grafana/provisioning/
-    env_file:
-      - grafana/config.monitoring
-    restart: unless-stopped
     networks:
       - loki
       - spring
 
   loki:
-    image: grafana/loki:2.7.0
     container_name: loki
+    image: grafana/loki
+    extra_hosts: [ 'host.docker.internal:host-gateway' ]
+    command: [ '-config.file=/etc/loki/local-config.yaml' ]
     ports:
       - "3100:3100"
-    volumes:
-      - ./loki/loki/loki-config.yml:/etc/loki/loki-config.yml
-    command: -config.file=/etc/loki/loki-config.yml
-    restart: unless-stopped
     networks:
       - loki
+
+  tempo:
+    container_name: tempo
+    image: grafana/tempo
+    extra_hosts: [ 'host.docker.internal:host-gateway' ]
+    command: [ '-config.file=/etc/tempo.yml' ]
+    volumes:
+      - tempo:/tmp/tempo
+      - ./docker/grafana/tempo.yml:/etc/tempo.yml:ro
+    ports:
+      - "3200:3200"    # tempo
+      - "9411:9411"    # zipkin
+    healthcheck:
+      interval: 5s
+      retries: 10
+      test: wget --no-verbose --tries=1 --spider http://localhost:3200/status || exit 1
 
   promtail:
     image: grafana/promtail:2.7.0
@@ -121,23 +149,6 @@ services:
     ports:
       - "5555:5555"
       - "6666:6666"
-
-  tempo:
-    image: grafana/tempo:latest
-    command: [ "-config.file=/etc/tempo.yaml" ]
-    container_name: tempo
-    hostname: tempo
-    volumes:
-      - ./tempo/tempo-config.yml:/etc/tempo.yaml
-      - ./tempo/tempo-overrides.yml:/etc/overrides.yaml
-      - ./tempo/tempo-data:/tmp/tempo
-    ports:
-      - "3200:3200"
-      - "4317:4317"
-    healthcheck:
-      interval: 5s
-      retries: 10
-      test: wget --no-verbose --tries=1 --spider http://localhost:3200/status || exit 1
 
   node-exporter:
     image: prom/node-exporter
@@ -402,8 +413,10 @@ networks:
   loki:
 volumes:
   db:
-  prometheus_data: { }
-  grafana_storage: { }
   data: { }
   postgres:
   vault_data: { }
+  prometheus:
+    driver: local
+  tempo:
+    driver: local

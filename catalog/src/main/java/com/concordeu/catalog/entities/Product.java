@@ -46,7 +46,7 @@ public class Product {
     private Long version;
     @Column(name = "name", nullable = false, length = 100)
     @NotBlank
-    @Length(min = 3, max = 100)
+    @Length(min = 3, max = 300)
     private String name;
     @Column(name = "description", nullable = false)
     @NotBlank

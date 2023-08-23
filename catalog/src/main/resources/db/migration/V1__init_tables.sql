@@ -26,7 +26,7 @@ CREATE TABLE products
 (
     id              VARCHAR(36)  NOT NULL,
     version         BIGINT       NULL,
-    name            VARCHAR(100)  NOT NULL,
+    name            VARCHAR(300)  NOT NULL,
     description     VARCHAR(150)  NOT NULL,
     price           DECIMAL      NOT NULL,
     stock           BIT(1)       NULL,

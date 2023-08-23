@@ -8,6 +8,8 @@ import com.concordeu.catalog.entities.Category;
 import com.concordeu.catalog.entities.Product;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -24,6 +26,7 @@ public class CategoryServiceImpl implements CategoryService {
     private final ProductRepository productRepository;
     private final CategoryMapper mapper;
 
+    @Override
     public CategoryDTO createCategory(CategoryDTO categoryDTO) {
 
         if (categoryRepository.findByName(categoryDTO.name()).isPresent()) {
@@ -37,6 +40,7 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    @Cacheable(value="Category", key="#categoryId")
     public CategoryDTO getCategory(String categoryName) {
         Category category = categoryRepository.findByName(categoryName)
                 .orElseThrow(() -> new IllegalArgumentException("No such category: " + categoryName));
@@ -44,6 +48,7 @@ public class CategoryServiceImpl implements CategoryService {
     }
     @Transactional
     @Override
+    @CacheEvict(value="Category", key="#categoryId")
     public void deleteCategory(String categoryName) {
         if (categoryName.isEmpty()) {
             log.warn("Category name is empty: " + categoryName);
@@ -88,6 +93,7 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    @Cacheable(value="Category", key="#categoryId")
     public Page<CategoryDTO> getCategoriesByPage(int page, int size) {
         Page<CategoryDTO> categories = categoryRepository
                 .findAll(PageRequest.of(page, size))

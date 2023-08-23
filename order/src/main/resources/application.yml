@@ -17,6 +17,9 @@ spring:
         enabled: true
         backend: secret
 
+    compatibility-verifier:
+      enabled: false
+
   config:
     import: optional:vault://
   #Security

@@ -9,6 +9,7 @@ import com.concordeu.catalog.entities.Product;
 import com.concordeu.catalog.validator.CommentDataValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -46,6 +47,7 @@ public class CommentServiceImpl implements CommentService {
     }
 
     @Override
+    @Cacheable(value="Comment", key="#commentId")
     public Page<CommentDTO> findAllByProductNameByPage(String productName, int page, int size) {
         if (productName.isEmpty()) {
             log.warn("No such product: " + productName);
@@ -67,6 +69,7 @@ public class CommentServiceImpl implements CommentService {
     }
 
     @Override
+    @Cacheable(value="Comment", key="#commentId")
     public Page<CommentDTO> findAllByAuthorByPage(String author, int page, int size) {
         if (author.isEmpty()) {
             log.warn("No such author: " + author);

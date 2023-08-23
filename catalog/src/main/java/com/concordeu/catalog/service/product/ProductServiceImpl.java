@@ -10,6 +10,9 @@ import com.concordeu.catalog.repositories.ProductRepository;
 import com.concordeu.catalog.validator.ProductDataValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -41,9 +44,9 @@ public class ProductServiceImpl implements ProductService {
                     return new IllegalArgumentException("No such category: " + categoryName);
                 });
 
-        if (productRepository.findByName(productDTO.name()).isPresent()) {
-            log.warn("Product with the name: " + productDTO.name() + " already exists.");
-            throw new IllegalArgumentException("Product with the name: " + productDTO.name() + " already exist.");
+        if (productRepository.findByName(productDTO.getName()).isPresent()) {
+            log.warn("Product with the name: " + productDTO.getName() + " already exists.");
+            throw new IllegalArgumentException("Product with the name: " + productDTO.getName() + " already exist.");
         }
 
         Product product = mapper.mapProductDTOToProduct(productDTO);
@@ -57,6 +60,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @Cacheable(value="Product")
     public Page<ProductDTO> getProductsByPage(int page, int size) {
         Page<ProductDTO> products = productRepository
                 .findAll(PageRequest.of(page, size))
@@ -67,6 +71,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @Cacheable(value="Product", key="#categoryName", condition="#categoryName!=null")
     public Page<ProductDTO> getProductsByCategoryByPage(int page, int size, String categoryName) {
         Category category = categoryRepository
                 .findByName(categoryName)
@@ -81,6 +86,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @Cacheable(value="Product", key="#name", condition="#name!=null")
     public ProductDTO getProductByName(String name) {
         Assert.notNull(name, "Name is empty");
         Product product = productRepository.findByName(name).orElseThrow(() -> new IllegalArgumentException("No such product"));
@@ -88,29 +94,32 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @Cacheable(value="Product", key="#id", condition="#id!=null")
     public ProductDTO getProductById(String id) {
         Assert.notNull(id, "Id is empty");
         Product product = productRepository.findById(UUID.fromString(id)).orElseThrow(() -> new IllegalArgumentException("No such product"));
-        return mapper.mapProductToProductDTO(product);
+        return ProductDTO.mapProductToProductDTO(product);
     }
 
     @Transactional
     @Override
+    @CachePut(value="Product", key="#productName", condition="#productName != null")
     public void updateProduct(ProductDTO productDTO, String productName) {
         validator.validateData(productDTO, productName);
 
         checkExistenceProduct(productName);
 
         productRepository.update(productName,
-                productDTO.description(),
-                productDTO.price(),
-                productDTO.characteristics(),
-                productDTO.inStock());
+                productDTO.getDescription(),
+                productDTO.getPrice(),
+                productDTO.getCharacteristics(),
+                productDTO.isInStock());
         log.info("The updates were successful on product: " + productName);
     }
 
     @Transactional
     @Override
+    @CacheEvict(value="Product", key="#productName", condition="#productName != null")
     public void deleteProduct(String productName) {
         checkExistenceProduct(productName);
         productRepository.deleteByName(productName);
@@ -129,6 +138,6 @@ public class ProductServiceImpl implements ProductService {
     }
 
     public ProductDTO convertProduct(Product product){
-        return mapper.mapProductToProductDTO(product);
+        return ProductDTO.mapProductToProductDTO(product);
     }
 }

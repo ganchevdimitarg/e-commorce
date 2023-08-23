@@ -22,6 +22,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.Disposable;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
@@ -138,22 +140,22 @@ public class ProfileServiceImpl implements ProfileService {
         Profile profile = profileRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("Profile does not exist"));
 
-        Set<String> paymentCustomerId = webClient
+         Disposable paymentCustomerId = webClient
                 .get()
                 .uri(paymentServiceGetCardsByUsernameUri + username)
                 .retrieve()
-                .bodyToMono(new ParameterizedTypeReference<Set<String>>() {
+                .bodyToFlux(new ParameterizedTypeReference<Set<String>>() {
                 })
                 .transform(it ->
                         reactiveCircuitBreakerFactory.create("profileService")
                                 .run(it, throwable -> {
                                     log.warn("Payment service is down", throwable);
-                                    return Mono.just(Set.of(""));
+                                    return Flux.just(Set.of(""));
                                 })
                 )
-                .block();
+                 .subscribe();
 
-        return getUserDto(profile, Objects.requireNonNull(paymentCustomerId).stream().findFirst().get());
+        return getUserDto(profile, String.valueOf(paymentCustomerId));
     }
 
     @Override
@@ -200,7 +202,7 @@ public class ProfileServiceImpl implements ProfileService {
                 .city(profile.getAddress().city())
                 .street(profile.getAddress().street())
                 .postCode(profile.getAddress().postCode())
-                .cardId(cardId.equals("") ? "" : cardId)
+                .cardId(cardId.isEmpty() ? "" : cardId)
                 .build();
     }
 

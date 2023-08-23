@@ -20,6 +20,13 @@ spring:
     compatibility-verifier:
       enabled: false
 
+  cache:
+    type: redis
+    redis:
+      cache-null-values: true
+#      time-to-live: 40000
+
+
   config:
     import: optional:vault://
 
@@ -75,6 +82,8 @@ logging:
         SQL: off
         type:
           descriptor: off
+  pattern:
+    level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]"
 
 #Eureka
 eureka:
