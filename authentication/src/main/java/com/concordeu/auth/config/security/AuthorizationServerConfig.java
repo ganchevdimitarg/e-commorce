@@ -71,15 +71,6 @@ public class AuthorizationServerConfig {
         return AuthorizationServerSettings.builder().build();
     }
 
-
-    /*@Bean
-    public ProviderSettings providerSettings() {
-        return ProviderSettings.builder()
-                .issuer("http://localhost:8082")
-//                .issuer("http://auth-server:8082")
-                .build();
-    }*/
-
     @Bean
     OAuth2TokenCustomizer<JwtEncodingContext> jwtCustomizer() {
         return context -> {
