@@ -7,7 +7,7 @@ import org.springframework.security.oauth2.client.ReactiveOAuth2AuthorizedClient
 import org.springframework.security.oauth2.client.web.reactive.function.client.ServerOAuth2AuthorizedClientExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.WebClient;
 
-@Configuration
+//@Configuration
 public class WebClientConfig implements WebClientCustomizer {
     private final ReactiveOAuth2AuthorizedClientManager authorizedClientManager;
     private final String defaultClientRegistrationId;

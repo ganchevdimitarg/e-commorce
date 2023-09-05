@@ -18,32 +18,33 @@ spring:
       generic:
         enabled: true
         backend: secret
-#    TODO REMOVE SLEUTH
+
     compatibility-verifier:
       enabled: false
 
   config:
     import: optional:vault://
-  #Security
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          issuer-uri: http://localhost:8082
-          jwk-set-uri: http://localhost:8082/oauth2/jwks
-      client:
-        registration:
-          gateway-client-oidc:
-            provider: spring
-            client-id: ${GATEWAY_CLIENT_ID}
-            client-secret: ${GATEWAY_CLIENT_SECRET}
-            authorization-grant-type: client_credentials
-            redirect-uri: "http://127.0.0.1:8081/login/oauth2/code/{registrationId}"
-        provider:
-          spring:
-            issuer-uri: http://localhost:8082
-            authorization-uri: http://localhost:8082/oauth2/authorize
-            token-uri: http://localhost:8082/oauth2/token
+
+  #Security1
+#  security:
+#    oauth2:
+#      resourceserver:
+#        jwt:
+#          issuer-uri: http://localhost:8082
+#          jwk-set-uri: http://localhost:8082/oauth2/jwks
+#      client:
+#        registration:
+#          gateway-client-oidc:
+#            provider: spring
+#            client-id: ${GATEWAY_CLIENT_ID}
+#            client-secret: ${GATEWAY_CLIENT_SECRET}
+#            authorization-grant-type: client_credentials
+#            redirect-uri: "http://127.0.0.1:8081/login/oauth2/code/{registrationId}"
+#        provider:
+#          spring:
+#            issuer-uri: http://localhost:8082
+#            authorization-uri: http://localhost:8082/oauth2/authorize
+#            token-uri: http://localhost:8082/oauth2/token
 
   #Data Source Properties
   data:
