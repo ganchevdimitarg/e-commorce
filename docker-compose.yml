@@ -178,17 +178,35 @@ services:
       - /dev/kmsg:/dev/kmsg
     restart: always
 
-  vault:
-    image: hashicorp/vault
-    container_name: vault
-    restart: unless-stopped
+  vault-agent:
+    image: hashicorp/vault:1.9.6
+    restart: always
+    ports:
+      - "8200:8200"
     volumes:
-      - ./vault:/helpers
+      - ./vault/config:/helpers
+    environment:
+      VAULT_ADDR: "http://vault:8200"
+    container_name: vault-agent
+    entrypoint: "vault agent -log-level debug -config=/helpers/vault-agent.hcl"
+    depends_on:
+      vault:
+        condition: service_healthy
+    networks:
+      - spring
+      - vault
+
+  vault:
+    image: hashicorp/vault:1.9.6
+    restart: always
+    volumes:
+      - ./vault/config:/helpers
       - vault_data:/vault/file
     ports:
       - "8201:8200/tcp"
     cap_add:
       - IPC_LOCK
+    container_name: vault
     entrypoint: "vault server -config=/helpers/vault-config.hcl"
     healthcheck:
       test: wget --no-verbose --tries=1 --spider http://localhost:8200 || exit 1
@@ -199,24 +217,6 @@ services:
     networks:
       - spring
       - vault
-
-  vault-agent:
-    image: hashicorp/vault
-    container_name: vault-agent
-    restart: unless-stopped
-    ports:
-      - "8200:8200"
-    volumes:
-      - ./vault:/helpers
-    environment:
-      VAULT_ADDR: "http://vault:8200"
-    networks:
-      - spring
-      - vault
-    entrypoint: "vault agent -log-level debug -config=/helpers/vault-agent.hcl"
-    depends_on:
-      vault:
-        condition: service_healthy
 
   zookeeper:
     image: confluentinc/cp-zookeeper
