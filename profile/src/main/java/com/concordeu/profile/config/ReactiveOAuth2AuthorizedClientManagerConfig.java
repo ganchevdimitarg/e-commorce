@@ -5,7 +5,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.oauth2.client.*;
 import org.springframework.security.oauth2.client.registration.ReactiveClientRegistrationRepository;
 
-//@Configuration
+@Configuration
 public class ReactiveOAuth2AuthorizedClientManagerConfig {
     @Bean
     public ReactiveOAuth2AuthorizedClientManager authorizedClientManager (

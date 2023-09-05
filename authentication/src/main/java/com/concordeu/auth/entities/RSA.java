@@ -14,5 +14,6 @@ import org.springframework.data.mongodb.core.mapping.Document;
 public class RSA {
     @Id
     private String id;
-    private RSAKey key;
+//    private RSAKey key;
+    private String key;
 }
