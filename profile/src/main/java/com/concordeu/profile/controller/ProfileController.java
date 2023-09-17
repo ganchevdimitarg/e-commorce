@@ -10,6 +10,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.Disposable;
+import reactor.core.publisher.Mono;
 
 @RestController
 @RequestMapping("/api/v1/profile")
@@ -23,36 +25,36 @@ public class ProfileController {
 
     @PostMapping("/register-admin")
     @ValidationRequest
-    public UserDto createAdmin(@RequestBody UserRequestDto requestDto) {
-        UserDto user = profileService.createAdmin(requestDto);
-        mailService.sendUserWelcomeMail(user.username());
+    public Mono<UserDto> createAdmin(@RequestBody UserRequestDto requestDto) {
+        Mono<UserDto> user = profileService.createAdmin(requestDto);
+        mailService.sendUserWelcomeMail(user.map(UserDto::username).toString());
         return user;
     }
 
     @PostMapping("/register-worker")
     @ValidationRequest
-    public UserDto createWorker(@RequestBody UserRequestDto requestDto) {
-        UserDto user = profileService.createWorker(requestDto);
-        mailService.sendUserWelcomeMail(user.username());
+    public Mono<UserDto> createWorker(@RequestBody UserRequestDto requestDto) {
+        Mono<UserDto> user = profileService.createWorker(requestDto);
+        mailService.sendUserWelcomeMail(user.map(UserDto::username).toString());
         return user;
     }
 
     @PostMapping("/register-user")
     @ValidationRequest
-    public UserDto createUser(@RequestBody UserRequestDto requestDto) {
-        UserDto user = profileService.createUser(requestDto);
-        mailService.sendUserWelcomeMail(user.username());
+    public Mono<UserDto> createUser(@RequestBody UserRequestDto requestDto) {
+        Mono<UserDto> user = profileService.createUser(requestDto);
+        mailService.sendUserWelcomeMail(user.map(UserDto::username).toString());
         return user;
     }
 
     @GetMapping("/get-by-username")
-    public UserDto getUserByUsername(Authentication authentication, @RequestParam String username) {
+    public Disposable getUserByUsername(Authentication authentication, @RequestParam String username) {
         String principalName = authentication.getName();
 
         if (principalName.equals(username.trim()) ||
             principalName.equals(ADMIN) ||
             principalName.equals("gateway")) {
-            return profileService.getUserByUsername(username.trim());
+            return profileService.getUserByUsername(username.trim()).subscribe();
         }
 
         log.debug("Profile '{}' try to access another account '{}'", principalName, username);

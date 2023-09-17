@@ -14,7 +14,7 @@ public class ControllerExceptionHandler {
     public ResponseEntity<ProblemDetail> resourceNotFoundException(IllegalArgumentException ex, WebRequest request) {
         /*ErrorMessage message = new ErrorMessage(
                 HttpStatus.NOT_FOUND.value(),
-                LocalDateTime.now(),
+                OffsetDateTime.now(),
                 ex.getMessage(),
                 request.getDescription(false));*/
         ProblemDetail message = ProblemDetail.forStatus(HttpStatus.NOT_FOUND.value());
@@ -27,7 +27,7 @@ public class ControllerExceptionHandler {
     public ResponseEntity<ProblemDetail> invalidRequestDataException(InvalidRequestDataException ex, WebRequest request) {
         /*ErrorMessage message = new ErrorMessage(
                 HttpStatus.BAD_REQUEST.value(),
-                LocalDateTime.now(),
+                OffsetDateTime.now(),
                 ex.getMessage(),
                 request.getDescription(false));*/
         ProblemDetail message = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST.value());

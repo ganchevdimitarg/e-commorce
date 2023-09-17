@@ -1,15 +1,15 @@
 package com.concordeu.catalog.entities;
 
 import jakarta.persistence.*;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Index;
+import jakarta.persistence.Table;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.GenericGenerator;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.annotations.*;
 import org.hibernate.type.SqlTypes;
 import org.hibernate.validator.constraints.Length;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -33,10 +33,8 @@ import java.util.UUID;
 @Getter
 public class Category {
     @Id
-    @GeneratedValue(generator = "UUID")
-    @GenericGenerator(name = "UUID",
-            strategy = "org.hibernate.id.UUIDGenerator")
-    @JdbcTypeCode(SqlTypes.CHAR)
+    @UuidGenerator(style = UuidGenerator.Style.TIME)
+    @GeneratedValue
     @Column(length = 36, columnDefinition = "varchar(36)", unique = true, nullable = false, updatable = false)
     private UUID id;
 
@@ -48,10 +46,12 @@ public class Category {
     private String name;
 
     @CreationTimestamp
-    private LocalDateTime createOn;
+    @Column(name = "create_on",updatable = false)
+    private OffsetDateTime createOn;
 
     @UpdateTimestamp
-    private LocalDateTime updateOn;
+    @Column(name = "update_on")
+    private OffsetDateTime updateOn;;
 
     @Builder.Default
     @OneToMany(mappedBy = "category", targetEntity = Product.class, cascade = CascadeType.PERSIST)

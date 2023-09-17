@@ -1,11 +1,11 @@
 package com.concordeu.order.service;
 
+import com.concordeu.order.excaption.InvalidRequestDataException;
 import com.concordeu.order.repositories.ItemRepository;
 import com.concordeu.order.repositories.OrderRepository;
-import com.concordeu.order.entities.Item;
-import com.concordeu.order.entities.Order;
+import com.concordeu.order.domain.Item;
+import com.concordeu.order.domain.Order;
 import com.concordeu.order.dto.*;
-import com.concordeu.order.excaption.InvalidRequestDataException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,7 +18,7 @@ import reactor.core.publisher.Mono;
 
 import jakarta.annotation.PostConstruct;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -82,7 +82,7 @@ public class OrderServiceImpl implements OrderService {
                 .username(orderDto.username())
                 .deliveryComment(orderDto.deliveryComment())
                 .orderNumber(++orderCounter)
-                .createdOn(LocalDateTime.now())
+                .createdOn(OffsetDateTime.now())
                 .build();
         Order orderSave = orderRepository.saveAndFlush(order);
         log.info("Order was successfully created");

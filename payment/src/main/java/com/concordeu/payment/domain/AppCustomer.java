@@ -1,9 +1,10 @@
-package com.concordeu.payment.entities;
+package com.concordeu.payment.domain;
 
 import lombok.*;
-import org.hibernate.annotations.GenericGenerator;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.UuidGenerator;
+
 import java.util.List;
 import java.util.Set;
 
@@ -31,10 +32,9 @@ import java.util.Set;
 @Getter
 public class AppCustomer {
     @Id
-    @GeneratedValue(generator = "uuid-string")
-    @GenericGenerator(name = "uuid-string",
-            strategy = "org.hibernate.id.UUIDGenerator")
-    @Column(name = "customer_id", unique = true, nullable = false, updatable = false)
+    @UuidGenerator(style = UuidGenerator.Style.TIME)
+    @GeneratedValue
+    @Column(name = "customer_id",length = 36, columnDefinition = "varchar(36)", unique = true, nullable = false, updatable = false)
     private String id;
     @Column(name = "username", unique = true)
     private String username;

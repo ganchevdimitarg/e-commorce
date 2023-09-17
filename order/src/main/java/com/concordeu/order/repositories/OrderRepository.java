@@ -1,6 +1,6 @@
 package com.concordeu.order.repositories;
 
-import com.concordeu.order.entities.Order;
+import com.concordeu.order.domain.Order;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.transaction.annotation.Transactional;

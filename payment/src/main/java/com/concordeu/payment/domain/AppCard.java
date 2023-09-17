@@ -1,9 +1,9 @@
-package com.concordeu.payment.entities;
+package com.concordeu.payment.domain;
 
 import lombok.*;
-import org.hibernate.annotations.GenericGenerator;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.UuidGenerator;
 
 @Entity(name = "Cards")
 @Table(
@@ -19,10 +19,9 @@ import jakarta.persistence.*;
 @Getter
 public class AppCard {
     @Id
-    @GeneratedValue(generator = "uuid-string")
-    @GenericGenerator(name = "uuid-string",
-            strategy = "org.hibernate.id.UUIDGenerator")
-    @Column(name = "card_id", unique = true, nullable = false, updatable = false)
+    @UuidGenerator(style = UuidGenerator.Style.TIME)
+    @GeneratedValue
+    @Column(name = "card_id",length = 36, columnDefinition = "varchar(36)", unique = true, nullable = false, updatable = false)
     private String id;
     @Column(name = "card_id_stp", nullable = false)
     private String cardId;

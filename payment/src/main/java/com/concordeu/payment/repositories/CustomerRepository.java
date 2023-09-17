@@ -1,6 +1,6 @@
 package com.concordeu.payment.repositories;
 
-import com.concordeu.payment.entities.AppCustomer;
+import com.concordeu.payment.domain.AppCustomer;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 

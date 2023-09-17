@@ -2,6 +2,8 @@ package com.concordeu.profile.dto;
 
 import lombok.Builder;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import reactor.core.publisher.Mono;
 
 import java.util.Set;
 
@@ -10,7 +12,7 @@ public record UserDto(
         String id,
         String username,
         String password,
-        Set<? extends GrantedAuthority> grantedAuthorities,
+        Set<SimpleGrantedAuthority> grantedAuthorities,
         String firstName,
         String lastName,
         String phoneNumber,

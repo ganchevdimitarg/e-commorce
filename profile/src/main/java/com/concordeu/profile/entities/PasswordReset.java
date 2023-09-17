@@ -5,7 +5,7 @@ import lombok.Data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 @Document(collection = "password_reset")
 @Data
@@ -15,5 +15,5 @@ public class PasswordReset {
     private String id;
     private String token;
     private String username;
-    private LocalDateTime createdOn;
+    private OffsetDateTime createdOn;
 }

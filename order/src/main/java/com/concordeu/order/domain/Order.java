@@ -1,10 +1,13 @@
-package com.concordeu.order.entities;
+package com.concordeu.order.domain;
 
 import lombok.*;
-import org.hibernate.annotations.GenericGenerator;
 
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.annotations.UuidGenerator;
+
+import java.time.OffsetDateTime;
 import java.util.List;
 
 @Entity(name = "Orders")
@@ -31,19 +34,24 @@ import java.util.List;
 @Getter
 public class Order {
     @Id
-    @GeneratedValue(generator = "uuid-string")
-    @GenericGenerator(name = "uuid-string",
-            strategy = "org.hibernate.id.UUIDGenerator")
-    @Column(name = "order_id", unique = true, nullable = false, updatable = false)
+    @UuidGenerator(style = UuidGenerator.Style.TIME)
+    @GeneratedValue
+    @Column(name = "order_id",length = 36, columnDefinition = "varchar(36)", unique = true, nullable = false, updatable = false)
     private String id;
     @Column(name = "order_number", unique = true, nullable = false)
     private long orderNumber;
     @Column(name = "username", nullable = false)
     private String username;
     @Column(name = "created_on")
-    private LocalDateTime createdOn;
+    private OffsetDateTime createdOn;
     @Column(name = "delivery_comment")
     private String deliveryComment;
+    @CreationTimestamp
+    @Column(name = "create_on",updatable = false)
+    private OffsetDateTime createOn;
+    @UpdateTimestamp
+    @Column(name = "update_on")
+    private OffsetDateTime updateOn;
     @OneToOne(mappedBy = "order", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     private Charge charge;
     @OneToMany(mappedBy = "order", fetch = FetchType.LAZY, cascade = CascadeType.ALL)

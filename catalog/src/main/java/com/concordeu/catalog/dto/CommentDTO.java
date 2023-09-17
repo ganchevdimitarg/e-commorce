@@ -7,7 +7,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Builder;
 import org.hibernate.validator.constraints.Length;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 @Builder
 public record CommentDTO(
@@ -24,7 +24,7 @@ public record CommentDTO(
         Double star,
         @Size(max = 200)
         String author,
-        LocalDateTime createOn,
-        LocalDateTime updateOn,
+        OffsetDateTime createOn,
+        OffsetDateTime updateOn,
         Product product) {
 }

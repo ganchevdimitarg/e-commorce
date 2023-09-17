@@ -15,7 +15,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import java.security.Key;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -35,7 +35,7 @@ public class JwtServiceImpl implements JwtService {
         passwordResetRepository.insert(PasswordReset.builder()
                 .token(token)
                 .username(username)
-                .createdOn(LocalDateTime.now())
+                .createdOn(OffsetDateTime.now())
                 .build());
     }
 
@@ -73,7 +73,7 @@ public class JwtServiceImpl implements JwtService {
     @Override
     public boolean isTokenValid(String token) {
         String username = extractUsername(token);
-        return (profileRepository.findByUsername(username).isPresent() &&
+        return (profileRepository.findByUsername(username).blockOptional().isPresent() &&
                 passwordResetRepository.findByToken(token).isPresent() &&
                 !isTokenExpired(token));
     }

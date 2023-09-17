@@ -2,22 +2,23 @@ package com.concordeu.profile.service;
 
 import com.concordeu.profile.dto.UserDto;
 import com.concordeu.profile.dto.UserRequestDto;
+import reactor.core.publisher.Mono;
 
 public interface ProfileService {
-    UserDto createAdmin(UserRequestDto model);
+    Mono<UserDto> createAdmin(UserRequestDto model);
 
-    UserDto createWorker(UserRequestDto model);
+    Mono<UserDto> createWorker(UserRequestDto model);
 
-    UserDto createUser(UserRequestDto userRequestDto);
+    Mono<UserDto> createUser(UserRequestDto userRequestDto);
 
     void updateUser(String username,
                     UserRequestDto userRequestDto);
 
     void deleteUser(String email);
 
-    UserDto getUserByUsername(String email);
+    Mono<UserDto> getUserByUsername(String email);
 
-    String passwordReset(String username);
+    Mono<String> passwordReset(String username);
 
     boolean isPasswordResetTokenValid(String token);
 

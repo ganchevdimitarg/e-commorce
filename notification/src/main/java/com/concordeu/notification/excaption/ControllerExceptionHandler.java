@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 @ControllerAdvice
 public class ControllerExceptionHandler {
@@ -15,7 +15,7 @@ public class ControllerExceptionHandler {
     public ResponseEntity<ErrorMessage> resourceNotFoundException(IllegalArgumentException ex, WebRequest request) {
         ErrorMessage message = new ErrorMessage(
                 HttpStatus.NOT_FOUND.value(),
-                LocalDateTime.now(),
+                OffsetDateTime.now(),
                 ex.getMessage(),
                 request.getDescription(false));
 
@@ -26,7 +26,7 @@ public class ControllerExceptionHandler {
     public ResponseEntity<ErrorMessage> invalidRequestDataException(InvalidRequestDataException ex, WebRequest request) {
         ErrorMessage message = new ErrorMessage(
                 HttpStatus.BAD_REQUEST.value(),
-                LocalDateTime.now(),
+                OffsetDateTime.now(),
                 ex.getMessage(),
                 request.getDescription(false));
 

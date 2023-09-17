@@ -98,7 +98,7 @@ spring:
               maxBackoff: 500ms
       routes:
         - id: catalog-service
-          uri: http://127.0.0.1:8084
+          uri: "lb://catalog-service"
           predicates:
             - Path=/api/v1/catalog/**
           filters:
@@ -107,7 +107,7 @@ spring:
                 name: catalogService
                 fallbackUri: forward:/fallback
         - id: profile-service
-          uri: http://127.0.0.1:8083
+          uri: "lb://profile-service"
           predicates:
             - Path=/api/v1/profile/**
           filters:
@@ -116,7 +116,7 @@ spring:
                 name: profileService
                 fallbackUri: /fallback
         - id: notification-service
-          uri: http://127.0.0.1:8085
+          uri: "lb://notification-service"
           predicates:
             - Path=/api/v1/notification/**
           filters:
@@ -125,7 +125,7 @@ spring:
                 name: notificationService
                 fallbackUri: forward:/fallback
         - id: order-service
-          uri: http://127.0.0.1:8086
+          uri: "lb://order-service"
           predicates:
             - Path=/api/v1/order/**
           filters:
@@ -134,7 +134,7 @@ spring:
                 name: orderService
                 fallbackUri: forward:/fallback
         - id: payment-service
-          uri: http://127.0.0.1:8087
+          uri: "lb://payment-service"
           predicates:
             - Path=/api/v1/payment/**
           filters:
@@ -234,4 +234,4 @@ eureka:
   client:
     service-url:
       defaultZone: http://localhost:8761/eureka
-#    enabled: false
+    register-with-eureka: false
