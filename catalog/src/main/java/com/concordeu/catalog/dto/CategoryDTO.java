@@ -4,7 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Builder;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.Set;
 import java.util.UUID;
 @Builder
@@ -13,7 +13,7 @@ public record CategoryDTO(
         @Size(max = 200)
         @NotBlank
         String name,
-        LocalDateTime createOn,
-        LocalDateTime updateOn,
+        OffsetDateTime createOn,
+        OffsetDateTime updateOn,
         Set<ProductDTO> products) {
 }

@@ -2,8 +2,8 @@ package com.concordeu.payment.service.impl;
 
 import com.concordeu.payment.repositories.CardRepository;
 import com.concordeu.payment.repositories.CustomerRepository;
-import com.concordeu.payment.entities.AppCard;
-import com.concordeu.payment.entities.AppCustomer;
+import com.concordeu.payment.domain.AppCard;
+import com.concordeu.payment.domain.AppCustomer;
 import com.concordeu.payment.dto.PaymentDto;
 import com.concordeu.payment.excaption.InvalidPaymentRequestException;
 import com.concordeu.payment.service.CardService;

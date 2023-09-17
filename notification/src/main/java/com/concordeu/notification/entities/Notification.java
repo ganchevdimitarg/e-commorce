@@ -6,7 +6,7 @@ import org.hibernate.annotations.GenericGenerator;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Size;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 @Entity(name = "Notifications")
 @Table(name="notifications" )
@@ -32,5 +32,5 @@ public class Notification {
     private String msgBody;
     private String attachment;
     @Column(name = "created_on")
-    LocalDateTime createdOn;
+    OffsetDateTime createdOn;
 }

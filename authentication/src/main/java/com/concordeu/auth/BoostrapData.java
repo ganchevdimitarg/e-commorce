@@ -1,21 +1,33 @@
 package com.concordeu.auth;
 
 import com.concordeu.auth.entities.*;
+import com.concordeu.auth.repository.AuthUserRepository;
 import com.concordeu.auth.repository.ClientRepository;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import java.time.OffsetDateTime;
 import java.util.Set;
 
 @Component
 @RequiredArgsConstructor
 public class BoostrapData implements CommandLineRunner {
-    private final ClientRepository repository;
+    private final ClientRepository clientRepository;
+    private final AuthUserRepository authUserRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public void run(String... args) throws Exception {
-        if (repository.count() == 0) {
+        if (clientRepository.count() == 0) {
             Client client = Client.builder()
                     .clientId("gateway")
                     .clientSecret("$2a$12$lmJlz3HawNWFHMhj2r2lo.iwj4fcPOtcxi..PXJWq.hfhybphafWG")
@@ -50,7 +62,7 @@ public class BoostrapData implements CommandLineRunner {
                     ))
                     .build();
 
-            repository.save(client);
+            clientRepository.save(client);
         }
     }
 }

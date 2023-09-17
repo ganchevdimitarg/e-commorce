@@ -2,7 +2,7 @@ package com.concordeu.order.dto;
 
 import lombok.Builder;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 
 @Builder
@@ -11,5 +11,5 @@ public record OrderResponseDto(
         List<ProductResponseDto> productInfo,
         long orderNumber,
         String deliveryComment,
-        LocalDateTime createdOn) {
+        OffsetDateTime createdOn) {
 }

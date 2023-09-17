@@ -1,17 +1,17 @@
 package com.concordeu.catalog.entities;
 
 import jakarta.persistence.*;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Index;
+import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.GenericGenerator;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.annotations.*;
 import org.hibernate.type.SqlTypes;
 import org.hibernate.validator.constraints.Length;
 
 import jakarta.persistence.Version;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -26,10 +26,8 @@ import java.util.UUID;
 @ToString
 public class Comment {
     @Id
-    @GeneratedValue(generator = "UUID")
-    @GenericGenerator(name = "UUID",
-            strategy = "org.hibernate.id.UUIDGenerator")
-    @JdbcTypeCode(SqlTypes.CHAR)
+    @UuidGenerator(style = UuidGenerator.Style.TIME)
+    @GeneratedValue
     @Column(length = 36, columnDefinition = "varchar(36)", unique = true, nullable = false, updatable = false)
     private UUID id;
 
@@ -53,10 +51,12 @@ public class Comment {
     private String author;
 
     @CreationTimestamp
-    private LocalDateTime createOn;
+    @Column(name = "create_on",updatable = false)
+    private OffsetDateTime createOn;
 
     @UpdateTimestamp
-    private LocalDateTime updateOn;
+    @Column(name = "update_on")
+    private OffsetDateTime updateOn;
 
     @ManyToOne(cascade = CascadeType.PERSIST)
     @JoinColumn(name = "product_id", referencedColumnName = "id")

@@ -14,9 +14,9 @@ class ProductServiceImplTest {
 /*
     private ProductService testService;
     @Mock
-    ProductRepository productDao;
+    ProductRepository productRepository;
     @Mock
-    CategoryRepository categoryDao;
+    CategoryRepository categoryRepository;
     @Mock
     MapStructMapper mapStructMapper;
     @Mock
@@ -26,7 +26,7 @@ class ProductServiceImplTest {
 
     @BeforeEach
     void setup() {
-        testService = new ProductServiceImpl(productDao, categoryDao, validator, mapStructMapper);
+        testService = new ProductServiceImpl(productRepository, categoryRepository, validator, mapStructMapper);
         productResponseDto = new ProductResponseDto("","mouse", "WiFi mouse USB",
                 BigDecimal.ONE, true, "", null, new ArrayList<>());
     }
@@ -38,7 +38,7 @@ class ProductServiceImplTest {
         when(validator.validateData(productResponseDto, categoryName)).thenReturn(true);
 
         Category category = Category.builder().name(categoryName).build();
-        when(categoryDao.findByName(categoryName)).thenReturn(Optional.of(category));
+        when(categoryRepository.findByName(categoryName)).thenReturn(Optional.of(category));
 
         Product product = Product.builder().build();
         when(mapStructMapper.mapProductResponseDtoToProduct(productResponseDto)).thenReturn(product);
@@ -46,7 +46,7 @@ class ProductServiceImplTest {
         testService.createProduct(productResponseDto, "PC");
 
         ArgumentCaptor<Product> argument = ArgumentCaptor.forClass(Product.class);
-        verify(productDao).saveAndFlush(argument.capture());
+        verify(productRepository).saveAndFlush(argument.capture());
 
         Product captureProduct = argument.getValue();
         assertThat(captureProduct).isNotNull();
@@ -55,16 +55,16 @@ class ProductServiceImplTest {
 
     @Test
     void createProductShouldThrowExceptionIfProductAlreadyExist() {
-        when(productDao.findByName("mouse")).thenReturn(Optional.of(Product.builder().name("mouse").build()));
+        when(productRepository.findByName("mouse")).thenReturn(Optional.of(Product.builder().name("mouse").build()));
 
         String categoryName = "PC";
-        when(categoryDao.findByName(categoryName)).thenReturn(Optional.of(Category.builder().name(categoryName).build()));
+        when(categoryRepository.findByName(categoryName)).thenReturn(Optional.of(Category.builder().name(categoryName).build()));
 
         assertThatThrownBy(() -> testService.createProduct(productResponseDto, categoryName))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Product with the name: " + productResponseDto.name() + " already exist.");
 
-        verify(productDao, never()).saveAndFlush(any());
+        verify(productRepository, never()).saveAndFlush(any());
     }
 
     @Test
@@ -75,7 +75,7 @@ class ProductServiceImplTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("No such category: " + categoryName);
 
-        verify(productDao, never()).saveAndFlush(any());
+        verify(productRepository, never()).saveAndFlush(any());
     }
 
     @Test
@@ -88,7 +88,7 @@ class ProductServiceImplTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("No such category: " + categoryName);
 
-        verify(productDao, never()).saveAndFlush(any());
+        verify(productRepository, never()).saveAndFlush(any());
     }
 
     @Test
@@ -96,27 +96,27 @@ class ProductServiceImplTest {
         PageRequest pageRequest = PageRequest.of(1, 5);
         List<Product> products = Arrays.asList(new Product(), new Product());
         Page<Product> page = new PageImpl<>(products, pageRequest, products.size());
-        when(productDao.findAll(pageRequest)).thenReturn(page);
+        when(productRepository.findAll(pageRequest)).thenReturn(page);
 
         testService.getProductsByPage(1, 5);
 
-        verify(productDao).findAll(pageRequest);
+        verify(productRepository).findAll(pageRequest);
     }
 
     @Test
     void getProductsByCategoryByPageByCategoryShouldReturnProductsIfCategoryExist() {
         Category category = Category.builder().id("1").build();
-        when(categoryDao.findByName("pc")).thenReturn(Optional.of(category));
+        when(categoryRepository.findByName("pc")).thenReturn(Optional.of(category));
 
         PageRequest pageRequest = PageRequest.of(1, 5);
         List<Product> products = Arrays.asList(new Product(), new Product());
         Page<Product> page = new PageImpl<>(products, pageRequest, products.size());
 
-        when(productDao.findAllByCategoryIdByPage("1", pageRequest)).thenReturn(page);
+        when(productRepository.findAllByCategoryIdByPage("1", pageRequest)).thenReturn(page);
 
         testService.getProductsByCategoryByPage(1, 5, "pc");
 
-        verify(productDao).findAllByCategoryIdByPage(category.getId(), pageRequest);
+        verify(productRepository).findAllByCategoryIdByPage(category.getId(), pageRequest);
     }
 
     @Test
@@ -127,16 +127,16 @@ class ProductServiceImplTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("No such category: " + "");
 
-        verify(productDao, never()).findAllByCategoryIdByPage(new Category().getId(), pageRequest);
+        verify(productRepository, never()).findAllByCategoryIdByPage(new Category().getId(), pageRequest);
     }
 
     @Test
     void updateProductShouldUpdateDataIfProductExist() {
         ProductResponseDto updateProduct = new ProductResponseDto("","mouse", "aaaaaaaaaaa", BigDecimal.ONE, false, "", null, new ArrayList<>());
         when(validator.validateData(updateProduct, productResponseDto.name())).thenReturn(true);
-        when(productDao.findByName(productResponseDto.name())).thenReturn(Optional.of(Product.builder().name(productResponseDto.name()).build()));
+        when(productRepository.findByName(productResponseDto.name())).thenReturn(Optional.of(Product.builder().name(productResponseDto.name()).build()));
         testService.updateProduct(updateProduct, productResponseDto.name());
-        verify(productDao).update(productResponseDto.name(), "aaaaaaaaaaa", BigDecimal.ONE, "", false);
+        verify(productRepository).update(productResponseDto.name(), "aaaaaaaaaaa", BigDecimal.ONE, "", false);
     }
 
     @Test
@@ -151,11 +151,11 @@ class ProductServiceImplTest {
     @Test
     void deleteProductShouldDeleteProductIfProductExist() {
         String productName = "aaaaa";
-        when(productDao.findByName(productName)).thenReturn(Optional.of(Product.builder().name(productName).build()));
+        when(productRepository.findByName(productName)).thenReturn(Optional.of(Product.builder().name(productName).build()));
 
         testService.deleteProduct(productName);
 
-        verify(productDao).deleteByName(productName);
+        verify(productRepository).deleteByName(productName);
     }
 
     @Test
@@ -164,7 +164,7 @@ class ProductServiceImplTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Product with the name: bbbbb does not exist.");
 
-        verify(productDao, never()).deleteByName(any());
+        verify(productRepository, never()).deleteByName(any());
     }
 
  */

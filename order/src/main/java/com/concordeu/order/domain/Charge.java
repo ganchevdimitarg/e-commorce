@@ -1,9 +1,13 @@
-package com.concordeu.order.entities;
+package com.concordeu.order.domain;
 
 import lombok.*;
-import org.hibernate.annotations.GenericGenerator;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.annotations.UuidGenerator;
+
+import java.time.OffsetDateTime;
 
 @Entity(name = "Charges")
 @Table(
@@ -19,15 +23,20 @@ import jakarta.persistence.*;
 @Getter
 public class Charge {
     @Id
-    @GeneratedValue(generator = "uuid-string")
-    @GenericGenerator(name = "uuid-string",
-            strategy = "org.hibernate.id.UUIDGenerator")
-    @Column(name = "charge_id", unique = true, nullable = false, updatable = false)
+    @UuidGenerator(style = UuidGenerator.Style.TIME)
+    @GeneratedValue
+    @Column(name = "charge_id", length = 36, columnDefinition = "varchar(36)", unique = true, nullable = false, updatable = false)
     private String id;
     @Column(name = "charge_id_stp", nullable = false)
     private String chargeId;
     @Column(name = "status", nullable = false)
     private String status;
+    @CreationTimestamp
+    @Column(name = "create_on",updatable = false)
+    private OffsetDateTime createOn;
+    @UpdateTimestamp
+    @Column(name = "update_on")
+    private OffsetDateTime updateOn;
     @OneToOne()
     @JoinColumn(name = "order_id")
     private Order order;

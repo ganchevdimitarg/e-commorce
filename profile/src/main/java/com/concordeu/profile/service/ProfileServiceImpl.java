@@ -23,13 +23,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.Disposable;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.time.LocalDateTime;
-import java.util.Objects;
-import java.util.Set;
+import java.time.OffsetDateTime;
+import java.util.*;
+import java.util.stream.Collectors;
 
-import static com.concordeu.client.security.UserRole.*;
+import static com.concordeu.profile.security.UserRole.*;
+
 
 @Service
 @Slf4j
@@ -75,24 +77,24 @@ public class ProfileServiceImpl implements ProfileService {
 
 
     @Override
-    public UserDto createAdmin(UserRequestDto userRequestDto) {
+    public Mono<UserDto> createAdmin(UserRequestDto userRequestDto) {
         UserDto userDto = getUserDto(createStaff(userRequestDto, ADMIN.getGrantedAuthorities()), "");
         log.info("Admin user with username: {} was created", userDto.username());
-        return userDto;
+        return Mono.just(userDto);
     }
 
     @Override
-    public UserDto createWorker(UserRequestDto userRequestDto) {
+    public Mono<UserDto> createWorker(UserRequestDto userRequestDto) {
         UserDto userDto = getUserDto(createStaff(userRequestDto, WORKER.getGrantedAuthorities()), "");
         log.info("Worker user with username: {} was created", userDto.username());
-        return userDto;
+        return Mono.just(userDto);
     }
 
     @Override
-    public UserDto createUser(UserRequestDto userRequestDto) {
+    public Mono<UserDto> createUser(UserRequestDto userRequestDto) {
         UserDto userDto = createUser(userRequestDto, USER.getGrantedAuthorities());
         log.info("Profile user with username: {} was created", userDto.username());
-        return userDto;
+        return Mono.just(userDto);
     }
 
     @Override
@@ -101,6 +103,7 @@ public class ProfileServiceImpl implements ProfileService {
         Assert.hasLength(username, "Username is empty");
 
         Profile profile = profileRepository.findByUsername(username)
+                .blockOptional()
                 .orElseThrow(() -> new UsernameNotFoundException("Profile does not exist"));
         Address address = new Address(
                 userRequestDto.city(),
@@ -114,7 +117,7 @@ public class ProfileServiceImpl implements ProfileService {
         profile.setPhoneNumber(userRequestDto.phoneNumber());
         profile.setAddress(address);
 
-        profileRepository.save(profile);
+        profileRepository.save(profile).subscribe();
         log.info("Profile with username {} is update", profile.getUsername());
     }
 
@@ -122,6 +125,7 @@ public class ProfileServiceImpl implements ProfileService {
     public void deleteUser(String username) {
         Assert.hasLength(username, "Username is empty");
         Profile profile = profileRepository.findByUsername(username)
+                .blockOptional()
                 .orElseThrow(() -> {
                     log.warn("Profile does not exist");
                     return new UsernameNotFoundException("Profile does not exist");
@@ -129,17 +133,21 @@ public class ProfileServiceImpl implements ProfileService {
 
         deletePaymentCustomer(username);
 
-        profileRepository.delete(profile);
+        profileRepository.delete(profile).subscribe();
         log.info("User with username: {} was successfully deleted", username);
     }
 
     @Override
-    public UserDto getUserByUsername(String username) {
+    public Mono<UserDto> getUserByUsername(String username) {
         Assert.hasLength(username, "Username is empty");
+
         Profile profile = profileRepository.findByUsername(username)
+                .blockOptional()
                 .orElseThrow(() -> new UsernameNotFoundException("Profile does not exist"));
 
-        Disposable paymentCustomerId = webClient
+        List<String> paymentCustomerId = new LinkedList<>();
+
+        webClient
                 .get()
                 .uri(paymentServiceGetCardsByUsernameUri + username)
                 .retrieve()
@@ -148,18 +156,20 @@ public class ProfileServiceImpl implements ProfileService {
                 .transform(it ->
                         reactiveCircuitBreakerFactory.create("profileService")
                                 .run(it, throwable -> {
-                                    log.warn("Payment service is down", throwable);
+                                    log.warn("Payment service is down: " + throwable.getMessage());
                                     return Mono.just(Set.of(""));
                                 })
                 )
-                .subscribe();
+                .subscribe(p -> paymentCustomerId.add(p.stream().findFirst().get()));
 
-        return getUserDto(profile, String.valueOf(paymentCustomerId));
+
+        return Mono.just(getUserDto(Mono.just(profile), paymentCustomerId.get(0).isEmpty() ? "N/A" : paymentCustomerId.get(0)));
     }
 
     @Override
-    public String passwordReset(String username) {
+    public Mono<String> passwordReset(String username) {
         profileRepository.findByUsername(username)
+                .blockOptional()
                 .orElseThrow(() -> new InvalidRequestDataException("User does not exist"));
         String token = jwtService.generateToken(
                 new User(
@@ -170,7 +180,7 @@ public class ProfileServiceImpl implements ProfileService {
         );
         mailService.sendPasswordResetTokenMail(username, token);
         log.info("Successfully generated password reset token");
-        return token;
+        return Mono.just(token);
     }
 
     @Override
@@ -182,34 +192,35 @@ public class ProfileServiceImpl implements ProfileService {
     public void setNewPassword(String username,
                                String password) {
         Profile profile = profileRepository.findByUsername(username)
+                .blockOptional()
                 .orElseThrow(() -> new InvalidRequestDataException("User does not exist"));
         validateData.isValidPassword(password);
-        profile.setPassword(passwordEncoder.encode(password));
-        profileRepository.save(profile);
+        Objects.requireNonNull(profile).setPassword(passwordEncoder.encode(password));
+        profileRepository.save(profile).subscribe();
         log.info("The password of user {} has been changed successfully", username);
     }
 
-    private UserDto getUserDto(Profile profile, String cardId) {
+    private UserDto getUserDto(Mono<Profile> profile, String cardId) {
         return UserDto.builder()
-                .id(profile.getId())
-                .username(profile.getUsername())
+                .id(profile.map(Profile::getId).toString())
+                .username(profile.map(Profile::getUsername).toString())
                 .password("")
-                .grantedAuthorities(profile.getGrantedAuthorities())
-                .firstName(profile.getFirstName())
-                .lastName(profile.getLastName())
-                .phoneNumber(profile.getPhoneNumber())
-                .city(profile.getAddress().city())
-                .street(profile.getAddress().street())
-                .postCode(profile.getAddress().postCode())
+                .grantedAuthorities((Set<SimpleGrantedAuthority>) profile.map(Profile::getGrantedAuthorities).subscribe())
+                .firstName(profile.map(Profile::getFirstName).toString())
+                .lastName(profile.map(Profile::getLastName).toString())
+                .phoneNumber(profile.map(Profile::getPhoneNumber).toString())
+                .city(profile.map(p -> p.getAddress().city()).toString())
+                .street(profile.map(p -> p.getAddress().street()).toString())
+                .postCode(profile.map(p -> p.getAddress().postCode()).toString())
                 .cardId(cardId.isEmpty() ? "" : cardId)
                 .build();
     }
 
-    private Profile createStaff(UserRequestDto userRequestDto,
-                                Set<SimpleGrantedAuthority> grantedAuthorities) {
+    private Mono<Profile> createStaff(UserRequestDto userRequestDto,
+                                      Set<SimpleGrantedAuthority> grantedAuthorities) {
         Profile authProfile = builtProfile(userRequestDto, grantedAuthorities);
 
-        Profile profile = profileRepository.insert(authProfile);
+        Mono<Profile> profile = profileRepository.insert(authProfile);
         log.info("The profile was successfully create");
         return profile;
     }
@@ -218,32 +229,35 @@ public class ProfileServiceImpl implements ProfileService {
                                Set<SimpleGrantedAuthority> grantedAuthorities) {
         Profile authProfile = builtProfile(userRequestDto, grantedAuthorities);
 
-
         PaymentDto paymentCustomerId = createPaymentCustomer(userRequestDto.username());
         log.info("Payment customer was successfully create: {}", paymentCustomerId);
 
         PaymentDto paymentDto = addCardToCustomer(userRequestDto, paymentCustomerId.customerId());
         log.info("Payment card id {} was successfully added to payment customer", paymentDto.cardId());
 
-        Profile profile = profileRepository.insert(authProfile);
+        UserDto profile = profileRepository.insert(authProfile)
+                .map(p -> UserDto.builder()
+                        .id(p.getId())
+                        .username(p.getUsername())
+                        .password("")
+                        .grantedAuthorities(p.getGrantedAuthorities())
+                        .firstName(p.getFirstName())
+                        .lastName(p.getLastName())
+                        .phoneNumber(p.getPhoneNumber())
+                        .city(p.getAddress().city())
+                        .street(p.getAddress().street())
+                        .postCode(p.getAddress().postCode())
+                        .cardId(paymentDto.cardId())
+                        .build())
+                .doOnSuccess(System.out::println)
+                .block();
         log.info("The profile was successfully create");
-        return UserDto.builder()
-                .id(profile.getId())
-                .username(profile.getUsername())
-                .password("")
-                .grantedAuthorities(profile.getGrantedAuthorities())
-                .firstName(profile.getFirstName())
-                .lastName(profile.getLastName())
-                .phoneNumber(profile.getPhoneNumber())
-                .city(profile.getAddress().city())
-                .street(profile.getAddress().street())
-                .postCode(profile.getAddress().postCode())
-                .cardId(paymentDto.cardId())
-                .build();
+        return profile;
     }
 
     private Profile builtProfile(UserRequestDto model, Set<SimpleGrantedAuthority> grantedAuthorities) {
-        if (profileRepository.findByUsername(model.username()).isPresent()) {
+        Mono<Profile> username = profileRepository.findByUsername(model.username());
+        if (username.blockOptional().isPresent()) {
             throw new InvalidRequestDataException(String.format("Profile already exist: %s", model.username()));
         }
         Address address = new Address(
@@ -259,7 +273,7 @@ public class ProfileServiceImpl implements ProfileService {
                 .lastName(model.lastName())
                 .address(address)
                 .phoneNumber(model.phoneNumber())
-                .created(LocalDateTime.now())
+                .created(OffsetDateTime.now())
                 .build();
     }
 

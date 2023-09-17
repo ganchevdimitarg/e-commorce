@@ -8,7 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -20,7 +20,7 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     public NotificationDTO createNotification(NotificationDTO notificationDto) {
         Notification notification = mapper.mapNotificationDtoToNotification(notificationDto);
-        notification.setCreatedOn(LocalDateTime.now());
+        notification.setCreatedOn(OffsetDateTime.now());
         NotificationDTO notificationResp = mapper.mapNotificationToNotificationDto(notificationRepository.saveAndFlush(notification));
         log.info("The notification has been created");
         return notificationResp;

@@ -1,10 +1,10 @@
 package com.concordeu.order.service;
 
-import com.concordeu.order.repositories.ChargeRepository;
-import com.concordeu.order.entities.Charge;
-import com.concordeu.order.entities.Order;
-import com.concordeu.order.dto.PaymentDto;
 import com.concordeu.order.excaption.InvalidRequestDataException;
+import com.concordeu.order.repositories.ChargeRepository;
+import com.concordeu.order.domain.Charge;
+import com.concordeu.order.domain.Order;
+import com.concordeu.order.dto.PaymentDto;
 import com.google.gson.Gson;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

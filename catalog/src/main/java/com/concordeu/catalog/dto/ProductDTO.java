@@ -8,7 +8,7 @@ import lombok.*;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Builder
@@ -30,8 +30,8 @@ public class ProductDTO implements Serializable {
     private BigDecimal price;
     private boolean inStock;
     private String characteristics;
-    private LocalDateTime createOn;
-    private LocalDateTime updateOn;
+    private OffsetDateTime createOn;
+    private OffsetDateTime updateOn;
     private String categoryName;
 //    private Set<Comment> comments;
 

@@ -8,7 +8,9 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.security.core.GrantedAuthority;
 
 import jakarta.validation.constraints.*;
-import java.time.LocalDateTime;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+
+import java.time.OffsetDateTime;
 import java.util.Set;
 
 @Document("users")
@@ -33,7 +35,7 @@ public class AuthUser {
                     no whitespace allowed in the entire string
                     """)
     private String password;
-    private Set<? extends GrantedAuthority> grantedAuthorities;
+    private Set<SimpleGrantedAuthority> grantedAuthorities;
     @Size(min = 3, max = 12, message = "First name must be between 3 and 12 characters!")
     @NotBlank(message = "First name can not be empty!")
     @Pattern(regexp = "^([A-Z])(\\p{L})(?=\\S+$).{3,12}$",
@@ -52,5 +54,5 @@ public class AuthUser {
     @Pattern(regexp = "^([0-9])*$",
             message = "Phone number must contain only digits!")
     private String phoneNumber;
-    private LocalDateTime created;
+    private OffsetDateTime created;
 }
