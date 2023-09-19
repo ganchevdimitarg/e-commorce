@@ -127,3 +127,7 @@ management:
     export:
       prometheus:
         enabled: true
+
+keyManager:
+  algorithm: "RSA"
+  keySize: 2048

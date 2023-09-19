@@ -26,9 +26,8 @@ import java.util.UUID;
 @ToString
 public class Comment {
     @Id
-    @UuidGenerator(style = UuidGenerator.Style.TIME)
-    @GeneratedValue
-    @Column(length = 36, columnDefinition = "varchar(36)", unique = true, nullable = false, updatable = false)
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(unique = true, nullable = false, updatable = false)
     private UUID id;
 
     @Version
@@ -58,7 +57,7 @@ public class Comment {
     @Column(name = "update_on")
     private OffsetDateTime updateOn;
 
-    @ManyToOne(cascade = CascadeType.PERSIST)
+    @ManyToOne(cascade = CascadeType.PERSIST, fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id", referencedColumnName = "id")
     private Product product;
 

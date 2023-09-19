@@ -2,24 +2,24 @@ package com.concordeu.auth.config.security;
 
 import com.concordeu.auth.entities.RSA;
 import com.concordeu.auth.repository.RSAKeyRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.jwk.RSAKey;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
-import org.apache.commons.codec.binary.Base64;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.security.*;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
-import java.security.spec.InvalidKeySpecException;
-import java.security.spec.X509EncodedKeySpec;
 import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
 public class KeyManager {
-    private final ObjectMapper objectMapper;
+    @Value("${keyManager.algorithm}")
+    private String algorithm;
+    @Value("${keyManager.keySize}")
+    int keySize;
     private final RSAKeyRepository rsaKeyRepository;
 
     @SneakyThrows
@@ -42,8 +42,8 @@ public class KeyManager {
     private KeyPair generateKeyPair() {
         KeyPair keyPair;
         try {
-            KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
-            keyPairGenerator.initialize(2048);
+            KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance(algorithm);
+            keyPairGenerator.initialize(keySize);
             keyPair = keyPairGenerator.generateKeyPair();
         } catch (Exception ex) {
             throw new IllegalStateException(ex);
