@@ -40,9 +40,8 @@ import java.util.UUID;
 @ToString
 public class Product {
     @Id
-    @UuidGenerator(style = UuidGenerator.Style.TIME)
-    @GeneratedValue
-    @Column(length = 36, columnDefinition = "varchar(36)", unique = true, nullable = false, updatable = false)
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(unique = true, nullable = false, updatable = false)
     private UUID id;
     @Version
     private Long version;
@@ -66,17 +65,17 @@ public class Product {
     @UpdateTimestamp
     @Column(name = "update_on")
     private OffsetDateTime updateOn;
-    @ManyToOne(cascade = CascadeType.PERSIST)
+    @ManyToOne(cascade = CascadeType.PERSIST, fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", referencedColumnName = "id")
     private Category category;
     @Builder.Default
-    @OneToMany(mappedBy = "product", targetEntity = Comment.class, cascade = CascadeType.PERSIST)
+    @OneToMany(mappedBy = "product", fetch = FetchType.LAZY, targetEntity = Comment.class, cascade = CascadeType.PERSIST)
     private Set<Comment> comments = new HashSet<>();
 
-    public void setComments(Comment comment) {
+    /*public void setComments(Comment comment) {
         this.comments.add(comment);
         comment.setProduct(this);
-    }
+    }*/
 
     @Override
     public boolean equals(Object o) {

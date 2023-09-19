@@ -196,9 +196,9 @@ resilience4j.timelimiter:
 logging:
   level:
     root: ERROR
-    org.springframework.web: trace*
-    org.springframework.cloud.gateway: trace
-    logging.level.io.github.resilience4j: trace
+    org.springframework.web: trace
+#    org.springframework.cloud.gateway: trace
+#    logging.level.io.github.resilience4j: trace
 #    org.springframework.http.server.reactive: trace
 #    reactor.netty: trace
 

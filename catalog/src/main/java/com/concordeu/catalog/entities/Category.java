@@ -8,6 +8,7 @@ import lombok.*;
 import org.hibernate.annotations.*;
 import org.hibernate.type.SqlTypes;
 import org.hibernate.validator.constraints.Length;
+import org.springframework.data.annotation.CreatedBy;
 
 import java.time.OffsetDateTime;
 import java.util.HashSet;
@@ -33,9 +34,8 @@ import java.util.UUID;
 @Getter
 public class Category {
     @Id
-    @UuidGenerator(style = UuidGenerator.Style.TIME)
-    @GeneratedValue
-    @Column(length = 36, columnDefinition = "varchar(36)", unique = true, nullable = false, updatable = false)
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(unique = true, nullable = false, updatable = false)
     private UUID id;
 
     @Version
@@ -51,16 +51,16 @@ public class Category {
 
     @UpdateTimestamp
     @Column(name = "update_on")
-    private OffsetDateTime updateOn;;
+    private OffsetDateTime updateOn;
 
     @Builder.Default
-    @OneToMany(mappedBy = "category", targetEntity = Product.class, cascade = CascadeType.PERSIST)
+    @OneToMany(mappedBy = "category", targetEntity = Product.class, cascade = CascadeType.PERSIST, fetch = FetchType.LAZY)
     private Set<Product> products = new HashSet<>();
 
-    public void setProducts(Product product) {
+    /*public void setProducts(Product product) {
         this.products.add(product);
         product.setCategory(this);
-    }
+    }*/
 
     @Override
     public boolean equals(Object o) {

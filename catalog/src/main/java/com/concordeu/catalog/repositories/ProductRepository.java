@@ -18,9 +18,6 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
     @EntityGraph(value = "graph-catalog-product")
     Optional<Product> findByName(String productName);
 
-    @Override
-    Optional<Product> findById(UUID id);
-
     @Query(value = """
             SELECT * FROM products WHERE CATEGORY_ID = ?1
             """, nativeQuery = true)
