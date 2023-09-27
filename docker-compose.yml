@@ -80,103 +80,129 @@ services:
     networks:
       - spring
 
-  grafana:
-    image: grafana/grafana
-    container_name: grafana
-    extra_hosts: [ 'host.docker.internal:host-gateway' ]
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.10.2
+    container_name: elasticsearch
+    ports:
+      - "9200:9200"
     environment:
-      - GF_AUTH_ANONYMOUS_ENABLED=true
-      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
-      - GF_AUTH_DISABLE_LOGIN_FORM=true
-    volumes:
-      - ./docker/grafana/grafana.ini:/etc/grafana/grafana.ini:ro
-      - ./docker/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
-      - ./docker/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
-      - ./docker/grafana/provisioning/alerting:/etc/grafana/provisioning/alerting:ro
+      discovery.type: single-node
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.10.2
+    container_name: kibana
     ports:
-      - "3000:3000"
-    networks:
-      - loki
-      - spring
-
-  loki:
-    container_name: loki
-    image: grafana/loki
-    extra_hosts: [ 'host.docker.internal:host-gateway' ]
-    command: [ '-config.file=/etc/loki/local-config.yaml' ]
-    ports:
-      - "3100:3100"
-    networks:
-      - loki
-
-  tempo:
-    container_name: tempo
-    image: grafana/tempo
-    extra_hosts: [ 'host.docker.internal:host-gateway' ]
-    command: [ '-config.file=/etc/tempo.yml' ]
-    volumes:
-      - tempo:/tmp/tempo
-      - ./docker/grafana/tempo.yml:/etc/tempo.yml:ro
-    ports:
-      - "3200:3200"    # tempo
-      - "9411:9411"    # zipkin
-    healthcheck:
-      interval: 5s
-      retries: 10
-      test: wget --no-verbose --tries=1 --spider http://localhost:3200/status || exit 1
-
-  promtail:
-    image: grafana/promtail:2.7.0
-    container_name: promtail
-    volumes:
-      - ./loki/promtail/promtail-config.yaml:/etc/promtail/promtail-config.yaml
-      - /var/log:/var/log
-    command: -config.file=/etc/promtail/promtail-config.yaml
-    restart: unless-stopped
-    networks:
-      - loki
-
-  collector:
-    image: otel/opentelemetry-collector:latest
-    container_name: collector
-    hostname: collector
+      - "5601:5601"
+    restart: on-failure
     depends_on:
-      - tempo
-      - prometheus
-    command: [ "--config=/etc/collector-config.yaml" ]
-    volumes:
-      - ./tempo/collector-config-local.yml:/etc/collector-config.yaml
-    ports:
-      - "5555:5555"
-      - "6666:6666"
+      - elasticsearch
 
-  node-exporter:
-    image: prom/node-exporter
-    container_name: node-exporter
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:8.10.2
     volumes:
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-    command:
-      - '--path.procfs=/host/proc'
-      - '--path.sysfs=/host/sys'
-      - --collector.filesystem.ignored-mount-points
-      - "^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs)($$|/)"
-    ports:
-      - "9100:9100"
-    restart: always
+      - ./filebeat/filebeat.docker.yml:/usr/share/filebeat/filebeat.yml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    user: root
+    restart: on-failure
 
-  cadvisor:
-    image: google/cadvisor
-    container_name: cadvisor
-    volumes:
-      - /var/run:/var/run:rw
-      - /sys:/sys:ro
-      - /var/lib/docker/:/var/lib/docker:ro
-    ports:
-      - "8080:8080"
-    devices:
-      - /dev/kmsg:/dev/kmsg
-    restart: always
+#  grafana:
+#    image: grafana/grafana
+#    container_name: grafana
+#    extra_hosts: [ 'host.docker.internal:host-gateway' ]
+#    environment:
+#      - GF_AUTH_ANONYMOUS_ENABLED=true
+#      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+#      - GF_AUTH_DISABLE_LOGIN_FORM=true
+#    volumes:
+#      - ./docker/grafana/grafana.ini:/etc/grafana/grafana.ini:ro
+#      - ./docker/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+#      - ./docker/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+#      - ./docker/grafana/provisioning/alerting:/etc/grafana/provisioning/alerting:ro
+#    ports:
+#      - "3000:3000"
+#    networks:
+#      - loki
+#      - spring
+#
+#  loki:
+#    container_name: loki
+#    image: grafana/loki
+#    extra_hosts: [ 'host.docker.internal:host-gateway' ]
+#    command: [ '-config.file=/etc/loki/local-config.yaml' ]
+#    ports:
+#      - "3100:3100"
+#    networks:
+#      - loki
+#
+#  tempo:
+#    container_name: tempo
+#    image: grafana/tempo
+#    extra_hosts: [ 'host.docker.internal:host-gateway' ]
+#    command: [ '-config.file=/etc/tempo.yml' ]
+#    volumes:
+#      - tempo:/tmp/tempo
+#      - ./docker/grafana/tempo.yml:/etc/tempo.yml:ro
+#    ports:
+#      - "3200:3200"    # tempo
+#      - "9411:9411"    # zipkin
+#    healthcheck:
+#      interval: 5s
+#      retries: 10
+#      test: wget --no-verbose --tries=1 --spider http://localhost:3200/status || exit 1
+#
+#  promtail:
+#    image: grafana/promtail:2.7.0
+#    container_name: promtail
+#    volumes:
+#      - ./loki/promtail/promtail-config.yaml:/etc/promtail/promtail-config.yaml
+#      - /var/log:/var/log
+#    command: -config.file=/etc/promtail/promtail-config.yaml
+#    restart: unless-stopped
+#    networks:
+#      - loki
+
+#  collector:
+#    image: otel/opentelemetry-collector:latest
+#    container_name: collector
+#    hostname: collector
+#    depends_on:
+#      - tempo
+#      - prometheus
+#    command: [ "--config=/etc/collector-config.yaml" ]
+#    volumes:
+#      - ./tempo/collector-config-local.yml:/etc/collector-config.yaml
+#    ports:
+#      - "5555:5555"
+#      - "6666:6666"
+#
+#  node-exporter:
+#    image: prom/node-exporter
+#    container_name: node-exporter
+#    volumes:
+#      - /proc:/host/proc:ro
+#      - /sys:/host/sys:ro
+#    command:
+#      - '--path.procfs=/host/proc'
+#      - '--path.sysfs=/host/sys'
+#      - --collector.filesystem.ignored-mount-points
+#      - "^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs)($$|/)"
+#    ports:
+#      - "9100:9100"
+#    restart: always
+#
+#  cadvisor:
+#    image: google/cadvisor
+#    container_name: cadvisor
+#    volumes:
+#      - /var/run:/var/run:rw
+#      - /sys:/sys:ro
+#      - /var/lib/docker/:/var/lib/docker:ro
+#    ports:
+#      - "8080:8080"
+#    devices:
+#      - /dev/kmsg:/dev/kmsg
+#    restart: always
 
   vault-agent:
     image: hashicorp/vault:1.9.6
@@ -278,6 +304,9 @@ services:
       - vault
       - mongodb
       - postgres
+    labels:
+      collect_logs_with_filebeat: "true"
+      decode_log_event_to_json_object: "true"
 
   gateway:
     image: dgganchev/gateway:latest
@@ -296,6 +325,9 @@ services:
       - prometheus
       - vault
       - auth-server
+    labels:
+      collect_logs_with_filebeat: "true"
+      decode_log_event_to_json_object: "true"
 
   catalog:
     image: dgganchev/catalog:latest
@@ -315,6 +347,9 @@ services:
       - prometheus
       - vault
       - db
+    labels:
+      collect_logs_with_filebeat: "true"
+      decode_log_event_to_json_object: "true"
 
   order:
     image: dgganchev/order:latest
@@ -336,6 +371,9 @@ services:
       - postgres
       - kafka
       - auth-server
+    labels:
+      collect_logs_with_filebeat: "true"
+      decode_log_event_to_json_object: "true"
 
   profile:
     image: dgganchev/profile:latest
@@ -359,6 +397,9 @@ services:
       - mongodb
       - kafka
       - auth-server
+    labels:
+      collect_logs_with_filebeat: "true"
+      decode_log_event_to_json_object: "true"
 
   notification:
     image: dgganchev/notification:latest
@@ -379,6 +420,9 @@ services:
       - vault
       - postgres
       - kafka
+    labels:
+      collect_logs_with_filebeat: "true"
+      decode_log_event_to_json_object: "true"
 
   payment:
     image: dgganchev/payment:latest
@@ -398,6 +442,10 @@ services:
       - prometheus
       - vault
       - postgres
+    labels:
+      collect_logs_with_filebeat: "true"
+      decode_log_event_to_json_object: "true"
+
 
 networks:
   postgres:
