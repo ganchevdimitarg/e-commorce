@@ -1,7 +1,7 @@
 package com.concordeu.notification.controller;
 
 import com.concordeu.notification.annotation.ValidationRequest;
-import com.concordeu.notification.dto.NotificationDTO;
+import com.concordeu.notification.dto.NotificationDto;
 import com.concordeu.notification.service.EmailService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -34,7 +34,7 @@ public class NotificationController {
     @PostMapping("/send-email")
     @ValidationRequest
     @PreAuthorize("hasAuthority('SCOPE_notification.write')")
-    public String sendMail(@RequestBody NotificationDTO notificationDto) {
+    public String sendMail(@RequestBody NotificationDto notificationDto) {
         return emailService.sendSimpleMail(notificationDto);
     }
 
@@ -48,7 +48,7 @@ public class NotificationController {
     })
     @PostMapping("/sendMailWithAttachment")
     @ValidationRequest
-    public String sendMailWithAttachment(@RequestBody NotificationDTO notificationDto) {
+    public String sendMailWithAttachment(@RequestBody NotificationDto notificationDto) {
         return emailService.sendMailWithAttachment(notificationDto);
     }
 }

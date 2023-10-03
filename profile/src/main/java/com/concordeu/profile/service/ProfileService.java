@@ -4,6 +4,9 @@ import com.concordeu.profile.dto.UserDto;
 import com.concordeu.profile.dto.UserRequestDto;
 import reactor.core.publisher.Mono;
 
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
+
 public interface ProfileService {
     Mono<UserDto> createAdmin(UserRequestDto model);
 
@@ -16,7 +19,7 @@ public interface ProfileService {
 
     void deleteUser(String email);
 
-    Mono<UserDto> getUserByUsername(String email);
+    Mono<UserDto> getUserByUsername(String email) throws ExecutionException, InterruptedException, TimeoutException;
 
     Mono<String> passwordReset(String username);
 

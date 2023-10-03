@@ -1,6 +1,6 @@
 package com.concordeu.notification.aop;
 
-import com.concordeu.notification.dto.NotificationDTO;
+import com.concordeu.notification.dto.NotificationDto;
 import com.concordeu.notification.excaption.InvalidRequestDataException;
 import com.concordeu.notification.validation.ValidateRequest;
 import lombok.RequiredArgsConstructor;
@@ -25,7 +25,7 @@ public class ValidationRequestDtoAspect {
 
         Object[] requestObject = pjp.getArgs();
 
-        if (requestObject.length > 0 && requestObject[0] instanceof NotificationDTO notificationDto) {
+        if (requestObject.length > 0 && requestObject[0] instanceof NotificationDto notificationDto) {
             validateRequest.validateRequest(notificationDto);
         } else {
             log.info("request object is not of UserRequestDto instance");

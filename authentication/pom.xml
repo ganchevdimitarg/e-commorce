@@ -63,6 +63,12 @@
             <version>6.1.1</version>
         </dependency>
 
+<!--        <dependency>-->
+<!--            <groupId>net.logstash.logback</groupId>-->
+<!--            <artifactId>logstash-logback-encoder</artifactId>-->
+<!--            <version>7.3</version>-->
+<!--        </dependency>-->
+
         <!--        when using spring cloud config server    -->
         <!--        <dependency>-->
         <!--            <groupId>org.springframework.cloud</groupId>-->

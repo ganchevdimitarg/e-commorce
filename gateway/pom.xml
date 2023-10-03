@@ -65,6 +65,13 @@
             <scope>compile</scope>
         </dependency>
 
+        <dependency>
+            <groupId>net.logstash.logback</groupId>
+            <artifactId>logstash-logback-encoder</artifactId>
+            <version>7.3</version>
+            <scope>compile</scope>
+        </dependency>
+
         <!--        when using spring cloud config server    -->
         <!--        <dependency>-->
         <!--            <groupId>org.springframework.cloud</groupId>-->

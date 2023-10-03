@@ -207,4 +207,4 @@ webClient:
 
 #Kafka
 kafka:
-  bootstrapAddress: localhost:9092
+  bootstrapAddress: localhost:29092

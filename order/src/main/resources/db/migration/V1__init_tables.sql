@@ -1,35 +1,54 @@
-create table orders
+CREATE TABLE charges
 (
-    order_id         varchar(36) not null unique,
-    order_number     bigint       not null,
-    username         text         not null,
-    create_on DATETIME(6)  NULL,
-    update_on TIMESTAMP    NULL,
-    delivery_comment text,
-
-    primary key (order_id)
+    charge_id     VARCHAR(36)  NOT NULL,
+    charge_id_stp VARCHAR(255) NOT NULL,
+    status        VARCHAR(255) NOT NULL,
+    create_on     TIMESTAMP WITHOUT TIME ZONE,
+    update_on     TIMESTAMP WITHOUT TIME ZONE,
+    order_id      VARCHAR(36),
+    CONSTRAINT pk_charges PRIMARY KEY (charge_id)
 );
 
-create table items
+CREATE TABLE items
 (
-    item_id    varchar(36) not null unique,
-    product_id varchar(36) not null,
-    quantity   bigint       not null,
-    create_on DATETIME(6)  NULL,
-    update_on TIMESTAMP    NULL,
-    order_id   varchar(36) not null,
-    primary key (item_id),
-    CONSTRAINT fk_items FOREIGN KEY (order_id) REFERENCES orders (order_id)
+    item_id    VARCHAR(36)  NOT NULL,
+    product_id VARCHAR(255) NOT NULL,
+    quantity   BIGINT       NOT NULL,
+    create_on  TIMESTAMP WITHOUT TIME ZONE,
+    update_on  TIMESTAMP WITHOUT TIME ZONE,
+    order_id   VARCHAR(36),
+    CONSTRAINT pk_items PRIMARY KEY (item_id)
 );
 
-create table charges
+CREATE TABLE orders
 (
-    charge_id     varchar(36) not null unique,
-    charge_id_stp varchar(255) not null,
-    status        varchar(255) not null,
-    create_on DATETIME(6)  NULL,
-    update_on TIMESTAMP    NULL,
-    order_id      varchar(36) not null,
-    primary key (charge_id),
-    CONSTRAINT fk_items FOREIGN KEY (order_id) REFERENCES orders (order_id)
+    order_id         VARCHAR(36)  NOT NULL,
+    order_number     BIGINT       NOT NULL,
+    username         VARCHAR(255) NOT NULL,
+    created_on       TIMESTAMP WITHOUT TIME ZONE,
+    delivery_comment VARCHAR(255),
+    create_on        TIMESTAMP WITHOUT TIME ZONE,
+    update_on        TIMESTAMP WITHOUT TIME ZONE,
+    CONSTRAINT pk_orders PRIMARY KEY (order_id)
 );
+
+ALTER TABLE charges
+    ADD CONSTRAINT charge_id_stp UNIQUE (charge_id_stp);
+
+ALTER TABLE orders
+    ADD CONSTRAINT order_number UNIQUE (order_number);
+
+ALTER TABLE items
+    ADD CONSTRAINT product_id UNIQUE (product_id);
+
+CREATE INDEX charge_id_stp_index ON charges (charge_id_stp);
+
+CREATE INDEX order_number_index ON orders (order_number);
+
+CREATE INDEX product_id_index ON items (product_id);
+
+ALTER TABLE charges
+    ADD CONSTRAINT FK_CHARGES_ON_ORDER FOREIGN KEY (order_id) REFERENCES orders (order_id);
+
+ALTER TABLE items
+    ADD CONSTRAINT FK_ITEMS_ON_ORDER FOREIGN KEY (order_id) REFERENCES orders (order_id);

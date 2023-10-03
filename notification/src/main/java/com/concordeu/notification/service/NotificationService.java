@@ -1,7 +1,7 @@
 package com.concordeu.notification.service;
 
-import com.concordeu.notification.dto.NotificationDTO;
+import com.concordeu.notification.dto.NotificationDto;
 
 public interface NotificationService {
-    NotificationDTO createNotification(NotificationDTO notification);
+    NotificationDto createNotification(NotificationDto notification);
 }

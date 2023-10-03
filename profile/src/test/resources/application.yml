@@ -61,5 +61,5 @@ facebook:
   revoke:
     uri: https://graph.facebook.com/v15.0/me/permissions?access_token=
 
-kafka:
-  bootstrapAddress: test
+#kafka:
+#  bootstrapAddress: test
