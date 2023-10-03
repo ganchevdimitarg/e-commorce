@@ -16,9 +16,10 @@ import java.util.stream.Collectors;
 @Component
 @RequiredArgsConstructor
 public class ReplyKafkaListener {
+    public static final String GET_CARDS_BY_USERNAME = "getRequestGetCardsByUsername";
     private final CardRepository cardRepository;
     private final CustomerRepository customerRepository;
-    @KafkaListener(id = "server", topics = "kRequests")
+    @KafkaListener(id = "server", topics = GET_CARDS_BY_USERNAME)
     @SendTo
     public String handle(String username) {
         /*Set<String> cards = cardRepository.findAppCardsByCustomerId(getAppCustomer(username).getCustomerId())

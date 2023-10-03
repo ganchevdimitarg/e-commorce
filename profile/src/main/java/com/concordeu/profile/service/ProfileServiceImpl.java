@@ -1,5 +1,6 @@
 package com.concordeu.profile.service;
 
+import com.concordeu.profile.config.KafkaProducerConfig;
 import com.concordeu.profile.dto.CardDto;
 import com.concordeu.profile.dto.PaymentDto;
 import com.concordeu.profile.dto.UserDto;
@@ -160,13 +161,13 @@ public class ProfileServiceImpl implements ProfileService {
         });
 
         ConsumerRecord<String, String> consumerRecord = null;
-        RequestReplyFuture<String, Object, String> future = template.sendAndReceive(new ProducerRecord<>("kRequests", username));
+        RequestReplyFuture<String, Object, String> future = template.sendAndReceive(new ProducerRecord<>(KafkaProducerConfig.GET_CARDS_BY_USERNAME, username));
         try {
             future.getSendFuture().get(5, TimeUnit.SECONDS);
             consumerRecord = future.get(5, TimeUnit.SECONDS);
         }
         catch (InterruptedException | TimeoutException | ExecutionException e) {
-            throw new RuntimeException(e);
+             throw new RuntimeException(e);
         }
 
         return Mono.just(getUserDto(profile, consumerRecord.value().isEmpty() ? "N/A" : consumerRecord.value()));
@@ -174,11 +175,11 @@ public class ProfileServiceImpl implements ProfileService {
 
     private Mono<Profile> getProfile(String username) {
         Mono<Profile> profile = profileRepository.findByUsername(username);
-        profile.subscribe(
+        /*profile.subscribe(
                 throwable -> {
                     throw new InvalidRequestDataException("Profile does not exist");
                 }
-        );
+        );*/
         return profile;
     }
 
