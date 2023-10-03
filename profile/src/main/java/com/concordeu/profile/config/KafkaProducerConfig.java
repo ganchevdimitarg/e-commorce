@@ -35,12 +35,6 @@ public class KafkaProducerConfig {
         return new DefaultKafkaProducerFactory<>(producerConfig());
     }
 
-    /*@Bean
-    public KafkaTemplate<String, Object> kafkaTemplate(
-            ProducerFactory<String, Object> producerFactory) {
-        return new KafkaTemplate<>(producerFactory);
-    }*/
-
     @Bean
     public ReplyingKafkaTemplate<String, Object, String> replyingTemplate(
             ProducerFactory<String, Object> pf,
