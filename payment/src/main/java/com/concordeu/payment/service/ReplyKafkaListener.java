@@ -21,17 +21,17 @@ public class ReplyKafkaListener {
     @KafkaListener(id = "server", topics = "kRequests")
     @SendTo
     public String handle(String username) {
-        Set<String> cards = cardRepository.findAppCardsByCustomerId(getAppCustomer(username).getCustomerId())
+        /*Set<String> cards = cardRepository.findAppCardsByCustomerId(getAppCustomer(username).getCustomerId())
                 .stream()
                 .map(AppCard::getCardId)
                 .collect(Collectors.toSet());
-        System.out.println(cards.stream().findFirst().get());
-        return cards.stream().findFirst().get();
+        System.out.println(cards.stream().findFirst().get());*/
+        return "DAGOEBA";
     }
-
+/*
     private AppCustomer getAppCustomer(String username) {
         AppCustomer appCustomer = customerRepository.findByUsername(username).orElseThrow(() ->
                 new InvalidPaymentRequestException("Customer with username " + username + " does not exist"));
         return appCustomer;
-    }
+    }*/
 }

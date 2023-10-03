@@ -162,8 +162,8 @@ public class ProfileServiceImpl implements ProfileService {
         ConsumerRecord<String, String> consumerRecord = null;
         RequestReplyFuture<String, Object, String> future = template.sendAndReceive(new ProducerRecord<>("kRequests", username));
         try {
-            future.getSendFuture().get(3, TimeUnit.SECONDS);
-            consumerRecord = future.get(3, TimeUnit.SECONDS);
+            future.getSendFuture().get(5, TimeUnit.SECONDS);
+            consumerRecord = future.get(5, TimeUnit.SECONDS);
         }
         catch (InterruptedException | TimeoutException | ExecutionException e) {
             throw new RuntimeException(e);
