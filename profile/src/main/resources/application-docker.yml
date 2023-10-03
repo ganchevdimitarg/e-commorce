@@ -190,5 +190,5 @@ facebook:
     uri: https://graph.facebook.com/v15.0/me/permissions?access_token=
 
 #Kafka
-kafka:
-  bootstrapAddress: http://kafka:9092
+#kafka:
+#  bootstrapAddress: http://kafka:9092

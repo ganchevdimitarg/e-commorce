@@ -8,19 +8,21 @@ spring:
     livereload:
       port: 35730
   cloud:
-    config:
-      enabled: false
     vault:
       authentication: TOKEN
       token: ${VAULT_SERVER_TOKEN}
-      uri: http://vault-agent:8200
+      uri: http://localhost:8200
       application-name: auth-service/docker
-      generic:
-        enabled: true
+      kv:
         backend: secret
+        enabled: true
+        default-context: auth-service/docker
+
+    compatibility-verifier:
+      enabled: false
 
   config:
-    import: optional:vault://
+    import: vault://
 
   #Data Source Properties
   data:

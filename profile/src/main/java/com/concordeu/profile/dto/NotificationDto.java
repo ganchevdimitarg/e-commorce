@@ -1,6 +1,6 @@
-package com.concordeu.notification.dto;
+package com.concordeu.profile.dto;
 
-public record NotificationDTO(
+public record NotificationDto(
         String recipient,
         String subject,
         String msgBody) {

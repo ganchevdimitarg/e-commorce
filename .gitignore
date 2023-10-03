@@ -3,10 +3,7 @@ target/
 !.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
-vault/keys.json
-vault/role_id
-vault/secret_id
-vault/sink_file
+vault
 
 ### STS ###
 .apt_generated
@@ -23,6 +20,7 @@ vault/sink_file
 *.iml
 *.ipr
 .env
+.jpb
 
 ### NetBeans ###
 /nbproject/private/

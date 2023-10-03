@@ -86,7 +86,7 @@ services:
     ports:
       - "9200:9200"
     environment:
-      discovery.type: single-node
+      - discovery.type=single-node
 
   kibana:
     image: docker.elastic.co/kibana/kibana:8.10.2
@@ -99,68 +99,14 @@ services:
 
   filebeat:
     image: docker.elastic.co/beats/filebeat:8.10.2
+    container_name: filebeat
+    command: filebeat -e -strict.perms=false
     volumes:
-      - ./filebeat/filebeat.docker.yml:/usr/share/filebeat/filebeat.yml:ro
+      - ./docker/filebeat/filebeat.docker.yml:/usr/share/filebeat/filebeat.yml:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
     user: root
     restart: on-failure
-
-#  grafana:
-#    image: grafana/grafana
-#    container_name: grafana
-#    extra_hosts: [ 'host.docker.internal:host-gateway' ]
-#    environment:
-#      - GF_AUTH_ANONYMOUS_ENABLED=true
-#      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
-#      - GF_AUTH_DISABLE_LOGIN_FORM=true
-#    volumes:
-#      - ./docker/grafana/grafana.ini:/etc/grafana/grafana.ini:ro
-#      - ./docker/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
-#      - ./docker/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
-#      - ./docker/grafana/provisioning/alerting:/etc/grafana/provisioning/alerting:ro
-#    ports:
-#      - "3000:3000"
-#    networks:
-#      - loki
-#      - spring
-#
-#  loki:
-#    container_name: loki
-#    image: grafana/loki
-#    extra_hosts: [ 'host.docker.internal:host-gateway' ]
-#    command: [ '-config.file=/etc/loki/local-config.yaml' ]
-#    ports:
-#      - "3100:3100"
-#    networks:
-#      - loki
-#
-#  tempo:
-#    container_name: tempo
-#    image: grafana/tempo
-#    extra_hosts: [ 'host.docker.internal:host-gateway' ]
-#    command: [ '-config.file=/etc/tempo.yml' ]
-#    volumes:
-#      - tempo:/tmp/tempo
-#      - ./docker/grafana/tempo.yml:/etc/tempo.yml:ro
-#    ports:
-#      - "3200:3200"    # tempo
-#      - "9411:9411"    # zipkin
-#    healthcheck:
-#      interval: 5s
-#      retries: 10
-#      test: wget --no-verbose --tries=1 --spider http://localhost:3200/status || exit 1
-#
-#  promtail:
-#    image: grafana/promtail:2.7.0
-#    container_name: promtail
-#    volumes:
-#      - ./loki/promtail/promtail-config.yaml:/etc/promtail/promtail-config.yaml
-#      - /var/log:/var/log
-#    command: -config.file=/etc/promtail/promtail-config.yaml
-#    restart: unless-stopped
-#    networks:
-#      - loki
 
 #  collector:
 #    image: otel/opentelemetry-collector:latest
@@ -258,14 +204,15 @@ services:
     container_name: kafka
     ports:
       - "9092:9092"
+      - "29092:29092"
     depends_on:
       - zookeeper
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
 #      if you want to start Kafka locally change PLAINTEXT://kafka:9092 to PLAINTEXT://localhost:9092
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_INTERNAL://broker:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
@@ -307,6 +254,7 @@ services:
     labels:
       collect_logs_with_filebeat: "true"
       decode_log_event_to_json_object: "true"
+    restart: on-failure
 
   gateway:
     image: dgganchev/gateway:latest
@@ -328,6 +276,7 @@ services:
     labels:
       collect_logs_with_filebeat: "true"
       decode_log_event_to_json_object: "true"
+    restart: on-failure
 
   catalog:
     image: dgganchev/catalog:latest
@@ -350,6 +299,7 @@ services:
     labels:
       collect_logs_with_filebeat: "true"
       decode_log_event_to_json_object: "true"
+    restart: on-failure
 
   order:
     image: dgganchev/order:latest
@@ -374,6 +324,7 @@ services:
     labels:
       collect_logs_with_filebeat: "true"
       decode_log_event_to_json_object: "true"
+    restart: on-failure
 
   profile:
     image: dgganchev/profile:latest
@@ -400,6 +351,7 @@ services:
     labels:
       collect_logs_with_filebeat: "true"
       decode_log_event_to_json_object: "true"
+    restart: on-failure
 
   notification:
     image: dgganchev/notification:latest
@@ -423,6 +375,7 @@ services:
     labels:
       collect_logs_with_filebeat: "true"
       decode_log_event_to_json_object: "true"
+    restart: on-failure
 
   payment:
     image: dgganchev/payment:latest
@@ -445,6 +398,7 @@ services:
     labels:
       collect_logs_with_filebeat: "true"
       decode_log_event_to_json_object: "true"
+    restart: on-failure
 
 
 networks:
@@ -458,7 +412,7 @@ networks:
     driver: bridge
   vault:
     driver: bridge
-  loki:
+
 volumes:
   db:
   data: { }
@@ -466,5 +420,4 @@ volumes:
   vault_data: { }
   prometheus:
     driver: local
-  tempo:
-    driver: local
+

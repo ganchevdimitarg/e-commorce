@@ -1,6 +1,6 @@
 package com.concordeu.notification.listener;
 
-import com.concordeu.notification.dto.NotificationDTO;
+import com.concordeu.notification.dto.NotificationDto;
 import com.concordeu.notification.service.EmailService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -16,7 +16,7 @@ public class KafkaListenerService {
 
     @KafkaListener(topics = "sentMail", groupId = "notification", containerFactory = "messageListener")
     public void listenToMessage(String message) throws JsonProcessingException {
-        NotificationDTO notificationDto = MAPPER.readValue(message, NotificationDTO.class);
+        NotificationDto notificationDto = MAPPER.readValue(message, NotificationDto.class);
         emailService.sendSimpleMail(notificationDto);
     }
 }

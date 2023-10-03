@@ -11,10 +11,15 @@ import com.concordeu.profile.repositories.ProfileRepository;
 import com.concordeu.profile.validation.ValidateData;
 import com.google.gson.Gson;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.header.Header;
+import org.apache.kafka.common.protocol.Message;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.client.circuitbreaker.ReactiveCircuitBreakerFactory;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
+import org.springframework.kafka.requestreply.ReplyingKafkaTemplate;
+import org.springframework.kafka.requestreply.RequestReplyFuture;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -22,13 +27,16 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.Disposable;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.OffsetDateTime;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.HashSet;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static com.concordeu.profile.security.UserRole.*;
 
@@ -42,12 +50,18 @@ public class ProfileServiceImpl implements ProfileService {
     private final ReactiveCircuitBreakerFactory reactiveCircuitBreakerFactory;
     private final ProfileRepository profileRepository;
     private final JwtService jwtService;
-    private final MailService mailService;
+//    private final KafkaProducerService producer;
     private final ValidateData validateData;
-    private final String paymentServiceCreateNewCustomerUri;
-    private final String paymentServiceDeleteCustomerByUsernameUri;
-    private final String paymentServiceCreateCardUri;
-    private final String paymentServiceGetCardsByUsernameUri;
+    private final ReplyingKafkaTemplate<String, Object, String> template;
+
+    @Value("${payment.service.customer.post.uri}")
+    private String paymentServiceCreateNewCustomerUri;
+    @Value("${payment.service.customer.delete.uri}")
+    private String paymentServiceDeleteCustomerByUsernameUri;
+    @Value("${payment.service.card.post.uri}")
+    private String paymentServiceCreateCardUri;
+    @Value("${payment.service.card.get.uri}")
+    private String paymentServiceGetCardsByUsernameUri;
 
     public ProfileServiceImpl(PasswordEncoder passwordEncoder,
                               WebClient.Builder webClientBuilder,
@@ -55,24 +69,17 @@ public class ProfileServiceImpl implements ProfileService {
                               ReactiveCircuitBreakerFactory reactiveCircuitBreakerFactory,
                               ProfileRepository profileRepository,
                               JwtService jwtService,
-                              MailService mailService,
-                              ValidateData validateData,
-                              @Value("${payment.service.customer.post.uri}") String paymentServiceCreateNewCustomerUri,
-                              @Value("${payment.service.customer.delete.uri}") String paymentServiceDeleteCustomerByUsernameUri,
-                              @Value("${payment.service.card.post.uri}") String paymentServiceCreateCardUri,
-                              @Value("${payment.service.card.get.uri}") String paymentServiceGetCardsByUsernameUri) {
+                              /*KafkaProducerService producer,*/
+                              ValidateData validateData, ReplyingKafkaTemplate<String, Object, String> template){
         this.passwordEncoder = passwordEncoder;
         this.webClient = webClientBuilder.build();
         this.mapper = mapper;
         this.reactiveCircuitBreakerFactory = reactiveCircuitBreakerFactory;
         this.profileRepository = profileRepository;
         this.jwtService = jwtService;
-        this.mailService = mailService;
+        /*this.producer = producer;*/
         this.validateData = validateData;
-        this.paymentServiceCreateNewCustomerUri = paymentServiceCreateNewCustomerUri;
-        this.paymentServiceDeleteCustomerByUsernameUri = paymentServiceDeleteCustomerByUsernameUri;
-        this.paymentServiceCreateCardUri = paymentServiceCreateCardUri;
-        this.paymentServiceGetCardsByUsernameUri = paymentServiceGetCardsByUsernameUri;
+        this.template = template;
     }
 
 
@@ -105,6 +112,7 @@ public class ProfileServiceImpl implements ProfileService {
         Profile profile = profileRepository.findByUsername(username)
                 .blockOptional()
                 .orElseThrow(() -> new UsernameNotFoundException("Profile does not exist"));
+
         Address address = new Address(
                 userRequestDto.city(),
                 userRequestDto.street(),
@@ -124,46 +132,54 @@ public class ProfileServiceImpl implements ProfileService {
     @Override
     public void deleteUser(String username) {
         Assert.hasLength(username, "Username is empty");
-        Profile profile = profileRepository.findByUsername(username)
-                .blockOptional()
-                .orElseThrow(() -> {
-                    log.warn("Profile does not exist");
-                    return new UsernameNotFoundException("Profile does not exist");
-                });
 
-        deletePaymentCustomer(username);
+        Mono<Profile> profileMono = getProfile(username);
+        Profile[] profile = new Profile[1];
+        profileMono.subscribe(p -> profile[0] = p);
 
-        profileRepository.delete(profile).subscribe();
+        deletePaymentCustomer(profile[0].getUsername());
+
+        profileRepository.delete(profile[0]).subscribe();
         log.info("User with username: {} was successfully deleted", username);
     }
 
     @Override
-    public Mono<UserDto> getUserByUsername(String username) {
+    public Mono<UserDto> getUserByUsername(String username) throws ExecutionException, InterruptedException, TimeoutException {
         Assert.hasLength(username, "Username is empty");
 
-        Profile profile = profileRepository.findByUsername(username)
-                .blockOptional()
-                .orElseThrow(() -> new UsernameNotFoundException("Profile does not exist"));
+        Mono<Profile> profile = getProfile(username);
 
-        List<String> paymentCustomerId = new LinkedList<>();
+        template.setReplyErrorChecker(record -> {
+            Header error = record.headers().lastHeader("serverSentAnError");
+            if (error != null) {
+                return new IllegalArgumentException(new String(error.value()));
+            }
+            else {
+                return null;
+            }
+        });
 
-        webClient
-                .get()
-                .uri(paymentServiceGetCardsByUsernameUri + username)
-                .retrieve()
-                .bodyToMono(new ParameterizedTypeReference<Set<String>>() {
-                })
-                .transform(it ->
-                        reactiveCircuitBreakerFactory.create("profileService")
-                                .run(it, throwable -> {
-                                    log.warn("Payment service is down: " + throwable.getMessage());
-                                    return Mono.just(Set.of(""));
-                                })
-                )
-                .subscribe(p -> paymentCustomerId.add(p.stream().findFirst().get()));
+        ConsumerRecord<String, String> consumerRecord = null;
+        RequestReplyFuture<String, Object, String> future = template.sendAndReceive(new ProducerRecord<>("kRequests", username));
+        try {
+            future.getSendFuture().get(3, TimeUnit.SECONDS);
+            consumerRecord = future.get(3, TimeUnit.SECONDS);
+        }
+        catch (InterruptedException | TimeoutException | ExecutionException e) {
+            throw new RuntimeException(e);
+        }
 
+        return Mono.just(getUserDto(profile, consumerRecord.value().isEmpty() ? "N/A" : consumerRecord.value()));
+    }
 
-        return Mono.just(getUserDto(Mono.just(profile), paymentCustomerId.get(0).isEmpty() ? "N/A" : paymentCustomerId.get(0)));
+    private Mono<Profile> getProfile(String username) {
+        Mono<Profile> profile = profileRepository.findByUsername(username);
+        profile.subscribe(
+                throwable -> {
+                    throw new InvalidRequestDataException("Profile does not exist");
+                }
+        );
+        return profile;
     }
 
     @Override
@@ -178,7 +194,7 @@ public class ProfileServiceImpl implements ProfileService {
                         USER.getGrantedAuthorities()
                 )
         );
-        mailService.sendPasswordResetTokenMail(username, token);
+//        producer.sendPasswordResetTokenMail(username, token);
         log.info("Successfully generated password reset token");
         return Mono.just(token);
     }
@@ -201,11 +217,14 @@ public class ProfileServiceImpl implements ProfileService {
     }
 
     private UserDto getUserDto(Mono<Profile> profile, String cardId) {
+        Set<SimpleGrantedAuthority> simpleGrantedAuthorities = new HashSet<>();
+        profile.map(Profile::getGrantedAuthorities).subscribe(simpleGrantedAuthorities::addAll);
+
         return UserDto.builder()
                 .id(profile.map(Profile::getId).toString())
                 .username(profile.map(Profile::getUsername).toString())
                 .password("")
-                .grantedAuthorities((Set<SimpleGrantedAuthority>) profile.map(Profile::getGrantedAuthorities).subscribe())
+                .grantedAuthorities(simpleGrantedAuthorities)
                 .firstName(profile.map(Profile::getFirstName).toString())
                 .lastName(profile.map(Profile::getLastName).toString())
                 .phoneNumber(profile.map(Profile::getPhoneNumber).toString())
@@ -229,14 +248,14 @@ public class ProfileServiceImpl implements ProfileService {
                                Set<SimpleGrantedAuthority> grantedAuthorities) {
         Profile authProfile = builtProfile(userRequestDto, grantedAuthorities);
 
-        PaymentDto paymentCustomerId = createPaymentCustomer(userRequestDto.username());
+        String paymentCustomerId = createPaymentCustomer(userRequestDto.username());
         log.info("Payment customer was successfully create: {}", paymentCustomerId);
 
-        PaymentDto paymentDto = addCardToCustomer(userRequestDto, paymentCustomerId.customerId());
-        log.info("Payment card id {} was successfully added to payment customer", paymentDto.cardId());
-
-        UserDto profile = profileRepository.insert(authProfile)
-                .map(p -> UserDto.builder()
+        String paymentDto = addCardToCustomer(userRequestDto, paymentCustomerId);
+        log.info("Payment card id {} was successfully added to payment customer", paymentDto);
+        AtomicReference<UserDto> u = null;
+        profileRepository.insert(authProfile)
+                .subscribe(p -> u.set(UserDto.builder()
                         .id(p.getId())
                         .username(p.getUsername())
                         .password("")
@@ -247,19 +266,21 @@ public class ProfileServiceImpl implements ProfileService {
                         .city(p.getAddress().city())
                         .street(p.getAddress().street())
                         .postCode(p.getAddress().postCode())
-                        .cardId(paymentDto.cardId())
+                        .cardId(paymentDto)
                         .build())
-                .doOnSuccess(System.out::println)
-                .block();
+                );
         log.info("The profile was successfully create");
-        return profile;
+        return u.get();
     }
 
     private Profile builtProfile(UserRequestDto model, Set<SimpleGrantedAuthority> grantedAuthorities) {
-        Mono<Profile> username = profileRepository.findByUsername(model.username());
-        if (username.blockOptional().isPresent()) {
-            throw new InvalidRequestDataException(String.format("Profile already exist: %s", model.username()));
-        }
+        profileRepository.findByUsername(model.username())
+                .subscribe(
+                        throwable -> {
+                            throw new InvalidRequestDataException(String.format("Profile already exist: %s", model.username()));
+                        }
+                );
+
         Address address = new Address(
                 model.city(),
                 model.street(),
@@ -277,8 +298,8 @@ public class ProfileServiceImpl implements ProfileService {
                 .build();
     }
 
-    private PaymentDto addCardToCustomer(UserRequestDto userRequestDto,
-                                         String customerId) {
+    private String addCardToCustomer(UserRequestDto userRequestDto,
+                                     String customerId) {
         String cardRequestBody = mapper.toJson(CardDto.builder()
                 .customerId(customerId)
                 .cardNumber(userRequestDto.cardNumber())
@@ -294,7 +315,7 @@ public class ProfileServiceImpl implements ProfileService {
         );
     }
 
-    private PaymentDto createPaymentCustomer(String username) {
+    private String createPaymentCustomer(String username) {
         String customerRequestBody = mapper.toJson(PaymentDto.builder()
                 .username(username)
                 .customerName(username)
@@ -307,32 +328,30 @@ public class ProfileServiceImpl implements ProfileService {
         );
     }
 
-    private PaymentDto sendRequestToPaymentService(String uri,
-                                                   String request) {
-        PaymentDto paymentDto = webClient
+    private String sendRequestToPaymentService(String uri,
+                                               String request) {
+
+        return webClient
                 .post()
                 .uri(uri)
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
                 .retrieve()
-                .bodyToMono(PaymentDto.class)
+                .bodyToMono(String.class)
                 .transform(it ->
                         reactiveCircuitBreakerFactory.create("profileService")
                                 .run(it, throwable -> {
                                     log.warn("Payment service is down", throwable);
-                                    return Mono.just(PaymentDto.builder().customerId("").build());
+                                    return Mono.just("");
                                 })
                 )
-                .block();
-
-        checkAvailabilityOfPaymentService(paymentDto.customerId());
-
-        return paymentDto;
+                .blockOptional()
+                .get();
     }
 
     private void deletePaymentCustomer(String username) {
-        String paymentCustomerId = webClient
+        webClient
                 .delete()
                 .uri(paymentServiceDeleteCustomerByUsernameUri + username)
                 .retrieve()
@@ -344,17 +363,13 @@ public class ProfileServiceImpl implements ProfileService {
                                     return Mono.just("");
                                 })
                 )
-                .block();
-
-        checkAvailabilityOfPaymentService(Objects.requireNonNull(paymentCustomerId));
+                .subscribe(throwable -> throwInvalidRequestDataException());
     }
 
-    private void checkAvailabilityOfPaymentService(String token) {
-        if (token.isEmpty()) {
-            throw new InvalidRequestDataException("""
-                    Something happened with the profile service.
-                    Please check the request details again
-                    """);
-        }
+    private static void throwInvalidRequestDataException() {
+        throw new InvalidRequestDataException("""
+                Something happened with the profile service.
+                Please check the request details again
+                """);
     }
 }

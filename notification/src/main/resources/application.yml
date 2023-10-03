@@ -67,9 +67,9 @@ spring:
       mail.smtp.auth: true
       mail.smtp.starttls.enable: true
 
-  #Kafka
-  kafka:
-    bootstrap-servers: http://localhost:9092
+#Kafka
+kafka:
+  bootstrap-servers: http://localhost:29092
 
 #Show SQL executed with parameter bindings
 #Logging Levels
@@ -109,13 +109,13 @@ management:
     web:
       exposure:
         include: "*"
-  metrics:
-    export:
-      prometheus:
-        enabled: true
   health:
     circuitbreakers:
       enabled: true
+  prometheus:
+    metrics:
+      export:
+        enabled: true
 
 #Spring Doc
 springdoc:

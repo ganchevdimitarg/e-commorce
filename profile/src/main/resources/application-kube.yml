@@ -115,8 +115,8 @@ springdoc:
     tokenUrl: http://auth-server:8082/oauth2/token
 
 #Kafka
-kafka:
-  bootstrapAddress: kafka:9092
+#kafka:
+#  bootstrapAddress: kafka:9092
 
 #Resilience4j
 resilience4j.circuitbreaker:

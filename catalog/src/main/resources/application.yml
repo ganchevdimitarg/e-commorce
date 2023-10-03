@@ -13,22 +13,22 @@ spring:
       token: ${VAULT_SERVER_TOKEN}
       uri: http://localhost:8200
       application-name: catalog-service/dev
-      generic:
-        enabled: true
+      kv:
         backend: secret
+        enabled: true
+        default-context: catalog-service/dev
 
     compatibility-verifier:
       enabled: false
+
+  config:
+    import: vault://
 
   cache:
     type: redis
     redis:
       cache-null-values: true
 #      time-to-live: 40000
-
-
-  config:
-    import: optional:vault://
 
   #Data Source Properties
   datasource:

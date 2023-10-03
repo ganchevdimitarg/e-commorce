@@ -40,7 +40,8 @@ import java.util.UUID;
 @ToString
 public class Product {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @GeneratedValue
+    @UuidGenerator(style = UuidGenerator.Style.TIME)
     @Column(unique = true, nullable = false, updatable = false)
     private UUID id;
     @Version

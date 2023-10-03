@@ -3,7 +3,6 @@ package com.concordeu.profile.controller;
 import com.concordeu.profile.annotation.ValidationRequest;
 import com.concordeu.profile.dto.UserDto;
 import com.concordeu.profile.dto.UserRequestDto;
-import com.concordeu.profile.service.MailService;
 import com.concordeu.profile.service.ProfileService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,6 +12,9 @@ import org.springframework.web.bind.annotation.*;
 import reactor.core.Disposable;
 import reactor.core.publisher.Mono;
 
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
+
 @RestController
 @RequestMapping("/api/v1/profile")
 @RequiredArgsConstructor
@@ -21,13 +23,13 @@ public class ProfileController {
     private static final String ADMIN = "admin";
 
     private final ProfileService profileService;
-    private final MailService mailService;
+//    private final KafkaProducerService mailService;
 
     @PostMapping("/register-admin")
     @ValidationRequest
     public Mono<UserDto> createAdmin(@RequestBody UserRequestDto requestDto) {
         Mono<UserDto> user = profileService.createAdmin(requestDto);
-        mailService.sendUserWelcomeMail(user.map(UserDto::username).toString());
+//        mailService.sendUserWelcomeMail(user.map(UserDto::username).toString());
         return user;
     }
 
@@ -35,7 +37,7 @@ public class ProfileController {
     @ValidationRequest
     public Mono<UserDto> createWorker(@RequestBody UserRequestDto requestDto) {
         Mono<UserDto> user = profileService.createWorker(requestDto);
-        mailService.sendUserWelcomeMail(user.map(UserDto::username).toString());
+//        mailService.sendUserWelcomeMail(user.map(UserDto::username).toString());
         return user;
     }
 
@@ -43,12 +45,12 @@ public class ProfileController {
     @ValidationRequest
     public Mono<UserDto> createUser(@RequestBody UserRequestDto requestDto) {
         Mono<UserDto> user = profileService.createUser(requestDto);
-        mailService.sendUserWelcomeMail(user.map(UserDto::username).toString());
+//        mailService.sendUserWelcomeMail(user.map(UserDto::username).toString());
         return user;
     }
 
     @GetMapping("/get-by-username")
-    public Disposable getUserByUsername(Authentication authentication, @RequestParam String username) {
+    public Disposable getUserByUsername(Authentication authentication, @RequestParam String username) throws ExecutionException, InterruptedException, TimeoutException {
         String principalName = authentication.getName();
 
         if (principalName.equals(username.trim()) ||
@@ -79,7 +81,7 @@ public class ProfileController {
     public String passwordReset(@RequestParam String username) {
         return String.format("""
                 token: %s
-                """, profileService.passwordReset(username.trim()));
+                """, profileService.passwordReset(username.trim()).subscribe());
     }
 
     @GetMapping("/password-reset-token")
