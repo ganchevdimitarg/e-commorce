@@ -1,5 +1,6 @@
 package com.concordeu.profile.config;
 
+import com.concordeu.client.common.dto.ReplayPaymentDto;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
@@ -19,6 +20,7 @@ import java.util.Map;
 
 @Configuration
 public class KafkaProducerConfig {
+    public static final String PAYMENT_SERVICE_REPLIES = "paymentServiceReplies";
     public static final String PAYMENT_SERVICE = "paymentService";
     public static final String SEND_WELCOME_MAIL = "sentWelcomeMail";
     public static final String SEND_PASSWORD_RESET_TOKEN_MAIL = "sendPasswordResetTokenMail";
@@ -34,18 +36,18 @@ public class KafkaProducerConfig {
         Map<String, Object> props = new HashMap<>();
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapAddress);
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
-        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
         return props;
     }
 
     @Bean
-    public ProducerFactory<String, Object> producerFactory() {
+    public ProducerFactory<String, ReplayPaymentDto> producerFactory() {
         return new DefaultKafkaProducerFactory<>(producerConfig());
     }
 
     @Bean
-    public ReplyingKafkaTemplate<String, Object, String> replyingTemplate(
-            ProducerFactory<String, Object> pf,
+    public ReplyingKafkaTemplate<String, ReplayPaymentDto, String> replyingTemplate(
+            ProducerFactory<String, ReplayPaymentDto> pf,
             ConcurrentMessageListenerContainer<String, String> repliesContainer) {
 
         return new ReplyingKafkaTemplate<>(pf, repliesContainer);
@@ -55,8 +57,9 @@ public class KafkaProducerConfig {
     public ConcurrentMessageListenerContainer<String, String> repliesContainer(
             ConcurrentKafkaListenerContainerFactory<String, String> containerFactory) {
 
+
         ConcurrentMessageListenerContainer<String, String> repliesContainer =
-                containerFactory.createContainer("kReplies");
+                containerFactory.createContainer(PAYMENT_SERVICE_REPLIES);
         repliesContainer.getContainerProperties().setGroupId(PAYMENT_SERVICE);
         repliesContainer.setAutoStartup(false);
 
