@@ -51,7 +51,7 @@ import static com.concordeu.profile.security.UserRole.*;
 public class ProfileServiceImpl implements ProfileService {
     private final PasswordEncoder passwordEncoder;
     private final WebClient webClient;
-    private final Gson mapper;
+    private final ObjectMapper objectMapper;
     private final ReactiveCircuitBreakerFactory reactiveCircuitBreakerFactory;
     private final ProfileRepository profileRepository;
     private final JwtService jwtService;
@@ -70,16 +70,16 @@ public class ProfileServiceImpl implements ProfileService {
 
     public ProfileServiceImpl(PasswordEncoder passwordEncoder,
                               WebClient.Builder webClientBuilder,
-                              Gson mapper,
+                              ObjectMapper objectMapper,
                               ReactiveCircuitBreakerFactory reactiveCircuitBreakerFactory,
                               ProfileRepository profileRepository,
                               JwtService jwtService,
             /*KafkaProducerService producer,*/
                               ValidateData validateData,
-                              ReplyingKafkaTemplate<String,  ReplayPaymentDto, String> template) {
+                              ReplyingKafkaTemplate<String, ReplayPaymentDto, String> template) {
         this.passwordEncoder = passwordEncoder;
         this.webClient = webClientBuilder.build();
-        this.mapper = mapper;
+        this.objectMapper = objectMapper;
         this.reactiveCircuitBreakerFactory = reactiveCircuitBreakerFactory;
         this.profileRepository = profileRepository;
         this.jwtService = jwtService;
@@ -150,7 +150,7 @@ public class ProfileServiceImpl implements ProfileService {
     }
 
     @Override
-    public Mono<UserDto> getUserByUsername(String username) throws ExecutionException, InterruptedException, TimeoutException {
+    public Mono<UserDto> getUserByUsername(String username) {
         Assert.hasLength(username, "Username is empty");
 
         Mono<Profile> profile = getProfile(username);
@@ -166,13 +166,13 @@ public class ProfileServiceImpl implements ProfileService {
 
         ConsumerRecord<String, String> consumerRecord = null;
         ReplayPaymentDto paymentDto = null;
-        RequestReplyFuture<String,  ReplayPaymentDto, String> future = template.sendAndReceive(
+        RequestReplyFuture<String, ReplayPaymentDto, String> future = template.sendAndReceive(
                 new ProducerRecord<>(KafkaProducerConfig.GET_CARDS_BY_USERNAME,
                         ReplayPaymentDto.builder().username(username).build()));
         try {
             future.getSendFuture().get(5, TimeUnit.SECONDS);
             consumerRecord = future.get(5, TimeUnit.SECONDS);
-            ObjectMapper objectMapper = new ObjectMapper();
+
             paymentDto = objectMapper.readValue(consumerRecord.value(), ReplayPaymentDto.class);
         } catch (InterruptedException | TimeoutException | ExecutionException | JsonProcessingException e) {
             throw new RuntimeException(e);
@@ -310,14 +310,20 @@ public class ProfileServiceImpl implements ProfileService {
 
     private String addCardToCustomer(UserRequestDto userRequestDto,
                                      String customerId) {
-        String cardRequestBody = mapper.toJson(CardDto.builder()
-                .customerId(customerId)
-                .cardNumber(userRequestDto.cardNumber())
-                .cardExpMonth(userRequestDto.cardExpMonth())
-                .cardExpYear(userRequestDto.cardExpYear())
-                .cardCvc(userRequestDto.cardCvc())
-                .build()
-        );
+        String cardRequestBody = null;
+        try {
+            cardRequestBody = objectMapper.writeValueAsString(
+                    CardDto.builder()
+                            .customerId(customerId)
+                            .cardNumber(userRequestDto.cardNumber())
+                            .cardExpMonth(userRequestDto.cardExpMonth())
+                            .cardExpYear(userRequestDto.cardExpYear())
+                            .cardCvc(userRequestDto.cardCvc())
+                            .build()
+            );
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
 
         return sendRequestToPaymentService(
                 paymentServiceCreateCardUri,
@@ -326,11 +332,17 @@ public class ProfileServiceImpl implements ProfileService {
     }
 
     private String createPaymentCustomer(String username) {
-        String customerRequestBody = mapper.toJson(PaymentDto.builder()
-                .username(username)
-                .customerName(username)
-                .build()
-        );
+        String customerRequestBody = null;
+        try {
+            customerRequestBody = objectMapper.writeValueAsString(
+                    PaymentDto.builder()
+                            .username(username)
+                            .customerName(username)
+                            .build()
+            );
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
 
         return sendRequestToPaymentService(
                 paymentServiceCreateNewCustomerUri,
