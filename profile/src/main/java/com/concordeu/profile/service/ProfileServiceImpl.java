@@ -1,5 +1,6 @@
 package com.concordeu.profile.service;
 
+import com.concordeu.client.common.dto.ReplayPaymentDto;
 import com.concordeu.profile.config.KafkaProducerConfig;
 import com.concordeu.profile.dto.CardDto;
 import com.concordeu.profile.dto.PaymentDto;
@@ -10,6 +11,9 @@ import com.concordeu.profile.entities.Profile;
 import com.concordeu.profile.excaption.InvalidRequestDataException;
 import com.concordeu.profile.repositories.ProfileRepository;
 import com.concordeu.profile.validation.ValidateData;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -51,9 +55,9 @@ public class ProfileServiceImpl implements ProfileService {
     private final ReactiveCircuitBreakerFactory reactiveCircuitBreakerFactory;
     private final ProfileRepository profileRepository;
     private final JwtService jwtService;
-//    private final KafkaProducerService producer;
+    //    private final KafkaProducerService producer;
     private final ValidateData validateData;
-    private final ReplyingKafkaTemplate<String, Object, String> template;
+    private final ReplyingKafkaTemplate<String, ReplayPaymentDto, String> template;
 
     @Value("${payment.service.customer.post.uri}")
     private String paymentServiceCreateNewCustomerUri;
@@ -70,8 +74,9 @@ public class ProfileServiceImpl implements ProfileService {
                               ReactiveCircuitBreakerFactory reactiveCircuitBreakerFactory,
                               ProfileRepository profileRepository,
                               JwtService jwtService,
-                              /*KafkaProducerService producer,*/
-                              ValidateData validateData, ReplyingKafkaTemplate<String, Object, String> template){
+            /*KafkaProducerService producer,*/
+                              ValidateData validateData,
+                              ReplyingKafkaTemplate<String,  ReplayPaymentDto, String> template) {
         this.passwordEncoder = passwordEncoder;
         this.webClient = webClientBuilder.build();
         this.mapper = mapper;
@@ -154,23 +159,27 @@ public class ProfileServiceImpl implements ProfileService {
             Header error = record.headers().lastHeader("serverSentAnError");
             if (error != null) {
                 return new IllegalArgumentException(new String(error.value()));
-            }
-            else {
+            } else {
                 return null;
             }
         });
 
         ConsumerRecord<String, String> consumerRecord = null;
-        RequestReplyFuture<String, Object, String> future = template.sendAndReceive(new ProducerRecord<>(KafkaProducerConfig.GET_CARDS_BY_USERNAME, username));
+        ReplayPaymentDto paymentDto = null;
+        RequestReplyFuture<String,  ReplayPaymentDto, String> future = template.sendAndReceive(
+                new ProducerRecord<>(KafkaProducerConfig.GET_CARDS_BY_USERNAME,
+                        ReplayPaymentDto.builder().username(username).build()));
         try {
             future.getSendFuture().get(5, TimeUnit.SECONDS);
             consumerRecord = future.get(5, TimeUnit.SECONDS);
-        }
-        catch (InterruptedException | TimeoutException | ExecutionException e) {
-             throw new RuntimeException(e);
+            ObjectMapper objectMapper = new ObjectMapper();
+            paymentDto = objectMapper.readValue(consumerRecord.value(), ReplayPaymentDto.class);
+        } catch (InterruptedException | TimeoutException | ExecutionException | JsonProcessingException e) {
+            throw new RuntimeException(e);
         }
 
-        return Mono.just(getUserDto(profile, consumerRecord.value().isEmpty() ? "N/A" : consumerRecord.value()));
+
+        return Mono.just(getUserDto(profile, paymentDto.cards().isEmpty() ? "N/A" : paymentDto.cards().stream().findFirst().get()));
     }
 
     private Mono<Profile> getProfile(String username) {

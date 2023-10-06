@@ -1,4 +1,4 @@
-package com.concordeu.profile.dto;
+package com.concordeu.client.common.dto;
 
 import lombok.Builder;
 
@@ -9,8 +9,8 @@ public record ReplayPaymentDto(
         Set<String> cards,
         String username,
         String notificationDto,
-         String token,
-       CardDto cardDto,
-       PaymentDto paymentDto
+         String token
+/*       CardDto cardDto,
+       PaymentDto paymentDto*/
 ) {
 }
