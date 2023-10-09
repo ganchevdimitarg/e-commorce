@@ -15,6 +15,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
+import io.netty.util.internal.StringUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -31,6 +32,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
+import org.springframework.util.StringUtils;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
@@ -55,7 +57,6 @@ public class ProfileServiceImpl implements ProfileService {
     private final ReactiveCircuitBreakerFactory reactiveCircuitBreakerFactory;
     private final ProfileRepository profileRepository;
     private final JwtService jwtService;
-    //    private final KafkaProducerService producer;
     private final ValidateData validateData;
     private final ReplyingKafkaTemplate<String, ReplayPaymentDto, String> template;
 
@@ -74,7 +75,6 @@ public class ProfileServiceImpl implements ProfileService {
                               ReactiveCircuitBreakerFactory reactiveCircuitBreakerFactory,
                               ProfileRepository profileRepository,
                               JwtService jwtService,
-            /*KafkaProducerService producer,*/
                               ValidateData validateData,
                               ReplyingKafkaTemplate<String, ReplayPaymentDto, String> template) {
         this.passwordEncoder = passwordEncoder;
@@ -83,7 +83,6 @@ public class ProfileServiceImpl implements ProfileService {
         this.reactiveCircuitBreakerFactory = reactiveCircuitBreakerFactory;
         this.profileRepository = profileRepository;
         this.jwtService = jwtService;
-        /*this.producer = producer;*/
         this.validateData = validateData;
         this.template = template;
     }
@@ -139,7 +138,7 @@ public class ProfileServiceImpl implements ProfileService {
     public void deleteUser(String username) {
         Assert.hasLength(username, "Username is empty");
 
-        Mono<Profile> profileMono = getProfile(username);
+        Mono<Profile> profileMono = profileRepository.findByUsername(username);
         Profile[] profile = new Profile[1];
         profileMono.subscribe(p -> profile[0] = p);
 
@@ -152,8 +151,6 @@ public class ProfileServiceImpl implements ProfileService {
     @Override
     public Mono<UserDto> getUserByUsername(String username) {
         Assert.hasLength(username, "Username is empty");
-
-        Mono<Profile> profile = getProfile(username);
 
         template.setReplyErrorChecker(record -> {
             Header error = record.headers().lastHeader("serverSentAnError");
@@ -178,18 +175,23 @@ public class ProfileServiceImpl implements ProfileService {
             throw new RuntimeException(e);
         }
 
-
-        return Mono.just(getUserDto(profile, paymentDto.cards().isEmpty() ? "N/A" : paymentDto.cards().stream().findFirst().get()));
-    }
-
-    private Mono<Profile> getProfile(String username) {
-        Mono<Profile> profile = profileRepository.findByUsername(username);
-        /*profile.subscribe(
-                throwable -> {
-                    throw new InvalidRequestDataException("Profile does not exist");
-                }
-        );*/
-        return profile;
+        ReplayPaymentDto finalPaymentDto = paymentDto;
+        Mono<Profile> byUsername = profileRepository.findByUsername(username);
+        Mono<UserDto> map = byUsername
+                .map(p ->
+                        UserDto.builder()
+                                .id(p.getId())
+                                .username(p.getUsername())
+                                .firstName(p.getFirstName() == null ? "N/A" : p.getFirstName())
+                                .lastName(p.getLastName() == null ? "N/A" : p.getLastName())
+                                .phoneNumber(p.getPhoneNumber() == null ? "N/A" : p.getPhoneNumber())
+                                .city(p.getAddress() == null ? "N/A" : p.getAddress().city())
+                                .street(p.getAddress() == null ? "N/A" : p.getAddress().street())
+                                .postCode(p.getAddress() == null ? "N/A" : p.getAddress().postCode())
+                                .cardId(finalPaymentDto.cards().isEmpty() ? StringUtil.EMPTY_STRING : finalPaymentDto.cards().stream().findFirst().get())
+                                .build()
+                );
+        return map;
     }
 
     @Override
@@ -227,21 +229,16 @@ public class ProfileServiceImpl implements ProfileService {
     }
 
     private UserDto getUserDto(Mono<Profile> profile, String cardId) {
-        Set<SimpleGrantedAuthority> simpleGrantedAuthorities = new HashSet<>();
-        profile.map(Profile::getGrantedAuthorities).subscribe(simpleGrantedAuthorities::addAll);
-
         return UserDto.builder()
                 .id(profile.map(Profile::getId).toString())
                 .username(profile.map(Profile::getUsername).toString())
-                .password("")
-                .grantedAuthorities(simpleGrantedAuthorities)
                 .firstName(profile.map(Profile::getFirstName).toString())
                 .lastName(profile.map(Profile::getLastName).toString())
                 .phoneNumber(profile.map(Profile::getPhoneNumber).toString())
                 .city(profile.map(p -> p.getAddress().city()).toString())
                 .street(profile.map(p -> p.getAddress().street()).toString())
                 .postCode(profile.map(p -> p.getAddress().postCode()).toString())
-                .cardId(cardId.isEmpty() ? "" : cardId)
+                .cardId(cardId)
                 .build();
     }
 

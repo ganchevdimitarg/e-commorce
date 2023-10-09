@@ -1,6 +1,7 @@
 package com.concordeu.profile.dto;
 
 import lombok.Builder;
+import lombok.Setter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import reactor.core.publisher.Mono;
@@ -24,4 +25,5 @@ public record UserDto(
         long cardExpYear,
         String cardCvc,
         String cardId) {
+
 }
