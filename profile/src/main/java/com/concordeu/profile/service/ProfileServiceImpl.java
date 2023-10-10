@@ -26,6 +26,7 @@ import org.springframework.cloud.client.circuitbreaker.ReactiveCircuitBreakerFac
 import org.springframework.http.MediaType;
 import org.springframework.kafka.requestreply.ReplyingKafkaTemplate;
 import org.springframework.kafka.requestreply.RequestReplyFuture;
+import org.springframework.kafka.support.SendResult;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -161,37 +162,22 @@ public class ProfileServiceImpl implements ProfileService {
             }
         });
 
-        ConsumerRecord<String, String> consumerRecord = null;
-        ReplayPaymentDto paymentDto = null;
-        RequestReplyFuture<String, ReplayPaymentDto, String> future = template.sendAndReceive(
-                new ProducerRecord<>(KafkaProducerConfig.GET_CARDS_BY_USERNAME,
-                        ReplayPaymentDto.builder().username(username).build()));
-        try {
-            future.getSendFuture().get(5, TimeUnit.SECONDS);
-            consumerRecord = future.get(5, TimeUnit.SECONDS);
-
-            paymentDto = objectMapper.readValue(consumerRecord.value(), ReplayPaymentDto.class);
-        } catch (InterruptedException | TimeoutException | ExecutionException | JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
+        ReplayPaymentDto paymentDto = getReplayPaymentDto(username);
 
         ReplayPaymentDto finalPaymentDto = paymentDto;
-        Mono<Profile> byUsername = profileRepository.findByUsername(username);
-        Mono<UserDto> map = byUsername
-                .map(p ->
-                        UserDto.builder()
-                                .id(p.getId())
-                                .username(p.getUsername())
-                                .firstName(p.getFirstName() == null ? "N/A" : p.getFirstName())
-                                .lastName(p.getLastName() == null ? "N/A" : p.getLastName())
-                                .phoneNumber(p.getPhoneNumber() == null ? "N/A" : p.getPhoneNumber())
-                                .city(p.getAddress() == null ? "N/A" : p.getAddress().city())
-                                .street(p.getAddress() == null ? "N/A" : p.getAddress().street())
-                                .postCode(p.getAddress() == null ? "N/A" : p.getAddress().postCode())
-                                .cardId(finalPaymentDto.cards().isEmpty() ? StringUtil.EMPTY_STRING : finalPaymentDto.cards().stream().findFirst().get())
-                                .build()
+        return profileRepository.findByUsername(username)
+                .map(p -> UserDto.builder()
+                        .id(p.getId())
+                        .username(p.getUsername())
+                        .firstName(p.getFirstName() == null ? "N/A" : p.getFirstName())
+                        .lastName(p.getLastName() == null ? "N/A" : p.getLastName())
+                        .phoneNumber(p.getPhoneNumber() == null ? "N/A" : p.getPhoneNumber())
+                        .city(p.getAddress() == null ? "N/A" : p.getAddress().city())
+                        .street(p.getAddress() == null ? "N/A" : p.getAddress().street())
+                        .postCode(p.getAddress() == null ? "N/A" : p.getAddress().postCode())
+                        .cardId(finalPaymentDto.cards().isEmpty() ? StringUtil.EMPTY_STRING : finalPaymentDto.cards().stream().findFirst().get())
+                        .build()
                 );
-        return map;
     }
 
     @Override
@@ -390,5 +376,25 @@ public class ProfileServiceImpl implements ProfileService {
                 Something happened with the profile service.
                 Please check the request details again
                 """);
+    }
+
+    private ReplayPaymentDto getReplayPaymentDto(String username) {
+        ReplayPaymentDto paymentDto;
+
+        try {
+            paymentDto = objectMapper.readValue(
+                    template.sendAndReceive(
+                                    new ProducerRecord<>(KafkaProducerConfig.GET_CARDS_BY_USERNAME,
+                                            ReplayPaymentDto.builder().username(username).build())
+                            )
+                            .get(5, TimeUnit.SECONDS)
+                            .value(),
+                    ReplayPaymentDto.class
+            );
+        } catch (InterruptedException | TimeoutException | ExecutionException | JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+
+        return paymentDto;
     }
 }
