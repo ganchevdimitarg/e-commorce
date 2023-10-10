@@ -1,13 +1,13 @@
 package com.concordeu.payment.service;
 
+import com.concordeu.client.common.constant.PaymentConstants;
+import com.concordeu.client.common.dto.CardDto;
+import com.concordeu.client.common.dto.PaymentDto;
 import com.concordeu.client.common.dto.ReplayPaymentDto;
 import com.concordeu.payment.domain.AppCard;
-import com.concordeu.payment.domain.AppCustomer;
-import com.concordeu.payment.excaption.InvalidPaymentRequestException;
-import com.concordeu.payment.repositories.CardRepository;
-import com.concordeu.payment.repositories.CustomerRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.stripe.exception.StripeException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.messaging.handler.annotation.SendTo;
@@ -19,32 +19,52 @@ import java.util.stream.Collectors;
 @Component
 @RequiredArgsConstructor
 public class ReplyKafkaListener {
-    public static final String GET_CARDS_BY_USERNAME = "getRequestGetCardsByUsername";
-    public static final String PAYMENT_SERVICE = "paymentService";
-    private final CardRepository cardRepository;
-    private final CustomerRepository customerRepository;
+    public static final String CONTAINER_FACTORY = "messageListener";
+
+    private final CardService cardService;
+    private final CustomerService customerService;
     private final ObjectMapper objectMapper;
-    @KafkaListener(topics = GET_CARDS_BY_USERNAME, groupId = PAYMENT_SERVICE, containerFactory = "messageListener")
+
+    @KafkaListener(topics = PaymentConstants.CREATE_CUSTOMER, groupId = PaymentConstants.PAYMENT_SERVICE, containerFactory = CONTAINER_FACTORY)
     @SendTo
-    public String handle(ReplayPaymentDto paymentDto) {
-        System.out.println();
-        Set<String> cards = cardRepository.findAppCardsByCustomerId(getAppCustomer(paymentDto.username()).getCustomerId())
+    public String handleCreateCustomer(ReplayPaymentDto replayPaymentDto) {
+        String customerId = customerService.createCustomer(replayPaymentDto.userRequestDto());
+
+        return getResponse(ReplayPaymentDto.builder()
+                .paymentDto(PaymentDto.builder().customerId(customerId).build())
+                .build());
+    }
+
+    @KafkaListener(topics = PaymentConstants.GET_CARDS_BY_USERNAME, groupId = PaymentConstants.PAYMENT_SERVICE, containerFactory = CONTAINER_FACTORY)
+    @SendTo
+    public String handleGetCardsByUsername(ReplayPaymentDto replayPaymentDto) {
+        Set<String> cards = cardService.findAppCardsByCustomerId(
+                        customerService.findByUsername(replayPaymentDto.username()).getCustomerId())
                 .stream()
                 .map(AppCard::getCardId)
                 .collect(Collectors.toSet());
 
-        try {
-            ReplayPaymentDto userCards = ReplayPaymentDto.builder()
-                    .username(paymentDto.username())
-                    .cards(cards)
-                    .build();
-            return objectMapper.writeValueAsString(userCards);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
+        return getResponse(ReplayPaymentDto.builder()
+                .username(replayPaymentDto.username())
+                .cards(cards)
+                .build());
     }
-    private AppCustomer getAppCustomer(String username) {
-        return customerRepository.findByUsername(username).orElseThrow(() ->
-                new InvalidPaymentRequestException("Customer with username " + username + " does not exist"));
+
+    @KafkaListener(topics = PaymentConstants.ADD_CARD_TO_CUSTOMER, groupId = PaymentConstants.PAYMENT_SERVICE, containerFactory = CONTAINER_FACTORY)
+    @SendTo
+    public String handleAddCardToCustomer(ReplayPaymentDto replayPaymentDto) throws StripeException {
+        CardDto card = cardService.createCard(replayPaymentDto.cardDto());
+
+        return getResponse(ReplayPaymentDto.builder()
+                .cardDto(card)
+                .build());
+    }
+
+    private String getResponse(ReplayPaymentDto replayPaymentDto) {
+        try {
+            return objectMapper.writeValueAsString(replayPaymentDto);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e.getMessage());
+        }
     }
 }

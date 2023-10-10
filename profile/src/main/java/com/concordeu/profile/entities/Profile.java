@@ -2,7 +2,10 @@ package com.concordeu.profile.entities;
 
 import lombok.Builder;
 import lombok.Data;
+import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.annotation.Version;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.security.core.GrantedAuthority;
@@ -22,11 +25,13 @@ import java.util.Set;
 public class Profile {
     @Id
     private String id;
+
     @Indexed(unique = true)
     @Size(min = 5, max = 50, message = "Email must be between 5 and 50 characters!")
     @NotBlank(message = "Email can not be empty!")
     @Email
     private String username;
+
     @Size(min = 6, max = 30, message = "Password must be between 6 and 30 characters!")
     @NotBlank(message = "Password can not be empty!")
     @Pattern(regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=])(?=\\S+$).{6,30}$",
@@ -38,24 +43,31 @@ public class Profile {
                     no whitespace allowed in the entire string
                     """)
     private String password;
+
     private Set<SimpleGrantedAuthority> grantedAuthorities;
+
     @Size(min = 3, max = 12, message = "First name must be between 3 and 12 characters!")
     @NotBlank(message = "First name can not be empty!")
     @Pattern(regexp = "^([A-Z])(\\p{L})(?=\\S+$).{3,12}$",
             message = "First name must contain uppercase first letter and then lowercase letters!")
     @Pattern(regexp = "\\D*", message = "First name cannot contain digit/digits!")
     private String firstName;
+
     @Size(min = 3, max = 12, message = "Last name must be between 3 and 12 characters!")
     @NotBlank(message = "Last name can not be empty!")
     @Pattern(regexp = "^([A-Z])(\\p{L})(?=\\S+$).{3,12}$",
             message = "Last name must contain uppercase first letter and then lowercase letters!")
     @Pattern(regexp = "\\D*", message = "Last name cannot contain digit/digits!")
     private String lastName;
+
     private Address address;
+
     @Size(min = 9, max = 10, message = "Phone number must be between 9 and 10 characters!")
     @NotBlank(message = "Phone number can not be empty!")
     @Pattern(regexp = "^([0-9])*$",
             message = "Phone number must contain only digits!")
     private String phoneNumber;
-    private OffsetDateTime created;
+
+    @Version
+    private Long version;
 }

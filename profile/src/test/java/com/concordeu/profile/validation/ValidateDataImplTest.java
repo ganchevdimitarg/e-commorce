@@ -1,6 +1,6 @@
 package com.concordeu.profile.validation;
 
-import com.concordeu.profile.dto.UserRequestDto;
+import com.concordeu.client.common.dto.UserRequestDto;
 import com.concordeu.profile.excaption.InvalidRequestDataException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;

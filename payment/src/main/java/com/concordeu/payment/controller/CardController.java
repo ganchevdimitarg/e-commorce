@@ -1,6 +1,7 @@
 package com.concordeu.payment.controller;
 
-import com.concordeu.payment.dto.PaymentDto;
+import com.concordeu.client.common.dto.CardDto;
+import com.concordeu.client.common.dto.PaymentDto;
 import com.concordeu.payment.service.CardService;
 import com.stripe.exception.StripeException;
 import lombok.RequiredArgsConstructor;
@@ -17,10 +18,9 @@ public class CardController {
     private final CardService cardService;
 
     @PostMapping("/create-card")
-    public PaymentDto createCard(@RequestBody PaymentDto paymentDto) throws StripeException {
+    public CardDto createCard(@RequestBody CardDto paymentDto) throws StripeException {
         return cardService.createCard(paymentDto);
     }
-
     @GetMapping("/get-cards")
     public Set<String> getCards(@RequestParam String username) {
         return cardService.getCards(username);

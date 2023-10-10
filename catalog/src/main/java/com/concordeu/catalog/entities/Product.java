@@ -37,7 +37,6 @@ import java.util.UUID;
 @Builder
 @Setter
 @Getter
-@ToString
 public class Product {
     @Id
     @GeneratedValue

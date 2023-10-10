@@ -1,6 +1,6 @@
 package com.concordeu.profile.validation;
 
-import com.concordeu.profile.dto.UserRequestDto;
+import com.concordeu.client.common.dto.UserRequestDto;
 import com.concordeu.profile.excaption.InvalidRequestDataException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

@@ -2,13 +2,14 @@ package com.concordeu.profile.controller;
 
 import com.concordeu.profile.annotation.ValidationRequest;
 import com.concordeu.profile.dto.UserDto;
-import com.concordeu.profile.dto.UserRequestDto;
+import com.concordeu.client.common.dto.UserRequestDto;
 import com.concordeu.profile.service.ProfileService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
@@ -23,45 +24,37 @@ public class ProfileController {
     private static final String ADMIN = "admin";
 
     private final ProfileService profileService;
-//    private final KafkaProducerService mailService;
 
     @PostMapping("/register-admin")
     @ValidationRequest
-    public Mono<UserDto> createAdmin(@RequestBody UserRequestDto requestDto) {
-        Mono<UserDto> user = profileService.createAdmin(requestDto);
-//        mailService.sendUserWelcomeMail(user.map(UserDto::username).toString());
-        return user;
+    public ResponseEntity<Mono<UserDto>> createAdmin(@RequestBody UserRequestDto requestDto) {
+        return ResponseEntity.ok(profileService.createAdmin(requestDto));
     }
 
     @PostMapping("/register-worker")
     @ValidationRequest
-    public Mono<UserDto> createWorker(@RequestBody UserRequestDto requestDto) {
-        Mono<UserDto> user = profileService.createWorker(requestDto);
-//        mailService.sendUserWelcomeMail(user.map(UserDto::username).toString());
-        return user;
+    public ResponseEntity<Mono<UserDto>> createWorker(@RequestBody UserRequestDto requestDto) {
+        return ResponseEntity.ok(profileService.createWorker(requestDto));
     }
 
     @PostMapping("/register-user")
     @ValidationRequest
-    public Mono<UserDto> createUser(@RequestBody UserRequestDto requestDto) {
-        Mono<UserDto> user = profileService.createUser(requestDto);
-//        mailService.sendUserWelcomeMail(user.map(UserDto::username).toString());
-        return user;
+    public ResponseEntity<Mono<UserDto>> createUser(@RequestBody UserRequestDto requestDto) {
+        return ResponseEntity.ok(profileService.createUser(requestDto));
     }
 
     @GetMapping("/get-by-username")
-    public Mono<UserDto> getUserByUsername(Authentication authentication, @RequestParam String username) throws ExecutionException, InterruptedException, TimeoutException {
+    public ResponseEntity<Mono<UserDto>> getUserByUsername(Authentication authentication, @RequestParam String username) throws ExecutionException, InterruptedException, TimeoutException {
         String principalName = authentication.getName();
 
         if (principalName.equals(username.trim()) ||
                 principalName.equals(ADMIN) ||
                 principalName.equals("gateway")) {
-            return profileService.getUserByUsername(username.trim());
-
+            return ResponseEntity.ok(profileService.getUserByUsername(username.trim()));
         }
 
         log.debug("Profile '{}' try to access another account '{}'", principalName, username);
-        throw new IllegalArgumentException("You cannot access this information!");
+        return new ResponseEntity<>(HttpStatus.FORBIDDEN);
     }
 
     @PutMapping("/update-user")
