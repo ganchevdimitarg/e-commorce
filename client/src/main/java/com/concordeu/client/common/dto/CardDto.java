@@ -4,8 +4,8 @@ import lombok.Builder;
 
 @Builder
 public record CardDto(
-        String customerId,
         String cardId,
+        String customerId,
         String cardNumber,
         long cardExpMonth,
         long cardExpYear,

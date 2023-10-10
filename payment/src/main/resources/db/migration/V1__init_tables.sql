@@ -22,15 +22,16 @@ create table charges
 
 create table cards
 (
-    card_id          varchar(255) not null unique,
-    card_id_stp      text         not null,
-    brand            text         not null,
-    customer_id_stp  text         not null,
-    cvc_check        text         not null,
-    exp_month        int8         not null,
-    exp_year         int8         not null,
-    last_four_digits text         not null,
-    customer_id      varchar(255) not null,
+    card_id          VARCHAR(36)  NOT NULL,
+    card_id_stp      VARCHAR(255) NOT NULL,
+    brand            VARCHAR(255) NOT NULL,
+    customer_id_stp  VARCHAR(255) NOT NULL,
+    card_number      VARCHAR(255),
+    cvc_check        VARCHAR(255) NOT NULL,
+    exp_month        BIGINT       NOT NULL,
+    exp_year         BIGINT       NOT NULL,
+    last_four_digits VARCHAR(255) NOT NULL,
+    customer_id      VARCHAR(36)  NOT NULL,
     primary key (card_id),
     CONSTRAINT fk_cards FOREIGN KEY (customer_id) REFERENCES customers (customer_id)
 );
