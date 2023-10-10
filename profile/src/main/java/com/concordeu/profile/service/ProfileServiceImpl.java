@@ -151,6 +151,7 @@ public class ProfileServiceImpl implements ProfileService {
                 PaymentConstants.GET_CARDS_BY_USERNAME,
                 ReplayPaymentDto.builder().username(username).build()
         );
+
         return profileRepository.findByUsername(username)
                 .map(p -> UserDto.builder()
                         .id(p.getId())
@@ -276,6 +277,10 @@ public class ProfileServiceImpl implements ProfileService {
                 .city(profile.getAddress().city())
                 .street(profile.getAddress().street())
                 .postCode(profile.getAddress().postCode())
+                .cardNumber(userRequestDto.cardNumber())
+                .cardExpMonth(userRequestDto.cardExpMonth())
+                .cardExpYear(userRequestDto.cardExpYear())
+                .cardCvc(userRequestDto.cardCvc())
                 .build();
 
     }
