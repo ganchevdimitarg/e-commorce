@@ -1,6 +1,6 @@
 package com.concordeu.profile.validation;
 
-import com.concordeu.profile.dto.UserRequestDto;
+import com.concordeu.client.common.dto.UserRequestDto;
 
 public interface ValidateData {
     boolean validateRequest(UserRequestDto requestDto);

@@ -9,8 +9,8 @@ public record ReplayPaymentDto(
         Set<String> cards,
         String username,
         String notificationDto,
-         String token
-/*       CardDto cardDto,
-       PaymentDto paymentDto*/
-) {
+        String token,
+        CardDto cardDto,
+        PaymentDto paymentDto,
+        UserRequestDto userRequestDto) {
 }

@@ -1,12 +1,14 @@
 package com.concordeu.payment.service.impl;
 
+import com.concordeu.client.common.dto.CardDto;
 import com.concordeu.payment.repositories.CardRepository;
 import com.concordeu.payment.repositories.CustomerRepository;
 import com.concordeu.payment.domain.AppCard;
 import com.concordeu.payment.domain.AppCustomer;
-import com.concordeu.payment.dto.PaymentDto;
+import com.concordeu.client.common.dto.PaymentDto;
 import com.concordeu.payment.excaption.InvalidPaymentRequestException;
 import com.concordeu.payment.service.CardService;
+import com.concordeu.payment.service.CustomerService;
 import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
 import com.stripe.model.*;
@@ -29,18 +31,18 @@ import java.util.stream.Collectors;
 @Slf4j
 public class CardServiceImpl implements CardService {
     private final CardRepository cardRepository;
-    private final CustomerRepository customerRepository;
+    private final CustomerService customerService;
     @Value("${stripe.secret.key}")
     private String secretKey;
 
     /**
      * When you create a new credit card, you must specify a customer or recipient on which to create it.
      *
-     * @param paymentDto card information
+     * @param cardDto card information
      * @return card id
      */
     @Override
-    public PaymentDto createCard(PaymentDto paymentDto) {
+    public CardDto createCard(CardDto cardDto) {
         Stripe.apiKey = secretKey;
 
         List<String> expandList = new ArrayList<>();
@@ -51,17 +53,17 @@ public class CardServiceImpl implements CardService {
 
         try {
             Customer customer = Customer.retrieve(
-                    paymentDto.customerId(),
+                    cardDto.customerId(),
                     retrieveParams,
                     null
             );
             log.info("Method createCard: Get customer successful: {}", customer.getEmail());
 
             Map<String, Object> cardParams = new HashMap<>();
-            cardParams.put("number", paymentDto.cardNumber());
-            cardParams.put("exp_month", paymentDto.cardExpMonth());
-            cardParams.put("exp_year", paymentDto.cardExpYear());
-            cardParams.put("cvc", paymentDto.cardCvc());
+            cardParams.put("number", cardDto.cardNumber());
+            cardParams.put("exp_month", cardDto.cardExpMonth());
+            cardParams.put("exp_year", cardDto.cardExpYear());
+            cardParams.put("cvc", cardDto.cardCvc());
 
             Map<String, Object> params = new HashMap<>();
             params.put("card", cardParams);
@@ -74,7 +76,7 @@ public class CardServiceImpl implements CardService {
 
             Card card = (Card) customer.getSources().create(source);
 
-            AppCustomer appCustomer = getAppCustomer(customer.getName());
+            AppCustomer appCustomer = customerService.findByUsername(customer.getName());
             cardRepository.saveAndFlush(AppCard.builder()
                     .cardId(card.getId())
                     .brand(card.getBrand())
@@ -87,7 +89,7 @@ public class CardServiceImpl implements CardService {
                     .build());
 
             log.info("Method createCard: Create card successful: {}", card.getId());
-            return PaymentDto.builder()
+            return CardDto.builder()
                     .cardId(card.getId())
                     .customerId(customer.getId())
                     .build();
@@ -118,7 +120,7 @@ public class CardServiceImpl implements CardService {
         retrieveParams.put("expand", expandList);
 
         try {
-            AppCustomer appCustomer = getAppCustomer(username);
+            AppCustomer appCustomer = customerService.findByUsername(username);
             Customer customer = Customer.retrieve(
                     appCustomer.getCustomerId(),
                     retrieveParams,
@@ -144,16 +146,14 @@ public class CardServiceImpl implements CardService {
     @Override
     public Set<String> getCustomerCards(String username) {
 
-        return cardRepository.findAppCardsByCustomerId(getAppCustomer(username).getCustomerId())
+        return cardRepository.findAppCardsByCustomerId(customerService.findByUsername(username).getCustomerId())
                 .stream()
                 .map(AppCard::getCardId)
                 .collect(Collectors.toSet());
     }
 
-    private AppCustomer getAppCustomer(String username) {
-        return customerRepository.findByUsername(username).orElseThrow(() -> {
-            log.warn("Customer with username {} does not exist in db customers", username);
-            return new InvalidPaymentRequestException("Customer with username " + username + " does not exist");
-        });
+    @Override
+    public List<AppCard> findAppCardsByCustomerId(String customerId) {
+        return cardRepository.findAppCardsByCustomerId(customerId);
     }
 }

@@ -1,6 +1,6 @@
 package com.concordeu.payment.controller;
 
-import com.concordeu.payment.dto.PaymentDto;
+import com.concordeu.client.common.dto.PaymentDto;
 import com.concordeu.payment.service.ChargeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

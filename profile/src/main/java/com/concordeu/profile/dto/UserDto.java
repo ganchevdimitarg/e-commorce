@@ -13,7 +13,6 @@ public record UserDto(
         String id,
         String username,
         String password,
-        Set<SimpleGrantedAuthority> grantedAuthorities,
         String firstName,
         String lastName,
         String phoneNumber,

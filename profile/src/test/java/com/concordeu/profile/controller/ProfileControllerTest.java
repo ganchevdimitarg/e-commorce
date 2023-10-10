@@ -1,6 +1,5 @@
 package com.concordeu.profile.controller;
 
-import com.concordeu.profile.service.KafkaProducerService;
 import com.concordeu.profile.service.ProfileService;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -25,8 +24,7 @@ class ProfileControllerTest {
 
     @MockBean
     ProfileService profileService;
-    @MockBean
-    KafkaProducerService mailService;
+
     @MockBean
     Authentication authentication;
 

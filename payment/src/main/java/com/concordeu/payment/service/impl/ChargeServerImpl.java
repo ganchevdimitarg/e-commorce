@@ -4,7 +4,7 @@ import com.concordeu.payment.repositories.ChargeRepository;
 import com.concordeu.payment.repositories.CustomerRepository;
 import com.concordeu.payment.domain.AppCharge;
 import com.concordeu.payment.domain.AppCustomer;
-import com.concordeu.payment.dto.PaymentDto;
+import com.concordeu.client.common.dto.PaymentDto;
 import com.concordeu.payment.excaption.InvalidPaymentRequestException;
 import com.concordeu.payment.service.ChargeService;
 import com.stripe.Stripe;

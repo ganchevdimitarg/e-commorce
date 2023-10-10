@@ -1,7 +1,8 @@
 package com.concordeu.payment.service.impl;
 
+import com.concordeu.client.common.dto.UserRequestDto;
 import com.concordeu.payment.domain.AppCustomer;
-import com.concordeu.payment.dto.PaymentDto;
+import com.concordeu.client.common.dto.PaymentDto;
 import com.concordeu.payment.excaption.InvalidPaymentRequestException;
 import com.concordeu.payment.repositories.CustomerRepository;
 import com.concordeu.payment.service.CustomerService;
@@ -31,7 +32,7 @@ public class CustomerServiceImpl implements CustomerService {
     private String secretKey;
 
     @Override
-    public String createCustomer(PaymentDto paymentDto) {
+    public String createCustomer(UserRequestDto paymentDto) {
         Stripe.apiKey = secretKey;
 
         Map<String, Object> params = new HashMap<>();
@@ -102,6 +103,14 @@ public class CustomerServiceImpl implements CustomerService {
             log.warn(e.getMessage());
             throw new InvalidPaymentRequestException(e.getMessage());
         }
+    }
+
+    @Override
+    public AppCustomer findByUsername(String username) {
+        return customerRepository.findByUsername(username).orElseThrow(() -> {
+            log.warn("Customer with username {} does not exist in db customers", username);
+            return new InvalidPaymentRequestException("Customer with username " + username + " does not exist");
+        });
     }
 
     @Override

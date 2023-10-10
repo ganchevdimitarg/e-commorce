@@ -1,7 +1,7 @@
 package com.concordeu.profile.service;
 
 import com.concordeu.profile.dto.UserDto;
-import com.concordeu.profile.dto.UserRequestDto;
+import com.concordeu.client.common.dto.UserRequestDto;
 import reactor.core.publisher.Mono;
 
 import java.util.concurrent.ExecutionException;

@@ -1,6 +1,6 @@
 package com.concordeu.profile.aop;
 
-import com.concordeu.profile.dto.UserRequestDto;
+import com.concordeu.client.common.dto.UserRequestDto;
 import com.concordeu.profile.excaption.InvalidRequestDataException;
 import com.concordeu.profile.validation.ValidateData;
 import lombok.RequiredArgsConstructor;

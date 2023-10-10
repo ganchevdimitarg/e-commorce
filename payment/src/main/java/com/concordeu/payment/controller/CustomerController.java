@@ -1,6 +1,7 @@
 package com.concordeu.payment.controller;
 
-import com.concordeu.payment.dto.PaymentDto;
+import com.concordeu.client.common.dto.PaymentDto;
+import com.concordeu.client.common.dto.UserRequestDto;
 import com.concordeu.payment.service.CustomerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,7 +15,7 @@ public class CustomerController {
     private final CustomerService customerService;
 
     @PostMapping("/create-customer")
-    public String createCustomer(@RequestBody PaymentDto paymentDto) {
+    public String createCustomer(@RequestBody UserRequestDto paymentDto) {
         return customerService.createCustomer(paymentDto);
     }
 

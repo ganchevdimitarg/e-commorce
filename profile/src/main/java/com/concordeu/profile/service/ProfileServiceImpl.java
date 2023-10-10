@@ -1,46 +1,39 @@
 package com.concordeu.profile.service;
 
+import com.concordeu.client.common.constant.PaymentConstants;
+import com.concordeu.client.common.dto.CardDto;
+import com.concordeu.client.common.dto.PaymentDto;
 import com.concordeu.client.common.dto.ReplayPaymentDto;
 import com.concordeu.profile.config.KafkaProducerConfig;
-import com.concordeu.profile.dto.CardDto;
-import com.concordeu.profile.dto.PaymentDto;
 import com.concordeu.profile.dto.UserDto;
-import com.concordeu.profile.dto.UserRequestDto;
+import com.concordeu.client.common.dto.UserRequestDto;
 import com.concordeu.profile.entities.Address;
 import com.concordeu.profile.entities.Profile;
 import com.concordeu.profile.excaption.InvalidRequestDataException;
 import com.concordeu.profile.repositories.ProfileRepository;
 import com.concordeu.profile.validation.ValidateData;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.gson.Gson;
 import io.netty.util.internal.StringUtil;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.Header;
-import org.apache.kafka.common.protocol.Message;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.client.circuitbreaker.ReactiveCircuitBreakerFactory;
-import org.springframework.http.MediaType;
 import org.springframework.kafka.requestreply.ReplyingKafkaTemplate;
-import org.springframework.kafka.requestreply.RequestReplyFuture;
-import org.springframework.kafka.support.SendResult;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
-import org.springframework.util.StringUtils;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 import java.time.OffsetDateTime;
-import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -52,6 +45,7 @@ import static com.concordeu.profile.security.UserRole.*;
 @Service
 @Slf4j
 public class ProfileServiceImpl implements ProfileService {
+    public static final String SERVER_SENT_AN_ERROR = "serverSentAnError";
     private final PasswordEncoder passwordEncoder;
     private final WebClient webClient;
     private final ObjectMapper objectMapper;
@@ -153,28 +147,20 @@ public class ProfileServiceImpl implements ProfileService {
     public Mono<UserDto> getUserByUsername(String username) {
         Assert.hasLength(username, "Username is empty");
 
-        template.setReplyErrorChecker(record -> {
-            Header error = record.headers().lastHeader("serverSentAnError");
-            if (error != null) {
-                return new IllegalArgumentException(new String(error.value()));
-            } else {
-                return null;
-            }
-        });
-
-        ReplayPaymentDto paymentDto = getReplayPaymentDto(username);
-
-        ReplayPaymentDto finalPaymentDto = paymentDto;
+        ReplayPaymentDto finalPaymentDto = getReplayPaymentDto(
+                PaymentConstants.GET_CARDS_BY_USERNAME,
+                ReplayPaymentDto.builder().username(username).build()
+        );
         return profileRepository.findByUsername(username)
                 .map(p -> UserDto.builder()
                         .id(p.getId())
                         .username(p.getUsername())
-                        .firstName(p.getFirstName() == null ? "N/A" : p.getFirstName())
-                        .lastName(p.getLastName() == null ? "N/A" : p.getLastName())
-                        .phoneNumber(p.getPhoneNumber() == null ? "N/A" : p.getPhoneNumber())
-                        .city(p.getAddress() == null ? "N/A" : p.getAddress().city())
-                        .street(p.getAddress() == null ? "N/A" : p.getAddress().street())
-                        .postCode(p.getAddress() == null ? "N/A" : p.getAddress().postCode())
+                        .firstName(p.getFirstName())
+                        .lastName(p.getLastName())
+                        .phoneNumber(p.getPhoneNumber())
+                        .city(p.getAddress().city())
+                        .street(p.getAddress().street())
+                        .postCode(p.getAddress().postCode())
                         .cardId(finalPaymentDto.cards().isEmpty() ? StringUtil.EMPTY_STRING : finalPaymentDto.cards().stream().findFirst().get())
                         .build()
                 );
@@ -239,31 +225,59 @@ public class ProfileServiceImpl implements ProfileService {
 
     private UserDto createUser(UserRequestDto userRequestDto,
                                Set<SimpleGrantedAuthority> grantedAuthorities) {
+
         Profile authProfile = builtProfile(userRequestDto, grantedAuthorities);
 
-        String paymentCustomerId = createPaymentCustomer(userRequestDto.username());
-        log.info("Payment customer was successfully create: {}", paymentCustomerId);
+        String customerId = getReplayPaymentDto(
+                PaymentConstants.CREATE_CUSTOMER,
+                ReplayPaymentDto.builder()
+                        .userRequestDto(userRequestDto)
+                        .build()
+        )
+                .paymentDto()
+                .customerId();
+        log.info("Payment customer was successfully create: {}", customerId);
 
-        String paymentDto = addCardToCustomer(userRequestDto, paymentCustomerId);
-        log.info("Payment card id {} was successfully added to payment customer", paymentDto);
-        AtomicReference<UserDto> u = null;
-        profileRepository.insert(authProfile)
-                .subscribe(p -> u.set(UserDto.builder()
-                        .id(p.getId())
-                        .username(p.getUsername())
-                        .password("")
-                        .grantedAuthorities(p.getGrantedAuthorities())
-                        .firstName(p.getFirstName())
-                        .lastName(p.getLastName())
-                        .phoneNumber(p.getPhoneNumber())
-                        .city(p.getAddress().city())
-                        .street(p.getAddress().street())
-                        .postCode(p.getAddress().postCode())
-                        .cardId(paymentDto)
-                        .build())
-                );
+        String cardId = "";
+        if (!userRequestDto.cardNumber().isBlank()) {
+            cardId = getReplayPaymentDto(
+                    PaymentConstants.ADD_CARD_TO_CUSTOMER,
+                    ReplayPaymentDto.builder()
+                            .cardDto(CardDto.builder()
+                                    .customerId(customerId)
+                                    .cardNumber(userRequestDto.cardNumber())
+                                    .cardExpMonth(userRequestDto.cardExpMonth())
+                                    .cardExpYear(userRequestDto.cardExpYear())
+                                    .cardCvc(userRequestDto.cardCvc())
+                                    .build())
+                            .build()
+            )
+                    .cardDto()
+                    .cardId();
+        }
+
+        log.info("Payment card id {} was successfully added to payment customer", cardId.isBlank() ? "" : cardId);
+
         log.info("The profile was successfully create");
-        return u.get();
+
+        Profile profile;
+        try {
+            profile = profileRepository.save(authProfile).toFuture().get();
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException(e);
+        }
+
+        return UserDto.builder()
+                .id(profile.getId())
+                .username(profile.getUsername())
+                .firstName(profile.getFirstName())
+                .lastName(profile.getLastName())
+                .phoneNumber(profile.getPhoneNumber())
+                .city(profile.getAddress().city())
+                .street(profile.getAddress().street())
+                .postCode(profile.getAddress().postCode())
+                .build();
+
     }
 
     private Profile builtProfile(UserRequestDto model, Set<SimpleGrantedAuthority> grantedAuthorities) {
@@ -287,72 +301,7 @@ public class ProfileServiceImpl implements ProfileService {
                 .lastName(model.lastName())
                 .address(address)
                 .phoneNumber(model.phoneNumber())
-                .created(OffsetDateTime.now())
                 .build();
-    }
-
-    private String addCardToCustomer(UserRequestDto userRequestDto,
-                                     String customerId) {
-        String cardRequestBody = null;
-        try {
-            cardRequestBody = objectMapper.writeValueAsString(
-                    CardDto.builder()
-                            .customerId(customerId)
-                            .cardNumber(userRequestDto.cardNumber())
-                            .cardExpMonth(userRequestDto.cardExpMonth())
-                            .cardExpYear(userRequestDto.cardExpYear())
-                            .cardCvc(userRequestDto.cardCvc())
-                            .build()
-            );
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
-
-        return sendRequestToPaymentService(
-                paymentServiceCreateCardUri,
-                cardRequestBody
-        );
-    }
-
-    private String createPaymentCustomer(String username) {
-        String customerRequestBody = null;
-        try {
-            customerRequestBody = objectMapper.writeValueAsString(
-                    PaymentDto.builder()
-                            .username(username)
-                            .customerName(username)
-                            .build()
-            );
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
-
-        return sendRequestToPaymentService(
-                paymentServiceCreateNewCustomerUri,
-                customerRequestBody
-        );
-    }
-
-    private String sendRequestToPaymentService(String uri,
-                                               String request) {
-
-        return webClient
-                .post()
-                .uri(uri)
-                .contentType(MediaType.APPLICATION_JSON)
-                .accept(MediaType.APPLICATION_JSON)
-                .bodyValue(request)
-                .retrieve()
-                .bodyToMono(String.class)
-                .transform(it ->
-                        reactiveCircuitBreakerFactory.create("profileService")
-                                .run(it, throwable -> {
-                                    log.warn("Payment service is down", throwable);
-                                    return Mono.just("");
-                                })
-                )
-                .blockOptional()
-                .get();
     }
 
     private void deletePaymentCustomer(String username) {
@@ -378,21 +327,27 @@ public class ProfileServiceImpl implements ProfileService {
                 """);
     }
 
-    private ReplayPaymentDto getReplayPaymentDto(String username) {
+    private ReplayPaymentDto getReplayPaymentDto(String topic, ReplayPaymentDto payload) {
+        template.setReplyErrorChecker(record -> {
+            Header error = record.headers().lastHeader(SERVER_SENT_AN_ERROR);
+            if (error != null) {
+                return new IllegalArgumentException(new String(error.value()));
+            } else {
+                return null;
+            }
+        });
+
         ReplayPaymentDto paymentDto;
 
         try {
             paymentDto = objectMapper.readValue(
-                    template.sendAndReceive(
-                                    new ProducerRecord<>(KafkaProducerConfig.GET_CARDS_BY_USERNAME,
-                                            ReplayPaymentDto.builder().username(username).build())
-                            )
+                    template.sendAndReceive(new ProducerRecord<>(topic, payload))
                             .get(5, TimeUnit.SECONDS)
                             .value(),
                     ReplayPaymentDto.class
             );
         } catch (InterruptedException | TimeoutException | ExecutionException | JsonProcessingException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException(e.getMessage());
         }
 
         return paymentDto;

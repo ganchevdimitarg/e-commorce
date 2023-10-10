@@ -9,6 +9,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Set;
 
@@ -23,7 +24,7 @@ public class BoostrapData implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        if (profileRepository.count().blockOptional().isEmpty()) {
+        if (profileRepository.count().toFuture().get() == 0) {
             Profile admin = Profile.builder()
                     .username("admin@gmail.com")
                     .password(passwordEncoder.encode("admin"))
@@ -55,7 +56,7 @@ public class BoostrapData implements CommandLineRunner {
                     )
                     .build();
 
-            profileRepository.saveAll(List.of(admin, user));
+            profileRepository.saveAll(List.of(admin, user)).subscribe();
         }
     }
 }
