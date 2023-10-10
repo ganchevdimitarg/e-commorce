@@ -6,7 +6,7 @@ import java.util.Set;
 
 @Builder
 public record ReplayPaymentDto(
-        Set<String> cards,
+        Set<CardDto> cards,
         String username,
         String notificationDto,
         String token,

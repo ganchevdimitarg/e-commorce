@@ -29,6 +29,8 @@ public class AppCard {
     private String brand;
     @Column(name = "customer_id_stp", nullable = false)
     private String customerId;
+    @Column(name = "card_Number")
+    private String cardNumber;
     @Column(name = "cvc_check", nullable = false)
     private String cvcCheck;
     @Column(name = "exp_month", nullable = false)

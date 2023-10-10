@@ -147,23 +147,31 @@ public class ProfileServiceImpl implements ProfileService {
     public Mono<UserDto> getUserByUsername(String username) {
         Assert.hasLength(username, "Username is empty");
 
-        ReplayPaymentDto finalPaymentDto = getReplayPaymentDto(
-                PaymentConstants.GET_CARDS_BY_USERNAME,
-                ReplayPaymentDto.builder().username(username).build()
-        );
-
         return profileRepository.findByUsername(username)
-                .map(p -> UserDto.builder()
-                        .id(p.getId())
-                        .username(p.getUsername())
-                        .firstName(p.getFirstName())
-                        .lastName(p.getLastName())
-                        .phoneNumber(p.getPhoneNumber())
-                        .city(p.getAddress().city())
-                        .street(p.getAddress().street())
-                        .postCode(p.getAddress().postCode())
-                        .cardId(finalPaymentDto.cards().isEmpty() ? StringUtil.EMPTY_STRING : finalPaymentDto.cards().stream().findFirst().get())
-                        .build()
+                .map(p -> {
+                    Set<CardDto> cardDto = getReplayPaymentDto(
+                            PaymentConstants.GET_CARDS_BY_USERNAME,
+                            ReplayPaymentDto.builder().username(username).build()
+                    )
+                            .cards();
+                    UserDto build = UserDto.builder()
+                            .id(p.getId())
+                            .username(p.getUsername())
+                            .firstName(p.getFirstName())
+                            .lastName(p.getLastName())
+                            .phoneNumber(p.getPhoneNumber())
+                            .city(p.getAddress().city())
+                            .street(p.getAddress().street())
+                            .postCode(p.getAddress().postCode())
+                            .cardId(cardDto.isEmpty() ? "N/A" : cardDto.stream().findFirst().get().cardId())
+                            .cardNumber(cardDto.isEmpty() ? "N/A" : cardDto.stream().findFirst().get().cardNumber())
+                            .cardExpMonth(cardDto.isEmpty() ? 0 : cardDto.stream().findFirst().get().cardExpMonth())
+                            .cardExpYear(cardDto.isEmpty() ? 0 : cardDto.stream().findFirst().get().cardExpYear())
+                            .cardCvc(cardDto.isEmpty() ? "N/A" : cardDto.stream().findFirst().get().cardCvc())
+                            .build();
+                    return build;
+
+                        }
                 );
     }
 

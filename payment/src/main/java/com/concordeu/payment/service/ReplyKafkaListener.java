@@ -38,10 +38,17 @@ public class ReplyKafkaListener {
     @KafkaListener(topics = PaymentConstants.GET_CARDS_BY_USERNAME, groupId = PaymentConstants.PAYMENT_SERVICE, containerFactory = CONTAINER_FACTORY)
     @SendTo
     public String handleGetCardsByUsername(ReplayPaymentDto replayPaymentDto) {
-        Set<String> cards = cardService.findAppCardsByCustomerId(
+        Set<CardDto> cards = cardService.findAppCardsByCustomerId(
                         customerService.findByUsername(replayPaymentDto.username()).getCustomerId())
                 .stream()
-                .map(AppCard::getCardId)
+                .map(c -> CardDto.builder()
+                        .cardId(c.getCardId())
+                        .customerId(c.getCustomerId())
+                        .cardNumber(c.getCardNumber())
+                        .cardExpMonth(c.getExpMonth())
+                        .cardExpYear(c.getExpYear())
+                        .cardCvc(c.getCvcCheck())
+                        .build())
                 .collect(Collectors.toSet());
 
         return getResponse(ReplayPaymentDto.builder()
