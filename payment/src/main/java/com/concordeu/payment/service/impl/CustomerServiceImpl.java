@@ -94,14 +94,14 @@ public class CustomerServiceImpl implements CustomerService {
             Customer.retrieve(customerByEmail.getId()).delete();
             AppCustomer customer = customerRepository.findByUsername(username).orElseThrow(() -> {
                 log.warn("Customer with username {} does not exist in db customers", username);
-                throw new InvalidPaymentRequestException("Customer with username " + username + " does not exist");
+                return new InvalidPaymentRequestException("Customer with username " + username + " does not exist");
             });
             customerRepository.delete(customer);
             log.info("Delete customer successful: {}", customerByEmail.getEmail());
             return customerByEmail.getId();
         } catch (StripeException e) {
             log.warn(e.getMessage());
-            throw new InvalidPaymentRequestException(e.getMessage());
+            return e.getMessage();
         }
     }
 

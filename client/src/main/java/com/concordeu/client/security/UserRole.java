@@ -3,7 +3,6 @@ package com.concordeu.client.security;
 import com.google.common.collect.Sets;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -36,10 +35,10 @@ public enum UserRole {
 
     private final Set<UserPermission> permissions;
 
-    public Set<SimpleGrantedAuthority> getGrantedAuthorities() {
-        Set<SimpleGrantedAuthority> permissions = getPermissions().stream().map(permission -> new SimpleGrantedAuthority(permission.getPermission()))
+    public Set<ProfileGrantedAuthority> getGrantedAuthorities() {
+        Set<ProfileGrantedAuthority> permissions = getPermissions().stream().map(permission -> new ProfileGrantedAuthority(permission.getPermission()))
                 .collect(Collectors.toSet());
-        permissions.add(new SimpleGrantedAuthority("ROLE_" + this.name()));
+        permissions.add(new ProfileGrantedAuthority("ROLE_" + this.name()));
         return permissions;
     }
 }

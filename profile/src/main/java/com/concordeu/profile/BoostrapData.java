@@ -1,15 +1,13 @@
 package com.concordeu.profile;
 
 import com.concordeu.profile.entities.Profile;
+import com.concordeu.client.security.ProfileGrantedAuthority;
 import com.concordeu.profile.repositories.ProfileRepository;
-import com.concordeu.profile.security.UserPermission;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Set;
 
@@ -29,14 +27,14 @@ public class BoostrapData implements CommandLineRunner {
                     .username("admin@gmail.com")
                     .password(passwordEncoder.encode("admin"))
                     .grantedAuthorities(
-                            Set.of(new SimpleGrantedAuthority(CATALOG_READ.getPermission()),
-                                    new SimpleGrantedAuthority(CATALOG_WRITE.getPermission()),
-                                    new SimpleGrantedAuthority(PROFILE_READ.getPermission()),
-                                    new SimpleGrantedAuthority(PROFILE_WRITE.getPermission()),
-                                    new SimpleGrantedAuthority(ORDER_READ.getPermission()),
-                                    new SimpleGrantedAuthority(ORDER_WRITE.getPermission()),
-                                    new SimpleGrantedAuthority(NOTIFICATION_READ.getPermission()),
-                                    new SimpleGrantedAuthority(NOTIFICATION_WRITE.getPermission())
+                            Set.of(new ProfileGrantedAuthority(CATALOG_READ.getPermission()),
+                                    new ProfileGrantedAuthority(CATALOG_WRITE.getPermission()),
+                                    new ProfileGrantedAuthority(PROFILE_READ.getPermission()),
+                                    new ProfileGrantedAuthority(PROFILE_WRITE.getPermission()),
+                                    new ProfileGrantedAuthority(ORDER_READ.getPermission()),
+                                    new ProfileGrantedAuthority(ORDER_WRITE.getPermission()),
+                                    new ProfileGrantedAuthority(NOTIFICATION_READ.getPermission()),
+                                    new ProfileGrantedAuthority(NOTIFICATION_WRITE.getPermission())
                             )
                     )
                     .build();
@@ -45,13 +43,13 @@ public class BoostrapData implements CommandLineRunner {
                     .username("user@gmail.com")
                     .password(passwordEncoder.encode("user"))
                     .grantedAuthorities(
-                            Set.of(new SimpleGrantedAuthority(CATALOG_READ.getPermission()),
-                                    new SimpleGrantedAuthority(PROFILE_READ.getPermission()),
-                                    new SimpleGrantedAuthority(PROFILE_WRITE.getPermission()),
-                                    new SimpleGrantedAuthority(ORDER_READ.getPermission()),
-                                    new SimpleGrantedAuthority(ORDER_WRITE.getPermission()),
-                                    new SimpleGrantedAuthority(NOTIFICATION_READ.getPermission()),
-                                    new SimpleGrantedAuthority(NOTIFICATION_WRITE.getPermission())
+                            Set.of(new ProfileGrantedAuthority(CATALOG_READ.getPermission()),
+                                    new ProfileGrantedAuthority(PROFILE_READ.getPermission()),
+                                    new ProfileGrantedAuthority(PROFILE_WRITE.getPermission()),
+                                    new ProfileGrantedAuthority(ORDER_READ.getPermission()),
+                                    new ProfileGrantedAuthority(ORDER_WRITE.getPermission()),
+                                    new ProfileGrantedAuthority(NOTIFICATION_READ.getPermission()),
+                                    new ProfileGrantedAuthority(NOTIFICATION_WRITE.getPermission())
                             )
                     )
                     .build();

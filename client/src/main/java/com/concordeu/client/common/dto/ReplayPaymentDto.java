@@ -12,5 +12,6 @@ public record ReplayPaymentDto(
         String token,
         CardDto cardDto,
         PaymentDto paymentDto,
-        UserRequestDto userRequestDto) {
+        UserRequestDto userRequestDto,
+        String error) {
 }

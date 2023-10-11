@@ -7,5 +7,5 @@ public class PaymentConstants {
     public static final String GET_CARDS_BY_USERNAME = "getRequestGetCardsByUsername";
     public static final String ADD_CARD_TO_CUSTOMER = "postRequestAddCardToCustomer";
     public static final String CREATE_CUSTOMER = "postRequestCreateCustomer";
-    public static final String CUSTOMER_BY_USERNAME= "deleteRequestCustomerByUsername";
+    public static final String DELETE_BY_USERNAME= "deleteRequestCustomerByUsername";
 }

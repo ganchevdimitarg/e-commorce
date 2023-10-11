@@ -1,22 +1,18 @@
 package com.concordeu.profile.entities;
 
+import com.concordeu.client.security.ProfileGrantedAuthority;
 import lombok.Builder;
 import lombok.Data;
-import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
-import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.annotation.Version;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
-import org.springframework.security.core.GrantedAuthority;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
-import java.time.OffsetDateTime;
 import java.util.Set;
 
 @Document(collection = "users")
@@ -44,7 +40,7 @@ public class Profile {
                     """)
     private String password;
 
-    private Set<SimpleGrantedAuthority> grantedAuthorities;
+    private Set<ProfileGrantedAuthority> grantedAuthorities;
 
     @Size(min = 3, max = 12, message = "First name must be between 3 and 12 characters!")
     @NotBlank(message = "First name can not be empty!")

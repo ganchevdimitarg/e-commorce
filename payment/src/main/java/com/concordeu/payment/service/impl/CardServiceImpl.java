@@ -81,6 +81,7 @@ public class CardServiceImpl implements CardService {
                     .cardId(card.getId())
                     .brand(card.getBrand())
                     .customerId(card.getCustomer())
+                    .cardNumber(cardDto.cardNumber())
                     .cvcCheck(card.getCvcCheck())
                     .expMonth(card.getExpMonth())
                     .expYear(card.getExpYear())

@@ -11,5 +11,4 @@ public class ErrorMessage {
     private int statusCode;
     private OffsetDateTime timestamp;
     private String message;
-    private String description;
 }

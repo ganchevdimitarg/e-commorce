@@ -1,10 +1,10 @@
 package com.concordeu.client.principal;
 
+import com.concordeu.client.security.ProfileGrantedAuthority;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.server.resource.introspection.BadOpaqueTokenException;
 import org.springframework.security.oauth2.server.resource.introspection.OAuth2IntrospectionAuthenticatedPrincipal;
 import org.springframework.stereotype.Component;
@@ -38,7 +38,7 @@ public class GitHubOAuth2AuthPrincipal implements OAuth2AuthPrincipal {
 
             Collection<GrantedAuthority> authorities = USER.getGrantedAuthorities()
                     .stream()
-                    .map(a -> new SimpleGrantedAuthority("SCOPE_" + a))
+                    .map(a -> new ProfileGrantedAuthority("SCOPE_" + a))
                     .collect(Collectors.toSet());
 
             assert attributes != null;
