@@ -1,10 +1,10 @@
 package com.concordeu.client.principal;
 
+import com.concordeu.client.security.ProfileGrantedAuthority;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.core.OAuth2AuthenticatedPrincipal;
 import org.springframework.security.oauth2.server.resource.introspection.BadOpaqueTokenException;
 import org.springframework.security.oauth2.server.resource.introspection.OAuth2IntrospectionAuthenticatedPrincipal;
@@ -40,7 +40,7 @@ public class FacebookOAuth2AuthPrincipal implements OAuth2AuthPrincipal {
 
             Collection<GrantedAuthority> authorities = USER.getGrantedAuthorities()
                     .stream()
-                    .map(a -> new SimpleGrantedAuthority("SCOPE_" + a))
+                    .map(a -> new ProfileGrantedAuthority("SCOPE_" + a))
                     .collect(Collectors.toSet());
 
             OAuth2IntrospectionAuthenticatedPrincipal principal = new OAuth2IntrospectionAuthenticatedPrincipal(username, attributes, authorities);

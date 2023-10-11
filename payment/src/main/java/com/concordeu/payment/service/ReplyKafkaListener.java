@@ -25,9 +25,13 @@ public class ReplyKafkaListener {
     private final CustomerService customerService;
     private final ObjectMapper objectMapper;
 
-    @KafkaListener(topics = PaymentConstants.CREATE_CUSTOMER, groupId = PaymentConstants.PAYMENT_SERVICE, containerFactory = CONTAINER_FACTORY)
+    @KafkaListener(
+            topics = PaymentConstants.CREATE_CUSTOMER,
+            groupId = PaymentConstants.PAYMENT_SERVICE,
+            containerFactory = CONTAINER_FACTORY
+    )
     @SendTo
-    public String handleCreateCustomer(ReplayPaymentDto replayPaymentDto) {
+    public String handleCreateCustomer(ReplayPaymentDto replayPaymentDto) throws JsonProcessingException {
         String customerId = customerService.createCustomer(replayPaymentDto.userRequestDto());
 
         return getResponse(ReplayPaymentDto.builder()
@@ -35,9 +39,13 @@ public class ReplyKafkaListener {
                 .build());
     }
 
-    @KafkaListener(topics = PaymentConstants.GET_CARDS_BY_USERNAME, groupId = PaymentConstants.PAYMENT_SERVICE, containerFactory = CONTAINER_FACTORY)
+    @KafkaListener(
+            topics = PaymentConstants.GET_CARDS_BY_USERNAME,
+            groupId = PaymentConstants.PAYMENT_SERVICE,
+            containerFactory = CONTAINER_FACTORY
+    )
     @SendTo
-    public String handleGetCardsByUsername(ReplayPaymentDto replayPaymentDto) {
+    public String handleGetCardsByUsername(ReplayPaymentDto replayPaymentDto) throws JsonProcessingException {
         Set<CardDto> cards = cardService.findAppCardsByCustomerId(
                         customerService.findByUsername(replayPaymentDto.username()).getCustomerId())
                 .stream()
@@ -57,9 +65,13 @@ public class ReplyKafkaListener {
                 .build());
     }
 
-    @KafkaListener(topics = PaymentConstants.ADD_CARD_TO_CUSTOMER, groupId = PaymentConstants.PAYMENT_SERVICE, containerFactory = CONTAINER_FACTORY)
+    @KafkaListener(
+            topics = PaymentConstants.ADD_CARD_TO_CUSTOMER,
+            groupId = PaymentConstants.PAYMENT_SERVICE,
+            containerFactory = CONTAINER_FACTORY
+    )
     @SendTo
-    public String handleAddCardToCustomer(ReplayPaymentDto replayPaymentDto) throws StripeException {
+    public String handleAddCardToCustomer(ReplayPaymentDto replayPaymentDto) throws StripeException, JsonProcessingException {
         CardDto card = cardService.createCard(replayPaymentDto.cardDto());
 
         return getResponse(ReplayPaymentDto.builder()
@@ -67,11 +79,17 @@ public class ReplyKafkaListener {
                 .build());
     }
 
-    private String getResponse(ReplayPaymentDto replayPaymentDto) {
-        try {
-            return objectMapper.writeValueAsString(replayPaymentDto);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e.getMessage());
-        }
+    @KafkaListener(
+            topics = PaymentConstants.DELETE_BY_USERNAME,
+            groupId = PaymentConstants.PAYMENT_SERVICE,
+            containerFactory = CONTAINER_FACTORY
+    )
+    @SendTo
+    public void handleDeleteByUsername(ReplayPaymentDto replayPaymentDto) {
+        customerService.deleteCustomer(replayPaymentDto.username());
+    }
+
+    private String getResponse(ReplayPaymentDto replayPaymentDto) throws JsonProcessingException {
+        return objectMapper.writeValueAsString(replayPaymentDto);
     }
 }

@@ -1,5 +1,6 @@
 package com.concordeu.profile.excaption;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
@@ -7,11 +8,16 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
+import reactor.core.publisher.Mono;
 
-@ControllerAdvice
+import java.time.OffsetDateTime;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
+
+@ControllerAdvice(basePackages = "com.concordeu.profile.controller")
 public class ControllerExceptionHandler {
 
-    @ExceptionHandler(value = {IllegalArgumentException.class})
+    @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ProblemDetail> resourceNotFoundException(IllegalArgumentException ex, WebRequest request) {
         /*ErrorMessage message = new ErrorMessage(
                 HttpStatus.NOT_FOUND.value(),
@@ -24,7 +30,7 @@ public class ControllerExceptionHandler {
         return new ResponseEntity<>(message, HttpStatus.NOT_FOUND);
     }
 
-    @ExceptionHandler(value = {WebClientResponseException.InternalServerError.class})
+    @ExceptionHandler(WebClientResponseException.InternalServerError.class)
     public ResponseEntity<ProblemDetail> resourceNotFoundException(WebClientResponseException.InternalServerError ex, WebRequest request) {
         /*ErrorMessage message = new ErrorMessage(
                 HttpStatus.NOT_FOUND.value(),
@@ -37,7 +43,7 @@ public class ControllerExceptionHandler {
         return new ResponseEntity<>(message, HttpStatus.NOT_FOUND);
     }
 
-    @ExceptionHandler(value = {InvalidRequestDataException.class})
+    @ExceptionHandler(InvalidRequestDataException.class)
     public ResponseEntity<ProblemDetail> invalidRequestDataException(InvalidRequestDataException ex, WebRequest request) {
         /*ErrorMessage message = new ErrorMessage(
                 HttpStatus.BAD_REQUEST.value(),

@@ -13,6 +13,7 @@ import org.springframework.security.authentication.ReactiveAuthenticationManager
 import org.springframework.security.authentication.ReactiveAuthenticationManagerAdapter;
 import org.springframework.security.authentication.ReactiveAuthenticationManagerResolver;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.method.configuration.EnableReactiveMethodSecurity;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.oauth2.jwt.BadJwtException;
@@ -28,8 +29,7 @@ import reactor.core.publisher.Mono;
 import java.util.Objects;
 
 @Configuration
-@EnableWebFluxSecurity
-@EnableMethodSecurity
+@EnableReactiveMethodSecurity
 @RequiredArgsConstructor
 @Slf4j
 public class ResourceServerConfig {

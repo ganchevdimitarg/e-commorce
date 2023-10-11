@@ -1,4 +1,4 @@
-package com.concordeu.profile.dto;
+package com.concordeu.client.common.dto;
 
 public record NotificationDto(
         String recipient,
