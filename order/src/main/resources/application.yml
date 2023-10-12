@@ -68,6 +68,9 @@ spring:
   zipkin:
     base-url: http://localhost:9411
 
+  kafka:
+    bootstrap-servers: localhost:29092
+
 #Show SQL executed with parameter bindings
 #Logging Levels
 #Disable the default loggers

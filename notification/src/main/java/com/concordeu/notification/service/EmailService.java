@@ -1,6 +1,7 @@
 package com.concordeu.notification.service;
 
-import com.concordeu.notification.dto.NotificationDto;
+
+import com.concordeu.client.common.dto.NotificationDto;
 
 public interface EmailService {
 

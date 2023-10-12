@@ -1,6 +1,6 @@
 package com.concordeu.notification.listener;
 
-import com.concordeu.notification.dto.NotificationDto;
+import com.concordeu.client.common.dto.NotificationDto;
 import com.concordeu.notification.service.EmailService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -20,3 +20,5 @@ public class KafkaListenerService {
         emailService.sendSimpleMail(notificationDto);
     }
 }
+
+

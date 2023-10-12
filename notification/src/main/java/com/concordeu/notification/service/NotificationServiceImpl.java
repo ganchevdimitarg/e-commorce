@@ -1,8 +1,8 @@
 package com.concordeu.notification.service;
 
+import com.concordeu.client.common.dto.NotificationDto;
 import com.concordeu.notification.repositories.NotificationRepository;
 import com.concordeu.notification.domain.Notification;
-import com.concordeu.notification.dto.NotificationDto;
 import com.concordeu.notification.mapper.MapStructMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

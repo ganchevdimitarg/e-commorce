@@ -1,8 +1,8 @@
 package com.concordeu.payment.config;
 
+import com.concordeu.client.common.constant.Constant;
 import com.concordeu.client.common.dto.ReplayPaymentDto;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.kafka.config.KafkaListenerContainerFactory;
 import org.springframework.kafka.core.*;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,7 +17,6 @@ import java.util.Map;
 
 @Configuration
 public class KafkaConsumerConfig {
-    public static final String TRUSTED_PACKAGE = "com.concordeu.client.common.dto";
     @Value("${spring.kafka.bootstrap-servers}")
     private String bootstrapAddress;
 
@@ -30,7 +29,7 @@ public class KafkaConsumerConfig {
     @Bean
     public ConsumerFactory<String, ReplayPaymentDto> consumerFactory() {
         JsonDeserializer<ReplayPaymentDto> jsonDeserializer = new JsonDeserializer<>();
-        jsonDeserializer.addTrustedPackages(TRUSTED_PACKAGE);
+        jsonDeserializer.addTrustedPackages(Constant.TRUSTED_PACKAGE);
         return new DefaultKafkaConsumerFactory<>(
                 consumerConfig(),
                 new JsonDeserializer<>(),
