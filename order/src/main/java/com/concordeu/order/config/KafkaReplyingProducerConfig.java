@@ -1,6 +1,6 @@
-package com.concordeu.profile.config;
+package com.concordeu.order.config;
 
-import com.concordeu.client.common.constant.PaymentConstants;
+import com.concordeu.client.common.constant.Constant;
 import com.concordeu.client.common.dto.ReplayPaymentDto;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -21,7 +21,7 @@ import java.util.Map;
 
 @Configuration
 public class KafkaReplyingProducerConfig {
-    public static final String PAYMENT_SERVICE_REPLIES = "paymentServiceReplies";
+    public static final String NOTIFICATION_SERVICE_REPLIES = "notificationServiceReplies";
 
     @Value("${spring.kafka.bootstrap-servers}")
     private String bootstrapAddress;
@@ -53,8 +53,8 @@ public class KafkaReplyingProducerConfig {
 
 
         ConcurrentMessageListenerContainer<String, String> repliesContainer =
-                containerFactory.createContainer(PAYMENT_SERVICE_REPLIES);
-        repliesContainer.getContainerProperties().setGroupId(PaymentConstants.PAYMENT_SERVICE);
+                containerFactory.createContainer(NOTIFICATION_SERVICE_REPLIES);
+        repliesContainer.getContainerProperties().setGroupId(Constant.PAYMENT_SERVICE);
         repliesContainer.setAutoStartup(false);
 
         return repliesContainer;
@@ -62,31 +62,7 @@ public class KafkaReplyingProducerConfig {
 
     @Bean
     public NewTopic requestsGetCardsByUsername() {
-        return TopicBuilder.name(PaymentConstants.GET_CARDS_BY_USERNAME)
-                .partitions(10)
-                .replicas(2)
-                .build();
-    }
-
-    @Bean
-    public NewTopic requestsAddCardToCustomer() {
-        return TopicBuilder.name(PaymentConstants.ADD_CARD_TO_CUSTOMER)
-                .partitions(10)
-                .replicas(2)
-                .build();
-    }
-
-    @Bean
-    public NewTopic requestsCreateCustomer() {
-        return TopicBuilder.name(PaymentConstants.CREATE_CUSTOMER)
-                .partitions(10)
-                .replicas(2)
-                .build();
-    }
-
-    @Bean
-    public NewTopic requestsDeleteByUsername() {
-        return TopicBuilder.name(PaymentConstants.DELETE_BY_USERNAME)
+        return TopicBuilder.name(Constant.GET_CARDS_BY_USERNAME)
                 .partitions(10)
                 .replicas(2)
                 .build();

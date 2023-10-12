@@ -1,9 +1,9 @@
 package com.concordeu.profile.service;
 
-import com.concordeu.client.common.constant.PaymentConstants;
+import com.concordeu.client.common.constant.Constant;
 import com.concordeu.client.common.dto.CardDto;
 import com.concordeu.client.common.dto.ReplayPaymentDto;
-import com.concordeu.client.security.ProfileGrantedAuthority;
+import com.concordeu.client.common.ProfileGrantedAuthority;
 import com.concordeu.profile.dto.UserDto;
 import com.concordeu.client.common.dto.UserRequestDto;
 import com.concordeu.profile.entities.Address;
@@ -37,8 +37,6 @@ import static com.concordeu.profile.security.UserRole.*;
 @RequiredArgsConstructor
 @Slf4j
 public class ProfileServiceImpl implements ProfileService {
-    public static final String SERVER_SENT_AN_ERROR = "serverSentAnError";
-
     private final PasswordEncoder passwordEncoder;
     private final ObjectMapper objectMapper;
     private final ProfileRepository profileRepository;
@@ -101,7 +99,7 @@ public class ProfileServiceImpl implements ProfileService {
                 .toFuture()
                 .getNow(Profile.builder().build());
 
-        getReplayPaymentDto(PaymentConstants.DELETE_BY_USERNAME,
+        getReplayPaymentDto(Constant.DELETE_BY_USERNAME,
                 ReplayPaymentDto.builder()
                         .username(profile.getUsername())
                         .build());
@@ -114,7 +112,7 @@ public class ProfileServiceImpl implements ProfileService {
     public Mono<UserDto> getUserByUsername(String username) throws ExecutionException, InterruptedException, JsonProcessingException, TimeoutException {
         Assert.hasLength(username, "Username is empty");
         Set<CardDto> cardDto = getReplayPaymentDto(
-                PaymentConstants.GET_CARDS_BY_USERNAME,
+                Constant.GET_CARDS_BY_USERNAME,
                 ReplayPaymentDto.builder().username(username).build()
         )
                 .cards();
@@ -205,7 +203,7 @@ public class ProfileServiceImpl implements ProfileService {
         Profile authProfile = builtProfile(userRequestDto, grantedAuthorities);
 
         String customerId = getReplayPaymentDto(
-                PaymentConstants.CREATE_CUSTOMER,
+                Constant.CREATE_CUSTOMER,
                 ReplayPaymentDto.builder()
                         .userRequestDto(userRequestDto)
                         .build()
@@ -217,7 +215,7 @@ public class ProfileServiceImpl implements ProfileService {
         String cardId = "";
         if (!userRequestDto.cardNumber().isBlank()) {
             cardId = getReplayPaymentDto(
-                    PaymentConstants.ADD_CARD_TO_CUSTOMER,
+                    Constant.ADD_CARD_TO_CUSTOMER,
                     ReplayPaymentDto.builder()
                             .cardDto(CardDto.builder()
                                     .customerId(customerId)
@@ -286,7 +284,7 @@ public class ProfileServiceImpl implements ProfileService {
 
     private ReplayPaymentDto getReplayPaymentDto(String topic, ReplayPaymentDto payload) throws ExecutionException, InterruptedException, TimeoutException, JsonProcessingException {
         template.setReplyErrorChecker(record -> {
-            Header error = record.headers().lastHeader(SERVER_SENT_AN_ERROR);
+            Header error = record.headers().lastHeader(Constant.SERVER_SENT_AN_ERROR);
             if (error != null) {
                 return new IllegalArgumentException(new String(error.value()));
             } else {

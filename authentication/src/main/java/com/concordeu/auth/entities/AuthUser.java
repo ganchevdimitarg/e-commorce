@@ -1,6 +1,6 @@
 package com.concordeu.auth.entities;
 
-import com.concordeu.client.security.ProfileGrantedAuthority;
+import com.concordeu.client.common.ProfileGrantedAuthority;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;

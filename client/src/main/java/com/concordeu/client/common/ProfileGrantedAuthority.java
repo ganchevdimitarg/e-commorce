@@ -1,9 +1,13 @@
-package com.concordeu.client.security;
+package com.concordeu.client.common;
 
-import lombok.AllArgsConstructor;
+import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
 
 @AllArgsConstructor
+@NoArgsConstructor
+@Builder
+@Getter
+@Setter
 public class ProfileGrantedAuthority implements GrantedAuthority {
     private String authority;
     @Override

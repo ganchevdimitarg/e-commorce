@@ -1,7 +1,7 @@
 package com.concordeu.notification.service;
 
-import com.concordeu.notification.dto.NotificationDto;
 
+import com.concordeu.client.common.dto.NotificationDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

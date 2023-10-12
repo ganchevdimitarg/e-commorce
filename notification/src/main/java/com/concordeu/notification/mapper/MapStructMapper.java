@@ -1,7 +1,7 @@
 package com.concordeu.notification.mapper;
 
+import com.concordeu.client.common.dto.NotificationDto;
 import com.concordeu.notification.domain.Notification;
-import com.concordeu.notification.dto.NotificationDto;
 import org.mapstruct.Mapper;
 
 @Mapper(componentModel = "spring")

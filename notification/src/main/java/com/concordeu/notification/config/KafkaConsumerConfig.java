@@ -1,5 +1,6 @@
 package com.concordeu.notification.config;
 
+import com.concordeu.client.common.dto.ReplayPaymentDto;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.beans.factory.annotation.Value;
@@ -9,14 +10,17 @@ import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.config.KafkaListenerContainerFactory;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
+import org.springframework.kafka.support.serializer.JsonDeserializer;
 
 import java.util.HashMap;
 import java.util.Map;
 
 @Configuration
 public class KafkaConsumerConfig {
-    @Value("${kafka.bootstrap-servers}")
+    public static final String TRUSTED_PACKAGE = "com.concordeu.client.common.dto";
+    @Value("${spring.kafka.bootstrap-servers}")
     private String bootstrapAddress;
 
     public Map<String, Object> consumerConfig() {
@@ -26,18 +30,23 @@ public class KafkaConsumerConfig {
     }
 
     @Bean
-    public ConsumerFactory<String, String> controlFactory() {
+    public ConsumerFactory<String, ReplayPaymentDto> consumerFactory() {
+        JsonDeserializer<ReplayPaymentDto> jsonDeserializer = new JsonDeserializer<>();
+        jsonDeserializer.addTrustedPackages(TRUSTED_PACKAGE);
         return new DefaultKafkaConsumerFactory<>(
                 consumerConfig(),
-                new StringDeserializer(),
-                new StringDeserializer());
+                new JsonDeserializer<>(),
+                jsonDeserializer);
     }
 
     @Bean
-    public KafkaListenerContainerFactory<ConcurrentMessageListenerContainer<String, String>> messageListener(
-            ConsumerFactory<String, String> controlFactory) {
-        ConcurrentKafkaListenerContainerFactory<String,String> factory = new ConcurrentKafkaListenerContainerFactory<>();
-        factory.setConsumerFactory(controlFactory);
+    public KafkaListenerContainerFactory<ConcurrentMessageListenerContainer<String, ReplayPaymentDto>> messageListener(
+            ConsumerFactory<String, ReplayPaymentDto> consumerFactory,
+            KafkaTemplate<String, ReplayPaymentDto> kafkaTemplate) {
+        ConcurrentKafkaListenerContainerFactory<String, ReplayPaymentDto> factory =
+                new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(consumerFactory);
+        factory.setReplyTemplate(kafkaTemplate);
         return factory;
     }
 }

@@ -1,10 +1,11 @@
-package com.concordeu.payment.service;
+package com.concordeu.payment.listener;
 
-import com.concordeu.client.common.constant.PaymentConstants;
+import com.concordeu.client.common.constant.Constant;
 import com.concordeu.client.common.dto.CardDto;
 import com.concordeu.client.common.dto.PaymentDto;
 import com.concordeu.client.common.dto.ReplayPaymentDto;
-import com.concordeu.payment.domain.AppCard;
+import com.concordeu.payment.service.CardService;
+import com.concordeu.payment.service.CustomerService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.stripe.exception.StripeException;
@@ -26,8 +27,8 @@ public class ReplyKafkaListener {
     private final ObjectMapper objectMapper;
 
     @KafkaListener(
-            topics = PaymentConstants.CREATE_CUSTOMER,
-            groupId = PaymentConstants.PAYMENT_SERVICE,
+            topics = Constant.CREATE_CUSTOMER,
+            groupId = Constant.PAYMENT_SERVICE,
             containerFactory = CONTAINER_FACTORY
     )
     @SendTo
@@ -40,8 +41,8 @@ public class ReplyKafkaListener {
     }
 
     @KafkaListener(
-            topics = PaymentConstants.GET_CARDS_BY_USERNAME,
-            groupId = PaymentConstants.PAYMENT_SERVICE,
+            topics = Constant.GET_CARDS_BY_USERNAME,
+            groupId = Constant.PAYMENT_SERVICE,
             containerFactory = CONTAINER_FACTORY
     )
     @SendTo
@@ -66,8 +67,8 @@ public class ReplyKafkaListener {
     }
 
     @KafkaListener(
-            topics = PaymentConstants.ADD_CARD_TO_CUSTOMER,
-            groupId = PaymentConstants.PAYMENT_SERVICE,
+            topics = Constant.ADD_CARD_TO_CUSTOMER,
+            groupId = Constant.PAYMENT_SERVICE,
             containerFactory = CONTAINER_FACTORY
     )
     @SendTo
@@ -80,8 +81,8 @@ public class ReplyKafkaListener {
     }
 
     @KafkaListener(
-            topics = PaymentConstants.DELETE_BY_USERNAME,
-            groupId = PaymentConstants.PAYMENT_SERVICE,
+            topics = Constant.DELETE_BY_USERNAME,
+            groupId = Constant.PAYMENT_SERVICE,
             containerFactory = CONTAINER_FACTORY
     )
     @SendTo

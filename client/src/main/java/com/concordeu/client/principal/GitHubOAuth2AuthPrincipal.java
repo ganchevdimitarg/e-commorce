@@ -1,6 +1,6 @@
 package com.concordeu.client.principal;
 
-import com.concordeu.client.security.ProfileGrantedAuthority;
+import com.concordeu.client.common.ProfileGrantedAuthority;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;

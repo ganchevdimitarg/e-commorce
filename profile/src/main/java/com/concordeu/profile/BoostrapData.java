@@ -1,7 +1,7 @@
 package com.concordeu.profile;
 
 import com.concordeu.profile.entities.Profile;
-import com.concordeu.client.security.ProfileGrantedAuthority;
+import com.concordeu.client.common.ProfileGrantedAuthority;
 import com.concordeu.profile.repositories.ProfileRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;

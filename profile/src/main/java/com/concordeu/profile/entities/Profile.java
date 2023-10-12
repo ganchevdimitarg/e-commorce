@@ -1,6 +1,6 @@
 package com.concordeu.profile.entities;
 
-import com.concordeu.client.security.ProfileGrantedAuthority;
+import com.concordeu.client.common.ProfileGrantedAuthority;
 import lombok.Builder;
 import lombok.Data;
 import org.springframework.data.annotation.Id;

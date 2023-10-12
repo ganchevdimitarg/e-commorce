@@ -1,15 +1,13 @@
 package com.concordeu.profile.controller;
 
+import com.concordeu.client.common.dto.UserRequestDto;
 import com.concordeu.profile.annotation.ValidationRequest;
 import com.concordeu.profile.dto.UserDto;
-import com.concordeu.client.common.dto.UserRequestDto;
 import com.concordeu.profile.service.MailService;
 import com.concordeu.profile.service.ProfileService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -63,33 +61,34 @@ public class ProfileController {
     @PutMapping("/update-user")
     @ValidationRequest
     @PreAuthorize("hasAnyAuthority('SCOPE_profile.write', 'ROLE_USER')")
-    public void updateUser(@RequestBody UserRequestDto requestDto,
+    public Mono<Void> updateUser(@RequestBody UserRequestDto requestDto,
                            @RequestParam String username) {
         profileService.updateUser(username.trim(), requestDto);
+        return Mono.empty();
     }
 
     @DeleteMapping("/delete-user")
     @PreAuthorize("hasAuthority('SCOPE_profile.write')")
     public Mono<Void> deleteUser(Authentication authentication) throws ExecutionException, InterruptedException, JsonProcessingException, TimeoutException {
-        System.out.println();
         profileService.deleteUser(authentication.getName().trim());
         return Mono.empty();
     }
 
     @GetMapping("/password-reset")
-    public String passwordReset(@RequestParam String username) {
-        return String.format("""
+    public Mono<String> passwordReset(@RequestParam String username) {
+        return Mono.just(String.format("""
                 token: %s
-                """, profileService.passwordReset(username.trim()).subscribe());
+                """, profileService.passwordReset(username.trim()).toFuture().getNow("")));
     }
 
     @GetMapping("/password-reset-token")
-    public boolean isValidPasswordReset(@RequestParam String token) {
-        return profileService.isPasswordResetTokenValid(token.trim());
+    public Mono<Boolean> isValidPasswordReset(@RequestParam String token) {
+        return Mono.just(profileService.isPasswordResetTokenValid(token.trim()));
     }
 
     @GetMapping("/set-new-password")
-    public void setNewPassword(@RequestParam String username, @RequestParam String password) {
+    public Mono<Void> setNewPassword(@RequestParam String username, @RequestParam String password) {
         profileService.setNewPassword(username.trim(), password.trim());
+        return Mono.empty();
     }
 }

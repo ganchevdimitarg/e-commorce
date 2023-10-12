@@ -1,7 +1,7 @@
 package com.concordeu.notification.controller;
 
+import com.concordeu.client.common.dto.NotificationDto;
 import com.concordeu.notification.annotation.ValidationRequest;
-import com.concordeu.notification.dto.NotificationDto;
 import com.concordeu.notification.service.EmailService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;

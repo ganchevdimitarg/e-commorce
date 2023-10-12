@@ -1,8 +1,6 @@
-package com.concordeu.profile.config;
+package com.concordeu.auth.config.security;
 
 import com.concordeu.client.common.constant.Constant;
-import com.concordeu.client.common.dto.NotificationDto;
-import com.concordeu.client.common.dto.ReplayPaymentDto;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
@@ -12,7 +10,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.config.TopicBuilder;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
 import org.springframework.kafka.requestreply.ReplyingKafkaTemplate;
@@ -23,7 +20,7 @@ import java.util.Map;
 
 @Configuration
 public class KafkaProducerConfig {
-    public static final String PAYMENT_SERVICE_REPLIES = "paymentServiceReplies";
+    public static final String PROFILE_SERVICE_REPLIES = "profileServiceReplies";
 
     @Value("${spring.kafka.bootstrap-servers}")
     private String bootstrapAddress;
@@ -37,24 +34,13 @@ public class KafkaProducerConfig {
     }
 
     @Bean
-    public ProducerFactory<String, NotificationDto> producerFactory() {
+    public ProducerFactory<String, String> replyingProducerFactory() {
         return new DefaultKafkaProducerFactory<>(producerConfig());
     }
 
     @Bean
-    public KafkaTemplate<String, NotificationDto> kafkaTemplate(
-            ProducerFactory<String, NotificationDto> producerFactory) {
-        return new KafkaTemplate<>(producerFactory);
-    }
-
-    @Bean
-    public ProducerFactory<String, ReplayPaymentDto> replyingProducerFactory() {
-        return new DefaultKafkaProducerFactory<>(producerConfig());
-    }
-
-    @Bean
-    public ReplyingKafkaTemplate<String, ReplayPaymentDto, String> replyingTemplate(
-            ProducerFactory<String, ReplayPaymentDto> pf,
+    public ReplyingKafkaTemplate<String, String, String> replyingTemplate(
+            ProducerFactory<String, String> pf,
             ConcurrentMessageListenerContainer<String, String> repliesContainer) {
 
         return new ReplyingKafkaTemplate<>(pf, repliesContainer);
@@ -66,48 +52,16 @@ public class KafkaProducerConfig {
 
 
         ConcurrentMessageListenerContainer<String, String> repliesContainer =
-                containerFactory.createContainer(PAYMENT_SERVICE_REPLIES);
-        repliesContainer.getContainerProperties().setGroupId(Constant.PAYMENT_SERVICE);
+                containerFactory.createContainer(PROFILE_SERVICE_REPLIES);
+        repliesContainer.getContainerProperties().setGroupId(Constant.PROFILE_SERVICE);
         repliesContainer.setAutoStartup(false);
 
         return repliesContainer;
     }
 
     @Bean
-    public NewTopic requestsGetCardsByUsername() {
-        return TopicBuilder.name(Constant.GET_CARDS_BY_USERNAME)
-                .partitions(10)
-                .replicas(2)
-                .build();
-    }
-
-    @Bean
-    public NewTopic requestsAddCardToCustomer() {
-        return TopicBuilder.name(Constant.ADD_CARD_TO_CUSTOMER)
-                .partitions(10)
-                .replicas(2)
-                .build();
-    }
-
-    @Bean
-    public NewTopic requestsCreateCustomer() {
-        return TopicBuilder.name(Constant.CREATE_CUSTOMER)
-                .partitions(10)
-                .replicas(2)
-                .build();
-    }
-
-    @Bean
-    public NewTopic requestsDeleteByUsername() {
-        return TopicBuilder.name(Constant.DELETE_BY_USERNAME)
-                .partitions(10)
-                .replicas(2)
-                .build();
-    }
-
-    @Bean
-    public NewTopic requestsSendWelcomeMail() {
-        return TopicBuilder.name(Constant.SEND_WELCOME_MAIL)
+    public NewTopic requestsGetByUsername() {
+        return TopicBuilder.name(Constant.GET_USER_BY_USERNAME)
                 .partitions(10)
                 .replicas(2)
                 .build();
