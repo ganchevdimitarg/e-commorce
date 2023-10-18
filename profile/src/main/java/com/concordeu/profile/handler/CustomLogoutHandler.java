@@ -7,7 +7,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.jwt.BadJwtException;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
@@ -21,9 +20,10 @@ import java.util.Objects;
 
 @Component
 @Slf4j
-public class CustomLogoutHandler implements ServerLogoutHandler/*LogoutHandler*/ {
+public class CustomLogoutHandler implements ServerLogoutHandler {
     private static final String GOOGLE_PREFIX = "ya29.";
     private static final String GITHUB_PREFIX = "gho_";
+    private static final String TOKEN_PREFIX = "Bearer ";
     private final WebClient webClient;
     private final JwtDecoder jwtDecoder;
     private final Gson mapper;
@@ -60,9 +60,17 @@ public class CustomLogoutHandler implements ServerLogoutHandler/*LogoutHandler*/
         this.facebookRevokeUri = facebookRevokeUri;
     }
 
+
     @Override
     public Mono<Void> logout(WebFilterExchange exchange, Authentication authentication) {
-        String token = exchange.getExchange().getAttribute(HttpHeaders.AUTHORIZATION).toString().replace("Bearer ", "");
+
+        String token = Objects.requireNonNull(
+                        exchange
+                                .getExchange()
+                                .getAttribute(HttpHeaders.AUTHORIZATION)
+                )
+                .toString()
+                .replace(TOKEN_PREFIX, "");
 
         if (isJwt(token)) {
             revokeECommerceAccessToken(token);
@@ -83,7 +91,7 @@ public class CustomLogoutHandler implements ServerLogoutHandler/*LogoutHandler*/
                         .build()
         );
 
-        ResponseEntity<Void> response = webClient
+        webClient
                 .method(HttpMethod.DELETE)
                 .uri(githubRevokeUri)
                 .headers(headers -> headers.setBasicAuth(githubClientId, githubSecret))
@@ -92,61 +100,78 @@ public class CustomLogoutHandler implements ServerLogoutHandler/*LogoutHandler*/
                 .bodyValue(requestBody)
                 .retrieve()
                 .toBodilessEntity()
-                .block();
-
-        log.info("""
-                User login with GITHUB successful logout.
-                Token: {}
-                Status: {}
-                """, token, Objects.requireNonNull(response).getStatusCode().value());
+                .doOnSuccess(d -> log.info("""
+                        User login with GITHUB successful logout.
+                        Token: {}
+                        Status: {}
+                        """, token, d.getStatusCode().value()))
+                .doOnError(d -> log.warn("""
+                        There is an error with logging out of the user's GITHUB account.
+                        Token: {}
+                        Status: {}
+                        """, token, d.getMessage()))
+                .subscribe();
     }
 
     private void revokeFacebookAccessToken(String token) {
-        ResponseEntity<Void> response = webClient
+        webClient
                 .delete()
                 .uri(facebookRevokeUri + token)
                 .header(HttpHeaders.AUTHORIZATION, token)
                 .retrieve()
                 .toBodilessEntity()
-                .block();
-
-        log.info("""
-                User login with FACEBOOK successful logout.
-                Token: {}
-                Status: {}
-                """, token, Objects.requireNonNull(response).getStatusCode().value());
+                .doOnSuccess(d -> log.info("""
+                        User login with FACEBOOK successful logout.
+                        Token: {}
+                        Status: {}
+                        """, token, d.getStatusCode().value()))
+                .doOnError(d -> log.warn("""
+                        There is an error with logging out of the user's Facebook account.
+                        Token: {}
+                        Status: {}
+                        """, token, d.getMessage()))
+                .subscribe();
     }
 
     private void revokeGoogleAccessToken(String token) {
-        ResponseEntity<Void> response = webClient
+        webClient
                 .post()
                 .uri(googleRevokeUri + token)
                 .header(HttpHeaders.AUTHORIZATION, token)
                 .retrieve()
                 .toBodilessEntity()
-                .block();
-
-        log.info("""
-                User login with GOOGLE AUTH SERVER successful logout.
-                Token: {}
-                Status: {}
-                """, token, Objects.requireNonNull(response).getStatusCode().value());
+                .doOnSuccess(d -> log.info("""
+                        User login with GOOGLE AUTH SERVER successful logout.
+                        Token: {}
+                        Status: {}
+                        """, token, d.getStatusCode().value()))
+                .doOnError(d -> log.warn("""
+                        There is an error with logging out of the user's GOOGLE AUTH SERVER account.
+                        Token: {}
+                        Status: {}
+                        """, token, d.getMessage()))
+                .subscribe();
     }
 
 
     private void revokeECommerceAccessToken(String token) {
-        ResponseEntity<Void> response = webClient
+        webClient
                 .post()
                 .uri(ecommerceRevokeUri + token)
                 .headers(headers -> headers.setBasicAuth(ecommerceOAuth2ClientId, ecommerceOAuth2Secret))
                 .retrieve()
                 .toBodilessEntity()
-                .block();
-        log.info("""
-                User login with E-COMMERCE AUTH SERVER successful logout.
-                Token: {}
-                Status: {}
-                """, token, Objects.requireNonNull(response).getStatusCode().value());
+                .doOnSuccess(d -> log.info("""
+                        User login with E-COMMERCE AUTH SERVER successful logout.
+                        Token: {}
+                        Status: {}
+                        """, token, d.getStatusCode().value()))
+                .doOnError(d -> log.warn("""
+                        There is an error with logging out of the user's E-COMMERCE AUTH SERVER account.
+                        Token: {}
+                        Status: {}
+                        """, token, d.getMessage()))
+                .subscribe();
     }
 
 
