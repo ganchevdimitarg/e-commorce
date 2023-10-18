@@ -24,7 +24,7 @@ public class ReplyKafkaListener {
             containerFactory = Constant.CONTAINER_FACTORY
     )
     @SendTo
-    public AuthUserDto handleCreateCustomer(String username) throws ExecutionException, InterruptedException {
+    public AuthUserDto handleGetUser(String username) throws ExecutionException, InterruptedException {
         return profileRepository.findByUsername(username)
                 .map(u -> AuthUserDto.builder()
                         .username(u.getUsername())

@@ -1,5 +1,6 @@
 package com.concordeu.order.service;
 
+import com.concordeu.order.dto.ChargeDto;
 import com.concordeu.order.excaption.InvalidRequestDataException;
 import com.concordeu.order.repositories.ChargeRepository;
 import com.concordeu.order.domain.Charge;
@@ -14,6 +15,8 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
+
+import java.time.OffsetDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -30,70 +33,10 @@ public class ChargeServiceImpl implements ChargeService {
     private String paymentServiceChargeCustomerUri;
 
     @Override
-    public PaymentDto makePayment(String cardId, String authenticationName, long amount) {
-        PaymentDto paymentCustomer = getCustomerFromPaymentService(
-                paymentServiceGetCustomerByUsernameUri + authenticationName
-        );
-
-        PaymentDto chargeCustomer = chargeCustomer(amount, paymentCustomer, cardId);
-        log.info("Payment went through successfully: {}", chargeCustomer.chargeId());
-        return chargeCustomer;
-    }
-
-    @Override
-    public void saveCharge(Order order, PaymentDto paymentCharge) {
-        Charge charge = Charge.builder()
-                .chargeId(paymentCharge.chargeId())
-                .status(paymentCharge.chargeStatus())
-                .order(order)
-                .build();
-
-        chargeRepository.save(charge);
-        log.info("Charge was successfully created");
-    }
-
-    private PaymentDto chargeCustomer(long amount, PaymentDto paymentCustomer, String cardId) {
-        String chargeRequestBody = mapper.toJson(
-                PaymentDto.builder()
-                        .amount(amount)
-                        .currency("usd")
-                        .receiptEmail(paymentCustomer.username())
-                        .customerId(paymentCustomer.customerId())
-                        .username(paymentCustomer.username())
-                        .cardId(cardId)
-        );
-
-        return sendRequestToPaymentService(
-                paymentServiceChargeCustomerUri,
-                chargeRequestBody);
-    }
-
-    private PaymentDto sendRequestToPaymentService(String uri, String request) {
-        PaymentDto paymentDto = webClient
-                .post()
-                .uri(uri)
-                .contentType(MediaType.APPLICATION_JSON)
-                .accept(MediaType.APPLICATION_JSON)
-                .bodyValue(request)
-                .retrieve()
-                .bodyToMono(PaymentDto.class)
-                .transform(it ->
-                        reactiveCircuitBreakerFactory.create("orderService")
-                                .run(it, throwable -> {
-                                    log.warn("Payment service is down", throwable);
-                                    return Mono.just(PaymentDto.builder().chargeId("").build());
-                                })
-                )
-                .block();
-
-        checkPaymentServiceAvailability(paymentDto.chargeId());
-        return paymentDto;
-    }
-
-    private PaymentDto getCustomerFromPaymentService(String uri) {
-        PaymentDto paymentDto = webClient
+    public Mono<PaymentDto> makePayment(String cardId, String authenticationName, long amount) {
+        return webClient
                 .get()
-                .uri(uri)
+                .uri(paymentServiceGetCustomerByUsernameUri + authenticationName)
                 .accept(MediaType.APPLICATION_JSON)
                 .retrieve()
                 .bodyToMono(PaymentDto.class)
@@ -104,19 +47,59 @@ public class ChargeServiceImpl implements ChargeService {
                                     return Mono.just(PaymentDto.builder().username("").build());
                                 })
                 )
-                .block();
-
-        checkPaymentServiceAvailability(paymentDto.username());
-        return paymentDto;
+                .doOnError(throwable -> {
+                    throw new InvalidRequestDataException("""
+                            Something happened with the order service.
+                            Please check the request details again
+                            """);
+                })
+                .flatMap(paymentCustomer -> chargeCustomer(amount, paymentCustomer, cardId));
     }
 
-    private void checkPaymentServiceAvailability(String token) {
-        if (token.isEmpty()) {
-            throw new InvalidRequestDataException("""
-                    Something happened with the order service.
-                    Please check the request details again
-                    """);
-        }
+    @Override
+    public Mono<Void> saveCharge(Order order, PaymentDto paymentCharge) {
+        Charge charge = Charge.builder()
+                .chargeId(paymentCharge.chargeId())
+                .status(paymentCharge.chargeStatus())
+                .order(order)
+                .build();
+
+        chargeRepository.save(charge);
+        log.info("Charge was successfully created");
+        return Mono.empty();
     }
 
+    private Mono<PaymentDto> chargeCustomer(long amount, PaymentDto paymentCustomer, String cardId) {
+        String chargeRequestBody = mapper.toJson(
+                PaymentDto.builder()
+                        .amount(amount)
+                        .currency("usd")
+                        .receiptEmail(paymentCustomer.username())
+                        .customerId(paymentCustomer.customerId())
+                        .username(paymentCustomer.username())
+                        .cardId(cardId)
+        );
+
+        return webClient
+                .post()
+                .uri(paymentServiceChargeCustomerUri)
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.APPLICATION_JSON)
+                .bodyValue(chargeRequestBody)
+                .retrieve()
+                .bodyToMono(PaymentDto.class)
+                .transform(it ->
+                        reactiveCircuitBreakerFactory.create("orderService")
+                                .run(it, throwable -> {
+                                    log.warn("Payment service is down", throwable);
+                                    return Mono.just(PaymentDto.builder().chargeId("").build());
+                                })
+                )
+                .doOnError(throwable -> {
+                    throw new InvalidRequestDataException("""
+                            Something happened with the order service.
+                            Please check the request details again
+                            """);
+                });
+    }
 }

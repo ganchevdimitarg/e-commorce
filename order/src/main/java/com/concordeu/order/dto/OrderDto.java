@@ -7,6 +7,7 @@ import java.util.List;
 
 @Builder
 public record OrderDto(
+        long orderNumber,
         String username,
         String firstName,
         String lastName,

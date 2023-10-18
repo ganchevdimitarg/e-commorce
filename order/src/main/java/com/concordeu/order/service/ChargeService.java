@@ -1,9 +1,12 @@
 package com.concordeu.order.service;
 
+import com.concordeu.order.domain.Charge;
 import com.concordeu.order.domain.Order;
+import com.concordeu.order.dto.ChargeDto;
 import com.concordeu.order.dto.PaymentDto;
+import reactor.core.publisher.Mono;
 
 public interface ChargeService {
-    void saveCharge(Order order, PaymentDto paymentCharge);
-    PaymentDto makePayment(String cardId, String username, long amount);
+    Mono<Void> saveCharge(Order order, PaymentDto paymentCharge);
+    Mono<PaymentDto> makePayment(String cardId, String username, long amount);
 }
