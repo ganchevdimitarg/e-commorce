@@ -117,7 +117,8 @@ public class ProfileServiceImpl implements ProfileService {
         )
                 .cards();
 
-        return profileRepository.findByUsername(username)
+        Mono<Profile> byUsername = profileRepository.findByUsername(username);
+        return byUsername
                 .map(p -> UserDto.builder()
                         .id(p.getId())
                         .username(p.getUsername())

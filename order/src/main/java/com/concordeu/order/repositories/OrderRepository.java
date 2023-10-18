@@ -9,7 +9,7 @@ import java.util.Optional;
 
 public interface OrderRepository extends JpaRepository<Order, String> {
     @EntityGraph(value = "graph-order")
-    Optional<Order> findByOrderNumber(long orderNumber);
+    Order findByOrderNumber(long orderNumber);
 
     @Transactional
     void deleteByOrderNumber(long orderNumber);

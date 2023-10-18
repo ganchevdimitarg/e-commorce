@@ -16,7 +16,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import jakarta.servlet.http.HttpServletRequest;
+import reactor.core.publisher.Mono;
 
 @RestController
 @RequestMapping("/api/v1/order")
@@ -37,9 +37,9 @@ public class OrderController {
     @PostMapping("/create-order")
     @ValidationRequest
     @PreAuthorize("hasAuthority('SCOPE_order.write')")
-    public void createOrder(@RequestBody OrderDto orderDto, Authentication authentication) {
-        orderService.createOrder(orderDto, authentication.getName());
+    public Mono<OrderDto> createOrder(@RequestBody OrderDto orderDto, Authentication authentication) {
         mailService.sendUserOrderMail(orderDto.username());
+        return orderService.createOrder(orderDto, authentication.getName());
     }
 
     @Operation(summary = "Delete Order", description = "Delete order by order cardNumber",
@@ -66,7 +66,7 @@ public class OrderController {
     })
     @GetMapping("/get-order")
     @PreAuthorize("hasAuthority('SCOPE_order.read')")
-    public OrderResponseDto getOrder(@RequestParam long orderNumber, Authentication authentication) {
+    public Mono<OrderResponseDto> getOrder(@RequestParam long orderNumber, Authentication authentication) {
         return orderService.getOrder(orderNumber, authentication.getName());
     }
 }

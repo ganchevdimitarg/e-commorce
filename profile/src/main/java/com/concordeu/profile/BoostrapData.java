@@ -1,5 +1,6 @@
 package com.concordeu.profile;
 
+import com.concordeu.profile.entities.Address;
 import com.concordeu.profile.entities.Profile;
 import com.concordeu.client.common.ProfileGrantedAuthority;
 import com.concordeu.profile.repositories.ProfileRepository;
@@ -51,6 +52,13 @@ public class BoostrapData implements CommandLineRunner {
                                     new ProfileGrantedAuthority(NOTIFICATION_READ.getPermission()),
                                     new ProfileGrantedAuthority(NOTIFICATION_WRITE.getPermission())
                             )
+                    )
+                    .address(
+                            Address.builder()
+                                    .city("Varna")
+                                    .postCode("9000")
+                                    .street("Katay Paskaleva")
+                                    .build()
                     )
                     .build();
 
