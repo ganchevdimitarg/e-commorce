@@ -9,20 +9,20 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
 public interface ProfileService {
-    Mono<UserDto> createAdmin(UserRequestDto model);
+    UserDto createAdmin(UserRequestDto model);
 
-    Mono<UserDto> createWorker(UserRequestDto model);
+    UserDto createWorker(UserRequestDto model);
 
-    Mono<UserDto> createUser(UserRequestDto userRequestDto) throws ExecutionException, InterruptedException, JsonProcessingException, TimeoutException;
+    UserDto createUser(UserRequestDto userRequestDto) throws ExecutionException, InterruptedException, JsonProcessingException, TimeoutException;
 
     void updateUser(String username,
                     UserRequestDto userRequestDto);
 
     void deleteUser(String email) throws ExecutionException, InterruptedException, JsonProcessingException, TimeoutException;
 
-    Mono<UserDto> getUserByUsername(String email) throws ExecutionException, InterruptedException, TimeoutException, JsonProcessingException;
+    UserDto getUserByUsername(String email) throws ExecutionException, InterruptedException, TimeoutException, JsonProcessingException;
 
-    Mono<String> passwordReset(String username);
+    String passwordReset(String username);
 
     boolean isPasswordResetTokenValid(String token);
 

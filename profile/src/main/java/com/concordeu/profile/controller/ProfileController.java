@@ -28,25 +28,25 @@ public class ProfileController {
 
     @PostMapping("/register-admin")
     @ValidationRequest
-    public Mono<UserDto> createAdmin(@RequestBody UserRequestDto requestDto) {
+    public UserDto createAdmin(@RequestBody UserRequestDto requestDto) {
         return profileService.createAdmin(requestDto);
     }
 
     @PostMapping("/register-worker")
     @ValidationRequest
-    public Mono<UserDto> createWorker(@RequestBody UserRequestDto requestDto) {
+    public UserDto createWorker(@RequestBody UserRequestDto requestDto) {
         return profileService.createWorker(requestDto);
     }
 
     @PostMapping("/register-user")
     @ValidationRequest
-    public Mono<UserDto> createUser(@RequestBody UserRequestDto requestDto) throws ExecutionException, InterruptedException, JsonProcessingException, TimeoutException {
+    public UserDto createUser(@RequestBody UserRequestDto requestDto) throws ExecutionException, InterruptedException, JsonProcessingException, TimeoutException {
         mailService.sendUserWelcomeMail(requestDto.username());
         return profileService.createUser(requestDto);
     }
 
     @GetMapping("/get-by-username")
-    public Mono<UserDto> getUserByUsername(Authentication authentication, @RequestParam String username) throws ExecutionException, InterruptedException, TimeoutException, JsonProcessingException {
+    public UserDto getUserByUsername(Authentication authentication, @RequestParam String username) throws ExecutionException, InterruptedException, TimeoutException, JsonProcessingException {
         String principalName = authentication.getName();
 
         if (principalName.equals(username.trim()) ||
@@ -61,34 +61,31 @@ public class ProfileController {
     @PutMapping("/update-user")
     @ValidationRequest
     @PreAuthorize("hasAnyAuthority('SCOPE_profile.write', 'ROLE_USER')")
-    public Mono<Void> updateUser(@RequestBody UserRequestDto requestDto,
+    public void updateUser(@RequestBody UserRequestDto requestDto,
                            @RequestParam String username) {
         profileService.updateUser(username.trim(), requestDto);
-        return Mono.empty();
     }
 
     @DeleteMapping("/delete-user")
     @PreAuthorize("hasAuthority('SCOPE_profile.write')")
-    public Mono<Void> deleteUser(Authentication authentication) throws ExecutionException, InterruptedException, JsonProcessingException, TimeoutException {
+    public void deleteUser(Authentication authentication) throws ExecutionException, InterruptedException, JsonProcessingException, TimeoutException {
         profileService.deleteUser(authentication.getName().trim());
-        return Mono.empty();
     }
 
     @GetMapping("/password-reset")
-    public Mono<String> passwordReset(@RequestParam String username) {
-        return Mono.just(String.format("""
+    public String passwordReset(@RequestParam String username) {
+        return String.format("""
                 token: %s
-                """, profileService.passwordReset(username.trim()).toFuture().getNow("")));
+                """, profileService.passwordReset(username.trim()));
     }
 
     @GetMapping("/password-reset-token")
-    public Mono<Boolean> isValidPasswordReset(@RequestParam String token) {
-        return Mono.just(profileService.isPasswordResetTokenValid(token.trim()));
+    public boolean isValidPasswordReset(@RequestParam String token) {
+        return profileService.isPasswordResetTokenValid(token.trim());
     }
 
     @GetMapping("/set-new-password")
-    public Mono<Void> setNewPassword(@RequestParam String username, @RequestParam String password) {
+    public void setNewPassword(@RequestParam String username, @RequestParam String password) {
         profileService.setNewPassword(username.trim(), password.trim());
-        return Mono.empty();
     }
 }

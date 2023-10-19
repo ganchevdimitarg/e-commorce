@@ -22,8 +22,8 @@ public class BoostrapData implements CommandLineRunner {
 
 
     @Override
-    public void run(String... args) throws Exception {
-        if (profileRepository.count().toFuture().get() == 0) {
+    public void run(String... args) {
+        if (profileRepository.count() == 0) {
             Profile admin = Profile.builder()
                     .username("admin@gmail.com")
                     .password(passwordEncoder.encode("admin"))
@@ -62,7 +62,7 @@ public class BoostrapData implements CommandLineRunner {
                     )
                     .build();
 
-            profileRepository.saveAll(List.of(admin, user)).subscribe();
+            profileRepository.saveAll(List.of(admin, user));
         }
     }
 }
