@@ -13,6 +13,7 @@ import com.concordeu.profile.repositories.ProfileRepository;
 import com.concordeu.profile.validation.ValidateData;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jdk.jshell.spi.ExecutionControl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -46,24 +47,24 @@ public class ProfileServiceImpl implements ProfileService {
     private final ReplyingKafkaTemplate<String, ReplayPaymentDto, String> template;
 
     @Override
-    public Mono<UserDto> createAdmin(UserRequestDto userRequestDto) {
-        Mono<UserDto> userDto = createStaff(userRequestDto, ADMIN.getGrantedAuthorities());
-        log.debug("Admin user with username: {} was created", userDto.toFuture().getNow(UserDto.builder().build()).username());
+    public UserDto createAdmin(UserRequestDto userRequestDto) {
+        UserDto userDto = createStaff(userRequestDto, ADMIN.getGrantedAuthorities());
+        log.debug("Admin user with username: {} was created", userDto.username());
         return userDto;
     }
 
     @Override
-    public Mono<UserDto> createWorker(UserRequestDto userRequestDto) {
-        Mono<UserDto> userDto = createStaff(userRequestDto, WORKER.getGrantedAuthorities());
-        log.debug("Worker user with username: {} was created", userDto.toFuture().getNow(UserDto.builder().build()).username());
+    public UserDto createWorker(UserRequestDto userRequestDto) {
+        UserDto userDto = createStaff(userRequestDto, WORKER.getGrantedAuthorities());
+        log.debug("Worker user with username: {} was created", userDto.username());
         return userDto;
     }
 
     @Override
-    public Mono<UserDto> createUser(UserRequestDto userRequestDto) throws ExecutionException, InterruptedException, JsonProcessingException, TimeoutException {
+    public UserDto createUser(UserRequestDto userRequestDto) throws ExecutionException, InterruptedException, JsonProcessingException, TimeoutException {
         UserDto userDto = createUser(userRequestDto, USER.getGrantedAuthorities());
         log.debug("Profile user with username: {} was created", userDto.username());
-        return Mono.just(userDto);
+        return userDto;
     }
 
     @Override
@@ -71,9 +72,7 @@ public class ProfileServiceImpl implements ProfileService {
                            UserRequestDto userRequestDto) {
         Assert.hasLength(username, "Username is empty");
 
-        Profile profile = profileRepository.findByUsername(username)
-                .blockOptional()
-                .orElseThrow(() -> new UsernameNotFoundException("Profile does not exist"));
+        Profile profile = getProfile(username);
 
         Address address = new Address(
                 userRequestDto.city(),
@@ -87,7 +86,7 @@ public class ProfileServiceImpl implements ProfileService {
         profile.setPhoneNumber(userRequestDto.phoneNumber());
         profile.setAddress(address);
 
-        profileRepository.save(profile).subscribe();
+        profileRepository.save(profile);
         log.debug("Profile with username {} is update", profile.getUsername());
     }
 
@@ -95,21 +94,19 @@ public class ProfileServiceImpl implements ProfileService {
     public void deleteUser(String username) throws ExecutionException, InterruptedException, JsonProcessingException, TimeoutException {
         Assert.hasLength(username, "Username is empty");
 
-        Profile profile = profileRepository.findByUsername(username)
-                .toFuture()
-                .getNow(Profile.builder().build());
+        Profile profile = getProfile(username);
 
         getReplayPaymentDto(Constant.DELETE_BY_USERNAME,
                 ReplayPaymentDto.builder()
                         .username(profile.getUsername())
                         .build());
 
-        profileRepository.delete(profile).subscribe();
+        profileRepository.delete(profile);
         log.debug("User with username: {} was successfully deleted", username);
     }
 
     @Override
-    public Mono<UserDto> getUserByUsername(String username) throws ExecutionException, InterruptedException, JsonProcessingException, TimeoutException {
+    public UserDto getUserByUsername(String username) throws ExecutionException, InterruptedException, JsonProcessingException, TimeoutException {
         Assert.hasLength(username, "Username is empty");
         Set<CardDto> cardDto = getReplayPaymentDto(
                 Constant.GET_CARDS_BY_USERNAME,
@@ -117,33 +114,29 @@ public class ProfileServiceImpl implements ProfileService {
         )
                 .cards();
 
-        Mono<Profile> byUsername = profileRepository.findByUsername(username);
-        return byUsername
-                .map(p -> UserDto.builder()
-                        .id(p.getId())
-                        .username(p.getUsername())
-                        .firstName(p.getFirstName())
-                        .lastName(p.getLastName())
-                        .phoneNumber(p.getPhoneNumber())
-                        .city(p.getAddress().city())
-                        .street(p.getAddress().street())
-                        .postCode(p.getAddress().postCode())
-                        .cardId(cardDto == null || cardDto.isEmpty() ? "N/A" : cardDto.stream().findFirst().get().cardId())
-                        .cardNumber(cardDto == null || cardDto.isEmpty() ? "N/A" : cardDto.stream().findFirst().get().cardNumber())
-                        .cardExpMonth(cardDto == null || cardDto.isEmpty() ? 0 : cardDto.stream().findFirst().get().cardExpMonth())
-                        .cardExpYear(cardDto == null || cardDto.isEmpty() ? 0 : cardDto.stream().findFirst().get().cardExpYear())
-                        .cardCvc(cardDto == null || cardDto.isEmpty() ? "N/A" : cardDto.stream().findFirst().get().cardCvc())
-                        .build()
-                );
+        Profile profile = getProfile(username);
+
+        return UserDto.builder()
+                .id(profile.getId())
+                .username(profile.getUsername())
+                .firstName(profile.getFirstName())
+                .lastName(profile.getLastName())
+                .phoneNumber(profile.getPhoneNumber())
+                .city(profile.getAddress().city())
+                .street(profile.getAddress().street())
+                .postCode(profile.getAddress().postCode())
+                .cardId(cardDto == null || cardDto.isEmpty() ? "N/A" : cardDto.stream().findFirst().get().cardId())
+                .cardNumber(cardDto == null || cardDto.isEmpty() ? "N/A" : cardDto.stream().findFirst().get().cardNumber())
+                .cardExpMonth(cardDto == null || cardDto.isEmpty() ? 0 : cardDto.stream().findFirst().get().cardExpMonth())
+                .cardExpYear(cardDto == null || cardDto.isEmpty() ? 0 : cardDto.stream().findFirst().get().cardExpYear())
+                .cardCvc(cardDto == null || cardDto.isEmpty() ? "N/A" : cardDto.stream().findFirst().get().cardCvc())
+                .build();
     }
 
     @Override
-    public Mono<String> passwordReset(String username) {
-        profileRepository.findByUsername(username)
-                .subscribe(
-                        throwable -> {
-                            throw new InvalidRequestDataException(String.format("User does not exist: %s", username));
-                        });
+    public String passwordReset(String username) {
+        getProfile(username);
+
         String token = jwtService.generateToken(
                 new User(
                         username,
@@ -155,7 +148,7 @@ public class ProfileServiceImpl implements ProfileService {
         mailService.sendPasswordResetTokenMail(username, token);
         log.debug("Successfully generated password reset token");
 
-        return Mono.just(token);
+        return token;
     }
 
     @Override
@@ -166,12 +159,13 @@ public class ProfileServiceImpl implements ProfileService {
     @Override
     public void setNewPassword(String username,
                                String password) {
-        Profile profile = profileRepository.findByUsername(username).toFuture().getNow(Profile.builder().build());
+        Profile profile = getProfile(username);
 
         if (profile != null) {
             validateData.isValidPassword(password);
             Objects.requireNonNull(profile).setPassword(passwordEncoder.encode(password));
-            profileRepository.save(profile).subscribe();
+
+            profileRepository.save(profile);
             log.debug("The password of user {} has been changed successfully", username);
         } else {
             log.warn(String.format("User does not exist: %s", username));
@@ -179,23 +173,23 @@ public class ProfileServiceImpl implements ProfileService {
         }
     }
 
-    private Mono<UserDto> createStaff(UserRequestDto userRequestDto,
-                                      Set<ProfileGrantedAuthority> grantedAuthorities) {
+    private UserDto createStaff(UserRequestDto userRequestDto,
+                                Set<ProfileGrantedAuthority> grantedAuthorities) {
         Profile authProfile = builtProfile(userRequestDto, grantedAuthorities);
 
-        Mono<Profile> profile = profileRepository.save(authProfile);
+        Profile profile = profileRepository.save(authProfile);
         log.debug("The profile was successfully create");
 
-        return profile.map(p -> UserDto.builder()
-                .id(p.getId())
-                .username(p.getUsername())
-                .firstName(p.getFirstName())
-                .lastName(p.getLastName())
-                .phoneNumber(p.getPhoneNumber())
-                .city(p.getAddress().city())
-                .street(p.getAddress().street())
-                .postCode(p.getAddress().postCode())
-                .build());
+        return UserDto.builder()
+                .id(profile.getId())
+                .username(profile.getUsername())
+                .firstName(profile.getFirstName())
+                .lastName(profile.getLastName())
+                .phoneNumber(profile.getPhoneNumber())
+                .city(profile.getAddress().city())
+                .street(profile.getAddress().street())
+                .postCode(profile.getAddress().postCode())
+                .build();
     }
 
     private UserDto createUser(UserRequestDto userRequestDto,
@@ -235,12 +229,8 @@ public class ProfileServiceImpl implements ProfileService {
 
         log.debug("The profile was successfully create");
 
-        Profile profile;
-        try {
-            profile = profileRepository.save(authProfile).toFuture().get();
-        } catch (InterruptedException | ExecutionException e) {
-            throw new RuntimeException(e);
-        }
+        Profile profile = profileRepository.save(authProfile);
+
 
         return UserDto.builder()
                 .id(profile.getId())
@@ -261,11 +251,7 @@ public class ProfileServiceImpl implements ProfileService {
 
     private Profile builtProfile(UserRequestDto model, Set<ProfileGrantedAuthority> grantedAuthorities) {
         profileRepository.findByUsername(model.username())
-                .subscribe(
-                        throwable -> {
-                            throw new InvalidRequestDataException(String.format("Profile already exist: %s", model.username()));
-                        }
-                );
+                .orElseThrow(() -> new UsernameNotFoundException(String.format("Profile already exist: %s", model.username())));
 
         Address address = new Address(
                 model.city(),
@@ -283,6 +269,12 @@ public class ProfileServiceImpl implements ProfileService {
                 .build();
     }
 
+
+    private Profile getProfile(String username) {
+        return profileRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("Profile does not exist"));
+    }
+
     private ReplayPaymentDto getReplayPaymentDto(String topic, ReplayPaymentDto payload) throws ExecutionException, InterruptedException, TimeoutException, JsonProcessingException {
         template.setReplyErrorChecker(record -> {
             Header error = record.headers().lastHeader(Constant.SERVER_SENT_AN_ERROR);
@@ -295,12 +287,12 @@ public class ProfileServiceImpl implements ProfileService {
 
         ReplayPaymentDto paymentDto;
 
-            paymentDto = objectMapper.readValue(
-                    template.sendAndReceive(new ProducerRecord<>(topic, payload))
-                            .get(5, TimeUnit.SECONDS)
-                            .value(),
-                    ReplayPaymentDto.class
-            );
+        paymentDto = objectMapper.readValue(
+                template.sendAndReceive(new ProducerRecord<>(topic, payload))
+                        .get(5, TimeUnit.SECONDS)
+                        .value(),
+                ReplayPaymentDto.class
+        );
 
         return paymentDto;
     }

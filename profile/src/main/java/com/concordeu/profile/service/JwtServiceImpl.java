@@ -73,7 +73,7 @@ public class JwtServiceImpl implements JwtService {
     @Override
     public boolean isTokenValid(String token) {
         String username = extractUsername(token);
-        return (profileRepository.findByUsername(username).blockOptional().isPresent() &&
+        return (profileRepository.findByUsername(username).isPresent() &&
                 passwordResetRepository.findByToken(token).isPresent() &&
                 !isTokenExpired(token));
     }
