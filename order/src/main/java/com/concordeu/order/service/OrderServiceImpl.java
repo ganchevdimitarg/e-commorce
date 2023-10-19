@@ -144,6 +144,16 @@ public class OrderServiceImpl implements OrderService {
                             .username(orderSave.getUsername())
                             .deliveryComment(orderSave.getDeliveryComment())
                             .items(itemsSave)
+                            .firstName(orderDto.firstName())
+                            .lastName(orderDto.lastName())
+                            .phoneNumber(orderDto.phoneNumber())
+                            .city(orderDto.city())
+                            .street(orderDto.street())
+                            .postCode(orderDto.postCode())
+                            .cardNumber(orderDto.cardNumber())
+                            .cardExpMonth(orderDto.cardExpMonth())
+                            .cardExpYear(orderDto.cardExpYear())
+                            .cardCvc(orderDto.cardCvc())
                             .build();
                 });
     }

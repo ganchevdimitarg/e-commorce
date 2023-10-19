@@ -39,7 +39,7 @@ ALTER TABLE orders
     ADD CONSTRAINT order_number UNIQUE (order_number);
 
 ALTER TABLE items
-    ADD CONSTRAINT product_id UNIQUE (product_id);
+    ADD CONSTRAINT item_id UNIQUE (item_id);
 
 CREATE INDEX charge_id_stp_index ON charges (charge_id_stp);
 
