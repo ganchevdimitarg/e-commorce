@@ -1,6 +1,6 @@
 package com.concordeu.notification.aop;
 
-import com.concordeu.notification.dto.NotificationDto;
+import com.concordeu.client.common.dto.NotificationDto;
 import com.concordeu.notification.excaption.InvalidRequestDataException;
 import com.concordeu.notification.validation.ValidateRequest;
 import lombok.RequiredArgsConstructor;

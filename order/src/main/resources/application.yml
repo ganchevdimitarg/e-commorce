@@ -44,20 +44,15 @@ spring:
             token-uri: http://localhost:8082/oauth2/token
 
   #Data Source Properties
-  datasource:
+  r2dbc:
+    url: r2dbc:postgresql://localhost:5432/orders
     username: ${POSTGRES_USER}
     password: ${POSTGRES_PASSWORD}
+  flyway:
     url: jdbc:postgresql://localhost:5432/orders
-
-  #JPA Properties
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: true
-    show-sql: true
+    locations: classpath:db/migration
+    password: ${POSTGRES_PASSWORD}
+    user: ${POSTGRES_USER}
 
   #Pagination
   mvc:
@@ -83,14 +78,15 @@ logging:
         web: INFO
         security: INFO
         oauth2: INFO
-      hibernate:
-        SQL: DEBUG
-        type:
-          descriptor: TRACE
-    reactor:
-      netty:
-        http:
-          client: DEBUG
+        r2dbc: TRACE
+#      hibernate:
+#        SQL: DEBUG
+#        type:
+#          descriptor: TRACE
+#    reactor:
+#      netty:
+#        http:
+#          client: DEBUG
 
 
 #Eureka
@@ -114,13 +110,13 @@ management:
     web:
       exposure:
         include: "*"
-  metrics:
-    export:
-      prometheus:
-        enabled: true
   health:
     circuitbreakers:
       enabled: true
+  prometheus:
+    metrics:
+      export:
+        enabled: true
 
 #Spring Doc
 springdoc:

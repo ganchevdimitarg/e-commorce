@@ -1,11 +1,11 @@
-package com.concordeu.order.service;
+package com.concordeu.order.service.impl;
 
-import com.concordeu.order.dto.ChargeDto;
 import com.concordeu.order.excaption.InvalidRequestDataException;
 import com.concordeu.order.repositories.ChargeRepository;
 import com.concordeu.order.domain.Charge;
 import com.concordeu.order.domain.Order;
 import com.concordeu.order.dto.PaymentDto;
+import com.concordeu.order.service.ChargeService;
 import com.google.gson.Gson;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,8 +15,6 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
-
-import java.time.OffsetDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -57,16 +55,22 @@ public class ChargeServiceImpl implements ChargeService {
     }
 
     @Override
-    public Mono<Void> saveCharge(Order order, PaymentDto paymentCharge) {
+    public Mono<Charge> findChargeByOrderId(Long orderId) {
+        return chargeRepository.findChargeByOrderId(orderId);
+    }
+
+    @Override
+    public Mono<Charge> saveCharge(Order order, PaymentDto paymentCharge) {
+
         Charge charge = Charge.builder()
                 .chargeId(paymentCharge.chargeId())
                 .status(paymentCharge.chargeStatus())
-                .order(order)
+                .orderId(order.getId())
                 .build();
 
-        chargeRepository.save(charge);
+        ;
         log.info("Charge was successfully created");
-        return Mono.empty();
+        return chargeRepository.save(charge);
     }
 
     private Mono<PaymentDto> chargeCustomer(long amount, PaymentDto paymentCustomer, String cardId) {

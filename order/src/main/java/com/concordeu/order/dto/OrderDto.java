@@ -3,11 +3,15 @@ package com.concordeu.order.dto;
 import com.concordeu.order.domain.Item;
 import lombok.Builder;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Builder
 public record OrderDto(
-        long orderNumber,
+        Long id,
+        Long orderNumber,
+        LocalDateTime createdOn,
+        LocalDateTime updatedOn,
         String username,
         String firstName,
         String lastName,
@@ -16,9 +20,10 @@ public record OrderDto(
         String street,
         String postCode,
         String cardNumber,
-        long cardExpMonth,
-        long cardExpYear,
+        Long cardExpMonth,
+        Long cardExpYear,
         String cardCvc,
         String deliveryComment,
+        ChargeDto charge,
         List<Item> items) {
 }

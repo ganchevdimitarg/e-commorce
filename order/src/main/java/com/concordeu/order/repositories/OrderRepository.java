@@ -1,16 +1,14 @@
 package com.concordeu.order.repositories;
 
 import com.concordeu.order.domain.Order;
-import org.springframework.data.jpa.repository.EntityGraph;
-import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.r2dbc.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.data.repository.reactive.ReactiveCrudRepository;
 import org.springframework.transaction.annotation.Transactional;
+import reactor.core.publisher.Mono;
 
-import java.util.Optional;
+public interface OrderRepository extends ReactiveCrudRepository<Order, Long> {
+    Mono<Order> findOrderById(Long orderId);
 
-public interface OrderRepository extends JpaRepository<Order, String> {
-    @EntityGraph(value = "graph-order")
-    Order findByOrderNumber(long orderNumber);
-
-    @Transactional
-    void deleteByOrderNumber(long orderNumber);
+    Mono<Void> deleteOrderById(Long orderId);
 }

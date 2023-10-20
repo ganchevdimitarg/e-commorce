@@ -52,8 +52,8 @@ public class OrderController {
     })
     @DeleteMapping("/delete-order")
     @PreAuthorize("hasAuthority('SCOPE_order.write')")
-    public void deleteOrder(@RequestParam long orderNumber) {
-        orderService.deleteOrder(orderNumber);
+    public Mono<Void> deleteOrder(@RequestParam Long orderId) {
+        return orderService.deleteOrder(orderId);
     }
 
     @Operation(summary = "Get Order", description = "Get order by order cardNumber",
@@ -66,7 +66,7 @@ public class OrderController {
     })
     @GetMapping("/get-order")
     @PreAuthorize("hasAuthority('SCOPE_order.read')")
-    public Mono<OrderResponseDto> getOrder(@RequestParam long orderNumber, Authentication authentication) {
-        return orderService.getOrder(orderNumber, authentication.getName());
+    public Mono<OrderResponseDto> getOrder(@RequestParam Long orderId, Authentication authentication) {
+        return orderService.getOrder(orderId, authentication.getName());
     }
 }
