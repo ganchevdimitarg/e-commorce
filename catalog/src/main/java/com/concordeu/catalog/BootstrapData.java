@@ -47,7 +47,6 @@ public class BootstrapData implements CommandLineRunner {
 
         List<ProductCSVRecord> products = getProductList(productsFile);
 
-
         return initCsvRecord(products);
     }
 
