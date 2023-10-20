@@ -5,7 +5,6 @@ import com.concordeu.order.domain.Item;
 import com.concordeu.order.domain.Order;
 import com.concordeu.order.dto.*;
 import com.concordeu.order.excaption.InvalidRequestDataException;
-import com.concordeu.order.repositories.ItemRepository;
 import com.concordeu.order.repositories.OrderRepository;
 import com.concordeu.order.service.ChargeService;
 import com.concordeu.order.service.ItemService;
@@ -23,11 +22,10 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
+import java.text.DecimalFormat;
 import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.ExecutionException;
 
 @Service
 @RequiredArgsConstructor
@@ -115,7 +113,7 @@ public class OrderServiceImpl implements OrderService {
                     );
                     return chargeService.makePayment(Objects.requireNonNull(userInfo).cardId(), authenticationName, amount);
                 })
-                .flatMap(payment -> getOrder(orderDto)
+                .flatMap(payment -> saveAndReturnOrder(orderDto)
                         .flatMap(orderNew -> getItems(orderDto, orderNew)
                                 .map(items -> Order.builder()
                                         .id(orderNew.getId())
@@ -130,6 +128,8 @@ public class OrderServiceImpl implements OrderService {
                                                         .chargeId(payment.chargeId())
                                                         .status(payment.chargeStatus())
                                                         .orderId(orderNew.getId())
+                                                        .amount(payment.amount())
+                                                        .currency(payment.currency())
                                                         .build()
                                         )
                                         .build())
@@ -161,6 +161,8 @@ public class OrderServiceImpl implements OrderService {
                                                 .updateOn(charge.getUpdatedOn())
                                                 .status(charge.getStatus())
                                                 .orderId(charge.getOrderId())
+                                                .amount(formatAmount(charge.getAmount()))
+                                                .currency(charge.getCurrency())
                                                 .build())
                                         .build()))
                         .doOnSuccess(o -> log.info("Order was successfully created")));
@@ -172,7 +174,7 @@ public class OrderServiceImpl implements OrderService {
         return itemService.saveAll(items).collectList();
     }
 
-    private Mono<Order> getOrder(OrderDto orderDto) {
+    private Mono<Order> saveAndReturnOrder(OrderDto orderDto) {
         return orderRepository.save(
                 Order.builder()
                         .username(orderDto.username())
@@ -242,7 +244,7 @@ public class OrderServiceImpl implements OrderService {
                         log.debug("User '{}' try to access another account '{}'", authenticationName, username);
                         return Mono.error(new IllegalArgumentException("You cannot access this information!"));
                     }
-                    return sendRequestToProfileService(order, username);
+                    return sendRequestToProfileService(order, authenticationName);
                 });
     }
 
@@ -294,13 +296,45 @@ public class OrderServiceImpl implements OrderService {
                 )
                 .doOnError(throwable -> throwInvalidRequestDataException())
                 .map(productInfo ->
-                        OrderResponseDto.builder()
-                                .userInfo(userInfo)
-                                .productInfo(productInfo)
-                                .orderNumber(order.getOrderNumber())
-                                .deliveryComment(order.getDeliveryComment())
-                                .createdOn(order.getCreatedOn())
-                                .build()
+                        {
+                            OrderResponseDto build = OrderResponseDto.builder()
+                                    .userInfo(userInfo)
+                                    .productInfo(productInfo)
+                                    .orderNumber(order.getOrderNumber())
+                                    .deliveryComment(order.getDeliveryComment())
+                                    .createdOn(order.getCreatedOn())
+                                    .build();
+                            OrderDto b = OrderDto.builder()
+                                    .id(order.getId())
+                                    .orderNumber(order.getOrderNumber())
+                                    .createdOn(order.getCreatedOn())
+                                    .updatedOn(order.getUpdatedOn())
+                                    .username(order.getUsername())
+                                    .deliveryComment(order.getDeliveryComment())
+                                    .items(order.getItems())
+//                                    .firstName(orderDto.firstName())
+//                                    .lastName(orderDto.lastName())
+//                                    .phoneNumber(orderDto.phoneNumber())
+//                                    .city(orderDto.city())
+//                                    .street(orderDto.street())
+//                                    .postCode(orderDto.postCode())
+//                                    .cardNumber(orderDto.cardNumber())
+//                                    .cardExpMonth(orderDto.cardExpMonth())
+//                                    .cardExpYear(orderDto.cardExpYear())
+//                                    .cardCvc(orderDto.cardCvc())
+//                                    .charge(ChargeDto.builder()
+//                                            .id(charge.getId())
+//                                            .chargeId(charge.getChargeId())
+//                                            .createOn(charge.getCreatedOn())
+//                                            .updateOn(charge.getUpdatedOn())
+//                                            .status(charge.getStatus())
+//                                            .orderId(charge.getOrderId())
+//                                            .amount(formatAmount(charge.getAmount()))
+//                                            .currency(charge.getCurrency())
+//                                            .build())
+                                    .build();
+                            return build;
+                        }
                 );
     }
 
@@ -309,5 +343,10 @@ public class OrderServiceImpl implements OrderService {
                 Something happened with the order service.
                 Please check the request details again
                 """);
+    }
+
+    public static String formatAmount(long value) {
+        DecimalFormat decimalFormat = new DecimalFormat("#,##0.00");
+        return decimalFormat.format(value / 100.0);
     }
 }

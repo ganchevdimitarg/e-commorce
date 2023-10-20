@@ -13,5 +13,7 @@ public record ChargeDto(
         String status,
         LocalDateTime createOn,
         LocalDateTime updateOn,
+        String amount,
+        String currency,
         Long orderId
 ) {}

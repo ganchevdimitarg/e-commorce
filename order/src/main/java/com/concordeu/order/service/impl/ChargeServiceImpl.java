@@ -66,9 +66,10 @@ public class ChargeServiceImpl implements ChargeService {
                 .chargeId(paymentCharge.chargeId())
                 .status(paymentCharge.chargeStatus())
                 .orderId(order.getId())
+                .currency(paymentCharge.currency())
+                .amount(paymentCharge.amount())
                 .build();
 
-        ;
         log.info("Charge was successfully created");
         return chargeRepository.save(charge);
     }
@@ -104,6 +105,16 @@ public class ChargeServiceImpl implements ChargeService {
                             Something happened with the order service.
                             Please check the request details again
                             """);
-                });
+                })
+                .map(charge -> PaymentDto.builder()
+                        .amount(amount)
+                        .currency("usd")
+                        .receiptEmail(paymentCustomer.username())
+                        .customerId(paymentCustomer.customerId())
+                        .username(paymentCustomer.username())
+                        .cardId(cardId)
+                        .chargeId(charge.chargeId())
+                        .chargeStatus(charge.chargeStatus())
+                        .build());
     }
 }
