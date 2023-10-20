@@ -25,6 +25,10 @@ public class Charge {
     private String chargeId;
     @Column("status")
     private String status;
+    @Column("amount")
+    private Long amount;
+    @Column("currency")
+    private String currency;
     @CreatedDate
     @Column("created_on")
     private LocalDateTime createdOn;

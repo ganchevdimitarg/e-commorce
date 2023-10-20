@@ -5,6 +5,8 @@ CREATE TABLE charges
     status        VARCHAR(255) NOT NULL,
     created_on    TIMESTAMP WITHOUT TIME ZONE,
     updated_on    TIMESTAMP WITHOUT TIME ZONE,
+    amount        BIGINT       NOT NULL,
+    currency      VARCHAR(255) NOT NULL,
     order_id      BIGINT       NOT NULL,
     CONSTRAINT pk_charges PRIMARY KEY (id)
 );
