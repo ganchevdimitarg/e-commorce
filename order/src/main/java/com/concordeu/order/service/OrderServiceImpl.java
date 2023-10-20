@@ -124,27 +124,19 @@ public class OrderServiceImpl implements OrderService {
                 })
                 .publishOn(Schedulers.boundedElastic())
                 .map(charge -> {
-                    Order order = Order.builder()
-                            .username(orderDto.username())
-                            .deliveryComment(orderDto.deliveryComment())
-                            .orderNumber(++orderCounter)
-                            .createdOn(OffsetDateTime.now())
-                            .build();
 
-                    Order orderSave = orderRepository.saveAndFlush(order);
+                    Order order = getOrder(orderDto, orderCounter);
                     log.info("Order was successfully created");
 
-                    List<Item> items = orderDto.items();
-                    items.forEach(item -> item.setOrder(orderSave));
-                    List<Item> itemsSave = itemRepository.saveAllAndFlush(items);
+                    List<Item> itemsSave = getItems(orderDto, order);
                     log.info("Items was successfully created");
 
                     chargeService.saveCharge(order, charge).subscribe();
 
                     return OrderDto.builder()
-                            .orderNumber(orderSave.getOrderNumber())
-                            .username(orderSave.getUsername())
-                            .deliveryComment(orderSave.getDeliveryComment())
+                            .orderNumber(order.getOrderNumber())
+                            .username(order.getUsername())
+                            .deliveryComment(order.getDeliveryComment())
                             .items(itemsSave)
                             .firstName(orderDto.firstName())
                             .lastName(orderDto.lastName())
@@ -158,6 +150,23 @@ public class OrderServiceImpl implements OrderService {
                             .cardCvc(orderDto.cardCvc())
                             .build();
                 });
+    }
+
+    private List<Item> getItems(OrderDto orderDto, Order order) {
+        List<Item> items = orderDto.items();
+        items.forEach(item -> item.setOrder(order));
+        return itemRepository.saveAllAndFlush(items);
+    }
+
+    private Order getOrder(OrderDto orderDto, long orderCounter) {
+        return orderRepository.saveAndFlush(
+                Order.builder()
+                        .username(orderDto.username())
+                        .deliveryComment(orderDto.deliveryComment())
+                        .orderNumber(++orderCounter)
+                        .createdOn(OffsetDateTime.now())
+                        .build()
+        );
     }
 
     private Mono<UserDto> getUserDto(OrderDto orderDto, UserDto user) {
