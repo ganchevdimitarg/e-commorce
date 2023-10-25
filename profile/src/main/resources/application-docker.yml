@@ -2,6 +2,8 @@ server:
   port: 8083
 
 spring:
+  main:
+    web-application-type: reactive
   application:
     name: profile-service
   devtools:
@@ -9,16 +11,21 @@ spring:
       port: 35730
   cloud:
     vault:
+      enabled: true
       authentication: TOKEN
       token: ${VAULT_SERVER_TOKEN}
       uri: http://vault-agent:8200
-      application-name: profile-service/docker
-      generic:
-        enabled: true
+      kv:
         backend: secret
+        enabled: true
+        application-name: profile-service/docker
+
+    compatibility-verifier:
+      enabled: false
 
   config:
     import: optional:vault://
+
   #Security
   security:
     oauth2:
@@ -60,6 +67,10 @@ spring:
   zipkin:
     base-url: http://zipkin:9411
 
+  #Kafka
+  kafka:
+    bootstrap-servers: http://kafka:9092
+
 #Logging Levels
 #Disable the default loggers
 logging:
@@ -72,6 +83,10 @@ logging:
         web: INFO
         security: INFO
         oauth2: INFO
+#    reactor:
+#      netty:
+#        http:
+#          client: TRACE
 
 #Eureka
 eureka:
@@ -93,9 +108,9 @@ management:
     web:
       exposure:
         include: "*"
-  metrics:
-    export:
-      prometheus:
+  prometheus:
+    metrics:
+      export:
         enabled: true
 
 #Spring Doc
@@ -188,7 +203,3 @@ google:
 facebook:
   revoke:
     uri: https://graph.facebook.com/v15.0/me/permissions?access_token=
-
-#Kafka
-#kafka:
-#  bootstrapAddress: http://kafka:9092

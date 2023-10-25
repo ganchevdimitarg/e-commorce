@@ -11,13 +11,14 @@ spring:
       port: 35730
   cloud:
     vault:
+      enabled: true
       authentication: TOKEN
       token: ${VAULT_SERVER_TOKEN}
       uri: http://localhost:8200
-      application-name: profile-service/dev
-      generic:
-        enabled: true
+      kv:
         backend: secret
+        enabled: true
+        application-name: profile-service/dev
 
     compatibility-verifier:
       enabled: false
@@ -66,6 +67,7 @@ spring:
   zipkin:
     base-url: http://localhost:9411
 
+  #Kafka
   kafka:
     bootstrap-servers: localhost:29092
 
@@ -85,6 +87,7 @@ logging:
 #      netty:
 #        http:
 #          client: TRACE
+
 #Eureka
 eureka:
   client:

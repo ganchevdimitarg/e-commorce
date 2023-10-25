@@ -13,11 +13,23 @@ spring:
       token: ${VAULT_SERVER_TOKEN}
       uri: http://vault-agent:8200
       application-name: catalog-service/docker
-      generic:
-        enabled: true
+      kv:
         backend: secret
+        enabled: true
+        default-context: catalog-service/docker
+
+    compatibility-verifier:
+      enabled: false
+
   config:
     import: optional:vault://
+
+  cache:
+    type: redis
+    redis:
+      cache-null-values: true
+#      time-to-live: 40000
+
   #Data Source Properties
   datasource:
     driverClassName: com.mysql.cj.jdbc.Driver
@@ -65,9 +77,11 @@ logging:
         security: INFO
         oauth2: INFO
       hibernate:
-        SQL: DEBUG
+        SQL: off
         type:
-          descriptor: TRACE
+          descriptor: off
+  pattern:
+    level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]"
 
 #Eureka
 eureka:
@@ -90,13 +104,13 @@ management:
     web:
       exposure:
         include: "*"
-  metrics:
-    export:
-      prometheus:
-        enabled: true
   health:
     circuitbreakers:
       enabled: true
+  prometheus:
+    metrics:
+      export:
+        enabled: true
 
 #Spring Doc
 springdoc:

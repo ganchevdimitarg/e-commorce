@@ -22,7 +22,7 @@ spring:
       enabled: false
 
   config:
-    import: vault://
+    import: optional:vault://
 
   cache:
     type: redis

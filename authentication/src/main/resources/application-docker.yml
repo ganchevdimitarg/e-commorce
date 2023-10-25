@@ -22,7 +22,7 @@ spring:
       enabled: false
 
   config:
-    import: vault://
+    import: optional:vault://
 
   #Data Source Properties
   data:
@@ -54,6 +54,10 @@ spring:
   zipkin:
     base-url: http://zipkin:9411
 
+  #Kafka
+  kafka:
+    bootstrap-servers: http://kafka:9092
+
 #Logging Levels
 #Disable the default loggers
 logging:
@@ -65,6 +69,12 @@ logging:
         web: INFO
         security: INFO
         oauth2: INFO
+      hibernate:
+        SQL: off
+        type:
+          descriptor: off
+  pattern:
+    level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]"
 
 #Eureka
 eureka:
@@ -86,7 +96,11 @@ management:
     web:
       exposure:
         include: "*"
-  metrics:
-    export:
-      prometheus:
+  prometheus:
+    metrics:
+      export:
         enabled: true
+
+keyManager:
+  algorithm: "RSA"
+  keySize: 2048

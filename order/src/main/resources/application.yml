@@ -13,15 +13,17 @@ spring:
       token: ${VAULT_SERVER_TOKEN}
       uri: http://localhost:8200
       application-name: order-service/dev
-      generic:
-        enabled: true
+      kv:
         backend: secret
+        enabled: true
+        default-context: order-service/dev
 
     compatibility-verifier:
       enabled: false
 
   config:
     import: optional:vault://
+
   #Security
   security:
     oauth2:
@@ -48,6 +50,7 @@ spring:
     url: r2dbc:postgresql://localhost:5432/orders
     username: ${POSTGRES_USER}
     password: ${POSTGRES_PASSWORD}
+
   flyway:
     url: jdbc:postgresql://localhost:5432/orders
     locations: classpath:db/migration
@@ -63,6 +66,7 @@ spring:
   zipkin:
     base-url: http://localhost:9411
 
+  #Kafka
   kafka:
     bootstrap-servers: localhost:29092
 
@@ -78,15 +82,12 @@ logging:
         web: INFO
         security: INFO
         oauth2: INFO
-        r2dbc: TRACE
-#      hibernate:
-#        SQL: DEBUG
-#        type:
-#          descriptor: TRACE
-#    reactor:
-#      netty:
-#        http:
-#          client: DEBUG
+      hibernate:
+        SQL: off
+        type:
+          descriptor: off
+  pattern:
+    level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]"
 
 
 #Eureka
@@ -203,7 +204,3 @@ payment:
 webClient:
   oath2Client:
     defaultClientRegistrationId: "gateway-client-oidc"
-
-#Kafka
-kafka:
-  bootstrapAddress: localhost:29092
