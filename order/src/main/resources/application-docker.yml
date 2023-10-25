@@ -13,9 +13,13 @@ spring:
       token: ${VAULT_SERVER_TOKEN}
       uri: http://vault-agent:8200
       application-name: order-service/docker
-      generic:
-        enabled: true
+      kv:
         backend: secret
+        enabled: true
+        default-context: order-service/docker
+
+    compatibility-verifier:
+      enabled: false
 
   config:
     import: optional:vault://
@@ -42,20 +46,16 @@ spring:
             token-uri: http://auth-server:8082/oauth2/token
 
   #Data Source Properties
-  datasource:
+  r2dbc:
+    url: r2dbc:postgresql://postgres:5432/orders
     username: ${POSTGRES_USER}
     password: ${POSTGRES_PASSWORD}
-    url: jdbc:postgresql://postgres:5432/orders
 
-  #JPA Properties
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: true
-    show-sql: true
+  flyway:
+    url: jdbc:postgresql://postgres:5432/orders
+    locations: classpath:db/migration
+    password: ${POSTGRES_PASSWORD}
+    user: ${POSTGRES_USER}
 
   #Pagination
   mvc:
@@ -65,6 +65,10 @@ spring:
   #Zipkin
   zipkin:
     base-url: http://zipkin:9411
+
+  #Kafka
+  kafka:
+    bootstrap-servers: http://kafka:9092
 
 #Show SQL executed with parameter bindings
 #Logging Levels
@@ -79,9 +83,11 @@ logging:
         security: INFO
         oauth2: INFO
       hibernate:
-        SQL: DEBUG
+        SQL: off
         type:
-          descriptor: TRACE
+          descriptor: off
+  pattern:
+    level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]"
 
 
 #Eureka
@@ -105,13 +111,13 @@ management:
     web:
       exposure:
         include: "*"
-  metrics:
-    export:
-      prometheus:
-        enabled: true
   health:
     circuitbreakers:
       enabled: true
+  prometheus:
+    metrics:
+      export:
+        enabled: true
 
 #Spring Doc
 springdoc:
@@ -198,7 +204,3 @@ payment:
 webClient:
   oath2Client:
     defaultClientRegistrationId: "gateway-client-oidc"
-
-#Kafka
-kafka:
-  bootstrapAddress: http://kafka:9092

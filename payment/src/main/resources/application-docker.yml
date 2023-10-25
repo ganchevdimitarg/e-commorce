@@ -13,13 +13,17 @@ spring:
       token: ${VAULT_SERVER_TOKEN}
       uri: http://vault-agent:8200
       application-name: payment-service/docker
-      generic:
-        enabled: true
+      kv:
         backend: secret
+        enabled: true
+        default-context: payment-service/docker
 
+    compatibility-verifier:
+      enabled: false
 
   config:
     import: optional:vault://
+
   #Data Source Properties
   datasource:
     username: ${POSTGRES_USER}
@@ -52,6 +56,10 @@ spring:
   #Zipkin
   zipkin:
     base-url: http://zipkin:9411
+
+  #Kafka
+  kafka:
+    bootstrap-servers: http://kafka:9092
 
 #Logging Levels
 #Disable the default loggers
@@ -86,9 +94,9 @@ management:
     web:
       exposure:
         include: "*"
-  metrics:
-    export:
-      prometheus:
+  prometheus:
+    metrics:
+      export:
         enabled: true
 
 #Spring Doc

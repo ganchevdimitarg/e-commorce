@@ -17,14 +17,12 @@ spring:
         backend: secret
         enabled: true
         default-context: auth-service/dev
-      generic:
-        enabled: false
 
     compatibility-verifier:
       enabled: false
 
   config:
-    import: vault://
+    import: optional:vault://
 
   #Security
   security:
@@ -97,21 +95,26 @@ spring:
   zipkin:
     base-url: http://localhost:9411
 
+  #Kafka
   kafka:
     bootstrap-servers: localhost:29092
 #Logging Levels
 #Disable the default loggers
 logging:
   level:
-    com:
-      springframework: DEBUG
     blog: WARN
     root: INFO
     org:
       springframework:
         web: INFO
         security: INFO
-        oauth2: DEBUG
+        oauth2: INFO
+      hibernate:
+        SQL: off
+        type:
+          descriptor: off
+  pattern:
+    level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]"
 
 #Eureka
 eureka:
@@ -133,9 +136,9 @@ management:
     web:
       exposure:
         include: "*"
-  metrics:
-    export:
-      prometheus:
+  prometheus:
+    metrics:
+      export:
         enabled: true
 
 keyManager:
