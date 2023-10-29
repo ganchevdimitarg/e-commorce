@@ -1,8 +1,9 @@
-package com.concordeu.profile.service;
+package com.concordeu.profile.service.impl;
 
 import com.concordeu.profile.repositories.PasswordResetRepository;
 import com.concordeu.profile.repositories.ProfileRepository;
 import com.concordeu.profile.entities.PasswordReset;
+import com.concordeu.profile.service.JwtService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;

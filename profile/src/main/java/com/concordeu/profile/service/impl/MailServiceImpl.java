@@ -1,6 +1,7 @@
-package com.concordeu.profile.service;
+package com.concordeu.profile.service.impl;
 
 import com.concordeu.client.common.dto.NotificationDto;
+import com.concordeu.profile.service.MailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
