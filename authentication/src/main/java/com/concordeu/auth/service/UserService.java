@@ -52,7 +52,6 @@ public class UserService implements UserDetailsService {
                             .value(),
                     AuthUserDto.class
             );
-            System.out.println();
         } catch (JsonProcessingException | TimeoutException | ExecutionException | InterruptedException e) {
             throw new RuntimeException(e.getMessage());
         }

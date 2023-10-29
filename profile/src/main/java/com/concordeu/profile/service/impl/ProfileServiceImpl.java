@@ -1,4 +1,4 @@
-package com.concordeu.profile.service;
+package com.concordeu.profile.service.impl;
 
 import com.concordeu.client.common.constant.Constant;
 import com.concordeu.client.common.dto.CardDto;
@@ -10,6 +10,9 @@ import com.concordeu.profile.entities.Address;
 import com.concordeu.profile.entities.Profile;
 import com.concordeu.profile.excaption.InvalidRequestDataException;
 import com.concordeu.profile.repositories.ProfileRepository;
+import com.concordeu.profile.service.JwtService;
+import com.concordeu.profile.service.MailService;
+import com.concordeu.profile.service.ProfileService;
 import com.concordeu.profile.validation.ValidateData;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -168,7 +171,6 @@ public class ProfileServiceImpl implements ProfileService {
             profileRepository.save(profile);
             log.debug("The password of user {} has been changed successfully", username);
         } else {
-            log.warn(String.format("User does not exist: %s", username));
             throw new InvalidRequestDataException(String.format("User does not exist: %s", username));
         }
     }
@@ -245,13 +247,16 @@ public class ProfileServiceImpl implements ProfileService {
                 .cardExpMonth(userRequestDto.cardExpMonth())
                 .cardExpYear(userRequestDto.cardExpYear())
                 .cardCvc(userRequestDto.cardCvc())
+                .cardId(cardId)
                 .build();
 
     }
 
     private Profile builtProfile(UserRequestDto model, Set<ProfileGrantedAuthority> grantedAuthorities) {
-        profileRepository.findByUsername(model.username())
-                .orElseThrow(() -> new UsernameNotFoundException(String.format("Profile already exist: %s", model.username())));
+        if (profileRepository.findByUsername(model.username()).isPresent()) {
+            throw new IllegalArgumentException(
+                    String.format("The username already exists: %s", model.username()));
+        }
 
         Address address = new Address(
                 model.city(),
