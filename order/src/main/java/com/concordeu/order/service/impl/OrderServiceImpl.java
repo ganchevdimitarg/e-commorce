@@ -31,6 +31,8 @@ import java.util.Objects;
 @RequiredArgsConstructor
 @Slf4j
 public class OrderServiceImpl implements OrderService {
+    public static final String CIRCUIT_BREAKER_NAME = "orderService";
+
     private final OrderRepository orderRepository;
     private final ItemService itemService;
     private final ChargeService chargeService;
@@ -56,8 +58,9 @@ public class OrderServiceImpl implements OrderService {
     public Mono<OrderDto> createOrder(OrderDto orderDto, String authenticationName) {
         String username = orderDto.username();
         if (!username.equals(authenticationName)) {
-            log.debug("User '{}' try to access another account '{}'", authenticationName, username);
-            throw new IllegalArgumentException("You cannot access this information!");
+            throw new IllegalArgumentException(
+                    String.format("User %s try to access another account %s", authenticationName, username)
+            );
         }
 
         return webClient
@@ -67,7 +70,7 @@ public class OrderServiceImpl implements OrderService {
                 .retrieve()
                 .bodyToMono(UserDto.class)
                 .transform(it ->
-                        reactiveCircuitBreakerFactory.create("orderService")
+                        reactiveCircuitBreakerFactory.create(CIRCUIT_BREAKER_NAME)
                                 .run(it, throwable -> {
                                     log.warn("Profile Server is down", throwable);
                                     return Mono.just(UserDto.builder().username("").build());
@@ -96,7 +99,7 @@ public class OrderServiceImpl implements OrderService {
                 .bodyToMono(new ParameterizedTypeReference<List<ProductResponseDto>>() {
                 })
                 .transform(it ->
-                        reactiveCircuitBreakerFactory.create("orderService")
+                        reactiveCircuitBreakerFactory.create(CIRCUIT_BREAKER_NAME)
                                 .run(it, throwable -> {
                                     log.warn("Catalog Server is down", throwable);
                                     return Mono.just(List.of(ProductResponseDto.builder().name("").build()));
@@ -212,7 +215,7 @@ public class OrderServiceImpl implements OrderService {
                     .retrieve()
                     .bodyToMono(UserDto.class)
                     .transform(it ->
-                            reactiveCircuitBreakerFactory.create("orderService")
+                            reactiveCircuitBreakerFactory.create(CIRCUIT_BREAKER_NAME)
                                     .run(it, throwable -> {
                                         log.warn("Profile Server is down", throwable);
                                         return Mono.just(UserDto.builder().username("").build());
@@ -256,7 +259,7 @@ public class OrderServiceImpl implements OrderService {
                 .retrieve()
                 .bodyToMono(UserDto.class)
                 .transform(it ->
-                        reactiveCircuitBreakerFactory.create("orderService")
+                        reactiveCircuitBreakerFactory.create(CIRCUIT_BREAKER_NAME)
                                 .run(it, throwable -> {
                                     log.warn("Profile Server is down", throwable);
                                     return Mono.just(UserDto.builder().username("").build());
@@ -288,7 +291,7 @@ public class OrderServiceImpl implements OrderService {
                 .bodyToMono(new ParameterizedTypeReference<List<ProductResponseDto>>() {
                 })
                 .transform(it ->
-                        reactiveCircuitBreakerFactory.create("orderService")
+                        reactiveCircuitBreakerFactory.create(CIRCUIT_BREAKER_NAME)
                                 .run(it, throwable -> {
                                     log.warn("Catalog Server is down", throwable);
                                     return Mono.just(List.of(ProductResponseDto.builder().name("").build()));

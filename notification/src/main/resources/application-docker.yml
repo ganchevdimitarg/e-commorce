@@ -15,9 +15,10 @@ spring:
       token: ${VAULT_SERVER_TOKEN}
       uri: http://vault-agent:8200
       application-name: notification-service/docker
-      generic:
-        enabled: true
+      kv:
         backend: secret
+        enabled: true
+        default-context: notification-service/docker
 
   config:
     import: optional:vault://
