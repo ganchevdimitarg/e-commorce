@@ -15,9 +15,10 @@ spring:
       token: ${VAULT_SERVER_TOKEN}
       uri: http://localhost:8200
       application-name: notification-service/dev
-      generic:
-        enabled: true
+      kv:
         backend: secret
+        enabled: true
+        default-context: notification-service/dev
 
     compatibility-verifier:
       enabled: false
@@ -67,9 +68,9 @@ spring:
       mail.smtp.auth: true
       mail.smtp.starttls.enable: true
 
-#Kafka
-kafka:
-  bootstrap-servers: http://localhost:29092
+  #Kafka
+  kafka:
+    bootstrap-servers: http://localhost:29092
 
 #Show SQL executed with parameter bindings
 #Logging Levels

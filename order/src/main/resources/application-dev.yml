@@ -16,7 +16,7 @@ spring:
       kv:
         backend: secret
         enabled: true
-        default-context: order-service
+        default-context: order-service/dev
 
     compatibility-verifier:
       enabled: false
@@ -54,8 +54,8 @@ spring:
   flyway:
     url: jdbc:postgresql://localhost:5432/orders
     locations: classpath:db/migration
-    password: ${POSTGRES_PASSWORD}
     user: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
 
   #Pagination
   mvc:
