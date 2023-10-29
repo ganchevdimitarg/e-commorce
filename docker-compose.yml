@@ -228,8 +228,8 @@ services:
       SPRING_PROFILES_ACTIVE: "docker"
     networks:
       - spring
-    depends_on:
-      - zipkin
+#    depends_on:
+#      - zipkin
 
   auth-server:
     image: dgganchev/authentication:latest
@@ -242,15 +242,13 @@ services:
     networks:
       - vault
       - spring
-      - postgres
       - mongodb
-    depends_on:
-      - zipkin
-      - eureka-server
-      - prometheus
-      - vault
-      - mongodb
-      - postgres
+#    depends_on:
+#      - zipkin
+#      - eureka-server
+#      - prometheus
+#      - vault
+#      - mongodb
     labels:
       collect_logs_with_filebeat: "true"
       decode_log_event_to_json_object: "true"

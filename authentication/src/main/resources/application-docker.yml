@@ -34,22 +34,6 @@ spring:
       port: 27017
       host: mongodb
 
-  #Data Source Properties
-  datasource:
-    username: ${POSTGRES_USER}
-    password: ${POSTGRES_PASSWORD}
-    url: jdbc:postgresql://postgres:5432/registered_clients
-
-  #JPA Properties
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: true
-    show-sql: true
-
   #Zipkin
   zipkin:
     base-url: http://zipkin:9411
