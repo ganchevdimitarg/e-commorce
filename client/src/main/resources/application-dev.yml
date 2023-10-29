@@ -8,7 +8,7 @@ spring:
       authentication-database: admin
       username: ${MONGO_DB_USER}
       password: ${MONGO_DB_PASSWORD}
-      database: opaque_introspector
+      database: authentication
       port: 27017
       host: localhost
       auto-index-creation: true

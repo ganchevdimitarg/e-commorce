@@ -16,7 +16,7 @@ spring:
       kv:
         backend: secret
         enabled: true
-        default-context: order-service/dev
+        default-context: order-service
 
     compatibility-verifier:
       enabled: false
