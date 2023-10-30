@@ -38,8 +38,9 @@ public class OrderController {
     @ValidationRequest
     @PreAuthorize("hasAuthority('SCOPE_order.write')")
     public Mono<OrderDto> createOrder(@RequestBody OrderDto orderDto, Authentication authentication) {
+        Mono<OrderDto> order = orderService.createOrder(orderDto, authentication.getName());
         mailService.sendUserOrderMail(orderDto.username());
-        return orderService.createOrder(orderDto, authentication.getName());
+        return order;
     }
 
     @Operation(summary = "Delete Order", description = "Delete order by order cardNumber",

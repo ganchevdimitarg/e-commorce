@@ -1,6 +1,5 @@
 package com.concordeu.catalog.service.product;
 
-import com.concordeu.catalog.dto.ItemRequestDTO;
 import com.concordeu.catalog.dto.ProductDTO;
 import org.springframework.data.domain.Page;
 
@@ -17,5 +16,5 @@ public interface ProductService {
     void updateProduct(ProductDTO productResponseDto, String productName);
     void deleteProduct(String productName);
 
-    List<ProductDTO> getProductsById(ItemRequestDTO items);
+    List<ProductDTO> getProductsById(List<UUID> items);
 }
