@@ -75,6 +75,8 @@ spring:
 #Disable the default loggers
 logging:
   level:
+    reactor:
+      netty: TRACE
     blog: WARN
     root: INFO
     org:
@@ -82,13 +84,15 @@ logging:
         web: INFO
         security: INFO
         oauth2: INFO
+        http:
+          server:
+            reactive: TRACE
       hibernate:
         SQL: off
         type:
           descriptor: off
   pattern:
     level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]"
-
 
 #Eureka
 eureka:

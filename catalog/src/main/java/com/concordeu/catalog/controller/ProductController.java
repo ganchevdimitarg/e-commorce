@@ -1,9 +1,9 @@
 package com.concordeu.catalog.controller;
 
-import com.concordeu.catalog.dto.ItemRequestDTO;
 import com.concordeu.catalog.dto.ProductDTO;
 import com.concordeu.catalog.mapper.ProductMapper;
 import com.concordeu.catalog.service.product.ProductService;
+import com.concordeu.client.common.dto.ItemRequestDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -56,8 +56,8 @@ public class ProductController {
     }
 
     @PostMapping("/get-products-id")
-    public List<ProductDTO> getProductsById(@RequestBody ItemRequestDTO items) {
-        return productService.getProductsById(items);
+    public List<ProductDTO> getProductsById(@RequestBody ItemRequestDto items) {
+        return productService.getProductsById(items.items());
     }
 
     @PutMapping("/update-product")

@@ -1,5 +1,6 @@
 package com.concordeu.order.service.impl;
 
+import com.concordeu.client.common.dto.ItemRequestDto;
 import com.concordeu.order.domain.Charge;
 import com.concordeu.order.domain.Item;
 import com.concordeu.order.domain.Order;
@@ -12,6 +13,7 @@ import com.concordeu.order.service.OrderService;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.common.protocol.types.Field;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.client.circuitbreaker.ReactiveCircuitBreakerFactory;
 import org.springframework.core.ParameterizedTypeReference;
@@ -26,6 +28,8 @@ import java.text.DecimalFormat;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -38,12 +42,11 @@ public class OrderServiceImpl implements OrderService {
     private final ChargeService chargeService;
     private final WebClient webClient;
     private final ReactiveCircuitBreakerFactory reactiveCircuitBreakerFactory;
-
-    private long orderCounter;
+    private Mono<Long> orderCounter;
 
     @PostConstruct
     public void init() {
-        orderCounter = 0L;
+        orderCounter = orderRepository.count();
     }
 
     @Value("${catalog.service.products.get.uri}")
@@ -63,14 +66,14 @@ public class OrderServiceImpl implements OrderService {
             );
         }
 
-        return webClient
+        return this.webClient
                 .get()
                 .uri(profileServiceGetProfileByUsernameUri + authenticationName)
                 .accept(MediaType.APPLICATION_JSON)
                 .retrieve()
                 .bodyToMono(UserDto.class)
                 .transform(it ->
-                        reactiveCircuitBreakerFactory.create(CIRCUIT_BREAKER_NAME)
+                        this.reactiveCircuitBreakerFactory.create(CIRCUIT_BREAKER_NAME)
                                 .run(it, throwable -> {
                                     log.warn("Profile Server is down", throwable);
                                     return Mono.just(UserDto.builder().username("").build());
@@ -80,32 +83,77 @@ public class OrderServiceImpl implements OrderService {
                 .flatMap(userInfo -> saveCharge(orderDto, authenticationName, userInfo));
     }
 
-    private Mono<OrderDto> saveCharge(OrderDto orderDto, String authenticationName, UserDto userInfo) {
-        return webClient
-                .post()
-                .uri(catalogServiceGetProductsByIdsUri)
-                .contentType(MediaType.APPLICATION_JSON)
-                .accept(MediaType.APPLICATION_JSON)
-                .bodyValue(
-                        ItemRequestDto.builder()
-                                .items(orderDto.items()
-                                        .stream()
-                                        .map(Item::getProductId)
-                                        .map(String::valueOf)
-                                        .toList())
-                                .build()
-                )
-                .retrieve()
-                .bodyToMono(new ParameterizedTypeReference<List<ProductResponseDto>>() {
+    @Transactional
+    @Override
+    public Mono<Void> deleteOrder(Long orderId) {
+        return this.orderRepository.deleteOrderById(orderId)
+                .doOnSuccess(s -> log.info("Order was successfully delete"));
+    }
+
+    @Override
+    public Mono<OrderResponseDto> getOrder(Long orderId, String authenticationName) {
+        return this.orderRepository.findOrderById(orderId)
+                .doOnError(throwable -> {
+                    throw new IllegalArgumentException("No such order");
                 })
+                .flatMap(order -> {
+                    String username = order.getUsername();
+                    if (!username.equals(authenticationName)) {
+                        return Mono.error(new IllegalArgumentException(String.format("User %s try to access another account %s", authenticationName, username)));
+                    }
+                    return sendRequestToProfileService(order, authenticationName);
+                });
+    }
+
+    private Mono<OrderResponseDto> sendRequestToProfileService(Order order, String username) {
+        return this.webClient
+                .get()
+                .uri(profileServiceGetProfileByUsernameUri + username)
+                .accept(MediaType.APPLICATION_JSON)
+                .retrieve()
+                .bodyToMono(UserDto.class)
                 .transform(it ->
-                        reactiveCircuitBreakerFactory.create(CIRCUIT_BREAKER_NAME)
+                        this.reactiveCircuitBreakerFactory.create(CIRCUIT_BREAKER_NAME)
                                 .run(it, throwable -> {
-                                    log.warn("Catalog Server is down", throwable);
-                                    return Mono.just(List.of(ProductResponseDto.builder().name("").build()));
+                                    log.warn("Profile Server is down", throwable);
+                                    return Mono.just(UserDto.builder().username("").build());
                                 })
                 )
-                .doOnError(throwable -> throwInvalidRequestDataException())
+                .doOnSuccess(profile -> log.debug("Get items info: Profile response properly"))
+                .doOnError(throwable -> {
+                    throwInvalidRequestDataException();
+                })
+                .flatMap(userInfo -> sendRequestToCatalogService(order, userInfo));
+    }
+
+    private Mono<OrderResponseDto> sendRequestToCatalogService(Order order, UserDto userInfo) {
+        return itemService.findItemsByOrderId(order.getId())
+                .collectList()
+                .map(item -> item.stream()
+                        .map(i -> UUID.fromString(i.getProductId()))
+                        .collect(Collectors.toList())
+                )
+                .flatMap(this::getItemsInfo)
+                .map(productInfo ->
+                        OrderResponseDto.builder()
+                                .userInfo(userInfo)
+                                .productInfo(productInfo)
+                                .orderNumber(order.getOrderNumber())
+                                .deliveryComment(order.getDeliveryComment())
+                                .createdOn(order.getCreatedOn())
+                                .build()
+                );
+
+    }
+
+    private Mono<OrderDto> saveCharge(OrderDto orderDto, String authenticationName, UserDto userInfo) {
+        return getItemsInfo(
+                orderDto
+                        .items()
+                        .stream()
+                        .map(Item::getProductId)
+                        .map(UUID::fromString)
+                        .toList())
                 .flatMap(products -> {
                     long amount = Long.parseLong(
                             products.stream()
@@ -114,7 +162,7 @@ public class OrderServiceImpl implements OrderService {
                                     .toString()
                                     .replace(".", "")
                     );
-                    return chargeService.makePayment(Objects.requireNonNull(userInfo).cardId(), authenticationName, amount);
+                    return this.chargeService.makePayment(Objects.requireNonNull(userInfo).cardId(), authenticationName, amount);
                 })
                 .flatMap(payment -> saveAndReturnOrder(orderDto)
                         .flatMap(orderNew -> getItems(orderDto, orderNew)
@@ -137,8 +185,7 @@ public class OrderServiceImpl implements OrderService {
                                         )
                                         .build())
                                 .doOnSuccess(i -> log.info("Items was successfully created")))
-                        .flatMap(order -> chargeService.saveCharge(order, payment)
-                                .doOnSuccess(s -> log.info("Charge was successfully created"))
+                        .flatMap(order -> this.chargeService.saveCharge(order, payment)
                                 .map(charge -> OrderDto.builder()
                                         .id(order.getId())
                                         .orderNumber(order.getOrderNumber())
@@ -171,21 +218,44 @@ public class OrderServiceImpl implements OrderService {
                         .doOnSuccess(o -> log.info("Order was successfully created")));
     }
 
+    private Mono<List<ProductResponseDto>> getItemsInfo(List<UUID> itemsId) {
+        return this.webClient
+                .post()
+                .uri(catalogServiceGetProductsByIdsUri)
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.APPLICATION_JSON)
+                .bodyValue(ItemRequestDto.builder().items(itemsId).build())
+                .retrieve()
+                .bodyToMono(new ParameterizedTypeReference<List<ProductResponseDto>>() {
+                })
+                .transform(it ->
+                        this.reactiveCircuitBreakerFactory.create(CIRCUIT_BREAKER_NAME)
+                                .run(it, throwable -> {
+                                    log.warn("Catalog Server is down", throwable);
+                                    return Mono.just(List.of(ProductResponseDto.builder().name("").build()));
+                                })
+                )
+                .doOnSuccess(items -> log.debug("Get items info: Catalog response properly"))
+                .doOnError(throwable -> throwInvalidRequestDataException());
+    }
+
     private Mono<List<Item>> getItems(OrderDto orderDto, Order order) {
         List<Item> items = orderDto.items();
         items.forEach(item -> item.setOrderId(order.getId()));
-        return itemService.saveAll(items).collectList();
+        return this.itemService.saveAll(items).collectList();
     }
 
     private Mono<Order> saveAndReturnOrder(OrderDto orderDto) {
-        return orderRepository.save(
-                Order.builder()
-                        .username(orderDto.username())
-                        .deliveryComment(orderDto.deliveryComment())
-                        .orderNumber(++this.orderCounter)
-                        .createdOn(LocalDateTime.now())
-                        .build()
-        );
+        return this.orderCounter
+                .flatMap(counter ->
+                        this.orderRepository.save(
+                                Order.builder()
+                                        .username(orderDto.username())
+                                        .deliveryComment(orderDto.deliveryComment())
+                                        .orderNumber(counter)
+                                        .createdOn(LocalDateTime.now())
+                                        .build())
+                );
     }
 
     private Mono<UserDto> getUserDto(OrderDto orderDto, UserDto user) {
@@ -206,7 +276,7 @@ public class OrderServiceImpl implements OrderService {
                     .cardCvc(orderDto.cardCvc())
                     .build();
 
-            userInfo = webClient
+            userInfo = this.webClient
                     .post()
                     .uri(profileServiceCreateUserUri)
                     .contentType(MediaType.APPLICATION_JSON)
@@ -215,7 +285,7 @@ public class OrderServiceImpl implements OrderService {
                     .retrieve()
                     .bodyToMono(UserDto.class)
                     .transform(it ->
-                            reactiveCircuitBreakerFactory.create(CIRCUIT_BREAKER_NAME)
+                            this.reactiveCircuitBreakerFactory.create(CIRCUIT_BREAKER_NAME)
                                     .run(it, throwable -> {
                                         log.warn("Profile Server is down", throwable);
                                         return Mono.just(UserDto.builder().username("").build());
@@ -225,120 +295,6 @@ public class OrderServiceImpl implements OrderService {
             userInfo = Mono.just(user);
         }
         return userInfo;
-    }
-
-    @Transactional
-    @Override
-    public Mono<Void> deleteOrder(Long orderId) {
-        return orderRepository.deleteOrderById(orderId)
-                .doOnSuccess(s -> log.info("Order was successfully delete"));
-    }
-
-    @Override
-    public Mono<OrderResponseDto> getOrder(Long orderId, String authenticationName) {
-        return orderRepository.findOrderById(orderId)
-                .doOnError(throwable -> {
-                    log.warn("No such order");
-                    throw new IllegalArgumentException("No such order");
-                })
-                .flatMap(order -> {
-                    String username = order.getUsername();
-                    if (!username.equals(authenticationName)) {
-                        log.debug("User '{}' try to access another account '{}'", authenticationName, username);
-                        return Mono.error(new IllegalArgumentException("You cannot access this information!"));
-                    }
-                    return sendRequestToProfileService(order, authenticationName);
-                });
-    }
-
-    private Mono<OrderResponseDto> sendRequestToProfileService(Order order, String username) {
-        return webClient
-                .get()
-                .uri(profileServiceGetProfileByUsernameUri + username)
-                .accept(MediaType.APPLICATION_JSON)
-                .retrieve()
-                .bodyToMono(UserDto.class)
-                .transform(it ->
-                        reactiveCircuitBreakerFactory.create(CIRCUIT_BREAKER_NAME)
-                                .run(it, throwable -> {
-                                    log.warn("Profile Server is down", throwable);
-                                    return Mono.just(UserDto.builder().username("").build());
-                                })
-                )
-                .doOnError(throwable -> {
-                    throwInvalidRequestDataException();
-                })
-                .flatMap(userInfo -> sendRequestToCatalogService(order, userInfo));
-    }
-
-    private Mono<OrderResponseDto> sendRequestToCatalogService(Order order, UserDto userInfo) {
-        return webClient
-                .post()
-                .uri(catalogServiceGetProductsByIdsUri)
-                .contentType(MediaType.APPLICATION_JSON)
-                .accept(MediaType.APPLICATION_JSON)
-                .bodyValue(
-                        ItemRequestDto.builder()
-                                .items(order
-                                        .getItems()
-                                        .stream()
-                                        .map(Item::getProductId)
-                                        .map(String::valueOf)
-                                        .toList())
-                                .build()
-                )
-                .retrieve()
-                .bodyToMono(new ParameterizedTypeReference<List<ProductResponseDto>>() {
-                })
-                .transform(it ->
-                        reactiveCircuitBreakerFactory.create(CIRCUIT_BREAKER_NAME)
-                                .run(it, throwable -> {
-                                    log.warn("Catalog Server is down", throwable);
-                                    return Mono.just(List.of(ProductResponseDto.builder().name("").build()));
-                                })
-                )
-                .doOnError(throwable -> throwInvalidRequestDataException())
-                .map(productInfo ->
-                        {
-                            OrderResponseDto build = OrderResponseDto.builder()
-                                    .userInfo(userInfo)
-                                    .productInfo(productInfo)
-                                    .orderNumber(order.getOrderNumber())
-                                    .deliveryComment(order.getDeliveryComment())
-                                    .createdOn(order.getCreatedOn())
-                                    .build();
-                            OrderDto b = OrderDto.builder()
-                                    .id(order.getId())
-                                    .orderNumber(order.getOrderNumber())
-                                    .createdOn(order.getCreatedOn())
-                                    .updatedOn(order.getUpdatedOn())
-                                    .username(order.getUsername())
-                                    .deliveryComment(order.getDeliveryComment())
-                                    .items(order.getItems())
-//                                    .firstName(orderDto.firstName())
-//                                    .lastName(orderDto.lastName())
-//                                    .phoneNumber(orderDto.phoneNumber())
-//                                    .city(orderDto.city())
-//                                    .street(orderDto.street())
-//                                    .postCode(orderDto.postCode())
-//                                    .cardNumber(orderDto.cardNumber())
-//                                    .cardExpMonth(orderDto.cardExpMonth())
-//                                    .cardExpYear(orderDto.cardExpYear())
-//                                    .cardCvc(orderDto.cardCvc())
-//                                    .charge(ChargeDto.builder()
-//                                            .id(charge.getId())
-//                                            .chargeId(charge.getChargeId())
-//                                            .createOn(charge.getCreatedOn())
-//                                            .updateOn(charge.getUpdatedOn())
-//                                            .status(charge.getStatus())
-//                                            .orderId(charge.getOrderId())
-//                                            .amount(formatAmount(charge.getAmount()))
-//                                            .currency(charge.getCurrency())
-//                                            .build())
-                                    .build();
-                            return build;
-                        }
-                );
     }
 
     private static void throwInvalidRequestDataException() {

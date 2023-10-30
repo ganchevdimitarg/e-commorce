@@ -1,6 +1,5 @@
 package com.concordeu.catalog.service.product;
 
-import com.concordeu.catalog.dto.ItemRequestDTO;
 import com.concordeu.catalog.dto.ProductDTO;
 import com.concordeu.catalog.entities.Category;
 import com.concordeu.catalog.entities.Product;
@@ -35,34 +34,34 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public ProductDTO createProduct(ProductDTO productDTO, String categoryName) {
-        validator.validateData(productDTO, categoryName);
+        this.validator.validateData(productDTO, categoryName);
 
-        Category category = categoryRepository
+        Category category = this.categoryRepository
                 .findByName(categoryName)
                 .orElseThrow(() -> {
                     log.warn("No such category: " + categoryName);
                     return new IllegalArgumentException("No such category: " + categoryName);
                 });
 
-        if (productRepository.findByName(productDTO.getName()).isPresent()) {
+        if (this.productRepository.findByName(productDTO.getName()).isPresent()) {
             log.warn("Product with the name: " + productDTO.getName() + " already exists.");
             throw new IllegalArgumentException("Product with the name: " + productDTO.getName() + " already exist.");
         }
 
-        Product product = mapper.mapProductDTOToProduct(productDTO);
+        Product product = this.mapper.mapProductDTOToProduct(productDTO);
         product.setCategory(category);
         product.setInStock(true);
 
         log.info("The product " + product.getName() + " is save successful");
-        productRepository.saveAndFlush(product);
+        this.productRepository.saveAndFlush(product);
 
-        return mapper.mapProductToProductDTO(product);
+        return this.mapper.mapProductToProductDTO(product);
     }
 
     @Override
     @Cacheable(value="Product")
     public Page<ProductDTO> getProductsByPage(int page, int size) {
-        Page<ProductDTO> products = productRepository
+        Page<ProductDTO> products = this.productRepository
                 .findAll(PageRequest.of(page, size))
                 .map(this::convertProduct);
         log.info("Successful get products: " + products.getSize());
@@ -73,11 +72,11 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Cacheable(value="Product", key="#categoryName", condition="#categoryName!=null")
     public Page<ProductDTO> getProductsByCategoryByPage(int page, int size, String categoryName) {
-        Category category = categoryRepository
+        Category category = this.categoryRepository
                 .findByName(categoryName)
                 .orElseThrow(() -> new IllegalArgumentException("No such category: " + categoryName));
 
-        Page<ProductDTO> products = productRepository
+        Page<ProductDTO> products = this.productRepository
                 .findAllByCategoryIdByPage(category.getId(), PageRequest.of(page, size))
                 .map(this::convertProduct);
         log.info("Successful get products by category: " + categoryName);
@@ -89,15 +88,15 @@ public class ProductServiceImpl implements ProductService {
     @Cacheable(value="Product", key="#name", condition="#name!=null")
     public ProductDTO getProductByName(String name) {
         Assert.notNull(name, "Name is empty");
-        Product product = productRepository.findByName(name).orElseThrow(() -> new IllegalArgumentException("No such product"));
-        return mapper.mapProductToProductDTO(product);
+        Product product = this.productRepository.findByName(name).orElseThrow(() -> new IllegalArgumentException("No such product"));
+        return this.mapper.mapProductToProductDTO(product);
     }
 
     @Override
     @Cacheable(value="Product", key="#id", condition="#id!=null")
     public ProductDTO getProductById(UUID id) {
         Assert.notNull(id, "Id is empty");
-        Product product = productRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("No such product"));
+        Product product = this.productRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("No such product"));
         return ProductDTO.mapProductToProductDTO(product);
     }
 
@@ -105,11 +104,11 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @CachePut(value="Product", key="#productName", condition="#productName != null")
     public void updateProduct(ProductDTO productDTO, String productName) {
-        validator.validateData(productDTO, productName);
+        this.validator.validateData(productDTO, productName);
 
         checkExistenceProduct(productName);
 
-        productRepository.update(productName,
+        this.productRepository.update(productName,
                 productDTO.getDescription(),
                 productDTO.getPrice(),
                 productDTO.getCharacteristics(),
@@ -122,16 +121,16 @@ public class ProductServiceImpl implements ProductService {
     @CacheEvict(value="Product", key="#productName", condition="#productName != null")
     public void deleteProduct(String productName) {
         checkExistenceProduct(productName);
-        productRepository.deleteByName(productName);
+        this.productRepository.deleteByName(productName);
     }
 
     @Override
-    public List<ProductDTO> getProductsById(ItemRequestDTO product) {
-        return product.items().stream().map(this::getProductById).collect(Collectors.toList());
+    public List<ProductDTO> getProductsById(List<UUID> items) {
+        return items.stream().map(this::getProductById).collect(Collectors.toList());
     }
 
     private void checkExistenceProduct(String productName) {
-        if (productRepository.findByName(productName).isEmpty()) {
+        if (this.productRepository.findByName(productName).isEmpty()) {
             log.warn("Product with the name: " + productName + " does not exist.");
             throw new IllegalArgumentException("Product with the name: " + productName + " does not exist.");
         }
