@@ -71,6 +71,13 @@ spring:
   kafka:
     bootstrap-servers: localhost:29092
 
+#Eureka
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+#    enabled: false
+
 #Logging Levels
 #Disable the default loggers
 logging:
@@ -83,17 +90,12 @@ logging:
         web: INFO
         security: INFO
         oauth2: TRACE
+  pattern:
+    level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]"
 #    reactor:
 #      netty:
 #        http:
 #          client: TRACE
-
-#Eureka
-eureka:
-  client:
-    service-url:
-      defaultZone: http://localhost:8761/eureka
-#    enabled: false
 
 #Prometheus (and other data loggers)
 management:
@@ -112,6 +114,17 @@ management:
     metrics:
       export:
         enabled: true
+  tracing:
+    sampling:
+      probability: 1.0
+    propagation:
+      type: w3c
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http:
+          server:
+            requests: true
 
 #Spring Doc
 springdoc:

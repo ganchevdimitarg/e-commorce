@@ -9,6 +9,7 @@ import com.concordeu.payment.service.CustomerService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.stripe.exception.StripeException;
+import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.messaging.handler.annotation.SendTo;
@@ -32,6 +33,11 @@ public class ReplyKafkaListener {
             containerFactory = CONTAINER_FACTORY
     )
     @SendTo
+    @Observed(
+            name = "user.name",
+            contextualName = "handleCreateCustomer",
+            lowCardinalityKeyValues = {"method", "handleCreateCustomer"}
+    )
     public String handleCreateCustomer(ReplayPaymentDto replayPaymentDto) throws JsonProcessingException {
         String customerId = customerService.createCustomer(replayPaymentDto.userRequestDto());
 
@@ -46,6 +52,11 @@ public class ReplyKafkaListener {
             containerFactory = CONTAINER_FACTORY
     )
     @SendTo
+    @Observed(
+            name = "user.name",
+            contextualName = "handleGetCardsByUsername",
+            lowCardinalityKeyValues = {"method", "handleGetCardsByUsername"}
+    )
     public String handleGetCardsByUsername(ReplayPaymentDto replayPaymentDto) throws JsonProcessingException {
         Set<CardDto> cards = cardService.findAppCardsByCustomerId(
                         customerService.findByUsername(replayPaymentDto.username()).getCustomerId())
@@ -72,6 +83,11 @@ public class ReplyKafkaListener {
             containerFactory = CONTAINER_FACTORY
     )
     @SendTo
+    @Observed(
+            name = "user.name",
+            contextualName = "handleAddCardToCustomer",
+            lowCardinalityKeyValues = {"method", "handleAddCardToCustomer"}
+    )
     public String handleAddCardToCustomer(ReplayPaymentDto replayPaymentDto) throws StripeException, JsonProcessingException {
         CardDto card = cardService.createCard(replayPaymentDto.cardDto());
 
@@ -86,6 +102,11 @@ public class ReplyKafkaListener {
             containerFactory = CONTAINER_FACTORY
     )
     @SendTo
+    @Observed(
+            name = "user.name",
+            contextualName = "handleDeleteByUsername",
+            lowCardinalityKeyValues = {"method", "handleDeleteByUsername"}
+    )
     public void handleDeleteByUsername(ReplayPaymentDto replayPaymentDto) {
         customerService.deleteCustomer(replayPaymentDto.username());
     }

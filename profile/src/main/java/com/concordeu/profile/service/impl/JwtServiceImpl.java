@@ -9,6 +9,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -32,6 +33,11 @@ public class JwtServiceImpl implements JwtService {
     private String secretKey;
 
     @Override
+    @Observed(
+            name = "user.name",
+            contextualName = "saveToken",
+            lowCardinalityKeyValues = {"method", "saveToken"}
+    )
     public void saveToken(String token, String username) {
         passwordResetRepository.insert(PasswordReset.builder()
                 .token(token)

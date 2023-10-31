@@ -5,6 +5,7 @@ import com.concordeu.order.dto.OrderDto;
 import com.concordeu.order.dto.OrderResponseDto;
 import com.concordeu.order.service.MailService;
 import com.concordeu.order.service.OrderService;
+import io.micrometer.observation.annotation.Observed;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -37,6 +38,11 @@ public class OrderController {
     @PostMapping("/create-order")
     @ValidationRequest
     @PreAuthorize("hasAuthority('SCOPE_order.write')")
+    @Observed(
+            name = "user.name",
+            contextualName = "createOrder",
+            lowCardinalityKeyValues = {"method", "createOrder"}
+    )
     public Mono<OrderDto> createOrder(@RequestBody OrderDto orderDto, Authentication authentication) {
         Mono<OrderDto> order = orderService.createOrder(orderDto, authentication.getName());
         mailService.sendUserOrderMail(orderDto.username());
@@ -53,6 +59,11 @@ public class OrderController {
     })
     @DeleteMapping("/delete-order")
     @PreAuthorize("hasAuthority('SCOPE_order.write')")
+    @Observed(
+            name = "user.name",
+            contextualName = "deleteOrder",
+            lowCardinalityKeyValues = {"method", "deleteOrder"}
+    )
     public Mono<Void> deleteOrder(@RequestParam Long orderId) {
         return orderService.deleteOrder(orderId);
     }
@@ -67,6 +78,11 @@ public class OrderController {
     })
     @GetMapping("/get-order")
     @PreAuthorize("hasAuthority('SCOPE_order.read')")
+    @Observed(
+            name = "user.name",
+            contextualName = "getOrder",
+            lowCardinalityKeyValues = {"method", "getOrder"}
+    )
     public Mono<OrderResponseDto> getOrder(@RequestParam Long orderId, Authentication authentication) {
         return orderService.getOrder(orderId, authentication.getName());
     }

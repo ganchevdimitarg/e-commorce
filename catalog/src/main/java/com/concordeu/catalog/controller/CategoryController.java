@@ -2,6 +2,7 @@ package com.concordeu.catalog.controller;
 
 import com.concordeu.catalog.dto.CategoryDTO;
 import com.concordeu.catalog.service.category.CategoryService;
+import io.micrometer.observation.annotation.Observed;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -32,6 +33,11 @@ public class CategoryController {
     })
     @PostMapping("/create-category")
     @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
+    @Observed(
+            name = "user.name",
+            contextualName = "createCategory",
+            lowCardinalityKeyValues = {"method", "createCategory"}
+    )
     public CategoryDTO createCategory(@RequestBody @NonNull CategoryDTO requestDto) {
         if (requestDto.name().isEmpty()) {
             log.debug("Category name is empty: " + requestDto.name());
@@ -50,6 +56,11 @@ public class CategoryController {
     })
     @DeleteMapping("/delete-category")
     @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
+    @Observed(
+            name = "user.name",
+            contextualName = "deleteCategory",
+            lowCardinalityKeyValues = {"method", "deleteCategory"}
+    )
     public void deleteCategory(@RequestParam @NonNull String categoryName) {
         categoryService.deleteCategory(categoryName);
     }
@@ -64,6 +75,11 @@ public class CategoryController {
     })
     @GetMapping("/get-categories")
     @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
+    @Observed(
+            name = "user.name",
+            contextualName = "getCategories",
+            lowCardinalityKeyValues = {"method", "getCategories"}
+    )
     public Page<CategoryDTO> getCategories(@RequestParam int page, @RequestParam int size) {
         return categoryService.getCategoriesByPage(page, size);
     }
@@ -78,6 +94,11 @@ public class CategoryController {
     })
     @PostMapping("/move-one-product")
     @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
+    @Observed(
+            name = "user.name",
+            contextualName = "moveOneProduct",
+            lowCardinalityKeyValues = {"method", "moveOneProduct"}
+    )
     public void moveOneProduct(
             @RequestParam String categoryNameFrom, @RequestParam String categoryNameTo, @RequestParam String productName) {
         categoryService.moveOneProduct(categoryNameFrom, categoryNameTo, productName);
@@ -93,6 +114,11 @@ public class CategoryController {
     })
     @PostMapping("/move-all-products")
     @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
+    @Observed(
+            name = "user.name",
+            contextualName = "moveAllProducts",
+            lowCardinalityKeyValues = {"method", "moveAllProducts"}
+    )
     public void moveAllProducts(@RequestParam String categoryNameFrom, @RequestParam String categoryNameTo) {
         categoryService.moveAllProducts(categoryNameFrom, categoryNameTo);
     }

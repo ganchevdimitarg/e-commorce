@@ -3,6 +3,7 @@ package com.concordeu.payment.controller;
 import com.concordeu.client.common.dto.PaymentDto;
 import com.concordeu.client.common.dto.UserRequestDto;
 import com.concordeu.payment.service.CustomerService;
+import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -15,16 +16,31 @@ public class CustomerController {
     private final CustomerService customerService;
 
     @PostMapping("/create-customer")
+    @Observed(
+            name = "user.name",
+            contextualName = "createCustomer",
+            lowCardinalityKeyValues = {"method", "createCustomer"}
+    )
     public String createCustomer(@RequestBody UserRequestDto paymentDto) {
         return customerService.createCustomer(paymentDto);
     }
 
     @GetMapping("/get-customer")
+    @Observed(
+            name = "user.name",
+            contextualName = "getCustomer",
+            lowCardinalityKeyValues = {"method", "getCustomer"}
+    )
     public PaymentDto getCustomer(@RequestParam String username) {
         return customerService.getCustomerByUsername(username);
     }
 
     @DeleteMapping("/delete-customer")
+    @Observed(
+            name = "user.name",
+            contextualName = "deleteCustomer",
+            lowCardinalityKeyValues = {"method", "deleteCustomer"}
+    )
     public String deleteCustomer(@RequestParam String username) {
         return customerService.deleteCustomer(username);
     }

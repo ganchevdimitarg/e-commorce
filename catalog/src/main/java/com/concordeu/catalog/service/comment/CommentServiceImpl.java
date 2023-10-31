@@ -7,6 +7,7 @@ import com.concordeu.catalog.repositories.ProductRepository;
 import com.concordeu.catalog.entities.Comment;
 import com.concordeu.catalog.entities.Product;
 import com.concordeu.catalog.validator.CommentDataValidator;
+import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -27,6 +28,7 @@ public class CommentServiceImpl implements CommentService {
     private final CommentMapper mapper;
 
     @Override
+
     public CommentDTO createComment(CommentDTO commentDTO, String productName) {
         commentDataValidator.validateData(commentDTO);
 
@@ -70,6 +72,7 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     @Cacheable(value="Comment", key="#commentId")
+
     public Page<CommentDTO> findAllByAuthorByPage(String author, int page, int size) {
         if (author.isEmpty()) {
             log.warn("No such author: " + author);
@@ -84,6 +87,7 @@ public class CommentServiceImpl implements CommentService {
     }
 
     @Override
+
     public double getAvgStars(String productName) {
         List<Comment> comments = commentRepository.findAllByProductName(productName);
         double sum = 0.0;

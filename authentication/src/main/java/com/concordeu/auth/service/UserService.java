@@ -4,6 +4,7 @@ import com.concordeu.client.common.constant.Constant;
 import com.concordeu.client.common.dto.AuthUserDto;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -28,6 +29,11 @@ public class UserService implements UserDetailsService {
     private final ObjectMapper objectMapper;
 
     @Override
+    @Observed(
+            name = "user.name",
+            contextualName = "loadUserByUsername",
+            lowCardinalityKeyValues = {"method", "loadUserByUsername"}
+    )
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         AuthUserDto user = getReplayAuthUserDto(username);
         return new User(user.username(), user.password(), user.grantedAuthorities());

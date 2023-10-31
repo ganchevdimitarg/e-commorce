@@ -7,6 +7,7 @@ import com.concordeu.catalog.mapper.ProductMapper;
 import com.concordeu.catalog.repositories.CategoryRepository;
 import com.concordeu.catalog.repositories.ProductRepository;
 import com.concordeu.catalog.validator.ProductDataValidator;
+import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;

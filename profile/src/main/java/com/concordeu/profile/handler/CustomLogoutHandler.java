@@ -2,6 +2,7 @@ package com.concordeu.profile.handler;
 
 import com.concordeu.profile.dto.GithubRevokeTokenDto;
 import com.google.gson.Gson;
+import io.micrometer.observation.annotation.Observed;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
@@ -62,6 +63,11 @@ public class CustomLogoutHandler implements ServerLogoutHandler {
 
 
     @Override
+    @Observed(
+            name = "user.name",
+            contextualName = "logout",
+            lowCardinalityKeyValues = {"method", "logout"}
+    )
     public Mono<Void> logout(WebFilterExchange exchange, Authentication authentication) {
 
         String token = Objects.requireNonNull(

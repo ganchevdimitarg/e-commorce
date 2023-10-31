@@ -200,8 +200,15 @@ resilience4j.timelimiter:
 #Disable the default loggers
 logging:
   level:
-    root: ERROR
-    org.springframework.web: trace
+    blog: WARN
+    root: INFO
+    org:
+      springframework:
+        web: INFO
+        security: INFO
+        oauth2: INFO
+  pattern:
+    level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]"
 #    org.springframework.cloud.gateway: trace
 #    logging.level.io.github.resilience4j: trace
 #    org.springframework.http.server.reactive: trace
@@ -213,26 +220,35 @@ management:
   #    port: 8081
   #    ssl:
   #      enabled: false
-  endpoints:
-    web:
-      exposure:
-        include: '*'
   endpoint:
-    prometheus:
-      enabled: true
     metrics:
+      enabled: true
+    prometheus:
       enabled: true
     health:
       show-details: always
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+  tracing:
+    sampling:
+      probability: 1.0
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http:
+          server:
+            requests: true
   health:
     circuitbreakers:
       enabled: true
     ratelimiters:
       enabled: true
-  prometheus:
-    metrics:
-      export:
-        enabled: true
 
 #Eureka
 eureka:

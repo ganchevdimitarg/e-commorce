@@ -10,6 +10,7 @@ import com.concordeu.order.repositories.OrderRepository;
 import com.concordeu.order.service.ChargeService;
 import com.concordeu.order.service.ItemService;
 import com.concordeu.order.service.OrderService;
+import io.micrometer.observation.annotation.Observed;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

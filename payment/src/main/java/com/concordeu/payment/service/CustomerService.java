@@ -8,7 +8,6 @@ import com.stripe.model.Customer;
 public interface CustomerService {
     String createCustomer(UserRequestDto customerDto);
     PaymentDto getCustomerByUsername(String username);
-    Customer getCustomerByStripeId(String customerId);
     String deleteCustomer(String username);
     AppCustomer findByUsername(String username);
 }
