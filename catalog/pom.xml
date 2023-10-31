@@ -214,7 +214,7 @@
                 <version>1.4</version>
                 <configuration>
                     <apiDocsUrl>http://localhost:8084/v3/api-docs</apiDocsUrl>
-                    <outputFileName>oa3.yml</outputFileName>
+                    <outputFileName>catalog-swagger-docs.yml</outputFileName>
                 </configuration>
                 <executions>
                     <execution>

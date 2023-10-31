@@ -225,7 +225,7 @@
                 <version>1.4</version>
                 <configuration>
                     <apiDocsUrl>http://localhost:8083/v3/api-docs</apiDocsUrl>
-                    <outputFileName>oa3.yml</outputFileName>
+                    <outputFileName>profile-swagger-docs.yml</outputFileName>
                 </configuration>
                 <executions>
                     <execution>
