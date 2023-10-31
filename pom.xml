@@ -76,7 +76,6 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
-
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-registry-prometheus</artifactId>
@@ -93,6 +92,8 @@
                     <version>${spring.boot.maven.plugin.version}</version>
                     <configuration>
                         <jmxPort>9002</jmxPort>
+                        <wait>1000</wait>
+                        <maxAttempts>180</maxAttempts>
                         <jvmArguments>-Dspring.application.admin.enabled=true</jvmArguments>
                         <excludes>
                             <exclude>
