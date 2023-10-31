@@ -1,4 +1,4 @@
-package com.concordeu.auth.config.security;
+package com.concordeu.auth.config;
 
 import com.concordeu.client.common.constant.Constant;
 import org.apache.kafka.clients.admin.NewTopic;
@@ -43,7 +43,9 @@ public class KafkaProducerConfig {
             ProducerFactory<String, String> pf,
             ConcurrentMessageListenerContainer<String, String> repliesContainer) {
 
-        return new ReplyingKafkaTemplate<>(pf, repliesContainer);
+        ReplyingKafkaTemplate<String, String, String> replyingKafkaTemplate = new ReplyingKafkaTemplate<>(pf, repliesContainer);
+        replyingKafkaTemplate.setObservationEnabled(true);
+        return replyingKafkaTemplate;
     }
 
     @Bean

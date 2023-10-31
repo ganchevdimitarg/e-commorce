@@ -5,7 +5,6 @@ import org.springframework.data.domain.Page;
 
 public interface CategoryService {
     CategoryDTO createCategory(CategoryDTO categoryDto);
-    CategoryDTO getCategory(String categoryFrom);
     void deleteCategory(String categoryName);
     void moveOneProduct(String categoryNameFrom, String categoryNameTo, String productName);
     void moveAllProducts(String categoryNameFrom, String categoryNameTo);

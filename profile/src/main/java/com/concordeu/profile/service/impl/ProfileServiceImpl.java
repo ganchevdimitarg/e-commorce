@@ -16,6 +16,7 @@ import com.concordeu.profile.service.ProfileService;
 import com.concordeu.profile.validation.ValidateData;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.micrometer.observation.annotation.Observed;
 import jdk.jshell.spi.ExecutionControl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -50,13 +51,7 @@ public class ProfileServiceImpl implements ProfileService {
     private final ReplyingKafkaTemplate<String, ReplayPaymentDto, String> template;
 
     @Override
-    public UserDto createAdmin(UserRequestDto userRequestDto) {
-        UserDto userDto = createStaff(userRequestDto, ADMIN.getGrantedAuthorities());
-        log.debug("Admin user with username: {} was created", userDto.username());
-        return userDto;
-    }
 
-    @Override
     public UserDto createWorker(UserRequestDto userRequestDto) {
         UserDto userDto = createStaff(userRequestDto, WORKER.getGrantedAuthorities());
         log.debug("Worker user with username: {} was created", userDto.username());
@@ -64,6 +59,7 @@ public class ProfileServiceImpl implements ProfileService {
     }
 
     @Override
+
     public UserDto createUser(UserRequestDto userRequestDto) throws ExecutionException, InterruptedException, JsonProcessingException, TimeoutException {
         UserDto userDto = createUser(userRequestDto, USER.getGrantedAuthorities());
         log.debug("Profile user with username: {} was created", userDto.username());

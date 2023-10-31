@@ -2,6 +2,7 @@ package com.concordeu.order.service.impl;
 
 import com.concordeu.order.dto.NotificationDto;
 import com.concordeu.order.service.MailService;
+import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;

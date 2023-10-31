@@ -7,6 +7,7 @@ import com.concordeu.order.domain.Order;
 import com.concordeu.order.dto.PaymentDto;
 import com.concordeu.order.service.ChargeService;
 import com.google.gson.Gson;
+import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

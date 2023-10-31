@@ -44,7 +44,9 @@ public class KafkaProducerConfig {
     @Bean
     public KafkaTemplate<String, NotificationDto> kafkaTemplate(
             ProducerFactory<String, NotificationDto> producerFactory) {
-        return new KafkaTemplate<>(producerFactory);
+        KafkaTemplate<String, NotificationDto> kafkaTemplate = new KafkaTemplate<>(producerFactory);
+        kafkaTemplate.setObservationEnabled(true);
+        return kafkaTemplate;
     }
 
     @Bean
@@ -57,7 +59,9 @@ public class KafkaProducerConfig {
             ProducerFactory<String, ReplayPaymentDto> pf,
             ConcurrentMessageListenerContainer<String, String> repliesContainer) {
 
-        return new ReplyingKafkaTemplate<>(pf, repliesContainer);
+        ReplyingKafkaTemplate<String, ReplayPaymentDto, String> replyingKafkaTemplate = new ReplyingKafkaTemplate<>(pf, repliesContainer);
+        replyingKafkaTemplate.setObservationEnabled(true);
+        return replyingKafkaTemplate;
     }
 
     @Bean

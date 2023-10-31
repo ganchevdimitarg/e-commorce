@@ -95,6 +95,9 @@ eureka:
 
 #Prometheus (and other data loggers)
 management:
+  health:
+    circuitbreakers:
+      enabled: true
   endpoint:
     metrics:
       enabled: true
@@ -106,13 +109,21 @@ management:
     web:
       exposure:
         include: "*"
-  health:
-    circuitbreakers:
-      enabled: true
   prometheus:
     metrics:
       export:
         enabled: true
+  tracing:
+    sampling:
+      probability: 1.0
+    propagation:
+      type: w3c
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http:
+          server:
+            requests: true
 
 #Spring Doc
 springdoc:

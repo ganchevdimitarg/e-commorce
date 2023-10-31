@@ -62,6 +62,8 @@ public class KafkaConsumerConfig {
     @Bean
     public KafkaTemplate<String, String> kafkaTemplateSimple(
             ProducerFactory<String, String> producerFactorySimple) {
-        return new KafkaTemplate<>(producerFactorySimple);
+        KafkaTemplate<String, String> kafkaTemplate = new KafkaTemplate<>(producerFactorySimple);
+        kafkaTemplate.setObservationEnabled(true);
+        return kafkaTemplate;
     }
 }

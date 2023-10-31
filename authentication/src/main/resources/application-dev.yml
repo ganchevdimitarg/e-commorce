@@ -124,6 +124,19 @@ management:
     metrics:
       export:
         enabled: true
+  tracing:
+    sampling:
+      probability: 1.0
+    propagation:
+      type: w3c
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http:
+          server:
+            requests: true
+
+
 
 keyManager:
   algorithm: "RSA"

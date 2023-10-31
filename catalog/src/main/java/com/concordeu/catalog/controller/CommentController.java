@@ -4,6 +4,7 @@ import com.concordeu.catalog.dto.CommentDTO;
 import com.concordeu.catalog.mapper.CommentMapper;
 import com.concordeu.catalog.service.comment.CommentService;
 import com.concordeu.catalog.validator.CommentDataValidator;
+import io.micrometer.observation.annotation.Observed;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -23,7 +24,6 @@ public class CommentController {
 
     private final CommentService commentService;
     private final CommentDataValidator validator;
-    private final CommentMapper mapper;
 
     @Operation(summary = "Create Comment",  description = "Create a comment for the product and save it in the database",
             security = @SecurityRequirement(name = "security_auth"))
@@ -35,6 +35,11 @@ public class CommentController {
     })
     @PostMapping("/create-comment")
     @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
+    @Observed(
+            name = "user.name",
+            contextualName = "createComment",
+            lowCardinalityKeyValues = {"method", "createComment"}
+    )
     public CommentDTO createComment(@RequestBody CommentDTO requestDto,
                                             @RequestParam String productName) {
         validator.validateData(requestDto);
@@ -51,6 +56,11 @@ public class CommentController {
     })
     @GetMapping("/get-comments-product-name")
     @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
+    @Observed(
+            name = "user.name",
+            contextualName = "findAllByProductName",
+            lowCardinalityKeyValues = {"method", "findAllByProductName"}
+    )
         public Page<CommentDTO> findAllByProductName(@RequestParam int page,
                                                              @RequestParam int size,
                                                              @RequestParam String productName) {
@@ -67,6 +77,11 @@ public class CommentController {
     })
     @GetMapping("/get-comments-author")
     @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
+    @Observed(
+            name = "user.name",
+            contextualName = "findAllByAuthor",
+            lowCardinalityKeyValues = {"method", "findAllByAuthor"}
+    )
     public Page<CommentDTO> findAllByAuthor(@RequestParam int page,
                                                     @RequestParam int size,
                                                     @RequestParam String author) {
@@ -83,6 +98,11 @@ public class CommentController {
     })
     @GetMapping("/get-avg-stars")
     @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
+    @Observed(
+            name = "user.name",
+            contextualName = "getAvgStars",
+            lowCardinalityKeyValues = {"method", "getAvgStars"}
+    )
     public double getAvgStars(@RequestParam String productName) {
         return commentService.getAvgStars(productName);
     }

@@ -6,6 +6,7 @@ import com.concordeu.catalog.repositories.ProductRepository;
 import com.concordeu.catalog.dto.CategoryDTO;
 import com.concordeu.catalog.entities.Category;
 import com.concordeu.catalog.entities.Product;
+import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -39,13 +40,6 @@ public class CategoryServiceImpl implements CategoryService {
         return mapper.mapCategoryToCategoryDTO(category);
     }
 
-    @Override
-    @Cacheable(value="Category", key="#categoryId")
-    public CategoryDTO getCategory(String categoryName) {
-        Category category = categoryRepository.findByName(categoryName)
-                .orElseThrow(() -> new IllegalArgumentException("No such category: " + categoryName));
-        return convertCategory(category);
-    }
     @Transactional
     @Override
     @CacheEvict(value="Category", key="#categoryId")
@@ -63,6 +57,7 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+
     public void moveOneProduct(String categoryNameFrom, String categoryNameTo, String productName) {
         CategoryDTO categoryFrom = getCategory(categoryNameFrom);
         CategoryDTO categoryTo = getCategory(categoryNameTo);
@@ -82,6 +77,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Transactional
     @Override
+
     public void moveAllProducts(String categoryNameFrom, String categoryNameTo) {
         CategoryDTO categoryFrom = getCategory(categoryNameFrom);
         CategoryDTO categoryTo = getCategory(categoryNameTo);
@@ -94,6 +90,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     @Cacheable(value="Category", key="#categoryId")
+
     public Page<CategoryDTO> getCategoriesByPage(int page, int size) {
         Page<CategoryDTO> categories = categoryRepository
                 .findAll(PageRequest.of(page, size))
@@ -102,6 +99,13 @@ public class CategoryServiceImpl implements CategoryService {
         log.info("Successful get categories: " + categories.getSize());
 
         return categories;
+    }
+
+    @Cacheable(value="Category", key="#categoryId")
+    public CategoryDTO getCategory(String categoryName) {
+        Category category = categoryRepository.findByName(categoryName)
+                .orElseThrow(() -> new IllegalArgumentException("No such category: " + categoryName));
+        return convertCategory(category);
     }
 
     private CategoryDTO convertCategory(Category category) {

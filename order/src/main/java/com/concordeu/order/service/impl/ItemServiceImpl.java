@@ -3,6 +3,7 @@ package com.concordeu.order.service.impl;
 import com.concordeu.order.domain.Item;
 import com.concordeu.order.repositories.ItemRepository;
 import com.concordeu.order.service.ItemService;
+import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;

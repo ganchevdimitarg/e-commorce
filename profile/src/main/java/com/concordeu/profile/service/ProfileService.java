@@ -9,8 +9,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
 public interface ProfileService {
-    UserDto createAdmin(UserRequestDto model);
-
     UserDto createWorker(UserRequestDto model);
 
     UserDto createUser(UserRequestDto userRequestDto) throws ExecutionException, InterruptedException, JsonProcessingException, TimeoutException;

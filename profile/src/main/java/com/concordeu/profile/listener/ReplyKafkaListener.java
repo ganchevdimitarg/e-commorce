@@ -6,6 +6,7 @@ import com.concordeu.profile.entities.Profile;
 import com.concordeu.profile.repositories.ProfileRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.messaging.handler.annotation.SendTo;
@@ -25,6 +26,11 @@ public class ReplyKafkaListener {
             containerFactory = Constant.CONTAINER_FACTORY
     )
     @SendTo
+    @Observed(
+            name = "user.name",
+            contextualName = "handleGetUser",
+            lowCardinalityKeyValues = {"method", "handleGetUser"}
+    )
     public AuthUserDto handleGetUser(String username) {
         Profile profile = profileRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("Profile does not exist"));
