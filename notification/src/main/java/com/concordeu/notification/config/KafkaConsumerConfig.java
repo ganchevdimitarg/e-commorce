@@ -46,6 +46,7 @@ public class KafkaConsumerConfig {
         ConcurrentKafkaListenerContainerFactory<String, ReplayPaymentDto> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactory);
+        kafkaTemplate.setObservationEnabled(true);
         factory.setReplyTemplate(kafkaTemplate);
         return factory;
     }
