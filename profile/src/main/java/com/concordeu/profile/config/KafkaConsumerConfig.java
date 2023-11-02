@@ -50,6 +50,7 @@ public class KafkaConsumerConfig {
         ConcurrentKafkaListenerContainerFactory<String, String> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactory);
+        kafkaTemplateSimple.setObservationEnabled(true);
         factory.setReplyTemplate(kafkaTemplateSimple);
         return factory;
     }
