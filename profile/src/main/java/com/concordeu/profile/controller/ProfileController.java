@@ -27,6 +27,11 @@ public class ProfileController {
     private final ProfileService profileService;
     private final MailService mailService;
 
+    @GetMapping("/test")
+    public String test() {
+        return "Tt's working";
+    }
+
     @PostMapping("/register-worker")
     @ValidationRequest
     @Observed(

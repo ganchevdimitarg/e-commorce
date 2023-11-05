@@ -13,10 +13,11 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-
+import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 @RestController
@@ -26,6 +27,7 @@ import reactor.core.publisher.Mono;
 public class OrderController {
     private final OrderService orderService;
     private final MailService mailService;
+    private final WebClient webClient;
 
     @Operation(summary = "Create Order", description = "Create order in the database",
             security = @SecurityRequirement(name = "security_auth"))
@@ -85,5 +87,20 @@ public class OrderController {
     )
     public Mono<OrderResponseDto> getOrder(@RequestParam Long orderId, Authentication authentication) {
         return orderService.getOrder(orderId, authentication.getName());
+    }
+
+    @GetMapping("/test")
+    @Observed(
+            name = "user.name",
+            contextualName = "test",
+            lowCardinalityKeyValues = {"method", "test"}
+    )
+    public Mono<String> test() {
+        return this.webClient
+                .get()
+                .uri("http://localhost:8083/api/v1/profile/test")
+                .accept(MediaType.APPLICATION_JSON)
+                .retrieve()
+                .bodyToMono(String.class);
     }
 }
