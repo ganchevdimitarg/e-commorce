@@ -4,6 +4,9 @@ import com.concordeu.client.common.constant.Constant;
 import com.concordeu.client.common.dto.AuthUserDto;
 import com.concordeu.client.common.dto.NotificationDto;
 import com.concordeu.client.common.dto.ReplayPaymentDto;
+import io.micrometer.core.instrument.ImmutableTag;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import lombok.RequiredArgsConstructor;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.springframework.beans.factory.annotation.Value;
@@ -15,6 +18,7 @@ import org.springframework.kafka.core.*;
 import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -37,10 +41,13 @@ public class KafkaConsumerConfig {
     public ConsumerFactory<String, String> consumerFactory() {
         JsonDeserializer<String> jsonDeserializer = new JsonDeserializer<>();
         jsonDeserializer.addTrustedPackages(Constant.TRUSTED_PACKAGE);
-        return new DefaultKafkaConsumerFactory<>(
+        DefaultKafkaConsumerFactory<String, String> defaultKafkaConsumerFactory = new DefaultKafkaConsumerFactory<>(
                 consumerConfig(),
                 new JsonDeserializer<>(),
                 jsonDeserializer);
+        defaultKafkaConsumerFactory.addListener(new MicrometerConsumerListener<>(new SimpleMeterRegistry(),
+                Collections.singletonList(new ImmutableTag("profileTag", "profileServiceTag"))));
+        return defaultKafkaConsumerFactory;
     }
 
     @Bean

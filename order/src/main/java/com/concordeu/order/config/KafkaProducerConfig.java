@@ -1,6 +1,8 @@
 package com.concordeu.order.config;
 
 import com.concordeu.order.dto.NotificationDto;
+import io.micrometer.core.instrument.ImmutableTag;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.annotation.Value;
@@ -8,9 +10,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.core.MicrometerProducerListener;
 import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.support.serializer.JsonSerializer;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -30,7 +34,10 @@ public class KafkaProducerConfig {
 
     @Bean
     public ProducerFactory<String, NotificationDto> producerFactory() {
-        return new DefaultKafkaProducerFactory<>(producerConfig());
+        DefaultKafkaProducerFactory<String, NotificationDto> defaultKafkaProducerFactory = new DefaultKafkaProducerFactory<>(producerConfig());
+        defaultKafkaProducerFactory.addListener(new MicrometerProducerListener<>(new SimpleMeterRegistry(),
+                Collections.singletonList(new ImmutableTag("orderTag", "orderServiceTag"))));
+        return defaultKafkaProducerFactory;
     }
 
     @Bean

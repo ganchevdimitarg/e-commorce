@@ -1,6 +1,8 @@
 package com.concordeu.auth.config;
 
 import com.concordeu.client.common.constant.Constant;
+import io.micrometer.core.instrument.ImmutableTag;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
@@ -10,11 +12,13 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.config.TopicBuilder;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
+import org.springframework.kafka.core.MicrometerProducerListener;
 import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
 import org.springframework.kafka.requestreply.ReplyingKafkaTemplate;
 import org.springframework.kafka.support.serializer.JsonSerializer;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -35,7 +39,10 @@ public class KafkaProducerConfig {
 
     @Bean
     public ProducerFactory<String, String> replyingProducerFactory() {
-        return new DefaultKafkaProducerFactory<>(producerConfig());
+        DefaultKafkaProducerFactory<String, String> defaultKafkaProducerFactory = new DefaultKafkaProducerFactory<>(producerConfig());
+        defaultKafkaProducerFactory.addListener(new MicrometerProducerListener<>(new SimpleMeterRegistry(),
+                Collections.singletonList(new ImmutableTag("authTag", "authServiceTag"))));
+        return defaultKafkaProducerFactory;
     }
 
     @Bean
@@ -56,6 +63,7 @@ public class KafkaProducerConfig {
         ConcurrentMessageListenerContainer<String, String> repliesContainer =
                 containerFactory.createContainer(PROFILE_SERVICE_REPLIES);
         repliesContainer.getContainerProperties().setGroupId(Constant.PROFILE_SERVICE);
+        repliesContainer.getContainerProperties().setObservationEnabled(true);
         repliesContainer.setAutoStartup(false);
 
         return repliesContainer;

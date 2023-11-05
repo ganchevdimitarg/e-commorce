@@ -125,8 +125,7 @@ management:
   tracing:
     sampling:
       probability: 1.0
-    propagation:
-      type: w3c
+    enabled: true
   metrics:
     distribution:
       percentiles-histogram:

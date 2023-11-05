@@ -1,5 +1,6 @@
 package com.concordeu.gateway.config;
 
+import io.micrometer.observation.ObservationTextPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
@@ -17,5 +18,9 @@ public class SecurityConfig {
                 .build();
     }
 
+    @Bean
+    ObservationTextPublisher otp() {
+        return new ObservationTextPublisher();
+    }
 
 }

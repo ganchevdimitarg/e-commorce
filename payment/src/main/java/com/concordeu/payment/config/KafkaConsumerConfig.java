@@ -2,6 +2,8 @@ package com.concordeu.payment.config;
 
 import com.concordeu.client.common.constant.Constant;
 import com.concordeu.client.common.dto.ReplayPaymentDto;
+import io.micrometer.core.instrument.ImmutableTag;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.springframework.kafka.config.KafkaListenerContainerFactory;
 import org.springframework.kafka.core.*;
@@ -12,6 +14,7 @@ import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -30,10 +33,13 @@ public class KafkaConsumerConfig {
     public ConsumerFactory<String, ReplayPaymentDto> consumerFactory() {
         JsonDeserializer<ReplayPaymentDto> jsonDeserializer = new JsonDeserializer<>();
         jsonDeserializer.addTrustedPackages(Constant.TRUSTED_PACKAGE);
-        return new DefaultKafkaConsumerFactory<>(
+        DefaultKafkaConsumerFactory<String, ReplayPaymentDto> defaultKafkaConsumerFactory = new DefaultKafkaConsumerFactory<>(
                 consumerConfig(),
                 new JsonDeserializer<>(),
                 jsonDeserializer);
+        defaultKafkaConsumerFactory.addListener(new MicrometerConsumerListener<>(new SimpleMeterRegistry(),
+                Collections.singletonList(new ImmutableTag("paymentTag", "paymentServiceTag"))));
+        return defaultKafkaConsumerFactory;
     }
 
     @Bean

@@ -2,6 +2,8 @@ server:
   port: 8081
 
 spring:
+  main:
+    web-application-type: reactive
   application:
     name: gateway-service
 
@@ -249,6 +251,9 @@ management:
       enabled: true
     ratelimiters:
       enabled: true
+  zipkin:
+    tracing:
+      endpoint: "http://localhost:9411/api/v2/spans"
 
 #Eureka
 eureka:

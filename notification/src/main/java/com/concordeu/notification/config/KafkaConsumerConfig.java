@@ -1,8 +1,10 @@
 package com.concordeu.notification.config;
 
 import com.concordeu.client.common.dto.ReplayPaymentDto;
+import io.micrometer.core.instrument.ImmutableTag;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -11,17 +13,21 @@ import org.springframework.kafka.config.KafkaListenerContainerFactory;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.core.MicrometerConsumerListener;
 import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 @Configuration
 public class KafkaConsumerConfig {
     public static final String TRUSTED_PACKAGE = "com.concordeu.client.common.dto";
+
     @Value("${spring.kafka.bootstrap-servers}")
     private String bootstrapAddress;
+
 
     public Map<String, Object> consumerConfig() {
         Map<String, Object> props = new HashMap<>();
@@ -33,10 +39,14 @@ public class KafkaConsumerConfig {
     public ConsumerFactory<String, ReplayPaymentDto> consumerFactory() {
         JsonDeserializer<ReplayPaymentDto> jsonDeserializer = new JsonDeserializer<>();
         jsonDeserializer.addTrustedPackages(TRUSTED_PACKAGE);
-        return new DefaultKafkaConsumerFactory<>(
+
+        DefaultKafkaConsumerFactory<String, ReplayPaymentDto> defaultKafkaConsumerFactory = new DefaultKafkaConsumerFactory<>(
                 consumerConfig(),
                 new JsonDeserializer<>(),
                 jsonDeserializer);
+        defaultKafkaConsumerFactory.addListener(new MicrometerConsumerListener<>(meterRegistry(),
+                Collections.singletonList(new ImmutableTag("notificationTag", "notificationServiceTag"))));
+        return defaultKafkaConsumerFactory;
     }
 
     @Bean
@@ -49,5 +59,9 @@ public class KafkaConsumerConfig {
         kafkaTemplate.setObservationEnabled(true);
         factory.setReplyTemplate(kafkaTemplate);
         return factory;
+    }
+    @Bean
+    public MeterRegistry meterRegistry() {
+        return new SimpleMeterRegistry();
     }
 }
