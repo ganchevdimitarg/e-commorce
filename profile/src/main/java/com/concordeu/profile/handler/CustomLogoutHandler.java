@@ -3,6 +3,9 @@ package com.concordeu.profile.handler;
 import com.concordeu.profile.dto.GithubRevokeTokenDto;
 import com.google.gson.Gson;
 import io.micrometer.observation.annotation.Observed;
+import io.netty.util.internal.StringUtil;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
@@ -11,9 +14,11 @@ import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.jwt.BadJwtException;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.web.authentication.logout.LogoutHandler;
 import org.springframework.security.web.server.WebFilterExchange;
 import org.springframework.security.web.server.authentication.logout.ServerLogoutHandler;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
@@ -21,10 +26,10 @@ import java.util.Objects;
 
 @Component
 @Slf4j
-public class CustomLogoutHandler implements ServerLogoutHandler {
+public class CustomLogoutHandler implements LogoutHandler {
     private static final String GOOGLE_PREFIX = "ya29.";
     private static final String GITHUB_PREFIX = "gho_";
-    private static final String TOKEN_PREFIX = "Bearer ";
+    public static final String TOKEN_PREFIX = "Bearer ";
     private final WebClient webClient;
     private final JwtDecoder jwtDecoder;
     private final Gson mapper;
@@ -61,22 +66,15 @@ public class CustomLogoutHandler implements ServerLogoutHandler {
         this.facebookRevokeUri = facebookRevokeUri;
     }
 
-
     @Override
     @Observed(
             name = "user.name",
             contextualName = "logout",
             lowCardinalityKeyValues = {"method", "logout"}
     )
-    public Mono<Void> logout(WebFilterExchange exchange, Authentication authentication) {
-
-        String token = Objects.requireNonNull(
-                        exchange
-                                .getExchange()
-                                .getAttribute(HttpHeaders.AUTHORIZATION)
-                )
-                .toString()
-                .replace(TOKEN_PREFIX, "");
+    public void logout(HttpServletRequest request, HttpServletResponse response, Authentication authentication) {
+        String token = request.getHeader(HttpHeaders.AUTHORIZATION)
+                .replace(TOKEN_PREFIX, StringUtil.EMPTY_STRING);
 
         if (isJwt(token)) {
             revokeECommerceAccessToken(token);
@@ -87,7 +85,6 @@ public class CustomLogoutHandler implements ServerLogoutHandler {
         } else {
             revokeFacebookAccessToken(token);
         }
-        return Mono.empty();
     }
 
     private void revokeGitHubAccessToken(String token) {

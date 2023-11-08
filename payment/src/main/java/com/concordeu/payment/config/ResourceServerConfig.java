@@ -1,6 +1,7 @@
 package com.concordeu.payment.config;
 
 import com.concordeu.client.introspector.CustomOpaqueTokenIntrospector;
+import io.netty.util.internal.StringUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -9,6 +10,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.mongodb.config.EnableMongoAuditing;
 import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
+import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationManagerResolver;
 import org.springframework.security.authentication.ProviderManager;
@@ -30,6 +32,8 @@ import org.springframework.security.web.SecurityFilterChain;
 @RequiredArgsConstructor
 @Slf4j
 public class ResourceServerConfig {
+    public static final String TOKEN_PREFIX = "Bearer ";
+
     @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri}")
     private String jwkIssuerUri;
 
@@ -71,8 +75,8 @@ public class ResourceServerConfig {
     private boolean isJwt(HttpServletRequest request, JwtDecoder jwtDecoder) {
         try {
             jwtDecoder.decode(request
-                    .getHeader("Authorization")
-                    .replace("Bearer ", "")
+                    .getHeader(HttpHeaders.AUTHORIZATION)
+                    .replace(TOKEN_PREFIX, StringUtil.EMPTY_STRING)
             );
             return true;
         } catch (BadJwtException e) {

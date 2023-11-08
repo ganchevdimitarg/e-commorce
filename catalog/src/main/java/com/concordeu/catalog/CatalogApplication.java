@@ -9,7 +9,6 @@ import reactor.core.publisher.Hooks;
 @EnableCaching
 public class CatalogApplication {
     public static void main(String[] args) {
-        Hooks.enableAutomaticContextPropagation();
         SpringApplication.run(CatalogApplication.class, args);
     }
 

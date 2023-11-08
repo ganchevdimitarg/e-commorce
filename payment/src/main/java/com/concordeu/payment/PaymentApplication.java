@@ -9,7 +9,6 @@ import reactor.core.publisher.Hooks;
 @EnableKafka
 public class PaymentApplication {
     public static void main(String[] args) {
-        Hooks.enableAutomaticContextPropagation();
         SpringApplication.run(PaymentApplication.class, args);
     }
 }

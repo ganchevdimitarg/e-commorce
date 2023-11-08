@@ -187,6 +187,11 @@
             <scope>compile</scope>
         </dependency>
 
+        <dependency>
+            <groupId>io.zipkin.reporter2</groupId>
+            <artifactId>zipkin-sender-kafka</artifactId>
+        </dependency>
+
 
         <!--        when using spring cloud config server    -->
         <!--        <dependency>-->
