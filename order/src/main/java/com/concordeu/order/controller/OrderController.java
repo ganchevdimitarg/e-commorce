@@ -16,9 +16,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
+
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/v1/order")
@@ -27,7 +30,6 @@ import reactor.core.publisher.Mono;
 public class OrderController {
     private final OrderService orderService;
     private final MailService mailService;
-    private final WebClient webClient;
 
     @Operation(summary = "Create Order", description = "Create order in the database",
             security = @SecurityRequirement(name = "security_auth"))
@@ -39,13 +41,14 @@ public class OrderController {
     })
     @PostMapping("/create-order")
     @ValidationRequest
-    @PreAuthorize("hasAuthority('SCOPE_order.write')")
+//    @PreAuthorize("hasAuthority('SCOPE_order.write')")
     @Observed(
             name = "user.name",
             contextualName = "createOrder",
             lowCardinalityKeyValues = {"method", "createOrder"}
     )
     public Mono<OrderDto> createOrder(@RequestBody OrderDto orderDto, Authentication authentication) {
+        hasAuthority(authentication, "SCOPE_order.write");
         Mono<OrderDto> order = orderService.createOrder(orderDto, authentication.getName());
         mailService.sendUserOrderMail(orderDto.username());
         return order;
@@ -60,13 +63,14 @@ public class OrderController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @DeleteMapping("/delete-order")
-    @PreAuthorize("hasAuthority('SCOPE_order.write')")
+//    @PreAuthorize("hasAuthority('SCOPE_order.write')")
     @Observed(
             name = "user.name",
             contextualName = "deleteOrder",
             lowCardinalityKeyValues = {"method", "deleteOrder"}
     )
-    public Mono<Void> deleteOrder(@RequestParam Long orderId) {
+    public Mono<Void> deleteOrder(@RequestParam Long orderId, Authentication authentication) {
+        hasAuthority(authentication, "SCOPE_order.write");
         return orderService.deleteOrder(orderId);
     }
 
@@ -79,28 +83,22 @@ public class OrderController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @GetMapping("/get-order")
-    @PreAuthorize("hasAuthority('SCOPE_order.read')")
+//    @PreAuthorize("hasAnyAuthority('SCOPE_catalog.read')")
     @Observed(
             name = "user.name",
             contextualName = "getOrder",
             lowCardinalityKeyValues = {"method", "getOrder"}
     )
     public Mono<OrderResponseDto> getOrder(@RequestParam Long orderId, Authentication authentication) {
+        hasAuthority(authentication, "SCOPE_catalog.read");
         return orderService.getOrder(orderId, authentication.getName());
     }
 
-    @GetMapping("/test")
-    @Observed(
-            name = "user.name",
-            contextualName = "test",
-            lowCardinalityKeyValues = {"method", "test"}
-    )
-    public Mono<String> test() {
-        return this.webClient
-                .get()
-                .uri("http://localhost:8083/api/v1/profile/test")
-                .accept(MediaType.APPLICATION_JSON)
-                .retrieve()
-                .bodyToMono(String.class);
+    private static void hasAuthority(Authentication authentication, String authority) {
+        authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .filter(auth -> auth.equals(authority))
+                .findFirst()
+                .orElseThrow();
     }
 }

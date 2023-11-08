@@ -2,8 +2,6 @@ server:
   port: 8083
 
 spring:
-  main:
-    web-application-type: reactive
   application:
     name: profile-service
   devtools:
@@ -126,6 +124,9 @@ management:
         http:
           server:
             requests: true
+  zipkin:
+    tracing:
+      endpoint: "http://localhost:9411/api/v2/spans"
 
 #Spring Doc
 springdoc:

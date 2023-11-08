@@ -2,6 +2,8 @@ server:
   port: 8086
 
 spring:
+  main:
+    web-application-type: reactive
   application:
     name: order-service
   devtools:
@@ -35,7 +37,7 @@ spring:
         registration:
           gateway-client-oidc:
             provider: spring
-            client-id: ${$GATEWAY_CLIENT_ID}
+            client-id: ${GATEWAY_CLIENT_ID}
             client-secret: ${GATEWAY_CLIENT_SECRET}
             authorization-grant-type: client_credentials
             redirect-uri: "http://127.0.0.1:8081/login/oauth2/code/{registrationId}"
@@ -132,6 +134,9 @@ management:
         http:
           server:
             requests: true
+  zipkin:
+    tracing:
+      endpoint: "http://localhost:9411/api/v2/spans"
 
 #Spring Doc
 springdoc:

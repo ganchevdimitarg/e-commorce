@@ -12,9 +12,4 @@ public class ObserverConfig {
     ObservedAspect observedAspect(ObservationRegistry observationRegistry) {
         return new ObservedAspect(observationRegistry);
     }
-
-/*    @Bean
-    ObservationTextPublisher otp() {
-        return new ObservationTextPublisher();
-    }*/
 }
