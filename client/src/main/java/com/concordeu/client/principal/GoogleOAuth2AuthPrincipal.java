@@ -50,7 +50,6 @@ public class GoogleOAuth2AuthPrincipal implements OAuth2AuthPrincipal{
             return principal;
 
         } catch (Exception ex) {
-            log.debug(ex.getMessage());
             throw new BadOpaqueTokenException(ex.getMessage(), ex);
         }
     }
