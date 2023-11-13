@@ -58,15 +58,11 @@ public class ResourceServerConfig {
         return http.build();
     }
 
+    //TODO add google, facebook, github
     @Bean
     public ReactiveOpaqueTokenIntrospector opaqueTokenIntrospector() {
-
         return new SpringReactiveOpaqueTokenIntrospector("http://127.0.0.1:8082/oauth2/introspect", webClient);
     }
-    /*@Bean
-    public JwtDecoder customJwtDecoder() {
-        return JwtDecoders.fromIssuerLocation(jwkIssuerUri);
-    }*/
 
     @Bean
     public ReactiveJwtDecoder jwtDecoder() {

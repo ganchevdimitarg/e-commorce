@@ -42,11 +42,6 @@ public class OrderController {
     @PostMapping("/create-order")
     @ValidationRequest
 //    @PreAuthorize("hasAuthority('SCOPE_order.write')")
-    @Observed(
-            name = "user.name",
-            contextualName = "createOrder",
-            lowCardinalityKeyValues = {"method", "createOrder"}
-    )
     public Mono<OrderDto> createOrder(@RequestBody OrderDto orderDto, Authentication authentication) {
         hasAuthority(authentication, "SCOPE_order.write");
         Mono<OrderDto> order = orderService.createOrder(orderDto, authentication.getName());
@@ -64,11 +59,6 @@ public class OrderController {
     })
     @DeleteMapping("/delete-order")
 //    @PreAuthorize("hasAuthority('SCOPE_order.write')")
-    @Observed(
-            name = "user.name",
-            contextualName = "deleteOrder",
-            lowCardinalityKeyValues = {"method", "deleteOrder"}
-    )
     public Mono<Void> deleteOrder(@RequestParam Long orderId, Authentication authentication) {
         hasAuthority(authentication, "SCOPE_order.write");
         return orderService.deleteOrder(orderId);
@@ -84,11 +74,6 @@ public class OrderController {
     })
     @GetMapping("/get-order")
 //    @PreAuthorize("hasAnyAuthority('SCOPE_catalog.read')")
-    @Observed(
-            name = "user.name",
-            contextualName = "getOrder",
-            lowCardinalityKeyValues = {"method", "getOrder"}
-    )
     public Mono<OrderResponseDto> getOrder(@RequestParam Long orderId, Authentication authentication) {
         hasAuthority(authentication, "SCOPE_catalog.read");
         return orderService.getOrder(orderId, authentication.getName());
