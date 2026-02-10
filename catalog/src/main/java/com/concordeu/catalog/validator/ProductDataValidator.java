@@ -48,7 +48,7 @@ public class ProductDataValidator {
 
     private boolean isValidName(String name) {
         if (name.isEmpty()) {
-            log.warn("No such name: " + name);
+            log.warn("No such name: {}", name);
             throw new IllegalArgumentException("No such name: " + name);
         }
         return true;

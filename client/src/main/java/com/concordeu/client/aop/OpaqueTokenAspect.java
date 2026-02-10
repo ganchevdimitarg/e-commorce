@@ -44,8 +44,13 @@ public class OpaqueTokenAspect {
     }
 
     private static void isTokenExp(Optional<OpaqueToken> opaqueToken, Instant currentTime) {
+        if (opaqueToken.isEmpty()) {
+            log.debug("The token is not in the database: {}", currentTime);
+            throw new BadOpaqueTokenException("The token is not in the database: " + currentTime);
+        }
+
         if (currentTime.isAfter(opaqueToken.get().getExp())) {
-            log.debug("The token has expired: " + opaqueToken.get().getToken());
+            log.debug("The token has expired: {}", opaqueToken.get().getToken());
             throw new BadOpaqueTokenException("The token has expired: " + opaqueToken.get().getToken());
         }
     }
