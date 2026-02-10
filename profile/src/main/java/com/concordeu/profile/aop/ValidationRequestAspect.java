@@ -21,7 +21,7 @@ public class ValidationRequestAspect {
     @Around("@annotation(com.concordeu.profile.annotation.ValidationRequest)")
     public Object validateRequest(ProceedingJoinPoint pjp) throws Throwable {
 
-        log.info("Validate request data - " + pjp.getSignature());
+        log.info("Validate request data - {}", pjp.getSignature());
 
         Object[] requestObject = pjp.getArgs();
 

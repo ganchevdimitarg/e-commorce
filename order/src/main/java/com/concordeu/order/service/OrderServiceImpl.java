@@ -50,7 +50,7 @@ public class OrderServiceImpl implements OrderService {
     public void createOrder(OrderDto orderDto, String authenticationName) {
         String username = orderDto.username();
         if (!username.equals(authenticationName)) {
-            log.debug("User '{}' try to access another account '{}'", authenticationName, username);
+            logMessage(authenticationName, username);
             throw new IllegalArgumentException("You cannot access this information!");
         }
 
@@ -95,6 +95,10 @@ public class OrderServiceImpl implements OrderService {
         chargeService.saveCharge(order, payment);
     }
 
+    private static void logMessage(String authenticationName, String username) {
+        log.debug("User '{}' try to access another account '{}'", authenticationName, username);
+    }
+
     @Override
     public void deleteOrder(long orderNumber) {
         orderDao.deleteByOrderNumber(orderNumber);
@@ -111,7 +115,7 @@ public class OrderServiceImpl implements OrderService {
 
         String username = order.get().getUsername();
         if (!username.equals(authenticationName)) {
-            log.debug("User '{}' try to access another account '{}'", authenticationName, username);
+            logMessage(authenticationName, username);
             throw new IllegalArgumentException("You cannot access this information!");
         }
 
@@ -157,6 +161,7 @@ public class OrderServiceImpl implements OrderService {
                 )
                 .block();
 
+        assert responseDtoList != null;
         checkAvailabilityOfCatalogService(responseDtoList.get(0).name());
         return responseDtoList;
     }

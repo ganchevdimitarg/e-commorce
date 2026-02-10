@@ -32,7 +32,7 @@ public class CommentServiceImpl implements CommentService {
         Product product = productDao
                 .findByName(productName)
                 .orElseThrow(() -> {
-                    log.warn("No such product: " + productName);
+                    logMessage(productName);
                     return new IllegalArgumentException("No such product: " + productName);
                 });
 
@@ -40,7 +40,7 @@ public class CommentServiceImpl implements CommentService {
         comment.setProduct(product);
 
         commentDao.saveAndFlush(comment);
-        log.info("The comment " + comment.getTitle() + " is save successful");
+        log.info("The comment {} is save successful", comment.getTitle());
 
         return mapper.mapCommentToCommentResponseDto(comment);
     }
@@ -48,34 +48,38 @@ public class CommentServiceImpl implements CommentService {
     @Override
     public Page<CommentResponseDto> findAllByProductNameByPage(String productName, int page, int size) {
         if (productName.isEmpty()) {
-            log.warn("No such product: " + productName);
+            logMessage(productName);
             throw new IllegalArgumentException("No such product: " + productName);
         }
 
         Product product = productDao.findByName(productName).orElseThrow(() -> {
-            log.warn("No such product: " + productName);
-            throw new IllegalArgumentException("No such product: " + productName);
+            logMessage(productName);
+            return new IllegalArgumentException("No such product: " + productName);
         });
 
         Page<CommentResponseDto> comments = commentDao
                 .findAllByProductIdByPage(product.getId(), PageRequest.of(page, size))
                 .map(this::convertComment);
 
-        log.info("Successful get comments by product: " + productName);
+        log.info("Successful get comments by product: {}", productName);
 
          return comments;
+    }
+
+    private static void logMessage(String productName) {
+        log.warn("No such product: {}", productName);
     }
 
     @Override
     public Page<CommentResponseDto> findAllByAuthorByPage(String author, int page, int size) {
         if (author.isEmpty()) {
-            log.warn("No such author: " + author);
+            log.warn("No such author: {}", author);
             throw new IllegalArgumentException("No such author: " + author);
         }
         Page<CommentResponseDto> comments = commentDao
                 .findAllByAuthorByPage(author, PageRequest.of(page, size))
                 .map(this::convertComment);
-        log.info("Successful get comments by author: " + author);
+        log.info("Successful get comments by author: {}", author);
 
         return comments;
     }

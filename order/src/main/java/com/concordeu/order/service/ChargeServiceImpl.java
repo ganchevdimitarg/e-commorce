@@ -86,6 +86,7 @@ public class ChargeServiceImpl implements ChargeService {
                 )
                 .block();
 
+        assert paymentDto != null;
         checkPaymentServiceAvailability(paymentDto.chargeId());
         return paymentDto;
     }
@@ -106,6 +107,7 @@ public class ChargeServiceImpl implements ChargeService {
                 )
                 .block();
 
+        assert paymentDto != null;
         checkPaymentServiceAvailability(paymentDto.username());
         return paymentDto;
     }

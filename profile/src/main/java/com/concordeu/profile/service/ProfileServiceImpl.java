@@ -131,6 +131,7 @@ public class ProfileServiceImpl implements ProfileService {
                 )
                 .block();
 
+        assert paymentCustomerId != null;
         return getUserDto(profile, paymentCustomerId.stream().findFirst().get());
     }
 
@@ -187,8 +188,12 @@ public class ProfileServiceImpl implements ProfileService {
         Profile authProfile = builtProfile(userRequestDto, grantedAuthorities);
 
         Profile profile = profileDao.insert(authProfile);
-        log.info("The profile was successfully create");
+        logMessage();
         return profile;
+    }
+
+    private static void logMessage() {
+        log.info("The profile was successfully create");
     }
 
     private UserDto createUser(UserRequestDto userRequestDto,
@@ -203,7 +208,7 @@ public class ProfileServiceImpl implements ProfileService {
         log.info("Payment card id {} was successfully added to payment customer", paymentDto.cardId());
 
         Profile profile = profileDao.insert(authProfile);
-        log.info("The profile was successfully create");
+        logMessage();
         return UserDto.builder()
                 .id(profile.getId())
                 .username(profile.getUsername())
@@ -289,6 +294,7 @@ public class ProfileServiceImpl implements ProfileService {
                 )
                 .block();
 
+        assert paymentDto != null;
         checkAvailabilityOfPaymentService(paymentDto.customerId());
 
         return paymentDto;
@@ -309,6 +315,7 @@ public class ProfileServiceImpl implements ProfileService {
                 )
                 .block();
 
+        assert paymentCustomerId != null;
         checkAvailabilityOfPaymentService(paymentCustomerId);
     }
 
