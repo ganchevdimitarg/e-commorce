@@ -152,7 +152,7 @@ public class CardServiceImpl implements CardService {
     private AppCustomer getAppCustomer(String username) {
         return customerDao.findByUsername(username).orElseThrow(() -> {
             log.warn("Customer with username {} does not exist in db customers", username);
-            throw new InvalidPaymentRequestException("Customer with username " + username + " does not exist");
+            return new InvalidPaymentRequestException("Customer with username " + username + " does not exist");
         });
     }
 }

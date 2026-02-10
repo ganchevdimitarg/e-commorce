@@ -20,6 +20,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -131,7 +132,7 @@ class ProductServiceImplTest {
         Category category = Category.builder().id("1").build();
         when(categoryDao.findByName("pc")).thenReturn(Optional.of(category));
 
-        PageRequest pageRequest = PageRequest.of(1, 5);
+        Pageable pageRequest = PageRequest.of(1, 5);
         List<Product> products = Arrays.asList(new Product(), new Product());
         Page<Product> page = new PageImpl<>(products, pageRequest, products.size());
 
@@ -144,8 +145,7 @@ class ProductServiceImplTest {
 
     @Test
     void getProductsByCategoryShouldThrowExceptionIfCategoryNotExist() {
-        PageRequest pageRequest = PageRequest.of(1, 5);
-
+        Pageable pageRequest = PageRequest.of(1, 5);
         assertThatThrownBy(() -> testService.getProductsByCategoryByPage(1, 2, ""))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("No such category: " + "");

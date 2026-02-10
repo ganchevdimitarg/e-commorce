@@ -25,12 +25,12 @@ public class CategoryServiceImpl implements CategoryService {
 
     public CategoryResponseDto createCategory(CategoryResponseDto categoryResponseDto) {
         if (categoryResponseDto.name().isEmpty()) {
-            log.warn("Category name is empty: " + categoryResponseDto.name());
+            log.warn("Category name is empty: {}", categoryResponseDto.name());
             throw new IllegalArgumentException("Category name is empty: " + categoryResponseDto.name());
         }
 
         if (categoryDao.findByName(categoryResponseDto.name()).isPresent()) {
-            log.warn("Category with the name: " + categoryResponseDto.name() + " already exist.");
+            log.warn("Category with the name: {} already exist.", categoryResponseDto.name());
             throw new IllegalArgumentException("Category with the name: " + categoryResponseDto.name() + " already exist.");
         }
 
@@ -49,11 +49,11 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     public void deleteCategory(String categoryName) {
         if (categoryName.isEmpty()) {
-            log.warn("Category name is empty: " + categoryName);
+            log.warn("Category name is empty: {}", categoryName);
             throw new IllegalArgumentException("Category name is empty: " + categoryName);
         }
         if (categoryDao.findByName(categoryName).isEmpty()) {
-            log.warn("No such category: " + categoryName);
+            log.warn("No such category: {}", categoryName);
             throw new IllegalArgumentException("No such category: " + categoryName);
         }
 
@@ -71,7 +71,7 @@ public class CategoryServiceImpl implements CategoryService {
                 .filter(p -> p.getName().equals(productName))
                 .findFirst()
                 .orElseThrow(() -> {
-                    log.warn("No such product: " + productName);
+                    log.warn("No such product: {}", productName);
                     return new IllegalArgumentException("No such product: " + productName);
                 });
 
@@ -95,7 +95,7 @@ public class CategoryServiceImpl implements CategoryService {
                 .findAll(PageRequest.of(page, size))
                 .map(this::convertCategory);
 
-        log.info("Successful get categories: " + categories.getSize());
+        log.info("Successful get categories: {}", categories.getSize());
 
         return categories;
     }

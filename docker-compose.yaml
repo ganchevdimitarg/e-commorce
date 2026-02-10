@@ -1,49 +1,30 @@
-version: '3.8'
 services:
-  db:
-    image: mysql
-    container_name: mysqldb
-    restart: unless-stopped
-    environment:
-      MYSQL_DATABASE: catalog
-      MYSQL_USERNAME: "${MYSQL_USER}"
-      MYSQL_ROOT_PASSWORD: "${MYSQL_PASSWORD}"
-    ports:
-      - "3306:3306"
-    expose:
-      - "3306"
-
   mongodb:
-    image: mongo
+    image: mongo:latest
     container_name: mongodb
     ports:
       - "27017:27017"
     volumes:
-      - data:/data
+      - mongodb_data:/data/db
+      - ./mongo-init/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
     environment:
-     MONGO_INITDB_ROOT_USERNAME: "${MONGO_DB_USER}"
-     MONGO_INITDB_ROOT_PASSWORD: "${MONGO_DB_PASSWORD}"
-  mongo-express:
-    image: mongo-express
-    container_name: mongo-express
-    restart: always
-    ports:
-      - "8090:8081"
-    environment:
-      ME_CONFIG_MONGODB_ADMINUSERNAME: "${MONGO_EXPRESS_USER}"
-      ME_CONFIG_MONGODB_ADMINPASSWORD: "${MONGO_EXPRESS_PASSWORD}"
-      ME_CONFIG_MONGODB_SERVER: "mongodb"
-    links:
-      - mongodb
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+      MONGO_DB_USERNAME: ${MONGO_DB_USERNAME}
+      MONGO_DB_PASSWORD: ${MONGO_DB_PASSWORD}
+      MONGO_DB_DATABASE: ${MONGO_DB_DATABASE}
+    networks:
+      - mongodb-network
 
   postgres:
     container_name: postgres
     image: postgres
     environment:
-      POSTGRES_USER: "${POSTGRES_USER}"
-      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres:/data/postgres
+      - ./postgresql-init/init-multiple-databases.sh:/docker-entrypoint-initdb.d/init-multiple-databases.sh:ro
     ports:
       - "5432:5432"
     restart: unless-stopped
@@ -54,124 +35,99 @@ services:
     ports:
       - "9411:9411"
 
-  prometheus:
-    image: prom/prometheus
-    container_name: prometheus
-    volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus_data:/prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
-      - '--web.console.templates=/usr/share/prometheus/consoles'
-    ports:
-      - "9090:9090"
-
-  grafana:
-    image: grafana/grafana
-    container_name: grafana
-    user: "104"
-    depends_on:
-      - prometheus
-    ports:
-      - "${GRAFANA_PORT:-3000}:3000"
-    volumes:
-      - grafana_storage:/var/lib/grafana
-      - ./grafana/provisioning/:/etc/grafana/provisioning/
-    env_file:
-      - grafana/config.monitoring
-    restart: always
-
-  node-exporter:
-    image: prom/node-exporter
-    container_name: node-exporter
-    volumes:
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-    command:
-      - '--path.procfs=/host/proc'
-      - '--path.sysfs=/host/sys'
-      - --collector.filesystem.ignored-mount-points
-      - "^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs)($$|/)"
-    ports:
-      - "9100:9100"
-    restart: always
-
-  cadvisor:
-    image: google/cadvisor
-    container_name: cadvisor
-    volumes:
-      - /var/run:/var/run:rw
-      - /sys:/sys:ro
-      - /var/lib/docker/:/var/lib/docker:ro
-    ports:
-      - "8080:8080"
-    devices:
-      - /dev/kmsg:/dev/kmsg
-    restart: always
-
   vault:
-    image: hashicorp/vault
-    restart: always
-    volumes:
-      - ./vault/config/:/helpers
-      - vault_data:/vault/file
-    ports:
-      - "8201:8200/tcp"
-    cap_add:
-      - IPC_LOCK
+    image: hashicorp/vault:latest
     container_name: vault
-    entrypoint: "vault server -config=/helpers/vault-config.hcl"
-    healthcheck:
-      test: wget --no-verbose --tries=1 --spider http://localhost:8200 || exit 1
-      interval: 10s
-      retries: 12
-      start_period: 10s
-      timeout: 10s
-
-  vault-agent:
-    image: hashicorp/vault
     restart: always
     ports:
       - "8200:8200"
-    volumes:
-      - ./vault/config/:/helpers
+    #    Prod
+    #    volumes:
+    #      - ./vault/config:/helpers
+    #      - ./vault/data:/vault/data
+    cap_add:
+      - IPC_LOCK
     environment:
-      VAULT_ADDR: "http://vault:8200"
-    container_name: vault-agent
-    entrypoint: "vault agent -log-level debug -config=/helpers/vault-agent.hcl"
+      VAULT_DEV_ROOT_TOKEN_ID: ${VAULT_DEV_ROOT_TOKEN_ID}
+      VAULT_ADDR: "http://0.0.0.0:8200"
+    command: vault server -dev -dev-root-token-id=root -dev-listen-address=0.0.0.0:8200
+    #    Prod
+    #    command: vault server -config=/helpers/vault-config.hcl
+    networks:
+      - vault-network
+    healthcheck:
+      test: [ "CMD-SHELL", "vault status >/dev/null 2>&1 || exit 1" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  vault-init:
+    image: hashicorp/vault:latest
+    container_name: vault-init
     depends_on:
       vault:
         condition: service_healthy
-
-  zookeeper:
-    image: confluentinc/cp-zookeeper
-    container_name: zookeeper
     environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
+      VAULT_ADDR: http://vault:8200
+      VAULT_TOKEN: root
+    networks:
+      - vault-network
+    volumes:
+      - ./vault/init-secrets.sh:/init-secrets.sh
+    entrypoint: [ "sh", "/init-secrets.sh" ]
 
-  kafka:
-    image: confluentinc/cp-kafka
-    container_name: kafka
-    ports:
-      - "9092:9092"
+  vault-agent:
+    image: hashicorp/vault
+    container_name: vault-agent
+    restart: always
+    volumes:
+      - ./vault/config:/helpers
+      - ./vault/data:/vault
+    environment:
+      VAULT_ADDR: http://vault:8200
+    networks:
+      - vault-network
     depends_on:
-      - zookeeper
-    environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://broker:29092
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      vault:
+        condition: service_healthy
+    command: >
+      sh -c "
+      echo \"$VAULT_ROLE_ID\" > /vault/role-id &&
+      echo \"$VAULT_SECRET_ID\" > /vault/secret-id &&
+      vault agent -config=/helpers/vault-agent.hcl
+      "
+
+#  zookeeper:
+#    image: confluentinc/cp-zookeeper
+#    container_name: zookeeper
+#    environment:
+#      ZOOKEEPER_CLIENT_PORT: 2181
+#      ZOOKEEPER_TICK_TIME: 2000
+#
+#  kafka:
+#    image: confluentinc/cp-kafka
+#    container_name: kafka
+#    ports:
+#      - "9092:9092"
+#    depends_on:
+#      - zookeeper
+#    environment:
+#      KAFKA_BROKER_ID: 1
+#      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+#      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+#      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://broker:29092
+#      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+#      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+#      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
 
 volumes:
-  db:
-  prometheus_data: {}
-  grafana_storage: {}
-  data: {}
+  mongodb_data:
+  data:
   postgres:
-  vault_data: {}
+  vault_data:
+
+networks:
+  mongodb-network:
+    driver: bridge
+  vault-network:
+    driver: bridge
