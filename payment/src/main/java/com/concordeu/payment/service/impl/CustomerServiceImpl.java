@@ -70,8 +70,8 @@ public class CustomerServiceImpl implements CustomerService {
     @Override
     public PaymentDto getCustomerByUsername(String username) {
         AppCustomer appCustomer = customerDao.findByUsername(username).orElseThrow(() -> {
-            log.warn("Customer with username {} does not exist in db customers", username);
-            throw new InvalidPaymentRequestException("Customer with username " + username + " does not exist");
+            logMessage(username);
+            return new InvalidPaymentRequestException("Customer with username " + username + " does not exist");
         });
         return PaymentDto.builder()
                 .username(appCustomer.getUsername())
@@ -79,6 +79,10 @@ public class CustomerServiceImpl implements CustomerService {
                 .customerId(appCustomer.getCustomerId())
                 .build();
 
+    }
+
+    private static void logMessage(String username) {
+        log.warn("Customer with username {} does not exist in db customers", username);
     }
 
     /**
@@ -96,8 +100,8 @@ public class CustomerServiceImpl implements CustomerService {
             Customer customerByEmail = getCustomerByStripeId(getCustomerByUsername(username).customerId());
             Customer.retrieve(customerByEmail.getId()).delete();
             AppCustomer customer = customerDao.findByUsername(username).orElseThrow(() -> {
-                log.warn("Customer with username {} does not exist in db customers", username);
-                throw new InvalidPaymentRequestException("Customer with username " + username + " does not exist");
+                logMessage(username);
+                return new InvalidPaymentRequestException("Customer with username " + username + " does not exist");
             });
             customerDao.delete(customer);
             log.info("Delete customer successful: {}", customerByEmail.getEmail());

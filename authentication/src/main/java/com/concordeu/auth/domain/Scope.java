@@ -1,9 +1,8 @@
 package com.concordeu.auth.domain;
 
 import lombok.*;
-import org.hibernate.annotations.GenericGenerator;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 import java.util.Set;
 import java.util.UUID;
 
@@ -16,13 +15,11 @@ import java.util.UUID;
 @Getter
 public class Scope {
     @Id
-    @GeneratedValue(generator = "uuid-string")
-    @GenericGenerator(name = "uuid-string",
-            strategy = "org.hibernate.id.UUIDGenerator")
+    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "scope_id", unique = true, nullable = false, updatable = false)
     private UUID id;
     @Column(name = "scope", nullable = false)
-    private String scope;
+    private String scopeName;
     @ManyToMany
     @JoinTable(
             name = "clients_scopes",

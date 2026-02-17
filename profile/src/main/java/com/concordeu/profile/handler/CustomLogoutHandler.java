@@ -75,6 +75,7 @@ public class CustomLogoutHandler implements LogoutHandler {
                 .toEntity(Void.class)
                 .block();
 
+        assert response != null;
         log.info("""
                 User login with GITHUB successful logout.
                 Token: {}
@@ -93,6 +94,7 @@ public class CustomLogoutHandler implements LogoutHandler {
                 .toEntity(Void.class)
                 .block();
 
+        assert response != null;
         log.info("""
                 User login with FACEBOOK successful logout.
                 Token: {}
@@ -120,6 +122,8 @@ public class CustomLogoutHandler implements LogoutHandler {
                 .retrieve()
                 .toEntity(Void.class)
                 .block();
+
+        assert revokeResponse != null;
         log.info("""
                 User login with E-COMMERCE AUTH SERVER successful logout.
                 Token: {}
