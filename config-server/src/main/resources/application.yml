@@ -17,7 +17,7 @@ spring:
           order: 1
           kv-version: 2
           authentication: TOKEN
-          token: ${CONFIG_SERVER_TOKEN}
+          token: ${VAULT_DEV_ROOT_TOKEN_ID}
         git:
           uri: file://${user.home}/IdeaProjects/config-repo
           order: 2

@@ -16,14 +16,14 @@ import java.util.Objects;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class EmailServiceImpl implements EmailService {
-    private final JavaMailSender javaMailSender;
+public class EmailServiceImpl /*implements EmailService*/ {
+//    private final JavaMailSender javaMailSender;
     private final NotificationService notificationService;
 
     @Value("${spring.mail.username}")
     private String sender;
 
-    public String sendSimpleMail(NotificationDto notificationDto) {
+    /*public String sendSimpleMail(NotificationDto notificationDto) {
 
         try {
             SimpleMailMessage mailMessage = new SimpleMailMessage();
@@ -41,7 +41,7 @@ public class EmailServiceImpl implements EmailService {
             log.warn(e.getMessage());
             throw new MailSendException(Objects.requireNonNull(e.getMessage()));
         }
-    }
+    }*/
 
     public String sendMailWithAttachment(NotificationDto notificationDto) {
        /* MimeMessage mimeMessage = javaMailSender.createMimeMessage();

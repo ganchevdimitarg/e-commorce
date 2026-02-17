@@ -8,11 +8,12 @@ import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
-import org.springframework.security.oauth2.server.authorization.config.TokenSettings;
+import org.springframework.security.oauth2.server.authorization.settings.TokenSettings;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -44,14 +45,20 @@ public class ClientService implements RegisteredClientRepository {
         return getRegisteredClient(client);
     }
 
+    /**
+     * Converts a client to a registere client with settings
+     */
     private RegisteredClient getRegisteredClient(Client client) {
         Consumer<Set<AuthorizationGrantType>> authorizationGrantTypesConsumer = authGrantType -> client.getGrantType()
                 .forEach(grantType -> authGrantType.add(new AuthorizationGrantType(grantType.getGrantType())));
         Consumer<Set<String>> scopesConsumer = scope -> client.getScope()
-                .forEach(s -> scope.add(s.getScope()));
+                .forEach(s -> scope.add(s.getScopeName()));
         Consumer<Set<String>> redirectUrisConsumer = redirectUri -> client.getRedirectUri().forEach(r -> redirectUri.add(r.getRedirectUri()));
-        TokenSetting tokenSettings = client.getTokenSettings().stream().findFirst().get();
+        Optional<TokenSetting> tokenSettingOptional = client.getTokenSettings().stream().findFirst();
+        assert tokenSettingOptional.isPresent();
+        TokenSetting tokenSettings = tokenSettingOptional.get();
 
+        // Configures a client with ID, secret, and authentication method
         return RegisteredClient.withId(client.getId().toString())
                 .clientId(client.getClientId())
                 .clientSecret(client.getClientSecret())
@@ -59,6 +66,7 @@ public class ClientService implements RegisteredClientRepository {
                 .authorizationGrantTypes(authorizationGrantTypesConsumer)
                 .scopes(scopesConsumer)
                 .redirectUris(redirectUrisConsumer)
+                // Configures access and refresh token TTLs
                 .tokenSettings(TokenSettings.builder()
                         .accessTokenTimeToLive(Duration.ofSeconds(tokenSettings.getAccessTokenTimeToLive()))
                         .refreshTokenTimeToLive(Duration.ofSeconds(tokenSettings.getRefreshTokenTimeToLive()))
@@ -67,6 +75,7 @@ public class ClientService implements RegisteredClientRepository {
     }
 
     private Client getClient(RegisteredClient registeredClient) {
+        // Configures a client with ID, secret, and authentication method
         return Client.builder()
                 .clientId(registeredClient.getClientId())
                 .clientSecret(registeredClient.getClientSecret())
@@ -79,6 +88,7 @@ public class ClientService implements RegisteredClientRepository {
     }
 
     private Set<TokenSetting> getTokenSettings(TokenSettings tokenSettings) {
+        // Builds token setting from provided TTLs
         return Set.of(TokenSetting.builder()
                 .accessTokenTimeToLive(tokenSettings.getAccessTokenTimeToLive().toSeconds())
                 .refreshTokenTimeToLive(tokenSettings.getRefreshTokenTimeToLive().toSeconds())
@@ -86,16 +96,20 @@ public class ClientService implements RegisteredClientRepository {
         );
     }
 
+    /**
+     * Maps scope strings to scope entities
+     */
     private Set<Scope> getScopes(Set<String> scopes) {
         return scopes.stream()
                 .map(scope -> Scope.builder()
-                        .scope(scope)
+                        .scopeName(scope)
                         .build()
                 )
                 .collect(Collectors.toSet());
     }
 
     private Set<GrantType> getGrantTypes(Set<AuthorizationGrantType> authorizationGrantTypes) {
+        // Maps authorization grant types to grant type entities
         return authorizationGrantTypes.stream()
                 .map(grantType -> GrantType.builder()
                         .grantType(grantType.getValue())
@@ -105,9 +119,15 @@ public class ClientService implements RegisteredClientRepository {
     }
 
     private String getAuthMethod(Set<ClientAuthenticationMethod> clientAuthenticationMethods) {
-        return clientAuthenticationMethods.stream().findAny().get().getValue();
+        Optional<ClientAuthenticationMethod> method = clientAuthenticationMethods.stream().findAny();
+
+        assert method.isPresent();
+        return method.get().getValue();
     }
 
+    /**
+     * Converts strings to redirect URIs for persistence
+     */
     private Set<RedirectUri> getRedirectUris(Set<String> redirectUris) {
         return redirectUris.stream()
                 .map(r -> RedirectUri.builder()

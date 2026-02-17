@@ -16,7 +16,7 @@ spring:
         registration:
           gateway-client-oidc:
             provider: spring
-            client-id: ${$GATEWAY_CLIENT_ID}
+            client-id: ${GATEWAY_CLIENT_ID}
             client-secret: ${GATEWAY_CLIENT_SECRET}
             authorization-grant-type: authorization_code
             redirect-uri: "http://127.0.0.1:8081/login/oauth2/code/{registrationId}"

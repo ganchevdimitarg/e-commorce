@@ -1,9 +1,8 @@
 package com.concordeu.auth.domain;
 
+import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.GenericGenerator;
 
-import javax.persistence.*;
 import java.util.Set;
 import java.util.UUID;
 
@@ -16,9 +15,7 @@ import java.util.UUID;
 @Getter
 public class Client {
     @Id
-    @GeneratedValue(generator = "uuid-string")
-    @GenericGenerator(name = "uuid-string",
-            strategy = "org.hibernate.id.UUIDGenerator")
+    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "client_id", unique = true, nullable = false, updatable = false)
     private UUID id;
     @Column(name = "client_id_name",nullable = false)

@@ -35,12 +35,12 @@ public class ProductServiceImpl implements ProductService {
         Category category = categoryDao
                 .findByName(categoryName)
                 .orElseThrow(() -> {
-                    log.warn("No such category: " + categoryName);
-                    throw new IllegalArgumentException("No such category: " + categoryName);
+                    log.warn("No such category: {}", categoryName);
+                    return new IllegalArgumentException("No such category: " + categoryName);
                 });
 
         if (productDao.findByName(productResponseDto.name()).isPresent()) {
-            log.warn("Product with the name: " + productResponseDto.name() + " already exists.");
+            log.warn("Product with the name: {} already exists.", productResponseDto.name());
             throw new IllegalArgumentException("Product with the name: " + productResponseDto.name() + " already exist.");
         }
 
@@ -48,7 +48,7 @@ public class ProductServiceImpl implements ProductService {
         product.setCategory(category);
         product.setInStock(true);
 
-        log.info("The product " + product.getName() + " is save successful");
+        log.info("The product {} is save successful", product.getName());
         productDao.saveAndFlush(product);
 
         return mapper.mapProductToProductResponseDto(product);
@@ -59,7 +59,7 @@ public class ProductServiceImpl implements ProductService {
         Page<ProductResponseDto> products = productDao
                 .findAll(PageRequest.of(page, size))
                 .map(this::convertProduct);
-        log.info("Successful get products: " + products.getSize());
+        log.info("Successful get products: {}", products.getSize());
 
         return products;
     }
@@ -73,7 +73,7 @@ public class ProductServiceImpl implements ProductService {
         Page<ProductResponseDto> products = productDao
                 .findAllByCategoryIdByPage(category.getId(), PageRequest.of(page, size))
                 .map(this::convertProduct);
-        log.info("Successful get products by category: " + categoryName);
+        log.info("Successful get products by category: {}", categoryName);
 
         return products;
     }
@@ -104,7 +104,7 @@ public class ProductServiceImpl implements ProductService {
                 productResponseDto.price(),
                 productResponseDto.characteristics(),
                 productResponseDto.inStock());
-        log.info("The updates were successful on product: " + productName);
+        log.info("The updates were successful on product: {}", productName);
     }
 
     @Override
@@ -121,7 +121,7 @@ public class ProductServiceImpl implements ProductService {
 
     private void checkExistenceProduct(String productName) {
         if (productDao.findByName(productName).isEmpty()) {
-            log.warn("Product with the name: " + productName + " does not exist.");
+            log.warn("Product with the name: {} does not exist.", productName);
             throw new IllegalArgumentException("Product with the name: " + productName + " does not exist.");
         }
     }
