@@ -1,9 +1,9 @@
 package com.concordeu.auth.domain;
 
 import lombok.*;
-import org.hibernate.annotations.GenericGenerator;
 
-import javax.persistence.*;
+
+import jakarta.persistence.*;
 import java.util.Set;
 import java.util.UUID;
 
@@ -16,14 +16,12 @@ import java.util.UUID;
 @Getter
 public class TokenSetting {
     @Id
-    @GeneratedValue(generator = "uuid-string")
-    @GenericGenerator(name = "uuid-string",
-            strategy = "org.hibernate.id.UUIDGenerator")
+@GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "token_setting_id", unique = true, nullable = false, updatable = false)
     private UUID id;
-    @Column(name = "access_token_time_to_live")
+    @Column(name = "access_token_time_to_live", nullable = false)
     private long accessTokenTimeToLive;
-    @Column(name = "refresh_token_time_to_live")
+    @Column(name = "refresh_token_time_to_live", nullable = false)
     private long refreshTokenTimeToLive;
     @ManyToMany
     @JoinTable(
