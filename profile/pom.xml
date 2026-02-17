@@ -5,7 +5,7 @@
     <parent>
         <artifactId>e-commerce</artifactId>
         <groupId>com.concordeu</groupId>
-        <version>0.0.1-SNAPSHOT</version>
+        <version>0.0.2-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <packaging>jar</packaging>
@@ -27,7 +27,7 @@
         <dependency>
             <groupId>com.concordeu</groupId>
             <artifactId>client</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
+            <version>0.0.2-SNAPSHOT</version>
         </dependency>
         <!--        Spring Boot     -->
         <dependency>
@@ -101,20 +101,6 @@
             <artifactId>oauth2-oidc-sdk</artifactId>
         </dependency>
 
-        <!--        -->
-        <dependency>
-            <groupId>jakarta.validation</groupId>
-            <artifactId>jakarta.validation-api</artifactId>
-        </dependency>
-
-        <!--    Database Provider    -->
-        <dependency>
-            <groupId>com.h2database</groupId>
-            <artifactId>h2</artifactId>
-            <version>${h2.version}</version>
-            <scope>test</scope>
-        </dependency>
-
         <!--    Test    -->
         <dependency>
             <groupId>org.springframework.security</groupId>
@@ -166,14 +152,7 @@
             <groupId>io.projectreactor.netty</groupId>
             <artifactId>reactor-netty</artifactId>
         </dependency>
-
-        <!--    Gson    -->
-        <dependency>
-            <groupId>com.google.code.gson</groupId>
-            <artifactId>gson</artifactId>
-            <version>${gson.version}</version>
-        </dependency>
-
+        
         <!--    JWT     -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>

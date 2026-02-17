@@ -1,52 +1,48 @@
+
 package com.concordeu.gateway.config;
 
-import org.springframework.cloud.gateway.route.RouteDefinitionLocator;
+import org.springdoc.core.properties.AbstractSwaggerUiConfigProperties;
+import org.springdoc.core.properties.SwaggerUiConfigProperties;
+import org.springframework.cloud.client.discovery.DiscoveryClient;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
-import springfox.documentation.swagger.web.SwaggerResource;
-import springfox.documentation.swagger.web.SwaggerResourcesProvider;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 @Configuration
-@Primary
-public class SwaggerConfig implements SwaggerResourcesProvider {
+public class SwaggerConfig {
 
-    public static final String API_URI = "/v3/api-docs";
+    private final DiscoveryClient discoveryClient;
 
-    private final RouteDefinitionLocator routeLocator;
-
-    public SwaggerConfig(RouteDefinitionLocator routeLocator) {
-        this.routeLocator = routeLocator;
+    public SwaggerConfig(DiscoveryClient discoveryClient) {
+        this.discoveryClient = discoveryClient;
     }
 
-    @Override
-    public List<SwaggerResource> get() {
-        List<SwaggerResource> resources = new ArrayList<>();
-        routeLocator.getRouteDefinitions().subscribe(
-                routeDefinition -> {
-                    String resourceName = routeDefinition.getId()
-                            .replace("ReactiveCompositeDiscoveryClient_", "");
-                    if (resourceName.equals(resourceName.toLowerCase())) {
-                        String location = routeDefinition
-                                .getPredicates()
-                                .get(0)
-                                .getArgs()
-                                .get("_genkey_0")
-                                .replace("/**", API_URI);
-                        resources.add(swaggerResource(resourceName, location));
-                    }
-                }
-        );
-        return resources;
-    }
+    @Bean
+    @Primary
+    public SwaggerUiConfigProperties swaggerUiConfigProperties() {
+        SwaggerUiConfigProperties properties = new SwaggerUiConfigProperties();
 
-    private SwaggerResource swaggerResource(String name, String location) {
-        SwaggerResource swaggerResource = new SwaggerResource();
-        swaggerResource.setName(name);
-        swaggerResource.setLocation(location);
-        swaggerResource.setSwaggerVersion("2.0");
-        return swaggerResource;
+        Set<AbstractSwaggerUiConfigProperties.SwaggerUrl> urls = new HashSet<>();
+
+        // Get all registered services from Eureka
+        discoveryClient.getServices().forEach(serviceId -> {
+            // Filters services; builds URL for each non‑gateway service
+            if (!serviceId.equalsIgnoreCase("gateway") &&
+                    !serviceId.equalsIgnoreCase("eureka-server")) {
+
+                String url = String.format("/%s/v3/api-docs", serviceId.toLowerCase());
+                urls.add(new AbstractSwaggerUiConfigProperties.SwaggerUrl(
+                        serviceId,
+                        url,
+                        serviceId
+                ));
+            }
+        });
+
+        properties.setUrls(urls);
+        return properties;
     }
 }
