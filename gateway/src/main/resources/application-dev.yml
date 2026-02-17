@@ -1,15 +1,8 @@
-#  port: 8443
-#  ssl:
-#    enabled: true
-#    key-store: classpath:bootsecurity.p12
-#    key-store-type: PKCS12
-#    key-store-password: ${KEY_STORE_TYPE}
 spring:
-  #Zipkin
-  zipkin:
-    base-url: http://localhost:9411
+  application:
+    name: gateway
 
-  #Security
+  # OAuth2 Security Configuration
   security:
     oauth2:
       client:
@@ -19,188 +12,130 @@ spring:
             client-id: ${GATEWAY_CLIENT_ID}
             client-secret: ${GATEWAY_CLIENT_SECRET}
             authorization-grant-type: authorization_code
-            redirect-uri: "http://127.0.0.1:8081/login/oauth2/code/{registrationId}"
-            scope:
-              - openid
-              - catalog.read
-              - catalog.write
-              - profile.read
-              - profile.write
-              - order.read
-              - order.write
-              - notification.read
-              - notification.write
+            redirect-uri: "http://127.0.0.1:${server.port}/login/oauth2/code/{registrationId}"
+            scope: openid, catalog.read, catalog.write, profile.read, profile.write,
+              order.read, order.write, notification.read, notification.write
             client-name: gateway-client-oidc
-          google:
-            client-id: ${GOOGLE_CLIENT_ID}
-            client-secret: ${GOOGLE_CLIENT_SECRET}
-            redirect-uri: http://127.0.0.1:8081/login/oauth2/code/{registrationId}
-            scope:
-              - openid
-              - email
-              - profile
-          github:
-            client-id: ${GITHUB_CLIENT_ID}
-            client-secret: ${GITHUB_CLIENT_SECRET}
-            redirect-uri: http://127.0.0.1:8081/login/oauth2/code/{registrationId}
-          facebook:
-            client-id: ${FACEBOOK_CLIENT_ID}
-            client-secret: ${FACEBOOK_CLIENT_SECRET}
-            redirect-uri: http://127.0.0.1:8081/login/oauth2/code/{registrationId}
+        
         provider:
           spring:
             issuer-uri: http://localhost:8082
             authorization-uri: http://localhost:8082/oauth2/authorize
             token-uri: http://localhost:8082/oauth2/token
 
-  #Gateway
+  # Spring Cloud Gateway MVC Configuration
   cloud:
     gateway:
-      discovery:
-        locator:
-          enabled: true
-          lowerCaseServiceId: true
-      default-filters:
-        - TokenRelay
-        - name: Retry
-          args:
-            retries: 3
-            method: GET
-            backoff:
-              firstBackoff: 50ms
-              maxBackoff: 500ms
-      routes:
-        - id: catalog-service
-          uri: lb://catalog-service
-          predicates:
-            Path=/api/v1/catalog/**
-          filters:
-            - name: CircuitBreaker
-              args:
-                name: catalogService
-                fallbackUri: forward:/fallback
-        - id: profile-service
-          uri: lb://profile-service
-          predicates:
-            - Path=/api/v1/profile/**
-          filters:
-            - name: CircuitBreaker
-              args:
-                name: profileService
-                fallbackUri: /fallback
-        - id: notification-service
-          uri: lb://notification-service
-          predicates:
-            - Path=/api/v1/notification/**
-          filters:
-            - name: CircuitBreaker
-              args:
-                name: notificationService
-                fallbackUri: forward:/fallback
-        - id: order-service
-          uri: lb://order-service
-          predicates:
-            - Path=/api/v1/order/**
-          filters:
-            - name: CircuitBreaker
-              args:
-                name: orderService
-                fallbackUri: forward:/fallback
-        - id: payment-service
-          uri: lb://payment-service
-          predicates:
-            - Path=/api/v1/payment/**
-          filters:
-            - name: CircuitBreaker
-              args:
-                name: paymentService
-                fallbackUri: forward:/fallback
+      mvc:
+        default-filters:
+          - TokenRelay
+          - name: Retry
+            args:
+              retries: 3
+              methods: GET
+              backoff:
+                firstBackoff: 50ms
+                maxBackoff: 500ms
+        
+        routes:
+          - id: catalog-service
+            uri: lb://catalog-service
+            predicates:
+              - Path=/api/v1/catalog/**
+            filters:
+              - name: CircuitBreaker
+                args:
+                  name: catalogService
+                  fallbackUri: forward:/fallback/catalog
 
-#Resilience4j
-resilience4j.circuitbreaker:
-  configs:
-    default:
-      failureRateThreshold: 50
-      minimumNumberOfCalls: 10
-      slidingWindowType: TIME_BASED
-      slidingWindowSize: 10
-      waitDurationInOpenState: 1000
-      permittedNumberOfCallsInHalfOpenState: 5
-      registerHealthIndicator: true
-      recordExceptions:
-        - org.springframework.web.client.HttpServerErrorException
-        - java.util.concurrent.TimeoutException
-        - java.io.IOException
-  instances:
-    catalogService:
-      baseConfig: default
-    profileService:
-      baseConfig: default
-    notificationService:
-      baseConfig: default
-    orderService:
-      baseConfig: default
-    paymentService:
-      baseConfig: default
+          - id: profile-service
+            uri: lb://profile-service
+            predicates:
+              - Path=/api/v1/profile/**
+            filters:
+              - name: CircuitBreaker
+                args:
+                  name: profileService
+                  fallbackUri: forward:/fallback/profile
 
-resilience4j.timelimiter:
-  configs:
-    default:
-      timeoutDuration: 5s
-      cancelRunningFuture: true
-  instances:
-    catalogService:
-      baseConfig: default
-    profileService:
-      baseConfig: default
-    notificationService:
-      baseConfig: default
-    orderService:
-      baseConfig: default
-    paymentService:
-      baseConfig: default
+          - id: notification-service
+            uri: lb://notification-service
+            predicates:
+              - Path=/api/v1/notification/**
+            filters:
+              - name: CircuitBreaker
+                args:
+                  name: notificationService
+                  fallbackUri: forward:/fallback/notification
 
-#Logging Levels
-#Disable the default loggers
+          - id: order-service
+            uri: lb://order-service
+            predicates:
+              - Path=/api/v1/order/**
+            filters:
+              - name: CircuitBreaker
+                args:
+                  name: orderService
+                  fallbackUri: forward:/fallback/order
+
+          - id: payment-service
+            uri: lb://payment-service
+            predicates:
+              - Path=/api/v1/payment/**
+            filters:
+              - name: CircuitBreaker
+                args:
+                  name: paymentService
+                  fallbackUri: forward:/fallback/payment
+
+# Eureka Client Configuration
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+    fetch-registry: true
+    register-with-eureka: true
+
+# Logging Configuration
 logging:
   level:
     root: INFO
     org.springframework.web: INFO
     org.springframework.security: INFO
     org.springframework.security.oauth2: INFO
-    logging.level.io.github.resilience4j: DEBUG
+    io.github.resilience4j: DEBUG
 
-#Prometheus (and other data loggers)
+# Actuator & Metrics Configuration
 management:
-  #  server:
-  #    port: 8081
-  #    ssl:
-  #      enabled: false
   endpoints:
     web:
       exposure:
-        include: '*'
+        include: health, info, metrics, prometheus, circuitbreakers
   endpoint:
-    prometheus:
-      enabled: 'true'
-    metrics:
-      enabled: 'true'
     health:
       show-details: always
+    prometheus:
+      enabled: true
+    metrics:
+      enabled: true
   metrics:
     export:
       prometheus:
-        enabled: 'true'
+        enabled: true
   health:
     circuitbreakers:
       enabled: true
     ratelimiters:
       enabled: true
 
-#Eureka
-eureka:
-  client:
-    service-url:
-      defaultZone: http://localhost:8761/eureka
-
-
+# SpringDoc OpenAPI Configuration
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    oauth:
+      client-id: ${GATEWAY_CLIENT_ID}
+      use-pkce-with-authorization-code-grant: true
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
