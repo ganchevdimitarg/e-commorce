@@ -1,22 +1,33 @@
 server:
   port: 8082
+
 spring:
   application:
     name: auth-service
+
+  profiles:
+    active: dev
+
+  config:
+    import:
+      - "optional:vault://"
+#      - "optional:file:.env[.properties]"
+
   devtools:
     livereload:
       port: 35730
-  profiles:
-    include: dev
+
   cloud:
     vault:
       uri: http://localhost:8200
       authentication: TOKEN
-      token: ${VAULT_DEV_ROOT_TOKEN_ID}
+      token: root
       kv:
         enabled: true
         backend: secret
+        default-context: auth-service
+        profile-separator: "/"
+      generic:
+        enabled: false
     config:
       import: "optional:vault://"
-  config:
-    import: "optional:file:.env[.properties]"

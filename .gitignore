@@ -3,7 +3,8 @@ target/
 !.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
-vault
+/vault/data
+/vault/init-secrets.sh
 
 ### STS ###
 .apt_generated

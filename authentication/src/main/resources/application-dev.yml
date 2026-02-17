@@ -1,15 +1,12 @@
 spring:
   #Data Source Properties
-  data:
-    mongodb:
-      authentication-database: admin
-      username: ${MONGO_DB_USERNAME}
-      password: ${MONGO_DB_PASSWORD}
-      database: ${MONGO_DB_DATABASE}
-      port: 27017
-      host: localhost
+  mongodb:
+    username: ${MONGO_DB_USERNAME}
+    password: ${MONGO_DB_PASSWORD}
+    database: ${MONGO_DB_DATABASE}
+    port: 27017
+    host: localhost
 
-  #Data Source Properties
   datasource:
     username: ${POSTGRES_USER}
     password: ${POSTGRES_PASSWORD}
@@ -25,10 +22,6 @@ spring:
         format_sql: true
     show-sql: true
 
-  #Zipkin
-  zipkin:
-    base-url: http://localhost:9411
-
 #Logging Levels
 #Disable the default loggers
 logging:
@@ -38,8 +31,10 @@ logging:
     org:
       springframework:
         web: INFO
-        security: INFO
+        security: TRACE
         oauth2: INFO
+        vault: DEBUG
+        cloud.vault: DEBUG
 
 #Eureka
 eureka:
@@ -60,7 +55,3 @@ management:
     web:
       exposure:
         include: "*"
-  metrics:
-    export:
-      prometheus:
-        enabled: true

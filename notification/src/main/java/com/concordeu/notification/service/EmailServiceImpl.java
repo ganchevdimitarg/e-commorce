@@ -16,7 +16,7 @@ import java.util.Objects;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class EmailServiceImpl implements EmailService {
+public class EmailServiceImpl /*implements EmailService*/ {
 //    private final JavaMailSender javaMailSender;
     private final NotificationService notificationService;
 

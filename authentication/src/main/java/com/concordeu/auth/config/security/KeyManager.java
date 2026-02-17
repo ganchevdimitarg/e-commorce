@@ -12,6 +12,9 @@ import java.util.UUID;
 @Component
 public class KeyManager {
 
+    /**
+     * Generates the RSA key pair with unique ID; encapsulates public and private keys
+     */
     public RSAKey generateRsaKey() {
         KeyPair keyPair = generateKeyPair();
         RSAPublicKey publicKey = (RSAPublicKey) keyPair.getPublic();
