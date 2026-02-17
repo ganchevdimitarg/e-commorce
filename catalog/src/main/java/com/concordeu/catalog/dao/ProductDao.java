@@ -3,6 +3,7 @@ package com.concordeu.catalog.dao;
 import com.concordeu.catalog.domain.Product;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -19,7 +20,7 @@ public interface ProductDao extends JpaRepository<Product, String> {
     @Query(value = """
             SELECT * FROM products WHERE CATEGORY_ID = ?1
             """, nativeQuery = true)
-    Page<Product> findAllByCategoryIdByPage(String categoryId, PageRequest pageRequest);
+    Page<Product> findAllByCategoryIdByPage(String categoryId, Pageable pageRequest);
 
     @Transactional
     @Modifying(clearAutomatically = true)

@@ -162,6 +162,6 @@ github:
   secret: ${GITHUB_SECRET}
 ecommerce:
   oauth2:
-    clientId: ${ECOMMERCE_OAUTH2_CLIENTID}
+    clientId: ${ECOMMERCE_OAUTH2_CLIENT_ID}
     secret: ${ECOMMERCE_OAUTH2_SECRET}
 

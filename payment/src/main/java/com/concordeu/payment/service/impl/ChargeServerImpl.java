@@ -51,7 +51,7 @@ public class ChargeServerImpl implements ChargeService {
     public PaymentDto createCharge(PaymentDto paymentDto) {
         AppCustomer appCustomer = customerDao.findByUsername(paymentDto.username()).orElseThrow(() -> {
             log.warn("Customer with username {} does not exist in db customers", paymentDto.username());
-            throw new InvalidPaymentRequestException("Customer with username " + paymentDto.username() + " does not exist");
+            return new InvalidPaymentRequestException("Customer with username " + paymentDto.username() + " does not exist");
         });
 
         Stripe.apiKey = secretKey;
