@@ -17,6 +17,9 @@ public class UserService implements UserDetailsService {
 
     private final AuthUserDao authUserDao;
 
+    /**
+     * Loads user details or throws exception if not found
+     */
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         AuthUser user = authUserDao.findByUsername(username)

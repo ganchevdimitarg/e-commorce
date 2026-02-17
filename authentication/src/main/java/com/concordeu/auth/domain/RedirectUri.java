@@ -1,9 +1,8 @@
 package com.concordeu.auth.domain;
 
 import lombok.*;
-import org.hibernate.annotations.GenericGenerator;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 import java.util.UUID;
 
 @Entity(name = "RedirectUris")
@@ -15,9 +14,7 @@ import java.util.UUID;
 @Getter
 public class RedirectUri {
     @Id
-    @GeneratedValue(generator = "uuid-string")
-    @GenericGenerator(name = "uuid-string",
-            strategy = "org.hibernate.id.UUIDGenerator")
+    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "redirect_uri_id", unique = true, nullable = false, updatable = false)
     private UUID id;
     @Column(name = "redirect_uri", nullable = false)
