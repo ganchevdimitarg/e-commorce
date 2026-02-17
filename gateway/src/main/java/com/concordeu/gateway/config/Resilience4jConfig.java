@@ -1,26 +1,19 @@
 package com.concordeu.gateway.config;
 
+
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.timelimiter.TimeLimiterConfig;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.time.Duration;
-import java.util.List;
 
 @Configuration
 public class Resilience4jConfig {
 
-    private static final List<String> SERVICES = List.of(
-            "catalogService",
-            "profileService",
-            "notificationService",
-            "orderService",
-            "paymentService"
-    );
-
     @Bean
     public CircuitBreakerConfig defaultCircuitBreakerConfig() {
+        // Configures circuit breaker with thresholds and exceptions; limits failures and timeouts
         return CircuitBreakerConfig.custom()
                 .failureRateThreshold(50)
                 .minimumNumberOfCalls(10)
