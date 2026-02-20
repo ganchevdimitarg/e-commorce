@@ -61,21 +61,25 @@ eureka:
 
 #Prometheus (and other data loggers)
 management:
-  endpoint:
+  tracing:
+    sampling:
+      probability: 1.0  # 100% for development
+  otlp:
     metrics:
+      export:
+        url: http://localhost:4318/v1/metrics
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: http://localhost:4318/v1/traces
+    logging:
+      export:
+        otlp:
+          endpoint: http://localhost:4318/v1/logs
+  health:
+    circuitbreakers:
       enabled: true
-    prometheus:
-      enabled: true
-    health:
-      show-details: always
-  endpoints:
-    web:
-      exposure:
-        include: "*"
-  metrics:
-    export:
-      prometheus:
-        enabled: true
 
 #Spring Doc
 springdoc:
