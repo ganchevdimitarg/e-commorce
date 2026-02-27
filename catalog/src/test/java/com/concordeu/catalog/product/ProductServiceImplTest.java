@@ -1,15 +1,15 @@
-package com.concordeu.catalog.product;
+package com.ganchevdimitarg.catalog.product;
 
 
-import com.concordeu.catalog.dao.CategoryDao;
-import com.concordeu.catalog.dao.ProductDao;
-import com.concordeu.catalog.domain.Category;
-import com.concordeu.catalog.domain.Product;
-import com.concordeu.catalog.dto.product.ProductResponseDto;
-import com.concordeu.catalog.mapper.MapStructMapper;
-import com.concordeu.catalog.service.product.ProductService;
-import com.concordeu.catalog.service.product.ProductServiceImpl;
-import com.concordeu.catalog.validator.ProductDataValidator;
+import com.ganchevdimitarg.catalog.dao.CategoryDao;
+import com.ganchevdimitarg.catalog.dao.ProductDao;
+import com.ganchevdimitarg.catalog.domain.Category;
+import com.ganchevdimitarg.catalog.domain.Product;
+import com.ganchevdimitarg.catalog.dto.product.ProductResponseDto;
+import com.ganchevdimitarg.catalog.mapper.MapStructMapper;
+import com.ganchevdimitarg.catalog.service.product.ProductService;
+import com.ganchevdimitarg.catalog.service.product.ProductServiceImpl;
+import com.ganchevdimitarg.catalog.validator.ProductDataValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;

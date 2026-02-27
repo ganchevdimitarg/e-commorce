@@ -1,7 +1,7 @@
-package com.concordeu.payment.controller;
+package com.ganchevdimitarg.payment.controller;
 
-import com.concordeu.payment.dto.PaymentDto;
-import com.concordeu.payment.service.CardService;
+import com.ganchevdimitarg.payment.dto.PaymentDto;
+import com.ganchevdimitarg.payment.service.CardService;
 import com.stripe.exception.StripeException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

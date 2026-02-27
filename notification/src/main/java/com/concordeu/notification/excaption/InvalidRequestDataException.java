@@ -1,4 +1,4 @@
-package com.concordeu.notification.excaption;
+package com.ganchevdimitarg.notification.excaption;
 
 public class InvalidRequestDataException extends RuntimeException {
 

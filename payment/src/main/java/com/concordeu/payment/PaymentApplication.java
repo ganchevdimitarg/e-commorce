@@ -1,4 +1,4 @@
-package com.concordeu.payment;
+package com.ganchevdimitarg.payment;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

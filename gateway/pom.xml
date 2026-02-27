@@ -11,20 +11,14 @@
     <packaging>jar</packaging>
     <artifactId>gateway</artifactId>
 
-    <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <spring-webflux.version>5.3.9</spring-webflux.version>
-        <reactor-netty.version>1.0.9</reactor-netty.version>
-    </properties>
-
     <dependencies>
-        <!-- Spring Cloud Gateway MVC -->
+        <!-- Reactive Gateway (WebFlux + Netty) -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-starter-gateway-server-webmvc</artifactId>
+            <artifactId>spring-cloud-starter-gateway-server-webflux</artifactId>
         </dependency>
 
-        <!-- Circuit Breaker -->
+        <!-- Reactive Circuit Breaker -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-circuitbreaker-reactor-resilience4j</artifactId>
@@ -34,7 +28,7 @@
             <artifactId>resilience4j-micrometer</artifactId>
         </dependency>
 
-        <!-- OAuth2 Client -->
+        <!-- OAuth2 Client (reactive-compatible) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-oauth2-client</artifactId>
@@ -52,11 +46,10 @@
             <artifactId>spring-cloud-starter-bootstrap</artifactId>
         </dependency>
 
-        <!-- SpringDoc OpenAPI for WebMVC (Spring Boot 4.x compatible) -->
+        <!-- SpringDoc for WebFlux -->
         <dependency>
             <groupId>org.springdoc</groupId>
-            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-            <version>2.7.0</version>
+            <artifactId>springdoc-openapi-starter-webflux-ui</artifactId>
         </dependency>
 
         <!-- Vault Config -->
@@ -71,16 +64,8 @@
             <artifactId>aspectjweaver</artifactId>
             <version>1.9.25.1</version>
         </dependency>
-
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-docker-compose</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-opentelemetry</artifactId>
-        </dependency>
     </dependencies>
+
     <build>
         <plugins>
             <plugin>

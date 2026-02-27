@@ -1,7 +1,7 @@
-package com.concordeu.payment.controller;
+package com.ganchevdimitarg.payment.controller;
 
-import com.concordeu.payment.dto.PaymentDto;
-import com.concordeu.payment.service.ChargeService;
+import com.ganchevdimitarg.payment.dto.PaymentDto;
+import com.ganchevdimitarg.payment.service.ChargeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.PostMapping;

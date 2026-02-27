@@ -1,7 +1,7 @@
-package com.concordeu.notification.mapper;
+package com.ganchevdimitarg.notification.mapper;
 
-import com.concordeu.notification.domain.Notification;
-import com.concordeu.notification.dto.NotificationDto;
+import com.ganchevdimitarg.notification.domain.Notification;
+import com.ganchevdimitarg.notification.dto.NotificationDto;
 import org.mapstruct.Mapper;
 
 @Mapper(componentModel = "spring")

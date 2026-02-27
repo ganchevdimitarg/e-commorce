@@ -1,4 +1,4 @@
-package com.concordeu.payment.excaption;
+package com.ganchevdimitarg.payment.excaption;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

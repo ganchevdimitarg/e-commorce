@@ -1,6 +1,6 @@
-package com.concordeu.client.dao;
+package com.ganchevdimitarg.client.dao;
 
-import com.concordeu.client.domain.OpaqueToken;
+import com.ganchevdimitarg.client.domain.OpaqueToken;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
 import java.util.Optional;

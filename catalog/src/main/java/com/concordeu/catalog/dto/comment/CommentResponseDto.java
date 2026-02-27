@@ -1,6 +1,6 @@
-package com.concordeu.catalog.dto.comment;
+package com.ganchevdimitarg.catalog.dto.comment;
 
-import com.concordeu.catalog.dto.product.ProductRequestDto;
+import com.ganchevdimitarg.catalog.dto.product.ProductRequestDto;
 
 public record CommentResponseDto(
         String title,

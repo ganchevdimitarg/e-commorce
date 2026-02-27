@@ -1,9 +1,9 @@
-package com.concordeu.notification.service;
+package com.ganchevdimitarg.notification.service;
 
-import com.concordeu.notification.dao.NotificationDao;
-import com.concordeu.notification.domain.Notification;
-import com.concordeu.notification.dto.NotificationDto;
-import com.concordeu.notification.mapper.MapStructMapper;
+import com.ganchevdimitarg.notification.dao.NotificationDao;
+import com.ganchevdimitarg.notification.domain.Notification;
+import com.ganchevdimitarg.notification.dto.NotificationDto;
+import com.ganchevdimitarg.notification.mapper.MapStructMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

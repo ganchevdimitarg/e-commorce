@@ -1,4 +1,4 @@
-package com.concordeu.notification.domain;
+package com.ganchevdimitarg.notification.domain;
 
 import lombok.*;
 import org.hibernate.annotations.GenericGenerator;

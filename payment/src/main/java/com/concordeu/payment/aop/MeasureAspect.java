@@ -1,4 +1,4 @@
-package com.concordeu.payment.aop;
+package com.ganchevdimitarg.payment.aop;
 
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.JoinPoint;

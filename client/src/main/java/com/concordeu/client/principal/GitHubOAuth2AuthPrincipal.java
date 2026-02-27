@@ -1,4 +1,4 @@
-package com.concordeu.client.principal;
+package com.ganchevdimitarg.client.principal;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.ParameterizedTypeReference;
@@ -14,7 +14,7 @@ import java.net.URI;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.concordeu.client.security.UserRole.USER;
+import static com.ganchevdimitarg.client.security.UserRole.USER;
 
 @Component
 @Slf4j

@@ -1,8 +1,8 @@
-package com.concordeu.notification.controller;
+package com.ganchevdimitarg.notification.controller;
 
-import com.concordeu.notification.annotation.ValidationRequest;
-import com.concordeu.notification.dto.NotificationDto;
-import com.concordeu.notification.service.EmailService;
+import com.ganchevdimitarg.notification.annotation.ValidationRequest;
+import com.ganchevdimitarg.notification.dto.NotificationDto;
+import com.ganchevdimitarg.notification.service.EmailService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;

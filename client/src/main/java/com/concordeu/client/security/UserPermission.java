@@ -1,10 +1,8 @@
-package com.concordeu.client.security;
+package com.ganchevdimitarg.client.security;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
-@RequiredArgsConstructor
-@Getter
 public enum UserPermission {
     CATALOG_READ("catalog.read"),
     CATALOG_WRITE("catalog.write"),
@@ -16,4 +14,12 @@ public enum UserPermission {
     NOTIFICATION_WRITE("notification.write");
 
     private final String permission;
+
+    UserPermission(String permission) {
+        this.permission = permission;
+    }
+
+    public String getPermission() {
+        return permission;
+    }
 }

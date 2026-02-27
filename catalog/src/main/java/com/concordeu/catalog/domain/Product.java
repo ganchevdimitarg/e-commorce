@@ -1,7 +1,7 @@
-package com.concordeu.catalog.domain;
+package com.ganchevdimitarg.catalog.domain;
 
-import com.concordeu.catalog.domain.Category;
-import com.concordeu.catalog.domain.Comment;
+import com.ganchevdimitarg.catalog.domain.Category;
+import com.ganchevdimitarg.catalog.domain.Comment;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.*;
 import org.hibernate.annotations.GenericGenerator;
