@@ -1,6 +1,6 @@
-package com.concordeu.catalog.dto.category;
+package com.ganchevdimitarg.catalog.dto.category;
 
-import com.concordeu.catalog.dto.product.ProductRequestDto;
+import com.ganchevdimitarg.catalog.dto.product.ProductRequestDto;
 
 import java.util.List;
 

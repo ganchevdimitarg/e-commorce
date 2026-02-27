@@ -1,4 +1,4 @@
-package com.concordeu.payment.domain;
+package com.ganchevdimitarg.payment.domain;
 
 import lombok.*;
 import org.hibernate.annotations.GenericGenerator;

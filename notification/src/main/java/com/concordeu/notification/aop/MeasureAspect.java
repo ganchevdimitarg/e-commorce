@@ -1,4 +1,4 @@
-package com.concordeu.notification.aop;
+package com.ganchevdimitarg.notification.aop;
 
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.JoinPoint;

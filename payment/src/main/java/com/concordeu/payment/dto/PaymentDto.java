@@ -1,4 +1,4 @@
-package com.concordeu.payment.dto;
+package com.ganchevdimitarg.payment.dto;
 
 import lombok.Builder;
 

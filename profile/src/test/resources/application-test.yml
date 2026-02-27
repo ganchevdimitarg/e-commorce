@@ -1,0 +1,7 @@
+logging:
+  level:
+    org:
+      testcontainers: DEBUG
+    com:
+      github:
+        dockerjava: DEBUG

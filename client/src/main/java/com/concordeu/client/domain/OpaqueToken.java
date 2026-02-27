@@ -1,4 +1,4 @@
-package com.concordeu.client.domain;
+package com.ganchevdimitarg.client.domain;
 
 import lombok.Builder;
 import lombok.Data;

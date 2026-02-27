@@ -1,7 +1,7 @@
-package com.concordeu.client.aop;
+package com.ganchevdimitarg.client.aop;
 
-import com.concordeu.client.dao.OpaqueTokenDao;
-import com.concordeu.client.domain.OpaqueToken;
+import com.ganchevdimitarg.client.dao.OpaqueTokenDao;
+import com.ganchevdimitarg.client.domain.OpaqueToken;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;

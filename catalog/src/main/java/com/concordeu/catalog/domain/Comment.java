@@ -1,4 +1,4 @@
-package com.concordeu.catalog.domain;
+package com.ganchevdimitarg.catalog.domain;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

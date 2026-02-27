@@ -1,6 +1,6 @@
-package com.concordeu.payment.dao;
+package com.ganchevdimitarg.payment.dao;
 
-import com.concordeu.payment.domain.AppCustomer;
+import com.ganchevdimitarg.payment.domain.AppCustomer;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

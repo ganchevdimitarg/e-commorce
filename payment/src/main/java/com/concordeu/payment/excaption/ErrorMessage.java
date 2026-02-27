@@ -1,4 +1,4 @@
-package com.concordeu.payment.excaption;
+package com.ganchevdimitarg.payment.excaption;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

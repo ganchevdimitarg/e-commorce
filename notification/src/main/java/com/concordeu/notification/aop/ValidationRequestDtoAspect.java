@@ -1,8 +1,8 @@
-package com.concordeu.notification.aop;
+package com.ganchevdimitarg.notification.aop;
 
-import com.concordeu.notification.dto.NotificationDto;
-import com.concordeu.notification.excaption.InvalidRequestDataException;
-import com.concordeu.notification.validation.ValidateRequest;
+import com.ganchevdimitarg.notification.dto.NotificationDto;
+import com.ganchevdimitarg.notification.excaption.InvalidRequestDataException;
+import com.ganchevdimitarg.notification.validation.ValidateRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;

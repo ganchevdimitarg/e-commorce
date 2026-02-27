@@ -1,7 +1,7 @@
-package com.concordeu.notification.validation;
+package com.ganchevdimitarg.notification.validation;
 
-import com.concordeu.notification.dto.NotificationDto;
-import com.concordeu.notification.excaption.InvalidRequestDataException;
+import com.ganchevdimitarg.notification.dto.NotificationDto;
+import com.ganchevdimitarg.notification.excaption.InvalidRequestDataException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 

@@ -1,7 +1,7 @@
-package com.concordeu.catalog.dto.product;
+package com.ganchevdimitarg.catalog.dto.product;
 
-import com.concordeu.catalog.dto.category.CategoryResponseDto;
-import com.concordeu.catalog.dto.comment.CommentResponseDto;
+import com.ganchevdimitarg.catalog.dto.category.CategoryResponseDto;
+import com.ganchevdimitarg.catalog.dto.comment.CommentResponseDto;
 
 import java.math.BigDecimal;
 import java.util.List;

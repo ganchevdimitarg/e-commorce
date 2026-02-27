@@ -1,7 +1,7 @@
-package com.concordeu.notification.listener;
+package com.ganchevdimitarg.notification.listener;
 
-import com.concordeu.notification.dto.NotificationDto;
-import com.concordeu.notification.service.EmailService;
+import com.ganchevdimitarg.notification.dto.NotificationDto;
+import com.ganchevdimitarg.notification.service.EmailService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;

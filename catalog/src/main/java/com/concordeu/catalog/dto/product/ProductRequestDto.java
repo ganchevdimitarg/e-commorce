@@ -1,4 +1,4 @@
-package com.concordeu.catalog.dto.product;
+package com.ganchevdimitarg.catalog.dto.product;
 
 import java.math.BigDecimal;
 public record ProductRequestDto(

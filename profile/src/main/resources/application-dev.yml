@@ -1,8 +1,11 @@
 spring:
+  main:
+    web-application-type: reactive
+
   #Security
   security:
     oauth2:
-      resourceserver:
+      resource-server:
         jwt:
           issuer-uri: http://localhost:8082
           jwk-set-uri: http://localhost:8082/oauth2/jwks
@@ -10,7 +13,7 @@ spring:
         registration:
           gateway-client-oidc:
             provider: spring
-            client-id: ${$GATEWAY_CLIENT_ID}
+            client-id: ${GATEWAY_CLIENT_ID}
             client-secret: ${GATEWAY_CLIENT_SECRET}
             authorization-grant-type: client_credentials
             redirect-uri: "http://127.0.0.1:8081/login/oauth2/code/{registrationId}"
@@ -21,25 +24,25 @@ spring:
             token-uri: http://localhost:8082/oauth2/token
 
   #Data Source Properties
-  data:
-    mongodb:
-      authentication-database: admin
-      username: ${MONGO_DB_USER}
-      password: ${MONGO_DB_PASSWORD}
-      database: authentication
-      port: 27017
-      host: localhost
-      auto-index-creation: true
+  mongodb:
+    username: ${MONGO_DB_USERNAME}
+    password: ${MONGO_DB_PASSWORD}
+    database: ${MONGO_DB_DATABASE}
+    port: 27017
+    host: localhost
 
-  #Pagination
-  mvc:
-    pathmatch:
-      matching-strategy: ant_path_matcher
+  #Kafka
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.trusted.packages: "com.concordeu.profile.dto"
 
-  #Zipkin
-  zipkin:
-    base-url: http://localhost:9411
-
+kafka:
+  topics:
+    mail: sentMail
 #Logging Levels
 #Disable the default loggers
 logging:
@@ -89,8 +92,8 @@ springdoc:
     disable-swagger-default-url: true
     oauth2RedirectUrl: http://127.0.0.1:8081/login/oauth2/code/gateway-client-oidc
     oauth:
-      client-id: gateway
-      client-secret: secret
+      client-id: ${GATEWAY_CLIENT_ID}
+      client-secret: ${GATEWAY_CLIENT_SECRET}
       scopes:
         - openid
         - profile.read
@@ -99,10 +102,6 @@ springdoc:
   oAuthFlow:
     authorizationUrl: http://localhost:8082/oauth2/authorize
     tokenUrl: http://localhost:8082/oauth2/token
-
-#Kafka
-kafka:
-  bootstrapAddress: localhost:9092
 
 #Resilience4j
 resilience4j.circuitbreaker:
@@ -136,6 +135,7 @@ resilience4j.timelimiter:
 jwt:
   secret:
     key: ${PASSWORD_RESET_TOKEN_SECRET_KEY}
+  expiration-minutes: 10
 
 payment:
   base:
@@ -155,7 +155,7 @@ payment:
         uri: ${payment.base.uri}/payment/card/get-customer-cards?username=
 
 webClient:
-  oath2Client:
+  oauth2Client:
     defaultClientRegistrationId: "gateway-client-oidc"
 
 github:
@@ -165,4 +165,8 @@ ecommerce:
   oauth2:
     clientId: ${ECOMMERCE_OAUTH2_CLIENT_ID}
     secret: ${ECOMMERCE_OAUTH2_SECRET}
+
+auth:
+  server:
+    revoke-uri: http://localhost:8082/oauth2/revoke
 

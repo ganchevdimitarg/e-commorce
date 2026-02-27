@@ -1,4 +1,4 @@
-package com.concordeu.notification.excaption;
+package com.ganchevdimitarg.notification.excaption;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

@@ -1,6 +1,6 @@
-package com.concordeu.notification.service;
+package com.ganchevdimitarg.notification.service;
 
-import com.concordeu.notification.dto.NotificationDto;
+import com.ganchevdimitarg.notification.dto.NotificationDto;
 
 public interface EmailService {
 

@@ -1,4 +1,4 @@
-package com.concordeu.catalog.dto.comment;
+package com.ganchevdimitarg.catalog.dto.comment;
 
 public record CommentRequestDto(
         String title,

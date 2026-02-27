@@ -1,6 +1,6 @@
-package com.concordeu.notification.validation;
+package com.ganchevdimitarg.notification.validation;
 
-import com.concordeu.notification.dto.NotificationDto;
+import com.ganchevdimitarg.notification.dto.NotificationDto;
 
 public interface ValidateRequest {
     boolean validateRequest(NotificationDto notificationDto);

@@ -1,13 +1,13 @@
-package com.concordeu.payment.service.impl;
+package com.ganchevdimitarg.payment.service.impl;
 
-import com.concordeu.payment.dao.ChargeDao;
-import com.concordeu.payment.dao.CustomerDao;
-import com.concordeu.payment.domain.AppCharge;
-import com.concordeu.payment.domain.AppCustomer;
-import com.concordeu.payment.dto.PaymentDto;
-import com.concordeu.payment.excaption.InvalidPaymentRequestException;
-import com.concordeu.payment.service.ChargeService;
-import com.concordeu.payment.service.CustomerService;
+import com.ganchevdimitarg.payment.dao.ChargeDao;
+import com.ganchevdimitarg.payment.dao.CustomerDao;
+import com.ganchevdimitarg.payment.domain.AppCharge;
+import com.ganchevdimitarg.payment.domain.AppCustomer;
+import com.ganchevdimitarg.payment.dto.PaymentDto;
+import com.ganchevdimitarg.payment.excaption.InvalidPaymentRequestException;
+import com.ganchevdimitarg.payment.service.ChargeService;
+import com.ganchevdimitarg.payment.service.CustomerService;
 import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Charge;

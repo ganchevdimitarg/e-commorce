@@ -1,4 +1,4 @@
-package com.concordeu.catalog.excaption;
+package com.ganchevdimitarg.catalog.excaption;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

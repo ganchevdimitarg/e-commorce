@@ -1,6 +1,6 @@
-package com.concordeu.notification.config;
+package com.ganchevdimitarg.notification.config;
 
-import com.concordeu.client.introspector.CustomOpaqueTokenIntrospector;
+import com.ganchevdimitarg.client.introspector.CustomOpaqueTokenIntrospector;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;

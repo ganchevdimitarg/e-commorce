@@ -1,14 +1,14 @@
-package com.concordeu.catalog.mapper;
+package com.ganchevdimitarg.catalog.mapper;
 
-import com.concordeu.catalog.domain.Category;
-import com.concordeu.catalog.domain.Comment;
-import com.concordeu.catalog.domain.Product;
-import com.concordeu.catalog.dto.category.CategoryRequestDto;
-import com.concordeu.catalog.dto.category.CategoryResponseDto;
-import com.concordeu.catalog.dto.comment.CommentRequestDto;
-import com.concordeu.catalog.dto.comment.CommentResponseDto;
-import com.concordeu.catalog.dto.product.ProductRequestDto;
-import com.concordeu.catalog.dto.product.ProductResponseDto;
+import com.ganchevdimitarg.catalog.domain.Category;
+import com.ganchevdimitarg.catalog.domain.Comment;
+import com.ganchevdimitarg.catalog.domain.Product;
+import com.ganchevdimitarg.catalog.dto.category.CategoryRequestDto;
+import com.ganchevdimitarg.catalog.dto.category.CategoryResponseDto;
+import com.ganchevdimitarg.catalog.dto.comment.CommentRequestDto;
+import com.ganchevdimitarg.catalog.dto.comment.CommentResponseDto;
+import com.ganchevdimitarg.catalog.dto.product.ProductRequestDto;
+import com.ganchevdimitarg.catalog.dto.product.ProductResponseDto;
 import org.mapstruct.Mapper;
 
 import java.util.List;

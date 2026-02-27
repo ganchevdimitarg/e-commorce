@@ -1,9 +1,9 @@
-package com.concordeu.client.introspector;
+package com.ganchevdimitarg.client.introspector;
 
-import com.concordeu.client.principal.FacebookOAuth2AuthPrincipal;
-import com.concordeu.client.principal.GitHubOAuth2AuthPrincipal;
-import com.concordeu.client.principal.GoogleOAuth2AuthPrincipal;
-import com.concordeu.client.principal.OAuth2AuthPrincipal;
+import com.ganchevdimitarg.client.principal.FacebookOAuth2AuthPrincipal;
+import com.ganchevdimitarg.client.principal.GitHubOAuth2AuthPrincipal;
+import com.ganchevdimitarg.client.principal.GoogleOAuth2AuthPrincipal;
+import com.ganchevdimitarg.client.principal.OAuth2AuthPrincipal;
 import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -1,11 +1,11 @@
-package com.concordeu.catalog.service.category;
+package com.ganchevdimitarg.catalog.service.category;
 
-import com.concordeu.catalog.dao.CategoryDao;
-import com.concordeu.catalog.dao.ProductDao;
-import com.concordeu.catalog.domain.Category;
-import com.concordeu.catalog.domain.Product;
-import com.concordeu.catalog.dto.category.CategoryResponseDto;
-import com.concordeu.catalog.mapper.MapStructMapper;
+import com.ganchevdimitarg.catalog.dao.CategoryDao;
+import com.ganchevdimitarg.catalog.dao.ProductDao;
+import com.ganchevdimitarg.catalog.domain.Category;
+import com.ganchevdimitarg.catalog.domain.Product;
+import com.ganchevdimitarg.catalog.dto.category.CategoryResponseDto;
+import com.ganchevdimitarg.catalog.mapper.MapStructMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;

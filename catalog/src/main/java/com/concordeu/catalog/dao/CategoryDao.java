@@ -1,6 +1,6 @@
-package com.concordeu.catalog.dao;
+package com.ganchevdimitarg.catalog.dao;
 
-import com.concordeu.catalog.domain.Category;
+import com.ganchevdimitarg.catalog.domain.Category;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;

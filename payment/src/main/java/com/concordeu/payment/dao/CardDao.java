@@ -1,6 +1,6 @@
-package com.concordeu.payment.dao;
+package com.ganchevdimitarg.payment.dao;
 
-import com.concordeu.payment.domain.AppCard;
+import com.ganchevdimitarg.payment.domain.AppCard;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

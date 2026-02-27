@@ -1,6 +1,6 @@
-package com.concordeu.catalog.dao;
+package com.ganchevdimitarg.catalog.dao;
 
-import com.concordeu.catalog.domain.Product;
+import com.ganchevdimitarg.catalog.domain.Product;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;

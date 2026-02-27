@@ -1,6 +1,6 @@
-package com.concordeu.payment.service;
+package com.ganchevdimitarg.payment.service;
 
-import com.concordeu.payment.dto.PaymentDto;
+import com.ganchevdimitarg.payment.dto.PaymentDto;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Customer;
 

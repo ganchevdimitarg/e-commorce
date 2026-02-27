@@ -1,13 +1,13 @@
-package com.concordeu.catalog.service.product;
+package com.ganchevdimitarg.catalog.service.product;
 
-import com.concordeu.catalog.dao.CategoryDao;
-import com.concordeu.catalog.dao.ProductDao;
-import com.concordeu.catalog.domain.Category;
-import com.concordeu.catalog.domain.Product;
-import com.concordeu.catalog.dto.product.ItemRequestDto;
-import com.concordeu.catalog.dto.product.ProductResponseDto;
-import com.concordeu.catalog.mapper.MapStructMapper;
-import com.concordeu.catalog.validator.ProductDataValidator;
+import com.ganchevdimitarg.catalog.dao.CategoryDao;
+import com.ganchevdimitarg.catalog.dao.ProductDao;
+import com.ganchevdimitarg.catalog.domain.Category;
+import com.ganchevdimitarg.catalog.domain.Product;
+import com.ganchevdimitarg.catalog.dto.product.ItemRequestDto;
+import com.ganchevdimitarg.catalog.dto.product.ProductResponseDto;
+import com.ganchevdimitarg.catalog.mapper.MapStructMapper;
+import com.ganchevdimitarg.catalog.validator.ProductDataValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;

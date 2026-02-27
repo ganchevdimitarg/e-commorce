@@ -1,6 +1,6 @@
-package com.concordeu.notification.dao;
+package com.ganchevdimitarg.notification.dao;
 
-import com.concordeu.notification.domain.Notification;
+import com.ganchevdimitarg.notification.domain.Notification;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
