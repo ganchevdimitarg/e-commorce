@@ -12,6 +12,7 @@ import com.ganchevdimitarg.profile.property.PaymentServiceProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.client.circuitbreaker.ReactiveCircuitBreaker;
 import org.springframework.cloud.client.circuitbreaker.ReactiveCircuitBreakerFactory;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
@@ -174,7 +175,7 @@ public class ProfileServiceImpl implements ProfileService {
                         webClient.get()
                                 .uri(paymentProps.card().get() + username)
                                 .retrieve()
-                                .bodyToMono(new org.springframework.core.ParameterizedTypeReference<Set<String>>() {})
+                                .bodyToMono(new ParameterizedTypeReference<Set<String>>() {})
                                 .transform(it -> circuitBreaker.run(it, throwable -> {
                                     log.warn(PAYMENT_SERVICE_IS_DOWN, throwable);
                                     return Mono.just(Set.of(""));

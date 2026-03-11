@@ -6,6 +6,7 @@ import com.ganchevdimitarg.order.domain.Item;
 import com.ganchevdimitarg.order.domain.Order;
 import com.ganchevdimitarg.order.dto.*;
 import com.ganchevdimitarg.order.excaption.InvalidRequestDataException;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -16,7 +17,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
-import javax.annotation.PostConstruct;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;

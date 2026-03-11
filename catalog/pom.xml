@@ -148,7 +148,7 @@
 
         <!--    Migration Database     -->
         <dependency>
-            <groupId>org.flywaydb</groupId>
+            <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-flyway</artifactId>
         </dependency>
 

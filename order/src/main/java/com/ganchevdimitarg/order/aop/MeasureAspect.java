@@ -2,6 +2,7 @@ package com.ganchevdimitarg.order.aop;
 
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.JoinPoint;
+import org.aspectj.lang.annotation.*;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StopWatch;
 
@@ -11,7 +12,7 @@ import org.springframework.util.StopWatch;
 public class MeasureAspect {
     private final StopWatch stopWatch = new StopWatch();
 
-    @Pointcut("execution(* com.concordeu.order.controller.*.*(..))")
+    @Pointcut("execution(* com.ganchevdimitarg.order.controller.*.*(..))")
     private void trackAllControllers() {}
 
     @Before("trackAllControllers()")

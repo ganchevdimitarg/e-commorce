@@ -20,10 +20,10 @@ public record UserDto(
         @Schema(description = "Granted authority names e.g. ROLE_USER, profile.read")
         Set<String> grantedAuthorities,
 
-        @Schema(description = "First name", example = "Ivan")
+        @Schema(description = "First name", example = "Test")
         String firstName,
 
-        @Schema(description = "Last name", example = "Ivanov")
+        @Schema(description = "Last name", example = "Testov")
         String lastName,
 
         @Schema(description = "Phone number", example = "+359888000111")

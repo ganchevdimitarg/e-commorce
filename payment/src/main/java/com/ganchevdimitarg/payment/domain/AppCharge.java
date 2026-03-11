@@ -1,0 +1,36 @@
+package com.ganchevdimitarg.payment.domain;
+
+import jakarta.persistence.*;
+import lombok.*;
+
+@Entity(name = "Charges")
+@Table(
+        name = "charges",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "charge_id_stp", columnNames = "charge_id_stp")
+        },
+        indexes = @Index(name = "charge_id_stp_index", columnList = "charge_id_stp"))
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@Setter
+@Getter
+public class AppCharge {
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "charge_id", unique = true, nullable = false, updatable = false)
+    private String id;
+    @Column(name = "charge_id_stp")
+    private String chargeId;
+    @Column(name = "amount")
+    private long amount;
+    @Column(name = "currency")
+    private String currency;
+    @Column(name = "customer_id_stp")
+    private String customerId;
+    @Column(name = "receipt_email")
+    private String receiptEmail;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "customer_id", referencedColumnName = "customer_id", nullable = false)
+    private AppCustomer customer;
+}
