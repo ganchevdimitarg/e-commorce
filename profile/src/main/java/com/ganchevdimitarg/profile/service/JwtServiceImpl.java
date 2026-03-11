@@ -53,12 +53,27 @@ public class JwtServiceImpl implements JwtService {
      */
     @Override
     public Mono<Void> saveToken(String token, String username) {
-        return passwordResetDao.insert(PasswordReset.builder()
-                        .token(token)
-                        .username(username)
-                        .createdOn(LocalDateTime.now())
-                        .build())
-                .then();
+        // Ensure token and username are not null
+        if (token == null || username == null) {
+            return Mono.error(new IllegalArgumentException("Token and username cannot be null"));
+        }
+
+        // Create the password reset object
+        PasswordReset passwordReset = PasswordReset.builder()
+                .token(token)
+                .username(username)
+                .createdOn(LocalDateTime.now())
+                .build();
+
+        // Persist the password reset object and return the result
+        return passwordResetDao.insert(passwordReset)
+                .doOnSuccess(saved -> log.info("Token saved successfully: {}", token))
+                .doOnError(error -> log.error("Failed to save token: {}", token, error))
+                .onErrorResume(throwable -> {
+                    // Log the error and return an empty mono
+                    log.error("Error occurred while saving token: {}", token, throwable);
+                    return Mono.empty();
+                }).then();
     }
 
     /**
@@ -135,7 +150,11 @@ public class JwtServiceImpl implements JwtService {
     }
 
     private boolean isTokenExpired(String token) {
-        return extractExpiration(token).before(Date.from(Instant.now()));
+        try {
+            return extractExpiration(token).before(Date.from(Instant.now()));
+        } catch (io.jsonwebtoken.JwtException e) {
+            return true;
+        }
     }
 
     private Date extractExpiration(String token) {

@@ -25,22 +25,20 @@ spring:
 
   #Data Source Properties
   mongodb:
-    username: ${MONGO_DB_USERNAME}
-    password: ${MONGO_DB_PASSWORD}
-    database: ${MONGO_DB_DATABASE}
-    port: 27017
-    host: localhost
+    uri: mongodb://${MONGO_DB_USERNAME}:${MONGO_DB_PASSWORD}@localhost:27017/${MONGO_DB_DATABASE}
+#  mongodb:
+#    username:
+#    password:
+#    database:
+#    port: 27017
+#    host: localhost
 
   #Kafka
   kafka:
     bootstrap-servers: localhost:9092
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
-      properties:
-        spring.json.trusted.packages: "com.concordeu.profile.dto"
 
-kafka:
+
+kafka-settings:
   topics:
     mail: sentMail
 #Logging Levels

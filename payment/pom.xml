@@ -150,7 +150,7 @@
 
         <!--    Migration Database     -->
         <dependency>
-            <groupId>org.flywaydb</groupId>
+            <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-flyway</artifactId>
         </dependency>
 
@@ -195,7 +195,6 @@
             <artifactId>java-dotenv</artifactId>
             <version>${java-dotenv.version}</version>
         </dependency>
-
         <!--        when using spring cloud config server    -->
         <!--        <dependency>-->
         <!--            <groupId>org.springframework.cloud</groupId>-->

@@ -1,8 +1,9 @@
 package com.ganchevdimitarg.order.domain;
 
-import org.hibernate.annotations.GenericGenerator;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
+import lombok.*;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -20,9 +21,7 @@ import java.util.List;
 @Getter
 public class Order {
     @Id
-    @GeneratedValue(generator = "uuid-string")
-    @GenericGenerator(name = "uuid-string",
-            strategy = "org.hibernate.id.UUIDGenerator")
+    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "order_id", unique = true, nullable = false, updatable = false)
     private String id;
     @Column(name = "order_number", unique = true, nullable = false)

@@ -1,8 +1,8 @@
 package com.ganchevdimitarg.order.domain;
 
-import org.hibernate.annotations.GenericGenerator;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
+import lombok.*;
 
 @Entity(name = "Items")
 @Table(
@@ -18,9 +18,7 @@ import javax.persistence.*;
 @Getter
 public class Item {
     @Id
-    @GeneratedValue(generator = "uuid-string")
-    @GenericGenerator(name = "uuid-string",
-            strategy = "org.hibernate.id.UUIDGenerator")
+    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "item_id", unique = true, nullable = false, updatable = false)
     private String id;
     @Column(name = "product_id", nullable = false)

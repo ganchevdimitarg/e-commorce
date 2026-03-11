@@ -7,6 +7,8 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
+import java.util.Objects;
+
 @Service
 @Slf4j
 public class MailServiceImpl implements MailService {
@@ -16,7 +18,7 @@ public class MailServiceImpl implements MailService {
 
     public MailServiceImpl(
             KafkaTemplate<String, NotificationDto> kafkaTemplate,
-            @Value("${kafka.topics.mail}") String mailTopic) {
+            @Value("${kafka-settings.topics.mail}") String mailTopic) {
         this.kafkaTemplate = kafkaTemplate;
         this.mailTopic = mailTopic;
     }
@@ -41,7 +43,7 @@ public class MailServiceImpl implements MailService {
                         )))
                 .doOnSuccess(result -> log.info(
                         "Welcome email notification sent for user {} at offset [{}]",
-                        username, result.getRecordMetadata().offset()))
+                        username, Objects.requireNonNull(result).getRecordMetadata().offset()))
                 .doOnError(ex -> log.error(
                         "Failed to send welcome email notification for user {}: {}",
                         username, ex.getMessage()))
