@@ -1,19 +1,24 @@
 package com.ganchevdimitarg.profile.controller;
 
-import com.ganchevdimitarg.profile.config.BaseTest;
 import com.ganchevdimitarg.profile.config.TestSecurityConfig;
 import com.ganchevdimitarg.profile.dto.SetNewPasswordRequestDto;
 import com.ganchevdimitarg.profile.dto.UserDto;
 import com.ganchevdimitarg.profile.dto.UserRequestDto;
 import com.ganchevdimitarg.profile.exception.InvalidRequestDataException;
+import com.ganchevdimitarg.profile.handler.CustomLogoutHandler;
 import com.ganchevdimitarg.profile.service.MailService;
 import com.ganchevdimitarg.profile.service.ProfileService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.security.oauth2.client.autoconfigure.reactive.ReactiveOAuth2ClientAutoConfiguration;
+import org.springframework.boot.security.oauth2.server.resource.autoconfigure.reactive.ReactiveOAuth2ResourceServerAutoConfiguration;
+import org.springframework.boot.webflux.test.autoconfigure.WebFluxTest;
+import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -22,27 +27,38 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Mono;
 
-import java.util.Set;
+import java.util.Collections;
+import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@WebFluxTest(
+        controllers = ProfileController.class,
+        excludeAutoConfiguration = {
+                ReactiveOAuth2ResourceServerAutoConfiguration.class,
+                ReactiveOAuth2ClientAutoConfiguration.class
+        }
+)
 @Import(TestSecurityConfig.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 @DisplayName("ProfileController Integration Tests")
-class ProfileControllerIntegrationTest extends  BaseTest {
+class ProfileControllerIntegrationTest {
 
     private static final String BASE_URL = "/api/v1/profile";
 
     @Autowired
-    private WebTestClient webTestClient;
+    private WebTestClient client;
 
     @MockitoBean
     private ProfileService profileService;
 
     @MockitoBean
     private MailService mailService;
+
+    @MockitoBean
+    private CustomLogoutHandler customLogoutHandler;
 
     private UserRequestDto userRequestDto;
     private UserDto userDto;
@@ -51,7 +67,7 @@ class ProfileControllerIntegrationTest extends  BaseTest {
     void setUp() {
         userRequestDto = new UserRequestDto(
                 "john.doe@example.com",
-                "SecurePass123!",
+                "SecurePass123@",
                 "John",
                 "Doe",
                 "Varna",
@@ -67,12 +83,18 @@ class ProfileControllerIntegrationTest extends  BaseTest {
                 .id("1")
                 .username("john.doe@example.com")
                 .password("SecurePass123!")
-                .grantedAuthorities(Set.of("ROLE_USER"))
-                .city("Varna")
                 .firstName("John")
                 .lastName("Doe")
-                .street("123 Main St")
                 .build();
+        when(profileService.createAdmin(any())).thenReturn(Mono.just(userDto));
+        when(profileService.createWorker(any())).thenReturn(Mono.just(userDto));
+        when(profileService.createUser(any())).thenReturn(Mono.just(userDto));
+        when(profileService.updateUser(anyString(), any())).thenReturn(Mono.empty());
+        when(profileService.deleteUser(anyString())).thenReturn(Mono.empty());
+        when(profileService.passwordReset(anyString())).thenReturn(Mono.empty());
+        when(profileService.isPasswordResetTokenValid(anyString())).thenReturn(Mono.just(true));
+        when(profileService.setNewPassword(anyString(), anyString())).thenReturn(Mono.empty());
+        when(mailService.sendUserWelcomeMail(anyString())).thenReturn(Mono.empty());
     }
 
     // =========================================================================
@@ -90,13 +112,15 @@ class ProfileControllerIntegrationTest extends  BaseTest {
             when(profileService.createAdmin(any())).thenReturn(Mono.just(userDto));
             when(mailService.sendUserWelcomeMail(anyString())).thenReturn(Mono.empty());
 
-            webTestClient.post()
+            client.post()
                     .uri(BASE_URL + "/register-admin")
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(userRequestDto)
                     .exchange()
-                    .expectStatus().isCreated()
-                    .expectBody(UserDto.class).isEqualTo(userDto);
+                    .expectStatus()
+                    .isCreated()
+                    .expectBody(UserDto.class)
+                    .isEqualTo(userDto);
 
             verify(mailService).sendUserWelcomeMail(userDto.username());
         }
@@ -108,7 +132,7 @@ class ProfileControllerIntegrationTest extends  BaseTest {
             when(profileService.createAdmin(any()))
                     .thenReturn(Mono.error(new InvalidRequestDataException("Profile already exists")));
 
-            webTestClient.post()
+            client.post()
                     .uri(BASE_URL + "/register-admin")
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(userRequestDto)
@@ -122,7 +146,7 @@ class ProfileControllerIntegrationTest extends  BaseTest {
         @DisplayName("Edge case: invalid request body returns 400")
         @WithMockUser(roles = "ADMIN")
         void invalidBody_Returns400() {
-            webTestClient.post()
+            client.post()
                     .uri(BASE_URL + "/register-admin")
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue("{}")
@@ -133,7 +157,7 @@ class ProfileControllerIntegrationTest extends  BaseTest {
         @Test
         @DisplayName("Edge case: unauthenticated request returns 401")
         void unauthenticated_Returns401() {
-            webTestClient.post()
+            client.post()
                     .uri(BASE_URL + "/register-admin")
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(userRequestDto)
@@ -157,7 +181,7 @@ class ProfileControllerIntegrationTest extends  BaseTest {
             when(profileService.createWorker(any())).thenReturn(Mono.just(userDto));
             when(mailService.sendUserWelcomeMail(anyString())).thenReturn(Mono.empty());
 
-            webTestClient.post()
+            client.post()
                     .uri(BASE_URL + "/register-worker")
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(userRequestDto)
@@ -175,7 +199,7 @@ class ProfileControllerIntegrationTest extends  BaseTest {
             when(profileService.createWorker(any()))
                     .thenReturn(Mono.error(new InvalidRequestDataException("Profile already exists")));
 
-            webTestClient.post()
+            client.post()
                     .uri(BASE_URL + "/register-worker")
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(userRequestDto)
@@ -189,7 +213,7 @@ class ProfileControllerIntegrationTest extends  BaseTest {
         @DisplayName("Edge case: invalid request body returns 400")
         @WithMockUser(roles = "ADMIN")
         void invalidBody_Returns400() {
-            webTestClient.post()
+            client.post()
                     .uri(BASE_URL + "/register-worker")
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue("{}")
@@ -200,7 +224,7 @@ class ProfileControllerIntegrationTest extends  BaseTest {
         @Test
         @DisplayName("Edge case: unauthenticated request returns 401")
         void unauthenticated_Returns401() {
-            webTestClient.post()
+            client.post()
                     .uri(BASE_URL + "/register-worker")
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(userRequestDto)
@@ -224,7 +248,7 @@ class ProfileControllerIntegrationTest extends  BaseTest {
             when(profileService.createUser(any())).thenReturn(Mono.just(userDto));
             when(mailService.sendUserWelcomeMail(anyString())).thenReturn(Mono.empty());
 
-            webTestClient.post()
+            client.post()
                     .uri(BASE_URL + "/register-user")
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(userRequestDto)
@@ -242,7 +266,7 @@ class ProfileControllerIntegrationTest extends  BaseTest {
             when(profileService.createUser(any()))
                     .thenReturn(Mono.error(new InvalidRequestDataException("Profile already exists")));
 
-            webTestClient.post()
+            client.post()
                     .uri(BASE_URL + "/register-user")
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(userRequestDto)
@@ -257,7 +281,7 @@ class ProfileControllerIntegrationTest extends  BaseTest {
             when(profileService.createUser(any()))
                     .thenReturn(Mono.error(new InvalidRequestDataException("Payment service unavailable")));
 
-            webTestClient.post()
+            client.post()
                     .uri(BASE_URL + "/register-user")
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(userRequestDto)
@@ -269,7 +293,7 @@ class ProfileControllerIntegrationTest extends  BaseTest {
         @DisplayName("Edge case: invalid request body returns 400")
         @WithMockUser
         void invalidBody_Returns400() {
-            webTestClient.post()
+            client.post()
                     .uri(BASE_URL + "/register-user")
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue("{}")
@@ -280,7 +304,7 @@ class ProfileControllerIntegrationTest extends  BaseTest {
         @Test
         @DisplayName("Edge case: unauthenticated request returns 401")
         void unauthenticated_Returns401() {
-            webTestClient.post()
+            client.post()
                     .uri(BASE_URL + "/register-user")
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(userRequestDto)
@@ -304,7 +328,7 @@ class ProfileControllerIntegrationTest extends  BaseTest {
             when(profileService.getUserByUsername("john.doe@example.com"))
                     .thenReturn(Mono.just(userDto));
 
-            webTestClient.get()
+            client.get()
                     .uri(BASE_URL + "/get-by-username?username=john.doe@example.com")
                     .exchange()
                     .expectStatus().isOk()
@@ -318,7 +342,7 @@ class ProfileControllerIntegrationTest extends  BaseTest {
             when(profileService.getUserByUsername("john.doe@example.com"))
                     .thenReturn(Mono.just(userDto));
 
-            webTestClient.get()
+            client.get()
                     .uri(BASE_URL + "/get-by-username?username=john.doe@example.com")
                     .exchange()
                     .expectStatus().isOk()
@@ -332,7 +356,7 @@ class ProfileControllerIntegrationTest extends  BaseTest {
             when(profileService.getUserByUsername("john.doe@example.com"))
                     .thenReturn(Mono.just(userDto));
 
-            webTestClient.get()
+            client.get()
                     .uri(BASE_URL + "/get-by-username?username=john.doe@example.com")
                     .exchange()
                     .expectStatus().isOk();
@@ -342,7 +366,7 @@ class ProfileControllerIntegrationTest extends  BaseTest {
         @DisplayName("Edge case: different user without ADMIN/GATEWAY role returns 403")
         @WithMockUser(username = "other@example.com", roles = "USER")
         void differentUser_Returns403() {
-            webTestClient.get()
+            client.get()
                     .uri(BASE_URL + "/get-by-username?username=john.doe@example.com")
                     .exchange()
                     .expectStatus().isForbidden();
@@ -355,7 +379,7 @@ class ProfileControllerIntegrationTest extends  BaseTest {
             when(profileService.getUserByUsername("ghost@example.com"))
                     .thenReturn(Mono.error(new UsernameNotFoundException("User not found")));
 
-            webTestClient.get()
+            client.get()
                     .uri(BASE_URL + "/get-by-username?username=ghost@example.com")
                     .exchange()
                     .expectStatus().isNotFound();
@@ -365,7 +389,7 @@ class ProfileControllerIntegrationTest extends  BaseTest {
         @DisplayName("Edge case: missing username param returns 400")
         @WithMockUser(roles = "ADMIN")
         void missingParam_Returns400() {
-            webTestClient.get()
+            client.get()
                     .uri(BASE_URL + "/get-by-username")
                     .exchange()
                     .expectStatus().isBadRequest();
@@ -374,7 +398,7 @@ class ProfileControllerIntegrationTest extends  BaseTest {
         @Test
         @DisplayName("Edge case: unauthenticated request returns 401")
         void unauthenticated_Returns401() {
-            webTestClient.get()
+            client.get()
                     .uri(BASE_URL + "/get-by-username?username=john.doe@example.com")
                     .exchange()
                     .expectStatus().isUnauthorized();
@@ -395,7 +419,7 @@ class ProfileControllerIntegrationTest extends  BaseTest {
         void withWriteScope_Returns204() {
             when(profileService.updateUser(anyString(), any())).thenReturn(Mono.empty());
 
-            webTestClient.put()
+            client.put()
                     .uri(BASE_URL + "/update-user?username=john.doe@example.com")
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(userRequestDto)
@@ -411,7 +435,7 @@ class ProfileControllerIntegrationTest extends  BaseTest {
         void withUserRole_Returns204() {
             when(profileService.updateUser(anyString(), any())).thenReturn(Mono.empty());
 
-            webTestClient.put()
+            client.put()
                     .uri(BASE_URL + "/update-user?username=john.doe@example.com")
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(userRequestDto)
@@ -426,7 +450,7 @@ class ProfileControllerIntegrationTest extends  BaseTest {
             when(profileService.updateUser(anyString(), any()))
                     .thenReturn(Mono.error(new UsernameNotFoundException("User not found")));
 
-            webTestClient.put()
+            client.put()
                     .uri(BASE_URL + "/update-user?username=ghost@example.com")
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(userRequestDto)
@@ -438,10 +462,17 @@ class ProfileControllerIntegrationTest extends  BaseTest {
         @DisplayName("Edge case: invalid request body returns 400")
         @WithMockUser(authorities = "SCOPE_profile.write")
         void invalidBody_Returns400() {
-            webTestClient.put()
+            Map<String, String> invalidBody = Map.of(
+                    "username", "",         // blank — @NotBlank fires
+                    "password", "",
+                    "firstName", "",
+                    "lastName", ""
+            );
+
+            client.put()
                     .uri(BASE_URL + "/update-user?username=john.doe@example.com")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .bodyValue("{}")
+                    .bodyValue(invalidBody)
                     .exchange()
                     .expectStatus().isBadRequest();
         }
@@ -450,7 +481,7 @@ class ProfileControllerIntegrationTest extends  BaseTest {
         @DisplayName("Edge case: missing username param returns 400")
         @WithMockUser(authorities = "SCOPE_profile.write")
         void missingParam_Returns400() {
-            webTestClient.put()
+            client.put()
                     .uri(BASE_URL + "/update-user")
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(userRequestDto)
@@ -462,19 +493,21 @@ class ProfileControllerIntegrationTest extends  BaseTest {
         @DisplayName("Edge case: insufficient authority returns 403")
         @WithMockUser(roles = "WORKER")
         void insufficientAuthority_Returns403() {
-            webTestClient.put()
+            client.put()
                     .uri(BASE_URL + "/update-user?username=john.doe@example.com")
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(userRequestDto)
                     .exchange()
-                    .expectStatus().isForbidden();
+                    .expectStatus()
+                    .isForbidden();
         }
 
         @Test
         @DisplayName("Edge case: unauthenticated request returns 401")
         void unauthenticated_Returns401() {
-            webTestClient.put()
+            client.put()
                     .uri(BASE_URL + "/update-user?username=john.doe@example.com")
+
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(userRequestDto)
                     .exchange()
@@ -496,7 +529,7 @@ class ProfileControllerIntegrationTest extends  BaseTest {
         void withWriteScope_Returns204() {
             when(profileService.deleteUser("john.doe@example.com")).thenReturn(Mono.empty());
 
-            webTestClient.delete()
+            client.delete()
                     .uri(BASE_URL + "/delete-user")
                     .exchange()
                     .expectStatus().isNoContent();
@@ -511,7 +544,7 @@ class ProfileControllerIntegrationTest extends  BaseTest {
             when(profileService.deleteUser(anyString()))
                     .thenReturn(Mono.error(new InvalidRequestDataException("Payment service unavailable")));
 
-            webTestClient.delete()
+            client.delete()
                     .uri(BASE_URL + "/delete-user")
                     .exchange()
                     .expectStatus().isBadRequest();
@@ -524,7 +557,7 @@ class ProfileControllerIntegrationTest extends  BaseTest {
             when(profileService.deleteUser("ghost@example.com"))
                     .thenReturn(Mono.error(new UsernameNotFoundException("User not found")));
 
-            webTestClient.delete()
+            client.delete()
                     .uri(BASE_URL + "/delete-user")
                     .exchange()
                     .expectStatus().isNotFound();
@@ -534,19 +567,21 @@ class ProfileControllerIntegrationTest extends  BaseTest {
         @DisplayName("Edge case: insufficient authority returns 403")
         @WithMockUser(username = "john.doe@example.com", roles = "USER")
         void insufficientAuthority_Returns403() {
-            webTestClient.delete()
+            client.delete()
                     .uri(BASE_URL + "/delete-user")
                     .exchange()
-                    .expectStatus().isForbidden();
+                    .expectStatus()
+                    .isForbidden();
         }
 
         @Test
         @DisplayName("Edge case: unauthenticated request returns 401")
         void unauthenticated_Returns401() {
-            webTestClient.delete()
+            client.delete()
                     .uri(BASE_URL + "/delete-user")
                     .exchange()
-                    .expectStatus().isUnauthorized();
+                    .expectStatus()
+                    .isUnauthorized();
         }
     }
 
@@ -564,10 +599,11 @@ class ProfileControllerIntegrationTest extends  BaseTest {
         void happyPath_Returns204() {
             when(profileService.passwordReset("john.doe@example.com")).thenReturn(Mono.empty());
 
-            webTestClient.post()
+            client.post()
                     .uri(BASE_URL + "/password-reset?username=john.doe@example.com")
                     .exchange()
-                    .expectStatus().isNoContent();
+                    .expectStatus()
+                    .isNoContent();
 
             verify(profileService).passwordReset("john.doe@example.com");
         }
@@ -579,20 +615,22 @@ class ProfileControllerIntegrationTest extends  BaseTest {
             when(profileService.passwordReset(anyString()))
                     .thenReturn(Mono.error(new InvalidRequestDataException("User not found")));
 
-            webTestClient.post()
+            client.post()
                     .uri(BASE_URL + "/password-reset?username=ghost@example.com")
                     .exchange()
-                    .expectStatus().isBadRequest();
+                    .expectStatus()
+                    .isBadRequest();
         }
 
         @Test
         @DisplayName("Edge case: missing username param returns 400")
         @WithMockUser
         void missingParam_Returns400() {
-            webTestClient.post()
+            client.post()
                     .uri(BASE_URL + "/password-reset")
                     .exchange()
-                    .expectStatus().isBadRequest();
+                    .expectStatus()
+                    .isBadRequest();
         }
 
         @Test
@@ -601,10 +639,11 @@ class ProfileControllerIntegrationTest extends  BaseTest {
         void usernameIsTrimmed() {
             when(profileService.passwordReset("john.doe@example.com")).thenReturn(Mono.empty());
 
-            webTestClient.post()
+            client.post()
                     .uri(BASE_URL + "/password-reset?username= john.doe@example.com ")
                     .exchange()
-                    .expectStatus().isNoContent();
+                    .expectStatus()
+                    .isNoContent();
 
             verify(profileService).passwordReset("john.doe@example.com");
         }
@@ -612,10 +651,11 @@ class ProfileControllerIntegrationTest extends  BaseTest {
         @Test
         @DisplayName("Edge case: unauthenticated request returns 401")
         void unauthenticated_Returns401() {
-            webTestClient.post()
+            client.post()
                     .uri(BASE_URL + "/password-reset?username=john.doe@example.com")
                     .exchange()
-                    .expectStatus().isUnauthorized();
+                    .expectStatus()
+                    .isUnauthorized();
         }
     }
 
@@ -634,7 +674,7 @@ class ProfileControllerIntegrationTest extends  BaseTest {
             when(profileService.isPasswordResetTokenValid("valid.jwt.token"))
                     .thenReturn(Mono.just(true));
 
-            webTestClient.get()
+            client.get()
                     .uri(BASE_URL + "/password-reset-token?token=valid.jwt.token")
                     .exchange()
                     .expectStatus().isOk()
@@ -648,7 +688,7 @@ class ProfileControllerIntegrationTest extends  BaseTest {
             when(profileService.isPasswordResetTokenValid("expired.token"))
                     .thenReturn(Mono.just(false));
 
-            webTestClient.get()
+            client.get()
                     .uri(BASE_URL + "/password-reset-token?token=expired.token")
                     .exchange()
                     .expectStatus().isOk()
@@ -659,19 +699,21 @@ class ProfileControllerIntegrationTest extends  BaseTest {
         @DisplayName("Edge case: missing token param returns 400")
         @WithMockUser
         void missingParam_Returns400() {
-            webTestClient.get()
+            client.get()
                     .uri(BASE_URL + "/password-reset-token")
                     .exchange()
-                    .expectStatus().isBadRequest();
+                    .expectStatus()
+                    .isBadRequest();
         }
 
         @Test
         @DisplayName("Edge case: unauthenticated request returns 401")
         void unauthenticated_Returns401() {
-            webTestClient.get()
+            client.get()
                     .uri(BASE_URL + "/password-reset-token?token=some.token")
                     .exchange()
-                    .expectStatus().isUnauthorized();
+                    .expectStatus()
+                    .isUnauthorized();
         }
     }
 
@@ -691,12 +733,13 @@ class ProfileControllerIntegrationTest extends  BaseTest {
                     new SetNewPasswordRequestDto("john.doe@example.com", "NewSecurePass123!");
             when(profileService.setNewPassword(anyString(), anyString())).thenReturn(Mono.empty());
 
-            webTestClient.patch()
+            client.patch()
                     .uri(BASE_URL + "/set-new-password")
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(request)
                     .exchange()
-                    .expectStatus().isNoContent();
+                    .expectStatus()
+                    .isNoContent();
 
             verify(profileService).setNewPassword("john.doe@example.com", "NewSecurePass123!");
         }
@@ -710,7 +753,7 @@ class ProfileControllerIntegrationTest extends  BaseTest {
             when(profileService.setNewPassword(anyString(), anyString()))
                     .thenReturn(Mono.error(new InvalidRequestDataException("User not found")));
 
-            webTestClient.patch()
+            client.patch()
                     .uri(BASE_URL + "/set-new-password")
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(request)
@@ -722,7 +765,7 @@ class ProfileControllerIntegrationTest extends  BaseTest {
         @DisplayName("Edge case: invalid request body returns 400")
         @WithMockUser
         void invalidBody_Returns400() {
-            webTestClient.patch()
+            client.patch()
                     .uri(BASE_URL + "/set-new-password")
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue("{}")
@@ -736,12 +779,13 @@ class ProfileControllerIntegrationTest extends  BaseTest {
             SetNewPasswordRequestDto request =
                     new SetNewPasswordRequestDto("john.doe@example.com", "NewSecurePass123!");
 
-            webTestClient.patch()
+            client.patch()
                     .uri(BASE_URL + "/set-new-password")
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(request)
                     .exchange()
-                    .expectStatus().isUnauthorized();
+                    .expectStatus()
+                    .isUnauthorized();
         }
     }
 }

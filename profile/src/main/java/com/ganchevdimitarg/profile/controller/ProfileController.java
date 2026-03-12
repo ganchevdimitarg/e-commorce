@@ -12,18 +12,24 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
+import java.util.Objects;
+
 @RestController
 @RequestMapping("/api/v1/profile")
+@Validated
 @RequiredArgsConstructor
 @Slf4j
 public class ProfileController {
@@ -47,6 +53,7 @@ public class ProfileController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @PostMapping("/register-admin")
+    @PreAuthorize("isAuthenticated()")
     public Mono<ResponseEntity<UserDto>> createAdmin(@Valid @RequestBody UserRequestDto requestDto) {
         return profileService.createAdmin(requestDto)
                 .flatMap(user -> mailService.sendUserWelcomeMail(user.username())
@@ -69,6 +76,7 @@ public class ProfileController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @PostMapping("/register-worker")
+    @PreAuthorize("isAuthenticated()")
     public Mono<ResponseEntity<UserDto>> createWorker(@Valid @RequestBody UserRequestDto requestDto) {
         return profileService.createWorker(requestDto)
                 .flatMap(user -> mailService.sendUserWelcomeMail(user.username())
@@ -91,6 +99,7 @@ public class ProfileController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @PostMapping("/register-user")
+    @PreAuthorize("isAuthenticated()")
     public Mono<ResponseEntity<UserDto>> createUser(@Valid @RequestBody UserRequestDto requestDto) {
         return profileService.createUser(requestDto)
                 .flatMap(user -> mailService.sendUserWelcomeMail(user.username())
@@ -141,9 +150,9 @@ public class ProfileController {
     @PutMapping("/update-user")
     @PreAuthorize("hasAnyAuthority('SCOPE_profile.write', 'ROLE_USER')")
     public Mono<ResponseEntity<Void>> updateUser(@Valid @RequestBody UserRequestDto requestDto,
-                                                 @RequestParam String username) {
+                                                 @RequestParam @NotBlank String username) {
         return profileService.updateUser(username.trim(), requestDto)
-                .thenReturn(ResponseEntity.<Void>noContent().build());
+                .thenReturn(ResponseEntity.noContent().build());
     }
     /**
      * Deletes the authenticated user's profile and their associated
@@ -164,9 +173,11 @@ public class ProfileController {
     })
     @DeleteMapping("/delete-user")
     @PreAuthorize("hasAuthority('SCOPE_profile.write')")
-    public Mono<ResponseEntity<Void>> deleteUser(Authentication authentication) {
-        return profileService.deleteUser(authentication.getName().trim())
-                .thenReturn(ResponseEntity.<Void>noContent().build());
+    public Mono<ResponseEntity<Void>> deleteUser() {
+        return ReactiveSecurityContextHolder.getContext()
+                .map(ctx -> Objects.requireNonNull(ctx.getAuthentication()).getName())
+                .flatMap(username -> profileService.deleteUser(username.trim()))
+                .thenReturn(ResponseEntity.noContent().build());
     }
 
     /**
@@ -185,6 +196,7 @@ public class ProfileController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @PostMapping("/password-reset")
+    @PreAuthorize("isAuthenticated()")
     public Mono<ResponseEntity<Void>> passwordReset(@RequestParam String username) {
         return profileService.passwordReset(username.trim())
                 .thenReturn(ResponseEntity.<Void>noContent().build());
@@ -204,6 +216,7 @@ public class ProfileController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @GetMapping("/password-reset-token")
+    @PreAuthorize("isAuthenticated()")
     public Mono<ResponseEntity<Boolean>> isValidPasswordReset(@RequestParam String token) {
         return profileService.isPasswordResetTokenValid(token.trim())
                 .map(ResponseEntity::ok);
@@ -225,6 +238,7 @@ public class ProfileController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @PatchMapping("/set-new-password")
+    @PreAuthorize("isAuthenticated()")
     public Mono<ResponseEntity<Void>> setNewPassword(@Valid @RequestBody SetNewPasswordRequestDto request) {
         return profileService.setNewPassword(request.username().trim(), request.password().trim())
                 .thenReturn(ResponseEntity.<Void>noContent().build());

@@ -135,6 +135,7 @@ public class ProfileServiceImpl implements ProfileService {
                     return profileDao.save(profile);
                 })
                 .doOnSuccess(p -> log.info("Profile with username {} updated", p.getUsername()))
+                .doOnError(error -> log.error("Failed to update user", error))
                 .then();
     }
 

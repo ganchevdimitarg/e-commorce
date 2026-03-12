@@ -15,11 +15,16 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.ReactiveSecurityContextHolder;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextImpl;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import java.util.List;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -261,13 +266,22 @@ class ProfileControllerTest {
     @DisplayName("deleteUser")
     class DeleteUser {
 
+        private Mono<SecurityContext> mockSecurityContext(String username) {
+            Authentication auth = new UsernamePasswordAuthenticationToken(username, null, List.of());
+            SecurityContext ctx = new SecurityContextImpl(auth);
+            return Mono.just(ctx);
+        }
+
         @Test
         @DisplayName("Happy path: returns 204 No Content")
         void deleteUser_HappyPath_Returns204() {
-            when(authentication.getName()).thenReturn("john.doe@example.com");
             when(profileService.deleteUser("john.doe@example.com")).thenReturn(Mono.empty());
 
-            StepVerifier.create(profileController.deleteUser(authentication))
+            StepVerifier.create(
+                            profileController.deleteUser()
+                                    .contextWrite(ReactiveSecurityContextHolder.withSecurityContext(
+                                            mockSecurityContext("john.doe@example.com")))
+                    )
                     .assertNext(response -> assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT))
                     .verifyComplete();
         }
@@ -275,10 +289,13 @@ class ProfileControllerTest {
         @Test
         @DisplayName("Happy path: authentication name whitespace is trimmed")
         void deleteUser_WhitespaceTrimmed() {
-            when(authentication.getName()).thenReturn("  john.doe@example.com  ");
             when(profileService.deleteUser("john.doe@example.com")).thenReturn(Mono.empty());
 
-            StepVerifier.create(profileController.deleteUser(authentication))
+            StepVerifier.create(
+                            profileController.deleteUser()
+                                    .contextWrite(ReactiveSecurityContextHolder.withSecurityContext(
+                                            mockSecurityContext("  john.doe@example.com  ")))
+                    )
                     .assertNext(response -> assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT))
                     .verifyComplete();
 
@@ -288,11 +305,14 @@ class ProfileControllerTest {
         @Test
         @DisplayName("Edge case: payment service unavailable throws InvalidRequestDataException")
         void deleteUser_PaymentUnavailable_PropagatesError() {
-            when(authentication.getName()).thenReturn("john.doe@example.com");
             when(profileService.deleteUser(anyString()))
                     .thenReturn(Mono.error(new InvalidRequestDataException("Payment service unavailable")));
 
-            StepVerifier.create(profileController.deleteUser(authentication))
+            StepVerifier.create(
+                            profileController.deleteUser()
+                                    .contextWrite(ReactiveSecurityContextHolder.withSecurityContext(
+                                            mockSecurityContext("john.doe@example.com")))
+                    )
                     .expectError(InvalidRequestDataException.class)
                     .verify();
         }

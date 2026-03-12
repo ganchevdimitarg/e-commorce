@@ -10,7 +10,7 @@ import jakarta.validation.constraints.Size;
 public record UserRequestDto(
 
         @NotBlank(message = "Username must not be blank")
-        @Email(message = "Username must be a valid email. For example: example@gmail.com")
+        @Email(message = "Username must be a valid email")
         @Size(min = 5, max = 50, message = "Username must be between 5 and 50 characters")
         String username,
 
