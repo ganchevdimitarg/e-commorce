@@ -1,15 +1,15 @@
-package com.concordeu.catalog.category;
+package com.ganchevdimitarg.catalog.category;
 
-import com.concordeu.catalog.controller.CategoryController;
-import com.concordeu.catalog.dto.category.CategoryRequestDto;
-import com.concordeu.catalog.dto.category.CategoryResponseDto;
-import com.concordeu.catalog.mapper.MapStructMapper;
-import com.concordeu.catalog.service.category.CategoryService;
+import com.ganchevdimitarg.catalog.controller.CategoryController;
+import com.ganchevdimitarg.catalog.dto.category.CategoryRequestDto;
+import com.ganchevdimitarg.catalog.dto.category.CategoryResponseDto;
+import com.ganchevdimitarg.catalog.mapper.MapStructMapper;
+import com.ganchevdimitarg.catalog.service.category.CategoryService;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.mock.mockito.MockitoBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.reactive.server.WebTestClient;
@@ -28,9 +28,9 @@ import static org.springframework.security.test.web.reactive.server.SecurityMock
 class CategoryControllerTest {
     @Autowired
     WebTestClient client;
-    @MockBean
+    @MockitoBean
     CategoryService categoryService;
-    @MockBean
+    @MockitoBean
     MapStructMapper mapper;
 
     @Test

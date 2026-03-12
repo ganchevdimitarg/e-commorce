@@ -1,14 +1,14 @@
-package com.concordeu.catalog.comment;
+package com.ganchevdimitarg.catalog.comment;
 
-import com.concordeu.catalog.dao.CommentDao;
-import com.concordeu.catalog.dao.ProductDao;
-import com.concordeu.catalog.domain.Comment;
-import com.concordeu.catalog.domain.Product;
-import com.concordeu.catalog.dto.comment.CommentResponseDto;
-import com.concordeu.catalog.mapper.MapStructMapper;
-import com.concordeu.catalog.service.comment.CommentService;
-import com.concordeu.catalog.service.comment.CommentServiceImpl;
-import com.concordeu.catalog.validator.CommentDataValidator;
+import com.ganchevdimitarg.catalog.dao.CommentDao;
+import com.ganchevdimitarg.catalog.dao.ProductDao;
+import com.ganchevdimitarg.catalog.domain.Comment;
+import com.ganchevdimitarg.catalog.domain.Product;
+import com.ganchevdimitarg.catalog.dto.comment.CommentResponseDto;
+import com.ganchevdimitarg.catalog.mapper.MapStructMapper;
+import com.ganchevdimitarg.catalog.service.comment.CommentService;
+import com.ganchevdimitarg.catalog.service.comment.CommentServiceImpl;
+import com.ganchevdimitarg.catalog.validator.CommentDataValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;

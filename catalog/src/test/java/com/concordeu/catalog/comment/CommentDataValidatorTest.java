@@ -1,7 +1,7 @@
-package com.concordeu.catalog.comment;
+package com.ganchevdimitarg.catalog.comment;
 
-import com.concordeu.catalog.dto.comment.CommentResponseDto;
-import com.concordeu.catalog.validator.CommentDataValidator;
+import com.ganchevdimitarg.catalog.dto.comment.CommentResponseDto;
+import com.ganchevdimitarg.catalog.validator.CommentDataValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
