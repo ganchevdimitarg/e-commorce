@@ -26,67 +26,103 @@ spring:
   # Spring Cloud Gateway MVC Configuration
   cloud:
     gateway:
-      mvc:
-        default-filters:
-          - TokenRelay
-          - name: Retry
-            args:
-              retries: 3
-              methods: GET
-              backoff:
-                firstBackoff: 50ms
-                maxBackoff: 500ms
-        
-        routes:
-          - id: catalog-service
-            uri: lb://catalog-service
-            predicates:
-              - Path=/api/v1/catalog/**
-            filters:
-              - name: CircuitBreaker
-                args:
-                  name: catalogService
-                  fallbackUri: forward:/fallback/catalog
+      server:
+        webflux:
+          default-filters:
+            - TokenRelay=
+            - name: Retry
+              args:
+                retries: 3
+                methods: GET
+                backoff:
+                  firstBackoff: 50ms
+                  maxBackoff: 500ms
+          routes:
+            - id: catalog-service
+              uri: lb://catalog-service
+              predicates:
+                - Path=/api/v1/catalog/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: catalogService
+                    fallbackUri: forward:/fallback/catalog
 
-          - id: profile-service
-            uri: lb://profile-service
-            predicates:
-              - Path=/api/v1/profile/**
-            filters:
-              - name: CircuitBreaker
-                args:
-                  name: profileService
-                  fallbackUri: forward:/fallback/profile
+            - id: profile-service
+              uri: lb://profile-service
+              predicates:
+                - Path=/api/v1/profile/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: profileService
+                    fallbackUri: forward:/fallback/profile
 
-          - id: notification-service
-            uri: lb://notification-service
-            predicates:
-              - Path=/api/v1/notification/**
-            filters:
-              - name: CircuitBreaker
-                args:
-                  name: notificationService
-                  fallbackUri: forward:/fallback/notification
+            - id: notification-service
+              uri: lb://notification-service
+              predicates:
+                - Path=/api/v1/notification/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: notificationService
+                    fallbackUri: forward:/fallback/notification
 
-          - id: order-service
-            uri: lb://order-service
-            predicates:
-              - Path=/api/v1/order/**
-            filters:
-              - name: CircuitBreaker
-                args:
-                  name: orderService
-                  fallbackUri: forward:/fallback/order
+            - id: order-service
+              uri: lb://order-service
+              predicates:
+                - Path=/api/v1/order/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: orderService
+                    fallbackUri: forward:/fallback/order
 
-          - id: payment-service
-            uri: lb://payment-service
-            predicates:
-              - Path=/api/v1/payment/**
-            filters:
-              - name: CircuitBreaker
-                args:
-                  name: paymentService
-                  fallbackUri: forward:/fallback/payment
+            - id: payment-service
+              uri: lb://payment-service
+              predicates:
+                - Path=/api/v1/payment/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: paymentService
+                    fallbackUri: forward:/fallback/payment
+
+            # Api-docs routes for each service
+            - id: catalog-service-docs
+              uri: lb://catalog-service
+              predicates:
+                - Path=/catalog-service/v3/api-docs
+              filters:
+                - RewritePath=/catalog-service/v3/api-docs, /v3/api-docs
+
+            - id: profile-service-docs
+              uri: lb://profile-service
+              predicates:
+                - Path=/profile-service/v3/api-docs
+              filters:
+                - RewritePath=/profile-service/v3/api-docs, /v3/api-docs
+
+            - id: notification-service-docs
+              uri: lb://notification-service
+              predicates:
+                - Path=/notification-service/v3/api-docs
+              filters:
+                - RewritePath=/notification-service/v3/api-docs, /v3/api-docs
+
+            - id: order-service-docs
+              uri: lb://order-service
+              predicates:
+                - Path=/order-service/v3/api-docs
+              filters:
+                - RewritePath=/order-service/v3/api-docs, /v3/api-docs
+
+            - id: payment-service-docs
+              uri: lb://payment-service
+              predicates:
+                - Path=/payment-service/v3/api-docs
+              filters:
+                - RewritePath=/payment-service/v3/api-docs, /v3/api-docs
 
 # Eureka Client Configuration
 eureka:
@@ -100,10 +136,17 @@ eureka:
 logging:
   level:
     root: INFO
-    org.springframework.web: INFO
-    org.springframework.security: INFO
-    org.springframework.security.oauth2: INFO
-    io.github.resilience4j: DEBUG
+    org:
+      springframework:
+        cloud:
+          gateway: DEBUG
+        security: INFO
+        security.oauth2: INFO
+    io:
+      github:
+        resilience4j: ERROR
+  pattern:
+    level: "%5p [${spring.application.name},%X{traceId},%X{spanId}]"
 
 # Actuator & Metrics Configuration
 management:

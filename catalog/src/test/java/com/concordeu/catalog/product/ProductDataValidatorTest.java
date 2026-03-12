@@ -1,7 +1,7 @@
-package com.concordeu.catalog.product;
+package com.ganchevdimitarg.catalog.product;
 
-import com.concordeu.catalog.dto.product.ProductResponseDto;
-import com.concordeu.catalog.validator.ProductDataValidator;
+import com.ganchevdimitarg.catalog.dto.product.ProductResponseDto;
+import com.ganchevdimitarg.catalog.validator.ProductDataValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
