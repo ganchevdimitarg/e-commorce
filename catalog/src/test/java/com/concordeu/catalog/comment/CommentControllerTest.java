@@ -1,16 +1,16 @@
-package com.concordeu.catalog.comment;
+package com.ganchevdimitarg.catalog.comment;
 
-import com.concordeu.catalog.controller.CommentController;
-import com.concordeu.catalog.dto.comment.CommentRequestDto;
-import com.concordeu.catalog.dto.comment.CommentResponseDto;
-import com.concordeu.catalog.mapper.MapStructMapper;
-import com.concordeu.catalog.service.comment.CommentService;
-import com.concordeu.catalog.validator.CommentDataValidator;
+import com.ganchevdimitarg.catalog.controller.CommentController;
+import com.ganchevdimitarg.catalog.dto.comment.CommentRequestDto;
+import com.ganchevdimitarg.catalog.dto.comment.CommentResponseDto;
+import com.ganchevdimitarg.catalog.mapper.MapStructMapper;
+import com.ganchevdimitarg.catalog.service.comment.CommentService;
+import com.ganchevdimitarg.catalog.validator.CommentDataValidator;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.mock.mockito.MockitoBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.reactive.server.WebTestClient;
@@ -27,11 +27,11 @@ class CommentControllerTest {
 
     @Autowired
     WebTestClient client;
-    @MockBean
+    @MockitoBean
     CommentService commentService;
-    @MockBean
+    @MockitoBean
     CommentDataValidator validator;
-    @MockBean
+    @MockitoBean
     MapStructMapper mapper;
 
     @Test

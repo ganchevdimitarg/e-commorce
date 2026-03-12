@@ -1,16 +1,16 @@
-package com.concordeu.catalog.product;
+package com.ganchevdimitarg.catalog.product;
 
-import com.concordeu.catalog.controller.ProductController;
-import com.concordeu.catalog.dto.product.ProductRequestDto;
-import com.concordeu.catalog.dto.product.ProductResponseDto;
-import com.concordeu.catalog.mapper.MapStructMapper;
-import com.concordeu.catalog.service.product.ProductService;
+import com.ganchevdimitarg.catalog.controller.ProductController;
+import com.ganchevdimitarg.catalog.dto.product.ProductRequestDto;
+import com.ganchevdimitarg.catalog.dto.product.ProductResponseDto;
+import com.ganchevdimitarg.catalog.mapper.MapStructMapper;
+import com.ganchevdimitarg.catalog.service.product.ProductService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.mock.mockito.MockitoBean;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -37,9 +37,9 @@ class ProductControllerTest {
 
     @Autowired
     WebTestClient client;
-    @MockBean
+    @MockitoBean
     ProductService productService;
-    @MockBean
+    @MockitoBean
     MapStructMapper mapper;
     ProductResponseDto productResponseDto;
 

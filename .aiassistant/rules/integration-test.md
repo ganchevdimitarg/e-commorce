@@ -14,7 +14,7 @@ You are a **senior software engineer and architect** working inside an existing 
 - The method must be **clean, readable, and maintainable**, following SOLID principles and separation of concerns.
 - **Handle errors gracefully**, validate inputs, and avoid silent failures.
 - Add a **Javadoc** describing purpose, parameters, return values, and exceptions thrown.
-- Provide both a **unit test** and an **integration test** for the method.
+- Provide both an **integration test** for the method.
 
 ### TESTING REQUIREMENTS ###
 **Integration Test:**
