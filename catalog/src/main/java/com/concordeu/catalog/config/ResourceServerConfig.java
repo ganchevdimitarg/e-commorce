@@ -56,12 +56,13 @@ public class ResourceServerConfig {
         return (request) -> isJwt(request) ? jwt : opaqueToken;
     }
 
-    private boolean isJwt(HttpServletRequest request) {
+    boolean isJwt(HttpServletRequest request) {
+        String authorization = request.getHeader("Authorization");
+        if (authorization == null || authorization.isBlank()) {
+            return false;
+        }
         try {
-            jwtDecoder.decode(request
-                    .getHeader("Authorization")
-                    .replace("Bearer ", "")
-            );
+            jwtDecoder.decode(authorization.replace("Bearer ", ""));
             return true;
         } catch (BadJwtException e) {
             log.debug(e.getMessage());
