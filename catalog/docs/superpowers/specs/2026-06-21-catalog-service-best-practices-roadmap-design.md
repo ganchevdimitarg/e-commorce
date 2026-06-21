@@ -178,6 +178,26 @@ because it is shared infra, not module code.
 
 ---
 
+## Phase 7 — Read scaling (read replica)  *(P2 — infra approved; Postgres replica)*
+
+Route read-only traffic to a streaming replica, keeping writes and Flyway on the primary.
+Complements Phase 5.2 (the Redis cache absorbs hot reads; the replica absorbs cache misses and
+large scans). Catalogue reads tolerate mild staleness, which makes a replica safe here.
+
+| # | Problem | Target | Acceptance |
+|---|---|---|---|
+| 7.1 | Single Postgres datasource carries all read + write load | `postgres-primary` + `postgres-replica` (streaming replication) in **root** docker-compose; catalog gets a second JDBC URL (reader) | Replica streams from primary; both reachable from catalog |
+| 7.2 | No read/write datasource separation | `LazyConnectionDataSourceProxy` → `AbstractRoutingDataSource` keyed on `TransactionSynchronizationManager.isCurrentTransactionReadOnly()`; two HikariCP pools (writer/reader); **Flyway + all writes pinned to primary** | `readOnly` tx resolves to the replica pool, write tx to primary (verified via `pg_stat_activity` / datasource metric); migrations never touch the replica |
+| 7.3 | Read paths not marked, so routing can't engage | `@Transactional(readOnly = true)` on every query service method; assert no write occurs inside a `readOnly` tx | All product/category/comment reads run on the replica; an accidental write in a readOnly tx fails fast |
+| 7.4 | Replication lag breaks read-your-writes (create → immediate GET hits stale replica) | Documented staleness policy: browse/list reads → replica (staleness OK); read-after-write confirmation → primary. Pair with **5.2 cache write-through _population_** (not just invalidation) so a just-written entity is served from cache, not a stale replica. **Graceful degradation:** if the replica is unhealthy, route reads to primary — never fail the request | Stale-read window documented; just-written entity readable immediately; replica outage degrades to primary reads with no 500s |
+
+**Infra:** Postgres replica (streaming replication) in root compose — approved.
+**Relations:** complements 5.2 (cache + replica are layered, not alternatives); depends on Phase 2
+soft-delete (`deleted_at` filter applies on both nodes). Sequence **after Phase 5**, because 5.2's
+write-through population is the read-your-writes mitigation in 7.4.
+
+---
+
 ## Summary — all items
 
 | Phase | Items | Priority | New infra |
@@ -189,6 +209,7 @@ because it is shared infra, not module code.
 | 4 — Testing & observability | Testcontainers+Flyway, test naming, coverage gate, metrics | P1/P2 | Testcontainers (test) |
 | 5 — Scale & eventing | idempotency, caching, domain events | P2 | Redis + Kafka (approved) |
 | 6 — OpenTelemetry observability | OTel bridge, OTLP traces/metrics/logs, retire Zipkin | P1/P2 | OTel Collector + Tempo/Loki/Grafana (approved) |
+| 7 — Read scaling | read replica, read/write routing, lag-aware reads | P2 | Postgres replica (approved) |
 
 ## Sequencing & dependencies
 
@@ -204,6 +225,8 @@ because it is shared infra, not module code.
 - **6.A (app-side OTel)** depends on Phase 3.4's MDC filter (it feeds 6.4) and supersedes 3.4's
   JSON-logging target — sequence 6.A after 3.4. **6.B (backend stack)** is monorepo infra and can
   proceed in parallel; retire Zipkin only once Tempo is receiving traces. 6.A ships even if 6.B lags.
+- **7 (read replica)** sequences after Phase 5: it depends on 5.2's cache write-through population as
+  the read-your-writes mitigation (7.4) and on Phase 2 soft-delete reads. Do not start before 0–2 ship.
 
 ## Risks
 
@@ -220,10 +243,15 @@ because it is shared infra, not module code.
   `management.tracing.sampling.probability` and size Loki retention. The OTel Collector is a single
   ingest point; treat it as critical infra (the app should degrade gracefully if it is unreachable,
   never block requests on telemetry export).
+- Phase 7: replication lag yields stale reads — the staleness policy and 5.2 write-through population
+  (7.4) must land together, or read-after-write will regress. A routing bug that sends a write into a
+  `readOnly` tx silently hits the replica and fails — enforce read-only and test it. Size the two
+  Hikari pools independently; plan replica-failover behaviour (degrade reads to primary).
 
 ## Out of scope / explicitly not doing
 
 - MongoDB, GraphQL, or API redesign beyond response-shape fixes.
 - Changes to gateway/authentication/other **module code** — note that Phases 5 and 6 do add shared
   **platform infra** to the monorepo's root docker-compose (Redis, Kafka, OTel Collector,
-  Tempo/Loki/Grafana) and retire Zipkin; that is approved and is distinct from editing sibling modules.
+  Tempo/Loki/Grafana, Postgres replica) and retire Zipkin; that is approved and is distinct from
+  editing sibling modules.
