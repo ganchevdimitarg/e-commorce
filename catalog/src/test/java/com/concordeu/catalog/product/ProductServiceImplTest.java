@@ -11,7 +11,6 @@ import com.concordeu.catalog.excaption.NotFoundException;
 import com.concordeu.catalog.mapper.MapStructMapper;
 import com.concordeu.catalog.service.product.ProductService;
 import com.concordeu.catalog.service.product.ProductServiceImpl;
-import com.concordeu.catalog.validator.ProductDataValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -45,14 +44,12 @@ class ProductServiceImplTest {
     CategoryDao categoryDao;
     @Mock
     MapStructMapper mapStructMapper;
-    @Mock
-    ProductDataValidator validator;
 
     ProductResponseDto productResponseDto;
 
     @BeforeEach
     void setup() {
-        testService = new ProductServiceImpl(productDao, categoryDao, validator, mapStructMapper);
+        testService = new ProductServiceImpl(productDao, categoryDao, mapStructMapper);
         productResponseDto = new ProductResponseDto("","mouse", "WiFi mouse USB",
                 BigDecimal.ONE, true, "", null, new ArrayList<>());
     }
@@ -60,8 +57,6 @@ class ProductServiceImplTest {
     @Test
     void createProductShouldCreateNewProduct() {
         String categoryName = "PC";
-
-        when(validator.validateData(productResponseDto, categoryName)).thenReturn(true);
 
         Category category = Category.builder().name(categoryName).build();
         when(categoryDao.findByName(categoryName)).thenReturn(Optional.of(category));
@@ -107,8 +102,6 @@ class ProductServiceImplTest {
     @Test
     void should_throwNotFound_when_createProductCategoryDoesNotExist() {
         String categoryName = "PC";
-
-        when(validator.validateData(productResponseDto, categoryName)).thenReturn(true);
 
         assertThatThrownBy(() -> testService.createProduct(productResponseDto, categoryName))
                 .isInstanceOf(NotFoundException.class)
@@ -158,7 +151,6 @@ class ProductServiceImplTest {
     @Test
     void updateProductShouldUpdateDataIfProductExist() {
         ProductResponseDto updateProduct = new ProductResponseDto("","mouse", "aaaaaaaaaaa", BigDecimal.ONE, false, "", null, new ArrayList<>());
-        when(validator.validateData(updateProduct, productResponseDto.name())).thenReturn(true);
         when(productDao.findByName(productResponseDto.name())).thenReturn(Optional.of(Product.builder().name(productResponseDto.name()).build()));
         testService.updateProduct(updateProduct, productResponseDto.name());
         verify(productDao).update(productResponseDto.name(), "aaaaaaaaaaa", BigDecimal.ONE, "", false);
@@ -166,8 +158,6 @@ class ProductServiceImplTest {
 
     @Test
     void should_throwNotFound_when_updateMissingProduct() {
-        String productName = "mouse";
-        when(validator.validateData(productResponseDto, "bbbbb")).thenReturn(true);
         assertThatThrownBy(() -> testService.updateProduct(productResponseDto, "bbbbb"))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("Product not found: bbbbb");

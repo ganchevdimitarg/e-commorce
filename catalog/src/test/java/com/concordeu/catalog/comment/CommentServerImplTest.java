@@ -10,7 +10,6 @@ import com.concordeu.catalog.excaption.ValidationException;
 import com.concordeu.catalog.mapper.MapStructMapper;
 import com.concordeu.catalog.service.comment.CommentService;
 import com.concordeu.catalog.service.comment.CommentServiceImpl;
-import com.concordeu.catalog.validator.CommentDataValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -42,19 +41,16 @@ class CommentServerImplTest {
     @Mock
     ProductDao productDao;
     @Mock
-    CommentDataValidator validator;
-    @Mock
     MapStructMapper mapStructMapper;
 
     @BeforeEach
     void setUp() {
-        testService = new CommentServiceImpl(commentDao, productDao, validator, mapStructMapper);
+        testService = new CommentServiceImpl(commentDao, productDao, mapStructMapper);
     }
 
     @Test
     void createCommentShouldCreateComment() {
         CommentResponseDto commentResponseDto = new CommentResponseDto("", "", 0, "", null);
-        when(validator.validateData(commentResponseDto)).thenReturn(true);
 
         String productName = "aaa";
         Product product = Product.builder().name(productName).build();
@@ -76,7 +72,6 @@ class CommentServerImplTest {
     @Test
     void should_throwNotFound_when_createCommentForNonExistentProduct() {
         CommentResponseDto commentResponseDto = new CommentResponseDto("", "", 0, "", null);
-        when(validator.validateData(commentResponseDto)).thenReturn(true);
 
         String productName = "aaa";
         assertThatThrownBy(() -> testService.createComment(commentResponseDto, productName))

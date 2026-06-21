@@ -5,6 +5,7 @@ import com.concordeu.catalog.dto.product.ProductRequestDto;
 import com.concordeu.catalog.dto.product.ProductResponseDto;
 import com.concordeu.catalog.mapper.MapStructMapper;
 import com.concordeu.catalog.service.product.ProductService;
+import jakarta.validation.Valid;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -37,7 +38,7 @@ public class ProductController {
     })
     @PostMapping("/create-product")
     @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
-    public ProductResponseDto createProduct(@RequestBody ProductRequestDto requestDto,
+    public ProductResponseDto createProduct(@RequestBody @Valid ProductRequestDto requestDto,
                                             @RequestParam String categoryName) {
         ProductResponseDto productResponseDto = mapper.mapProductRequestDtoToProductResponseDto(requestDto);
         return productService.createProduct(productResponseDto, categoryName);
@@ -102,7 +103,7 @@ public class ProductController {
     }
 
     @PostMapping("/get-products-id")
-    public List<ProductResponseDto> getProductsById(@RequestBody ItemRequestDto items) {
+    public List<ProductResponseDto> getProductsById(@RequestBody @Valid ItemRequestDto items) {
         return productService.getProductsById(items);
     }
 
@@ -116,7 +117,7 @@ public class ProductController {
     })
     @PutMapping("/update-product")
     @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
-    public void updateProduct(@RequestBody ProductRequestDto requestDto,
+    public void updateProduct(@RequestBody @Valid ProductRequestDto requestDto,
                               @RequestParam String productName) {
         ProductResponseDto productResponseDto = mapper.mapProductRequestDtoToProductResponseDto(requestDto);
         productService.updateProduct(productResponseDto, productName);
