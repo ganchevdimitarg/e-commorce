@@ -6,6 +6,9 @@ import com.concordeu.catalog.domain.Category;
 import com.concordeu.catalog.domain.Product;
 import com.concordeu.catalog.dto.product.ItemRequestDto;
 import com.concordeu.catalog.dto.product.ProductResponseDto;
+import com.concordeu.catalog.excaption.ConflictException;
+import com.concordeu.catalog.excaption.NotFoundException;
+import com.concordeu.catalog.excaption.ValidationException;
 import com.concordeu.catalog.mapper.MapStructMapper;
 import com.concordeu.catalog.validator.ProductDataValidator;
 import lombok.RequiredArgsConstructor;
@@ -13,7 +16,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
-import org.springframework.util.Assert;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -36,12 +38,12 @@ public class ProductServiceImpl implements ProductService {
                 .findByName(categoryName)
                 .orElseThrow(() -> {
                     log.warn("No such category: {}", categoryName);
-                    return new IllegalArgumentException("No such category: " + categoryName);
+                    return new NotFoundException("Category", categoryName);
                 });
 
         if (productDao.findByName(productResponseDto.name()).isPresent()) {
             log.warn("Product with the name: {} already exists.", productResponseDto.name());
-            throw new IllegalArgumentException("Product with the name: " + productResponseDto.name() + " already exist.");
+            throw new ConflictException("Product with the name: " + productResponseDto.name() + " already exist.");
         }
 
         Product product = mapper.mapProductResponseDtoToProduct(productResponseDto);
@@ -68,7 +70,7 @@ public class ProductServiceImpl implements ProductService {
     public Page<ProductResponseDto> getProductsByCategoryByPage(int page, int size, String categoryName) {
         Category category = categoryDao
                 .findByName(categoryName)
-                .orElseThrow(() -> new IllegalArgumentException("No such category: " + categoryName));
+                .orElseThrow(() -> new NotFoundException("Category", categoryName));
 
         Page<ProductResponseDto> products = productDao
                 .findAllByCategoryIdByPage(category.getId(), PageRequest.of(page, size))
@@ -80,15 +82,21 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public ProductResponseDto getProductByName(String name) {
-        Assert.notNull(name, "Name is empty");
-        Product product = productDao.findByName(name).orElseThrow(() -> new IllegalArgumentException("No such product"));
+        if (name == null || name.isBlank()) {
+            throw new ValidationException("Name is empty");
+        }
+        Product product = productDao.findByName(name)
+                .orElseThrow(() -> new NotFoundException("Product", name));
         return mapper.mapProductToProductResponseDto(product);
     }
 
     @Override
     public ProductResponseDto getProductById(String id) {
-        Assert.notNull(id, "Id is empty");
-        Product product = productDao.findById(id).orElseThrow(() -> new IllegalArgumentException("No such product"));
+        if (id == null || id.isBlank()) {
+            throw new ValidationException("Id is empty");
+        }
+        Product product = productDao.findById(id)
+                .orElseThrow(() -> new NotFoundException("Product", id));
         return mapper.mapProductToProductResponseDto(product);
     }
 
@@ -122,7 +130,7 @@ public class ProductServiceImpl implements ProductService {
     private void checkExistenceProduct(String productName) {
         if (productDao.findByName(productName).isEmpty()) {
             log.warn("Product with the name: {} does not exist.", productName);
-            throw new IllegalArgumentException("Product with the name: " + productName + " does not exist.");
+            throw new NotFoundException("Product", productName);
         }
     }
 

@@ -6,6 +6,8 @@ import com.concordeu.catalog.dao.ProductDao;
 import com.concordeu.catalog.domain.Category;
 import com.concordeu.catalog.domain.Product;
 import com.concordeu.catalog.dto.product.ProductResponseDto;
+import com.concordeu.catalog.excaption.ConflictException;
+import com.concordeu.catalog.excaption.NotFoundException;
 import com.concordeu.catalog.mapper.MapStructMapper;
 import com.concordeu.catalog.service.product.ProductService;
 import com.concordeu.catalog.service.product.ProductServiceImpl;
@@ -78,39 +80,39 @@ class ProductServiceImplTest {
     }
 
     @Test
-    void createProductShouldThrowExceptionIfProductAlreadyExist() {
+    void should_throwConflict_when_createProductWithExistingName() {
         when(productDao.findByName("mouse")).thenReturn(Optional.of(Product.builder().name("mouse").build()));
 
         String categoryName = "PC";
         when(categoryDao.findByName(categoryName)).thenReturn(Optional.of(Category.builder().name(categoryName).build()));
 
         assertThatThrownBy(() -> testService.createProduct(productResponseDto, categoryName))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ConflictException.class)
                 .hasMessageContaining("Product with the name: " + productResponseDto.name() + " already exist.");
 
         verify(productDao, never()).saveAndFlush(any());
     }
 
     @Test
-    void createProductShouldThrowExceptionIncorrectCategoryName() {
+    void should_throwNotFound_when_createProductWithMissingCategory() {
         String categoryName = "";
 
         assertThatThrownBy(() -> testService.createProduct(productResponseDto, categoryName))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("No such category: " + categoryName);
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Category not found: ");
 
         verify(productDao, never()).saveAndFlush(any());
     }
 
     @Test
-    void createProductShouldThrowExceptionCategoryDoesNotExist() {
+    void should_throwNotFound_when_createProductCategoryDoesNotExist() {
         String categoryName = "PC";
 
         when(validator.validateData(productResponseDto, categoryName)).thenReturn(true);
 
         assertThatThrownBy(() -> testService.createProduct(productResponseDto, categoryName))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("No such category: " + categoryName);
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Category not found: ");
 
         verify(productDao, never()).saveAndFlush(any());
     }
@@ -144,11 +146,11 @@ class ProductServiceImplTest {
     }
 
     @Test
-    void getProductsByCategoryShouldThrowExceptionIfCategoryNotExist() {
+    void should_throwNotFound_when_getProductsByMissingCategory() {
         Pageable pageRequest = PageRequest.of(1, 5);
         assertThatThrownBy(() -> testService.getProductsByCategoryByPage(1, 2, ""))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("No such category: " + "");
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Category not found: ");
 
         verify(productDao, never()).findAllByCategoryIdByPage(new Category().getId(), pageRequest);
     }
@@ -163,12 +165,12 @@ class ProductServiceImplTest {
     }
 
     @Test
-    void updateProductShouldThrowExceptionIfProductDoesNotExist() {
+    void should_throwNotFound_when_updateMissingProduct() {
         String productName = "mouse";
         when(validator.validateData(productResponseDto, "bbbbb")).thenReturn(true);
         assertThatThrownBy(() -> testService.updateProduct(productResponseDto, "bbbbb"))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Product with the name: bbbbb does not exist.");
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Product not found: bbbbb");
     }
 
     @Test
@@ -182,10 +184,10 @@ class ProductServiceImplTest {
     }
 
     @Test
-    void deleteProductShouldDeleteIfProductDoesNotExist() {
+    void should_throwNotFound_when_deleteMissingProduct() {
         assertThatThrownBy(() -> testService.deleteProduct("bbbbb"))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Product with the name: bbbbb does not exist.");
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Product not found: bbbbb");
 
         verify(productDao, never()).deleteByName(any());
     }
