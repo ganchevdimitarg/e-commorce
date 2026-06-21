@@ -5,6 +5,9 @@ import com.concordeu.catalog.dao.ProductDao;
 import com.concordeu.catalog.domain.Category;
 import com.concordeu.catalog.domain.Product;
 import com.concordeu.catalog.dto.category.CategoryResponseDto;
+import com.concordeu.catalog.excaption.ConflictException;
+import com.concordeu.catalog.excaption.NotFoundException;
+import com.concordeu.catalog.excaption.ValidationException;
 import com.concordeu.catalog.mapper.MapStructMapper;
 import com.concordeu.catalog.service.category.CategoryService;
 import com.concordeu.catalog.service.category.CategoryServiceImpl;
@@ -68,21 +71,21 @@ class CategoryServiceImplTest {
     }
 
     @Test
-    void createCategoryShouldThrowExceptionIfNameIsEmpty() {
+    void should_throwValidation_when_createCategoryWithEmptyName() {
         categoryResponseDto = new CategoryResponseDto("1", "", new ArrayList<>());
         assertThatThrownBy(() -> testService.createCategory(categoryResponseDto))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ValidationException.class)
                 .hasMessageContaining("Category name is empty: ");
 
         verify(categoryDao, never()).saveAndFlush(any());
     }
 
     @Test
-    void createCategoryShouldThrowExceptionIfCategoryExist() {
+    void should_throwConflict_when_createCategoryWithExistingName() {
         when(categoryDao.findByName(categoryName)).thenReturn(Optional.of(Category.builder().name(categoryName).build()));
 
         assertThatThrownBy(() -> testService.createCategory(categoryResponseDto))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ConflictException.class)
                 .hasMessageContaining("Category with the name: " + categoryName + " already exist.");
 
         verify(categoryDao, never()).saveAndFlush(any());
@@ -98,10 +101,10 @@ class CategoryServiceImplTest {
     }
 
     @Test
-    void deleteCategoryShouldDeleteIfProductDoesNotExist() {
+    void should_throwNotFound_when_deleteCategoryThatDoesNotExist() {
         assertThatThrownBy(() -> testService.deleteCategory(categoryName))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("No such category: bbbbb");
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Category not found: " + categoryName);
 
         verify(categoryDao, never()).deleteByName(any());
     }
@@ -127,7 +130,7 @@ class CategoryServiceImplTest {
     }
 
     @Test
-    void moveOneProductShouldThrowExceptionIfProductDoesNotExist() {
+    void should_throwNotFound_when_moveOneProductThatDoesNotExist() {
         Category categoryFrom = Category.builder().name("pc").products(List.of(Product.builder().name("").build())).build();
         Category categoryTo = Category.builder().name("acc").build();
 
@@ -138,47 +141,47 @@ class CategoryServiceImplTest {
         when(categoryDao.getById(any())).thenReturn(categoryFrom);
 
         assertThatThrownBy(() -> testService.moveOneProduct(categoryFrom.getName(), categoryTo.getName(), "mouse"))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("No such product: mouse");
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Product not found: mouse");
 
         verify(productDao, never()).changeCategory(any(), any());
     }
 
     @Test
-    void moveOneProductShouldThrowExceptionIfFirstCategoryNameIsEmpty() {
+    void should_throwNotFound_when_moveOneProductWithEmptyFirstCategoryName() {
         assertThatThrownBy(() -> testService.moveOneProduct("", "acc", "mouse"))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("No such category: ");
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Category not found: ");
 
         verify(productDao, never()).changeCategory(any(), any());
     }
 
     @Test
-    void moveOneProductShouldThrowExceptionIfSecondCategoryNameIsEmpty() {
+    void should_throwNotFound_when_moveOneProductWithEmptySecondCategoryName() {
         when(categoryDao.findByName(categoryName)).thenReturn(Optional.of(Category.builder().name(categoryName).build()));
 
         assertThatThrownBy(() -> testService.moveOneProduct(categoryName, "", "mouse"))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("No such category: ");
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Category not found: ");
 
         verify(productDao, never()).changeCategory(any(), any());
     }
 
     @Test
-    void moveOneProductShouldThrowExceptionIfFirstCategoryDoesNotExist() {
+    void should_throwNotFound_when_moveOneProductWithNonExistentFirstCategory() {
         assertThatThrownBy(() -> testService.moveOneProduct(categoryName, "aaaaa", "mouse"))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("No such category: " + categoryName);
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Category not found: " + categoryName);
 
         verify(productDao, never()).changeCategory(any(), any());
     }
 
     @Test
-    void moveOneProductShouldThrowExceptionIfSecondCategoryDoesNotExist() {
+    void should_throwNotFound_when_moveOneProductWithNonExistentSecondCategory() {
         when(categoryDao.findByName(categoryName)).thenReturn(Optional.of(Category.builder().name(categoryName).build()));
         assertThatThrownBy(() -> testService.moveOneProduct(categoryName, "aaaaa", "mouse"))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("No such category: aaaaa");
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Category not found: aaaaa");
 
         verify(productDao, never()).changeCategory(any(), any());
     }
