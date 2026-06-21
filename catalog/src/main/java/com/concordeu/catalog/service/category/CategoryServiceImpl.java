@@ -5,6 +5,9 @@ import com.concordeu.catalog.dao.ProductDao;
 import com.concordeu.catalog.domain.Category;
 import com.concordeu.catalog.domain.Product;
 import com.concordeu.catalog.dto.category.CategoryResponseDto;
+import com.concordeu.catalog.excaption.ConflictException;
+import com.concordeu.catalog.excaption.NotFoundException;
+import com.concordeu.catalog.excaption.ValidationException;
 import com.concordeu.catalog.mapper.MapStructMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,12 +29,12 @@ public class CategoryServiceImpl implements CategoryService {
     public CategoryResponseDto createCategory(CategoryResponseDto categoryResponseDto) {
         if (categoryResponseDto.name().isEmpty()) {
             log.warn("Category name is empty: {}", categoryResponseDto.name());
-            throw new IllegalArgumentException("Category name is empty: " + categoryResponseDto.name());
+            throw new ValidationException("Category name is empty: " + categoryResponseDto.name());
         }
 
         if (categoryDao.findByName(categoryResponseDto.name()).isPresent()) {
             log.warn("Category with the name: {} already exist.", categoryResponseDto.name());
-            throw new IllegalArgumentException("Category with the name: " + categoryResponseDto.name() + " already exist.");
+            throw new ConflictException("Category with the name: " + categoryResponseDto.name() + " already exist.");
         }
 
         Category category = categoryDao.saveAndFlush(Category.builder().name(categoryResponseDto.name()).build());
@@ -42,7 +45,7 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     public CategoryResponseDto getCategory(String categoryName) {
         Category category = categoryDao.findByName(categoryName)
-                .orElseThrow(() -> new IllegalArgumentException("No such category: " + categoryName));
+                .orElseThrow(() -> new NotFoundException("Category", categoryName));
         return convertCategory(category);
     }
 
@@ -50,11 +53,11 @@ public class CategoryServiceImpl implements CategoryService {
     public void deleteCategory(String categoryName) {
         if (categoryName.isEmpty()) {
             log.warn("Category name is empty: {}", categoryName);
-            throw new IllegalArgumentException("Category name is empty: " + categoryName);
+            throw new ValidationException("Category name is empty: " + categoryName);
         }
         if (categoryDao.findByName(categoryName).isEmpty()) {
             log.warn("No such category: {}", categoryName);
-            throw new IllegalArgumentException("No such category: " + categoryName);
+            throw new NotFoundException("Category", categoryName);
         }
 
         categoryDao.deleteByName(categoryName);
@@ -72,7 +75,7 @@ public class CategoryServiceImpl implements CategoryService {
                 .findFirst()
                 .orElseThrow(() -> {
                     log.warn("No such product: {}", productName);
-                    return new IllegalArgumentException("No such product: " + productName);
+                    return new NotFoundException("Product", productName);
                 });
 
         productDao.changeCategory(product.getName(), categoryTo.id());

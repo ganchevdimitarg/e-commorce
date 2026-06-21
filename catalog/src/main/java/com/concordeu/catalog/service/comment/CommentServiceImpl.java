@@ -5,6 +5,8 @@ import com.concordeu.catalog.dao.ProductDao;
 import com.concordeu.catalog.domain.Comment;
 import com.concordeu.catalog.domain.Product;
 import com.concordeu.catalog.dto.comment.CommentResponseDto;
+import com.concordeu.catalog.excaption.NotFoundException;
+import com.concordeu.catalog.excaption.ValidationException;
 import com.concordeu.catalog.mapper.MapStructMapper;
 import com.concordeu.catalog.validator.CommentDataValidator;
 import lombok.RequiredArgsConstructor;
@@ -33,7 +35,7 @@ public class CommentServiceImpl implements CommentService {
                 .findByName(productName)
                 .orElseThrow(() -> {
                     logMessage(productName);
-                    return new IllegalArgumentException("No such product: " + productName);
+                    return new NotFoundException("Product", productName);
                 });
 
         Comment comment = mapper.mapCommentResponseDtoToComment(commentResponseDto);
@@ -49,12 +51,12 @@ public class CommentServiceImpl implements CommentService {
     public Page<CommentResponseDto> findAllByProductNameByPage(String productName, int page, int size) {
         if (productName.isEmpty()) {
             logMessage(productName);
-            throw new IllegalArgumentException("No such product: " + productName);
+            throw new ValidationException("Product name is empty");
         }
 
         Product product = productDao.findByName(productName).orElseThrow(() -> {
             logMessage(productName);
-            return new IllegalArgumentException("No such product: " + productName);
+            return new NotFoundException("Product", productName);
         });
 
         Page<CommentResponseDto> comments = commentDao
@@ -74,7 +76,7 @@ public class CommentServiceImpl implements CommentService {
     public Page<CommentResponseDto> findAllByAuthorByPage(String author, int page, int size) {
         if (author.isEmpty()) {
             log.warn("No such author: {}", author);
-            throw new IllegalArgumentException("No such author: " + author);
+            throw new ValidationException("No such author: " + author);
         }
         Page<CommentResponseDto> comments = commentDao
                 .findAllByAuthorByPage(author, PageRequest.of(page, size))
