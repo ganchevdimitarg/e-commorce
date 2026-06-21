@@ -17,7 +17,7 @@
         <lombok.mapstruct.binding.version>0.2.0</lombok.mapstruct.binding.version>
         <mapstruct.version>1.5.2.Final</mapstruct.version>
         <h2.version>2.1.212</h2.version>
-        <springdoc-openapi-ui.version>1.6.13</springdoc-openapi-ui.version>
+        <springdoc-openapi.version>3.0.3</springdoc-openapi.version>
     </properties>
 
     <dependencies>
@@ -156,8 +156,8 @@
         <!--   Spring Doc     -->
         <dependency>
             <groupId>org.springdoc</groupId>
-            <artifactId>springdoc-openapi-ui</artifactId>
-            <version>${springdoc-openapi-ui.version}</version>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>${springdoc-openapi.version}</version>
         </dependency>
 
         <!--        when using spring cloud config server    -->
