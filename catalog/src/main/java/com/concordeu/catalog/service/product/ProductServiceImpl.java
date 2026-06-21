@@ -10,7 +10,6 @@ import com.concordeu.catalog.excaption.ConflictException;
 import com.concordeu.catalog.excaption.NotFoundException;
 import com.concordeu.catalog.excaption.ValidationException;
 import com.concordeu.catalog.mapper.MapStructMapper;
-import com.concordeu.catalog.validator.ProductDataValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -27,13 +26,10 @@ public class ProductServiceImpl implements ProductService {
 
     private final ProductDao productDao;
     private final CategoryDao categoryDao;
-    private final ProductDataValidator validator;
     private final MapStructMapper mapper;
 
     @Override
     public ProductResponseDto createProduct(ProductResponseDto productResponseDto, String categoryName) {
-        validator.validateData(productResponseDto, categoryName);
-
         Category category = categoryDao
                 .findByName(categoryName)
                 .orElseThrow(() -> {
@@ -103,8 +99,6 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public void updateProduct(ProductResponseDto productResponseDto, String productName) {
-        validator.validateData(productResponseDto, productName);
-
         checkExistenceProduct(productName);
 
         productDao.update(productName,

@@ -8,7 +8,6 @@ import com.concordeu.catalog.dto.comment.CommentResponseDto;
 import com.concordeu.catalog.excaption.NotFoundException;
 import com.concordeu.catalog.excaption.ValidationException;
 import com.concordeu.catalog.mapper.MapStructMapper;
-import com.concordeu.catalog.validator.CommentDataValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -24,13 +23,10 @@ public class CommentServiceImpl implements CommentService {
 
     private final CommentDao commentDao;
     private final ProductDao productDao;
-    private final CommentDataValidator commentDataValidator;
     private final MapStructMapper mapper;
 
     @Override
     public CommentResponseDto createComment(CommentResponseDto commentResponseDto, String productName) {
-        commentDataValidator.validateData(commentResponseDto);
-
         Product product = productDao
                 .findByName(productName)
                 .orElseThrow(() -> {

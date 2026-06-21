@@ -5,7 +5,6 @@ import com.concordeu.catalog.dto.comment.CommentRequestDto;
 import com.concordeu.catalog.dto.comment.CommentResponseDto;
 import com.concordeu.catalog.mapper.MapStructMapper;
 import com.concordeu.catalog.service.comment.CommentService;
-import com.concordeu.catalog.validator.CommentDataValidator;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,15 +29,12 @@ class CommentControllerTest {
     @MockBean
     CommentService commentService;
     @MockBean
-    CommentDataValidator validator;
-    @MockBean
     MapStructMapper mapper;
 
     @Test
     void createCommentShouldCreateCommentAndReturnIt() throws Exception {
         when(mapper.mapCommentRequestDtoToCommentResponseDto(any(CommentRequestDto.class)))
                 .thenReturn(new CommentResponseDto("", "", 0, "", null));
-        when(validator.validateData(any())).thenReturn(true);
 
         this.client.mutateWith(csrf())
                 .mutateWith(mockUser("admin"))

@@ -4,6 +4,7 @@ import com.concordeu.catalog.dto.category.CategoryRequestDto;
 import com.concordeu.catalog.dto.category.CategoryResponseDto;
 import com.concordeu.catalog.mapper.MapStructMapper;
 import com.concordeu.catalog.service.category.CategoryService;
+import jakarta.validation.Valid;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -36,7 +37,7 @@ public class CategoryController {
     })
     @PostMapping("/create-category")
     @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
-    public CategoryResponseDto createCategory(@RequestBody CategoryRequestDto requestDto) {
+    public CategoryResponseDto createCategory(@RequestBody @Valid CategoryRequestDto requestDto) {
         return categoryService.createCategory(mapper.mapCategoryRequestDtoToCategoryDto(requestDto));
     }
 

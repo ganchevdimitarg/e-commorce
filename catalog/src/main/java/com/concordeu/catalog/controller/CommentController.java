@@ -4,7 +4,7 @@ import com.concordeu.catalog.dto.comment.CommentRequestDto;
 import com.concordeu.catalog.dto.comment.CommentResponseDto;
 import com.concordeu.catalog.mapper.MapStructMapper;
 import com.concordeu.catalog.service.comment.CommentService;
-import com.concordeu.catalog.validator.CommentDataValidator;
+import jakarta.validation.Valid;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -23,7 +23,6 @@ import org.springframework.web.bind.annotation.*;
 public class CommentController {
 
     private final CommentService commentService;
-    private final CommentDataValidator validator;
     private final MapStructMapper mapper;
 
     @Operation(summary = "Create Comment",  description = "Create a comment for the product and save it in the database",
@@ -36,10 +35,9 @@ public class CommentController {
     })
     @PostMapping("/create-comment")
     @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
-    public CommentResponseDto createComment(@RequestBody CommentRequestDto requestDto,
+    public CommentResponseDto createComment(@RequestBody @Valid CommentRequestDto requestDto,
                                             @RequestParam String productName) {
         CommentResponseDto commentResponseDto = mapper.mapCommentRequestDtoToCommentResponseDto(requestDto);
-        validator.validateData(commentResponseDto);
         return commentService.createComment(commentResponseDto, productName);
     }
 
