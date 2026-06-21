@@ -1,8 +1,9 @@
 package com.concordeu.catalog.config;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -11,6 +12,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 class ResourceServerConfigTest {
 
     private final JwtDecoder jwtDecoder = mock(JwtDecoder.class);
@@ -37,7 +39,7 @@ class ResourceServerConfigTest {
     void should_delegateToDecoder_when_bearerTokenPresent() {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.addHeader("Authorization", "Bearer abc.def.ghi");
-        when(jwtDecoder.decode("abc.def.ghi")).thenReturn(mock(Jwt.class));
+        when(jwtDecoder.decode("abc.def.ghi")).thenReturn(mock(org.springframework.security.oauth2.jwt.Jwt.class));
 
         assertThat(config.isJwt(request)).isTrue();
         verify(jwtDecoder).decode("abc.def.ghi");
