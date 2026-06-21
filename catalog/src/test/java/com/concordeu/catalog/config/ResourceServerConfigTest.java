@@ -1,5 +1,7 @@
 package com.concordeu.catalog.config;
 
+import com.concordeu.catalog.excaption.ProblemAccessDeniedHandler;
+import com.concordeu.catalog.excaption.ProblemAuthenticationEntryPoint;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -16,7 +18,9 @@ import static org.mockito.Mockito.when;
 class ResourceServerConfigTest {
 
     private final JwtDecoder jwtDecoder = mock(JwtDecoder.class);
-    private final ResourceServerConfig config = new ResourceServerConfig(jwtDecoder);
+    private final ProblemAuthenticationEntryPoint authEntryPoint = mock(ProblemAuthenticationEntryPoint.class);
+    private final ProblemAccessDeniedHandler accessDeniedHandler = mock(ProblemAccessDeniedHandler.class);
+    private final ResourceServerConfig config = new ResourceServerConfig(jwtDecoder, authEntryPoint, accessDeniedHandler);
 
     @Test
     void should_returnFalse_when_authorizationHeaderMissing() {

@@ -1,5 +1,7 @@
 package com.concordeu.catalog.config;
 
+import com.concordeu.catalog.excaption.ProblemAccessDeniedHandler;
+import com.concordeu.catalog.excaption.ProblemAuthenticationEntryPoint;
 import com.concordeu.client.introspector.CustomOpaqueTokenIntrospector;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +27,8 @@ import org.springframework.security.web.SecurityFilterChain;
 @Slf4j
 public class ResourceServerConfig {
     private final JwtDecoder jwtDecoder;
+    private final ProblemAuthenticationEntryPoint authenticationEntryPoint;
+    private final ProblemAccessDeniedHandler accessDeniedHandler;
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -39,7 +43,11 @@ public class ResourceServerConfig {
                         .requestMatchers("/api/v1/catalog/product/get-product/**").permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2
-                        .authenticationManagerResolver(tokenAuthenticationManagerResolver()))
+                        .authenticationManagerResolver(tokenAuthenticationManagerResolver())
+                        .authenticationEntryPoint(authenticationEntryPoint))
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint(authenticationEntryPoint)
+                        .accessDeniedHandler(accessDeniedHandler))
                 .build();
     }
 
