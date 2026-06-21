@@ -5,6 +5,8 @@ import com.concordeu.catalog.dao.ProductDao;
 import com.concordeu.catalog.domain.Comment;
 import com.concordeu.catalog.domain.Product;
 import com.concordeu.catalog.dto.comment.CommentResponseDto;
+import com.concordeu.catalog.excaption.NotFoundException;
+import com.concordeu.catalog.excaption.ValidationException;
 import com.concordeu.catalog.mapper.MapStructMapper;
 import com.concordeu.catalog.service.comment.CommentService;
 import com.concordeu.catalog.service.comment.CommentServiceImpl;
@@ -72,14 +74,14 @@ class CommentServerImplTest {
     }
 
     @Test
-    void createCommentShouldThrowExceptionIfProductDoesNotExist() {
+    void should_throwNotFound_when_createCommentForNonExistentProduct() {
         CommentResponseDto commentResponseDto = new CommentResponseDto("", "", 0, "", null);
         when(validator.validateData(commentResponseDto)).thenReturn(true);
 
         String productName = "aaa";
         assertThatThrownBy(() -> testService.createComment(commentResponseDto, productName))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("No such product: " + productName);
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Product not found: " + productName);
 
         verify(commentDao, never()).saveAndFlush(any());
     }
@@ -101,19 +103,19 @@ class CommentServerImplTest {
     }
 
     @Test
-    void findAllByProductNameShouldThrowExceptionIfProductNameIsEmpty() {
+    void should_throwValidation_when_findAllByProductNameWithEmptyName() {
         assertThatThrownBy(() -> testService.findAllByProductNameByPage("", 1, 5))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("No such product: ");
+                .isInstanceOf(ValidationException.class)
+                .hasMessageContaining("Product name is empty");
 
         verify(commentDao, never()).findAllByProductIdByPage(any(String.class), any(PageRequest.class));
     }
 
     @Test
-    void findAllByProductNameShouldThrowExceptionIfProductDoesNotExist() {
+    void should_throwNotFound_when_findAllByProductNameForNonExistentProduct() {
         assertThatThrownBy(() -> testService.findAllByProductNameByPage("aaaaa", 1, 5))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("No such product: ");
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Product not found: aaaaa");
 
         verify(commentDao, never()).findAllByProductIdByPage(any(String.class), any(PageRequest.class));
     }
@@ -133,9 +135,9 @@ class CommentServerImplTest {
     }
 
     @Test
-    void findAllByAuthorShouldThrowExceptionIfAuthorIsEmpty() {
+    void should_throwValidation_when_findAllByAuthorWithEmptyAuthor() {
         assertThatThrownBy(() -> testService.findAllByAuthorByPage("", 1, 5))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ValidationException.class)
                 .hasMessageContaining("No such author: ");
 
         verify(commentDao, never()).findAllByAuthorByPage(any(String.class), any(PageRequest.class));
