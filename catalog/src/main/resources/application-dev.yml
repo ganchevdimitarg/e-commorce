@@ -46,10 +46,6 @@ spring:
   kafka:
     bootstrap-servers: localhost:9092
 
-  #Zipkin
-  zipkin:
-    base-url: http://localhost:9411
-
   #Virtual Threads
   threads:
     virtual:
@@ -95,6 +91,12 @@ management:
   health:
     circuitbreakers:
       enabled: true
+  tracing:
+    sampling:
+      probability: 0.1
+  otlp:
+    tracing:
+      endpoint: http://localhost:4318/v1/traces
 
 resilience4j:
   circuitbreaker:
