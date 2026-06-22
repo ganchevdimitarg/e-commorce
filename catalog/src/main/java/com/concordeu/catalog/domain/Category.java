@@ -19,7 +19,7 @@ import java.util.List;
 @Builder
 @Setter
 @Getter
-public class Category {
+public class Category extends Auditable {
     @Id
     @GeneratedValue(generator = "uuid-string")
     @GenericGenerator(name = "uuid-string",
@@ -32,4 +32,3 @@ public class Category {
     @JsonIgnore
     private List<Product> products;
 }
-
