@@ -201,12 +201,6 @@
                 <configuration>
                     <source>${maven.compiler.source}</source>
                     <target>${maven.compiler.target}</target>
-                    <testExcludes>
-                        <!-- Legacy WebFlux/@MockBean tests; migrated to MockMvc in Phase 4 -->
-                        <testExclude>**/category/CategoryControllerTest.java</testExclude>
-                        <testExclude>**/comment/CommentControllerTest.java</testExclude>
-                        <testExclude>**/product/ProductControllerTest.java</testExclude>
-                    </testExcludes>
                     <annotationProcessorPaths>
                         <path>
                             <groupId>org.mapstruct</groupId>
