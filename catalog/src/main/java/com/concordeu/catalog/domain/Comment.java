@@ -13,7 +13,7 @@ import jakarta.validation.constraints.Size;
 @Entity(name = "Comment")
 @Table(name = "comments",
         indexes = @Index(name = "comment_index",columnList = "author"))
-@SQLDelete(sql = "UPDATE comments SET deleted_at = now() WHERE id = ?")
+@SQLDelete(sql = "UPDATE comments SET deleted_at = now() WHERE id = ? AND version = ?")
 @SQLRestriction("deleted_at IS NULL")
 @Getter
 @Setter
