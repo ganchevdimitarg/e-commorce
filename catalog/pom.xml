@@ -124,6 +124,13 @@
             <artifactId>opentelemetry-exporter-otlp</artifactId>
         </dependency>
 
+        <!--   Prometheus metrics registry   -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
         <!--   Database provider     -->
         <dependency>
             <groupId>org.postgresql</groupId>
