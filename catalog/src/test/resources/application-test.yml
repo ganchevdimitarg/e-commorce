@@ -1,0 +1,26 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  flyway:
+    enabled: true
+  cloud:
+    vault:
+      enabled: false
+  config:
+    import: "optional:configserver:"
+
+eureka:
+  client:
+    enabled: false
+    fetch-registry: false
+    register-with-eureka: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
