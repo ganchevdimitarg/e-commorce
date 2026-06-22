@@ -13,10 +13,13 @@ import com.concordeu.catalog.mapper.MapStructMapper;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -95,7 +98,9 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
+    @Cacheable(cacheNames = "product", key = "#id")
     public ProductResponseDto getProductById(String id) {
         if (id == null || id.isBlank()) {
             throw new ValidationException("Id is empty");
@@ -108,6 +113,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
+    @CacheEvict(cacheNames = "product", allEntries = true, beforeInvocation = true)
     public void updateProduct(ProductResponseDto productResponseDto, String productName) {
         checkExistenceProduct(productName);
 
@@ -122,6 +128,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
+    @CacheEvict(cacheNames = "product", allEntries = true, beforeInvocation = true)
     public void deleteProduct(String productName) {
         checkExistenceProduct(productName);
         productRepository.deleteByName(productName);
