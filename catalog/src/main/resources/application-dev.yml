@@ -77,6 +77,17 @@ management:
     circuitbreakers:
       enabled: true
 
+resilience4j:
+  circuitbreaker:
+    instances:
+      introspection:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        slowCallDurationThreshold: 2s
+        waitDurationInOpenState: 30s
+        permittedNumberOfCallsInHalfOpenState: 5
+        registerHealthIndicator: true
+
 #Spring Doc
 springdoc:
   api-docs:
