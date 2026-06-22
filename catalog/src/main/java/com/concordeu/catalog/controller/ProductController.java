@@ -1,11 +1,14 @@
 package com.concordeu.catalog.controller;
 
+import com.concordeu.catalog.dto.PageResponse;
 import com.concordeu.catalog.dto.product.ItemRequestDto;
 import com.concordeu.catalog.dto.product.ProductRequestDto;
 import com.concordeu.catalog.dto.product.ProductResponseDto;
 import com.concordeu.catalog.mapper.MapStructMapper;
 import com.concordeu.catalog.service.product.ProductService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -13,8 +16,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -23,6 +26,7 @@ import java.util.List;
 @RequestMapping("/api/v1/catalog/product")
 @RequiredArgsConstructor
 @Slf4j
+@Validated
 public class ProductController {
 
     private final ProductService productService;
@@ -53,9 +57,10 @@ public class ProductController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @GetMapping("/get-products")
-    public Page<ProductResponseDto> getProducts(@RequestParam int page,
-                                                @RequestParam int size) {
-        return productService.getProductsByPage(page, size);
+    public PageResponse<ProductResponseDto> getProducts(
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
+        return PageResponse.of(productService.getProductsByPage(page, size));
     }
 
     @Operation(summary = "Get Products By Category Name", description = "Get all products by category name",
@@ -67,10 +72,11 @@ public class ProductController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @GetMapping("/get-category-products")
-    public Page<ProductResponseDto> getProductsByCategory(@RequestParam int page,
-                                                          @RequestParam int size,
-                                                          @RequestParam String categoryName) {
-        return productService.getProductsByCategoryByPage(page, size, categoryName);
+    public PageResponse<ProductResponseDto> getProductsByCategory(
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,
+            @RequestParam String categoryName) {
+        return PageResponse.of(productService.getProductsByCategoryByPage(page, size, categoryName));
     }
 
     @Operation(summary = "Get Product Product Name", description = "Get product by product name",

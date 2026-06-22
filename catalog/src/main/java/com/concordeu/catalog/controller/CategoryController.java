@@ -1,10 +1,13 @@
 package com.concordeu.catalog.controller;
 
+import com.concordeu.catalog.dto.PageResponse;
 import com.concordeu.catalog.dto.category.CategoryRequestDto;
 import com.concordeu.catalog.dto.category.CategoryResponseDto;
 import com.concordeu.catalog.mapper.MapStructMapper;
 import com.concordeu.catalog.service.category.CategoryService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -12,16 +15,15 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-
-import java.security.Principal;
 
 @RestController
 @RequestMapping("/api/v1/catalog/category")
 @RequiredArgsConstructor
 @Slf4j
+@Validated
 public class CategoryController {
 
     private final CategoryService categoryService;
@@ -65,8 +67,10 @@ public class CategoryController {
     })
     @GetMapping("/get-categories")
     @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
-    public Page<CategoryResponseDto> getCategories(@RequestParam int page, @RequestParam int size) {
-        return categoryService.getCategoriesByPage(page, size);
+    public PageResponse<CategoryResponseDto> getCategories(
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
+        return PageResponse.of(categoryService.getCategoriesByPage(page, size));
     }
 
     @Operation(summary = "Move One Product",  description = "Move one product from one category to another category",
