@@ -49,7 +49,7 @@ class CommentServerImplTest {
     }
 
     @Test
-    void createCommentShouldCreateComment() {
+    void should_createComment_when_productExists() {
         CommentResponseDto commentResponseDto = new CommentResponseDto("", "", 0, "", null);
 
         String productName = "aaa";
@@ -83,7 +83,7 @@ class CommentServerImplTest {
     }
 
     @Test
-    void findAllByProductNameShouldReturnAllCommentsByProduct() {
+    void should_returnComments_when_productExists() {
         PageRequest pageRequest = PageRequest.of(1, 5);
         List<Comment> products = Arrays.asList(new Comment(), new Comment());
         Page<Comment> page = new PageImpl<>(products, pageRequest, products.size());
@@ -119,7 +119,7 @@ class CommentServerImplTest {
     }
 
     @Test
-    void findAllByAuthorShouldReturnAllCommentsByAuthor() {
+    void should_returnComments_when_authorExists() {
         PageRequest pageRequest = PageRequest.of(1, 5);
         List<Comment> products = Arrays.asList(new Comment(), new Comment());
         Page<Comment> page = new PageImpl<>(products, pageRequest, products.size());
