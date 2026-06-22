@@ -1,0 +1,21 @@
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <!-- Readable console for local/dev, carrying trace + user context -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} %-5level [%X{traceId:-},%X{spanId:-}] [user=%X{userId:-}] %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Ship logs to the OpenTelemetry Collector over OTLP, with trace context -->
+    <appender name="OTEL" class="io.opentelemetry.instrumentation.logback.appender.v1_0.OpenTelemetryAppender">
+        <captureExperimentalAttributes>true</captureExperimentalAttributes>
+        <captureMdcAttributes>*</captureMdcAttributes>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="OTEL"/>
+    </root>
+</configuration>

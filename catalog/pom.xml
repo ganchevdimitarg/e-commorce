@@ -18,6 +18,7 @@
         <mapstruct.version>1.5.2.Final</mapstruct.version>
         <springdoc-openapi.version>3.0.3</springdoc-openapi.version>
         <jacoco.version>0.8.13</jacoco.version>
+        <otel-logback.version>2.21.0-alpha</otel-logback.version>
     </properties>
 
     <dependencies>
@@ -129,6 +130,13 @@
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-registry-prometheus</artifactId>
             <scope>runtime</scope>
+        </dependency>
+
+        <!--   OTLP log appender (ships logs to OTel Collector with trace context)   -->
+        <dependency>
+            <groupId>io.opentelemetry.instrumentation</groupId>
+            <artifactId>opentelemetry-logback-appender-1.0</artifactId>
+            <version>${otel-logback.version}</version>
         </dependency>
 
         <!--   Database provider     -->
