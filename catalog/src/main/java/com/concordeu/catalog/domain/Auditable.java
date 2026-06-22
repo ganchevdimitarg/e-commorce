@@ -2,6 +2,7 @@ package com.concordeu.catalog.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.MappedSuperclass;
+import jakarta.persistence.Version;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
@@ -24,4 +25,8 @@ public abstract class Auditable {
 
     @Column(name = "deleted_at")
     private Instant deletedAt;
+
+    @Version
+    @Column(name = "version", nullable = false)
+    private long version;
 }
