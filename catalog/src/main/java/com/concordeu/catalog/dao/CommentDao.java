@@ -11,12 +11,12 @@ import java.util.List;
 
 public interface CommentDao extends JpaRepository<Comment, String> {
     @Query(value = """
-            SELECT * FROM comments WHERE PRODUCT_ID = ?1
+            SELECT * FROM comments WHERE PRODUCT_ID = ?1 AND deleted_at IS NULL
             """, nativeQuery = true)
     Page<Comment> findAllByProductIdByPage(String productId, Pageable pageable);
 
     @Query(value = """
-            SELECT * FROM comments WHERE AUTHOR = ?1
+            SELECT * FROM comments WHERE AUTHOR = ?1 AND deleted_at IS NULL
             """, nativeQuery = true)
     Page<Comment> findAllByAuthorByPage(String author, Pageable pageable);
 

@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.GenericGenerator;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
@@ -12,6 +14,8 @@ import jakarta.validation.constraints.Size;
 @Entity(name = "Comment")
 @Table(name = "comments",
         indexes = @Index(name = "comment_index",columnList = "author"))
+@SQLDelete(sql = "UPDATE comments SET deleted_at = now() WHERE id = ?")
+@SQLRestriction("deleted_at IS NULL")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
