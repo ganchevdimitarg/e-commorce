@@ -1,8 +1,8 @@
 package com.concordeu.catalog.exception;
 
-import com.concordeu.catalog.excaption.ConflictException;
-import com.concordeu.catalog.excaption.ControllerExceptionHandler;
-import com.concordeu.catalog.excaption.NotFoundException;
+import com.concordeu.catalog.exception.ConflictException;
+import com.concordeu.catalog.exception.ControllerExceptionHandler;
+import com.concordeu.catalog.exception.NotFoundException;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;

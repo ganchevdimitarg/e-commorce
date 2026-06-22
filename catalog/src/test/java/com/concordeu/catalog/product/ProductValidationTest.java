@@ -2,9 +2,9 @@ package com.concordeu.catalog.product;
 
 import com.concordeu.catalog.config.ResourceServerConfig;
 import com.concordeu.catalog.controller.ProductController;
-import com.concordeu.catalog.excaption.ControllerExceptionHandler;
-import com.concordeu.catalog.excaption.ProblemAccessDeniedHandler;
-import com.concordeu.catalog.excaption.ProblemAuthenticationEntryPoint;
+import com.concordeu.catalog.exception.ControllerExceptionHandler;
+import com.concordeu.catalog.exception.ProblemAccessDeniedHandler;
+import com.concordeu.catalog.exception.ProblemAuthenticationEntryPoint;
 import com.concordeu.catalog.mapper.MapStructMapper;
 import com.concordeu.catalog.service.product.ProductService;
 import org.junit.jupiter.api.Tag;

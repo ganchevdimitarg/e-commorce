@@ -1,7 +1,7 @@
 package com.concordeu.catalog.config;
 
-import com.concordeu.catalog.excaption.ProblemAccessDeniedHandler;
-import com.concordeu.catalog.excaption.ProblemAuthenticationEntryPoint;
+import com.concordeu.catalog.exception.ProblemAccessDeniedHandler;
+import com.concordeu.catalog.exception.ProblemAuthenticationEntryPoint;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;

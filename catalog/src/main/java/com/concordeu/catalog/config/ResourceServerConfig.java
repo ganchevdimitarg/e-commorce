@@ -1,7 +1,7 @@
 package com.concordeu.catalog.config;
 
-import com.concordeu.catalog.excaption.ProblemAccessDeniedHandler;
-import com.concordeu.catalog.excaption.ProblemAuthenticationEntryPoint;
+import com.concordeu.catalog.exception.ProblemAccessDeniedHandler;
+import com.concordeu.catalog.exception.ProblemAuthenticationEntryPoint;
 import com.concordeu.client.introspector.CustomOpaqueTokenIntrospector;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
