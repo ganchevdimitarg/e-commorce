@@ -1,14 +1,13 @@
 package com.concordeu.catalog.security;
 
+import com.concordeu.catalog.AbstractIntegrationTest;
 import com.concordeu.catalog.dto.product.ProductResponseDto;
 import com.concordeu.catalog.service.product.ProductService;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.context.ActiveProfiles;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -17,9 +16,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @Tag("integration")
-@SpringBootTest
-@ActiveProfiles("test")
-class ServiceAuthorizationTest {
+class ServiceAuthorizationTest extends AbstractIntegrationTest {
 
     @Autowired
     ProductService productService;
