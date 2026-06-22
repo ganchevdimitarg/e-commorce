@@ -82,7 +82,9 @@ class CategoryServiceImplTest {
 
     @Test
     void should_throwConflict_when_createCategoryWithExistingName() {
-        when(categoryDao.findByName(categoryName)).thenReturn(Optional.of(Category.builder().name(categoryName).build()));
+        Category existingCategory = new Category();
+        existingCategory.setName(categoryName);
+        when(categoryDao.findByName(categoryName)).thenReturn(Optional.of(existingCategory));
 
         assertThatThrownBy(() -> testService.createCategory(categoryResponseDto))
                 .isInstanceOf(ConflictException.class)
@@ -93,7 +95,9 @@ class CategoryServiceImplTest {
 
     @Test
     void deleteCategoryShouldDeleteProductIfProductExist() {
-        when(categoryDao.findByName(categoryName)).thenReturn(Optional.of(Category.builder().name(categoryName).build()));
+        Category categoryToDelete = new Category();
+        categoryToDelete.setName(categoryName);
+        when(categoryDao.findByName(categoryName)).thenReturn(Optional.of(categoryToDelete));
 
         testService.deleteCategory(categoryName);
 
@@ -111,12 +115,14 @@ class CategoryServiceImplTest {
 
     @Test
     void moveOneProductShouldMoveProductFromOneCategoryToAnotherCategory() {
-        Category categoryFrom = Category.builder()
-                .name("pc")
-                .products(List.of(Product.builder().name("mouse").build()))
-                .build();
+        Product mouseProduct = new Product();
+        mouseProduct.setName("mouse");
+        Category categoryFrom = new Category();
+        categoryFrom.setName("pc");
+        categoryFrom.setProducts(List.of(mouseProduct));
 
-        Category categoryTo = Category.builder().name("acc").build();
+        Category categoryTo = new Category();
+        categoryTo.setName("acc");
 
         when(categoryDao.findByName(categoryFrom.getName())).thenReturn(Optional.of(categoryFrom));
 
@@ -131,8 +137,13 @@ class CategoryServiceImplTest {
 
     @Test
     void should_throwNotFound_when_moveOneProductThatDoesNotExist() {
-        Category categoryFrom = Category.builder().name("pc").products(List.of(Product.builder().name("").build())).build();
-        Category categoryTo = Category.builder().name("acc").build();
+        Product emptyNameProduct = new Product();
+        emptyNameProduct.setName("");
+        Category categoryFrom = new Category();
+        categoryFrom.setName("pc");
+        categoryFrom.setProducts(List.of(emptyNameProduct));
+        Category categoryTo = new Category();
+        categoryTo.setName("acc");
 
         when(categoryDao.findByName(categoryFrom.getName())).thenReturn(Optional.of(categoryFrom));
 
@@ -158,7 +169,9 @@ class CategoryServiceImplTest {
 
     @Test
     void should_throwNotFound_when_moveOneProductWithEmptySecondCategoryName() {
-        when(categoryDao.findByName(categoryName)).thenReturn(Optional.of(Category.builder().name(categoryName).build()));
+        Category categoryForMove = new Category();
+        categoryForMove.setName(categoryName);
+        when(categoryDao.findByName(categoryName)).thenReturn(Optional.of(categoryForMove));
 
         assertThatThrownBy(() -> testService.moveOneProduct(categoryName, "", "mouse"))
                 .isInstanceOf(NotFoundException.class)
@@ -178,7 +191,9 @@ class CategoryServiceImplTest {
 
     @Test
     void should_throwNotFound_when_moveOneProductWithNonExistentSecondCategory() {
-        when(categoryDao.findByName(categoryName)).thenReturn(Optional.of(Category.builder().name(categoryName).build()));
+        Category categoryForNonExistent = new Category();
+        categoryForNonExistent.setName(categoryName);
+        when(categoryDao.findByName(categoryName)).thenReturn(Optional.of(categoryForNonExistent));
         assertThatThrownBy(() -> testService.moveOneProduct(categoryName, "aaaaa", "mouse"))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("Category not found: aaaaa");

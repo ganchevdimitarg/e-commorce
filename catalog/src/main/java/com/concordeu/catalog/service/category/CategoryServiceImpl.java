@@ -37,7 +37,9 @@ public class CategoryServiceImpl implements CategoryService {
             throw new ConflictException("Category with the name: " + categoryResponseDto.name() + " already exist.");
         }
 
-        Category category = categoryDao.saveAndFlush(Category.builder().name(categoryResponseDto.name()).build());
+        Category category = new Category();
+        category.setName(categoryResponseDto.name());
+        category = categoryDao.saveAndFlush(category);
 
         return mapper.mapCategoryToCategoryResponseDto(category);
     }

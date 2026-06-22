@@ -19,8 +19,6 @@ import java.util.List;
 @SQLDelete(sql = "UPDATE categories SET deleted_at = now() WHERE id = ?")
 @SQLRestriction("deleted_at IS NULL")
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
 @Setter
 @Getter
 public class Category extends Auditable {
