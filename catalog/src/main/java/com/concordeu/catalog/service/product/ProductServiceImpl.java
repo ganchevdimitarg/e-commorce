@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -29,6 +30,7 @@ public class ProductServiceImpl implements ProductService {
     private final MapStructMapper mapper;
 
     @Override
+    @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
     public ProductResponseDto createProduct(ProductResponseDto productResponseDto, String categoryName) {
         Category category = categoryRepository
                 .findByName(categoryName)
@@ -53,6 +55,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
     public Page<ProductResponseDto> getProductsByPage(int page, int size) {
         Page<ProductResponseDto> products = productRepository
                 .findAll(PageRequest.of(page, size))
@@ -63,6 +66,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
     public Page<ProductResponseDto> getProductsByCategoryByPage(int page, int size, String categoryName) {
         Category category = categoryRepository
                 .findByName(categoryName)
@@ -77,6 +81,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
     public ProductResponseDto getProductByName(String name) {
         if (name == null || name.isBlank()) {
             throw new ValidationException("Name is empty");
@@ -87,6 +92,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
     public ProductResponseDto getProductById(String id) {
         if (id == null || id.isBlank()) {
             throw new ValidationException("Id is empty");
@@ -98,6 +104,7 @@ public class ProductServiceImpl implements ProductService {
 
 
     @Override
+    @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
     public void updateProduct(ProductResponseDto productResponseDto, String productName) {
         checkExistenceProduct(productName);
 
@@ -110,12 +117,14 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
     public void deleteProduct(String productName) {
         checkExistenceProduct(productName);
         productRepository.deleteByName(productName);
     }
 
     @Override
+    @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
     public List<ProductResponseDto> getProductsById(ItemRequestDto product) {
         return product.items().stream().map(this::getProductById).collect(Collectors.toList());
     }
