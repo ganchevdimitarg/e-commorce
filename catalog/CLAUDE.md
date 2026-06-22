@@ -4,7 +4,7 @@
 > **Spring Boot 4 WebMVC business service** in the `com.concordeu:e-commerce` Maven
 > multi-module monorepo. It owns the product catalogue: **products, categories, comments**,
 > backed by **PostgreSQL**. It is a stateless OAuth2 **resource server**, registered with
-> **Eureka**, configured via **Spring Cloud Vault**, and traced with **Zipkin** + Prometheus.
+> **Eureka**, configured via **Spring Cloud Vault**, and traced via the **OpenTelemetry** (OTLP) bridge + Prometheus.
 >
 > This file describes the **target conventions** the parent pom already pins (Boot 4.0.2,
 > Java 21). Parts of the catalog source still lag that target — see
@@ -28,7 +28,7 @@ Parent: `com.concordeu:e-commerce` (Spring Boot **4.0.2**, Java **21**). Modules
 | `client` | Shared lib — e.g. `CustomOpaqueTokenIntrospector` | — |
 
 Cross-cutting: Spring Cloud (Eureka, Vault, Bootstrap), Resilience4j, Micrometer/Prometheus,
-Zipkin tracing. As of **Phase 5**, catalog uses **Redis** (idempotency + read caching) and
+OpenTelemetry (OTLP) tracing. As of **Phase 5**, catalog uses **Redis** (idempotency + read caching) and
 **Kafka** (product domain events, JSON-over-Kafka mirroring `order`). **No MongoDB or Avro /
 schema registry in catalog** — do not scaffold those here.
 
@@ -48,7 +48,7 @@ schema registry in catalog** — do not scaffold those here.
 - **Resilience**: Resilience4j (circuitbreaker) on outbound calls
 - **Mapping**: MapStruct (`MapStructMapper`) + `lombok-mapstruct-binding`
 - **API docs**: springdoc-openapi + Swagger UI (OAuth2 PKCE flow)
-- **Observability**: Micrometer → Prometheus · Zipkin tracing · actuator
+- **Observability**: Micrometer → Prometheus · OpenTelemetry (OTLP) tracing + log export · actuator
 - **Lombok** — annotation rules below
 - **Build**: `./mvnw` (Maven wrapper) — never bare `mvn`
 
@@ -148,7 +148,8 @@ Fallback method = same signature + a trailing `Throwable`. Circuit-breaker healt
 
 ## Observability
 
-- Tracing via Zipkin (`spring.zipkin.base-url`); propagate W3C `traceparent` on outbound HTTP
+- Tracing via the Micrometer OpenTelemetry bridge, exported over OTLP (`management.otlp.tracing.endpoint`,
+  sampled per `management.tracing.sampling.probability`); propagate W3C `traceparent` on outbound HTTP
 - MDC keys at request entry, cleared on exit: `traceId`, `spanId`, `userId`, `serviceId`
 - Metrics via Micrometer → Prometheus; custom metric names `catalog.<entity>.<action>`
   (e.g. `catalog.product.created`)
