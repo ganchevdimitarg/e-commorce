@@ -40,9 +40,6 @@ public class ResourceServerConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/actuator/**").permitAll()
-                        .requestMatchers("/api/v1/catalog/product/get-products/**").permitAll()
-                        .requestMatchers("/api/v1/catalog/product/get-category-products/**").permitAll()
-                        .requestMatchers("/api/v1/catalog/product/get-product/**").permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .authenticationManagerResolver(tokenAuthenticationManagerResolver())
