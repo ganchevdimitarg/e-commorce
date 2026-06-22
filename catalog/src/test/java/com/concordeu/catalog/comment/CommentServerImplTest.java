@@ -53,10 +53,11 @@ class CommentServerImplTest {
         CommentResponseDto commentResponseDto = new CommentResponseDto("", "", 0, "", null);
 
         String productName = "aaa";
-        Product product = Product.builder().name(productName).build();
+        Product product = new Product();
+        product.setName(productName);
         when(productDao.findByName(productName)).thenReturn(Optional.of(product));
 
-        Comment comment = Comment.builder().build();
+        Comment comment = new Comment();
         when(mapStructMapper.mapCommentResponseDtoToComment(commentResponseDto)).thenReturn(comment);
 
         testService.createComment(commentResponseDto, productName);
@@ -87,7 +88,9 @@ class CommentServerImplTest {
         List<Comment> products = Arrays.asList(new Comment(), new Comment());
         Page<Comment> page = new PageImpl<>(products, pageRequest, products.size());
         String productId = "0030223b-fdb9-40e2-a4b0-81bdf54479a2";
-        Product product = Product.builder().id(productId).name("aaaa89").build();
+        Product product = new Product();
+        product.setId(productId);
+        product.setName("aaaa89");
 
         when(productDao.findByName(any(String.class))).thenReturn(Optional.of(product));
         when(commentDao.findAllByProductIdByPage(productId, pageRequest)).thenReturn(page);

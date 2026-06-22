@@ -1,9 +1,8 @@
 package com.concordeu.catalog.domain;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.GenericGenerator;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
@@ -16,10 +15,9 @@ import jakarta.validation.constraints.Size;
         indexes = @Index(name = "comment_index",columnList = "author"))
 @SQLDelete(sql = "UPDATE comments SET deleted_at = now() WHERE id = ?")
 @SQLRestriction("deleted_at IS NULL")
-@Data
-@AllArgsConstructor
+@Getter
+@Setter
 @NoArgsConstructor
-@Builder
 public class Comment extends Auditable {
     @Id
     @GeneratedValue(generator = "uuid-string")

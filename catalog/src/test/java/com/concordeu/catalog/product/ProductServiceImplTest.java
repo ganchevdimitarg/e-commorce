@@ -58,10 +58,11 @@ class ProductServiceImplTest {
     void createProductShouldCreateNewProduct() {
         String categoryName = "PC";
 
-        Category category = Category.builder().name(categoryName).build();
+        Category category = new Category();
+        category.setName(categoryName);
         when(categoryDao.findByName(categoryName)).thenReturn(Optional.of(category));
 
-        Product product = Product.builder().build();
+        Product product = new Product();
         when(mapStructMapper.mapProductResponseDtoToProduct(productResponseDto)).thenReturn(product);
 
         testService.createProduct(productResponseDto, "PC");
@@ -76,10 +77,14 @@ class ProductServiceImplTest {
 
     @Test
     void should_throwConflict_when_createProductWithExistingName() {
-        when(productDao.findByName("mouse")).thenReturn(Optional.of(Product.builder().name("mouse").build()));
+        Product existingProduct = new Product();
+        existingProduct.setName("mouse");
+        when(productDao.findByName("mouse")).thenReturn(Optional.of(existingProduct));
 
         String categoryName = "PC";
-        when(categoryDao.findByName(categoryName)).thenReturn(Optional.of(Category.builder().name(categoryName).build()));
+        Category categoryForCreate = new Category();
+        categoryForCreate.setName(categoryName);
+        when(categoryDao.findByName(categoryName)).thenReturn(Optional.of(categoryForCreate));
 
         assertThatThrownBy(() -> testService.createProduct(productResponseDto, categoryName))
                 .isInstanceOf(ConflictException.class)
@@ -124,7 +129,8 @@ class ProductServiceImplTest {
 
     @Test
     void getProductsByCategoryByPageByCategoryShouldReturnProductsIfCategoryExist() {
-        Category category = Category.builder().id("1").build();
+        Category category = new Category();
+        category.setId("1");
         when(categoryDao.findByName("pc")).thenReturn(Optional.of(category));
 
         Pageable pageRequest = PageRequest.of(1, 5);
@@ -151,7 +157,9 @@ class ProductServiceImplTest {
     @Test
     void updateProductShouldUpdateDataIfProductExist() {
         ProductResponseDto updateProduct = new ProductResponseDto("","mouse", "aaaaaaaaaaa", BigDecimal.ONE, false, "", null, new ArrayList<>());
-        when(productDao.findByName(productResponseDto.name())).thenReturn(Optional.of(Product.builder().name(productResponseDto.name()).build()));
+        Product productToUpdate = new Product();
+        productToUpdate.setName(productResponseDto.name());
+        when(productDao.findByName(productResponseDto.name())).thenReturn(Optional.of(productToUpdate));
         testService.updateProduct(updateProduct, productResponseDto.name());
         verify(productDao).update(productResponseDto.name(), "aaaaaaaaaaa", BigDecimal.ONE, "", false);
     }
@@ -166,7 +174,9 @@ class ProductServiceImplTest {
     @Test
     void deleteProductShouldDeleteProductIfProductExist() {
         String productName = "aaaaa";
-        when(productDao.findByName(productName)).thenReturn(Optional.of(Product.builder().name(productName).build()));
+        Product productToDelete = new Product();
+        productToDelete.setName(productName);
+        when(productDao.findByName(productName)).thenReturn(Optional.of(productToDelete));
 
         testService.deleteProduct(productName);
 
