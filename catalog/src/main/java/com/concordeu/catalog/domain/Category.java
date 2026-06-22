@@ -16,7 +16,7 @@ import java.util.List;
                 @UniqueConstraint(name = "category_name", columnNames = "name")
         },
         indexes = @Index(name = "category_index",columnList = "name"))
-@SQLDelete(sql = "UPDATE categories SET deleted_at = now() WHERE id = ?")
+@SQLDelete(sql = "UPDATE categories SET deleted_at = now() WHERE id = ? AND version = ?")
 @SQLRestriction("deleted_at IS NULL")
 @NoArgsConstructor
 @Setter
