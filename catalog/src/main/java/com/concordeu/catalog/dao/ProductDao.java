@@ -18,7 +18,7 @@ public interface ProductDao extends JpaRepository<Product, String> {
     Optional<Product> findByName(String productName);
 
     @Query(value = """
-            SELECT * FROM products WHERE CATEGORY_ID = ?1
+            SELECT * FROM products WHERE CATEGORY_ID = ?1 AND deleted_at IS NULL
             """, nativeQuery = true)
     Page<Product> findAllByCategoryIdByPage(String categoryId, Pageable pageRequest);
 
@@ -39,4 +39,3 @@ public interface ProductDao extends JpaRepository<Product, String> {
     @Transactional
     void deleteByName(String productName);
 }
- 

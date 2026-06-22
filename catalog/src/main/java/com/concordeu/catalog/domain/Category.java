@@ -3,6 +3,8 @@ package com.concordeu.catalog.domain;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.*;
 import org.hibernate.annotations.GenericGenerator;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 
 import jakarta.persistence.*;
 import java.util.List;
@@ -14,6 +16,8 @@ import java.util.List;
                 @UniqueConstraint(name = "category_name", columnNames = "name")
         },
         indexes = @Index(name = "category_index",columnList = "name"))
+@SQLDelete(sql = "UPDATE categories SET deleted_at = now() WHERE id = ?")
+@SQLRestriction("deleted_at IS NULL")
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
