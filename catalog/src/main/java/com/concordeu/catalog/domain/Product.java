@@ -24,7 +24,7 @@ import java.util.List;
 @Builder
 @Setter
 @Getter
-public class Product {
+public class Product extends Auditable {
     @Id
     @GeneratedValue(generator = "uuid-string")
     @GenericGenerator(name = "uuid-string",
@@ -52,4 +52,3 @@ public class Product {
     @JsonIgnore
     private List<Comment> comments;
 }
-
