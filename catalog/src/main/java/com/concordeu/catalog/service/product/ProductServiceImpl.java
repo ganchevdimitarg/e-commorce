@@ -6,6 +6,7 @@ import com.concordeu.catalog.domain.Category;
 import com.concordeu.catalog.domain.Product;
 import com.concordeu.catalog.dto.product.ItemRequestDto;
 import com.concordeu.catalog.dto.product.ProductResponseDto;
+import com.concordeu.catalog.event.ProductEventPublisher;
 import com.concordeu.catalog.exception.ConflictException;
 import com.concordeu.catalog.exception.NotFoundException;
 import com.concordeu.catalog.exception.ValidationException;
@@ -33,6 +34,7 @@ public class ProductServiceImpl implements ProductService {
     private final CategoryRepository categoryRepository;
     private final MapStructMapper mapper;
     private final MeterRegistry meterRegistry;
+    private final ProductEventPublisher productEventPublisher;
 
     @Override
     @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
@@ -56,6 +58,7 @@ public class ProductServiceImpl implements ProductService {
         log.info("The product {} is save successful", product.getName());
         productRepository.saveAndFlush(product);
         meterRegistry.counter("catalog.product.created").increment();
+        productEventPublisher.publishCreated(product.getName());
 
         return mapper.mapProductToProductResponseDto(product);
     }
@@ -123,6 +126,7 @@ public class ProductServiceImpl implements ProductService {
                 productResponseDto.characteristics(),
                 productResponseDto.inStock());
         meterRegistry.counter("catalog.product.updated").increment();
+        productEventPublisher.publishUpdated(productName);
         log.info("The updates were successful on product: {}", productName);
     }
 
@@ -133,6 +137,7 @@ public class ProductServiceImpl implements ProductService {
         checkExistenceProduct(productName);
         productRepository.deleteByName(productName);
         meterRegistry.counter("catalog.product.deleted").increment();
+        productEventPublisher.publishDeleted(productName);
     }
 
     @Override

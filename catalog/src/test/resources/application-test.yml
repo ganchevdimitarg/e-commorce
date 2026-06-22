@@ -13,6 +13,9 @@ spring:
   config:
     import: "optional:configserver:"
 
+kafka:
+  bootstrapAddress: localhost:9092
+
 eureka:
   client:
     enabled: false

@@ -2,6 +2,7 @@ package com.concordeu.catalog.cache;
 
 import com.concordeu.catalog.AbstractIntegrationTest;
 import com.concordeu.catalog.dto.product.ProductResponseDto;
+import com.concordeu.catalog.event.ProductEventPublisher;
 import com.concordeu.catalog.repository.ProductRepository;
 import com.concordeu.catalog.service.product.ProductService;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,6 +18,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -47,6 +49,9 @@ class ProductCacheIT extends AbstractIntegrationTest {
         registry.add("spring.data.redis.port", () -> REDIS.getMappedPort(6379));
         registry.add("spring.cache.type", () -> "redis");
     }
+
+    @MockitoBean
+    ProductEventPublisher productEventPublisher;
 
     @MockitoSpyBean
     ProductRepository productRepository;
@@ -118,7 +123,7 @@ class ProductCacheIT extends AbstractIntegrationTest {
         productService.getProductById(PRODUCT_ID);
         verify(productRepository, times(1)).findById(PRODUCT_ID);
 
-        // Update product: evicts the cache before method execution
+        // Update product: evicts the cache after method completes successfully
         ProductResponseDto updateDto = new ProductResponseDto(
                 null, null, "Updated description!", BigDecimal.ONE, true, "new-chars", null, null);
         productService.updateProduct(updateDto, PRODUCT_NAME);
@@ -141,7 +146,7 @@ class ProductCacheIT extends AbstractIntegrationTest {
         productService.getProductById(PRODUCT_ID);
         verify(productRepository, times(1)).findById(PRODUCT_ID);
 
-        // Delete product: evicts the cache before method execution
+        // Delete product: evicts the cache after method completes successfully
         productService.deleteProduct(PRODUCT_NAME);
 
         // Verify cache is empty after eviction
