@@ -15,7 +15,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -38,7 +37,6 @@ public class CommentController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @PostMapping("/create-comment")
-    @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
     public CommentResponseDto createComment(@RequestBody @Valid CommentRequestDto requestDto,
                                             @RequestParam String productName) {
         CommentResponseDto commentResponseDto = mapper.mapCommentRequestDtoToCommentResponseDto(requestDto);
@@ -54,7 +52,6 @@ public class CommentController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @GetMapping("/get-comments-product-name")
-    @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
     public PageResponse<CommentResponseDto> findAllByProductName(
             @RequestParam(defaultValue = "0") @Min(0) int page,
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,
@@ -71,7 +68,6 @@ public class CommentController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @GetMapping("/get-comments-author")
-    @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
     public PageResponse<CommentResponseDto> findAllByAuthor(
             @RequestParam(defaultValue = "0") @Min(0) int page,
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,
@@ -88,7 +84,6 @@ public class CommentController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @GetMapping("/get-avg-stars")
-    @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
     public double getAvgStars(@RequestParam String productName) {
         return commentService.getAvgStars(productName);
     }

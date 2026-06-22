@@ -16,7 +16,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -41,7 +40,6 @@ public class ProductController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @PostMapping("/create-product")
-    @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
     public ProductResponseDto createProduct(@RequestBody @Valid ProductRequestDto requestDto,
                                             @RequestParam String categoryName) {
         ProductResponseDto productResponseDto = mapper.mapProductRequestDtoToProductResponseDto(requestDto);
@@ -88,7 +86,6 @@ public class ProductController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @GetMapping("/get-product")
-    @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
     public ProductResponseDto getProductByName(@RequestParam String productName) {
         return productService.getProductByName(productName);
     }
@@ -103,7 +100,6 @@ public class ProductController {
     })
 
     @GetMapping("/get-product-id")
-    @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
     public ProductResponseDto getProductById(@RequestParam String productId) {
         return productService.getProductById(productId);
     }
@@ -122,7 +118,6 @@ public class ProductController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @PutMapping("/update-product")
-    @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
     public void updateProduct(@RequestBody @Valid ProductRequestDto requestDto,
                               @RequestParam String productName) {
         ProductResponseDto productResponseDto = mapper.mapProductRequestDtoToProductResponseDto(requestDto);
@@ -138,7 +133,6 @@ public class ProductController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @DeleteMapping("/delete-product")
-    @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
     public void deleteProduct(@RequestParam String productName) {
         productService.deleteProduct(productName);
     }
