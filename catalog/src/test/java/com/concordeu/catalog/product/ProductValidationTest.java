@@ -7,6 +7,7 @@ import com.concordeu.catalog.exception.ProblemAccessDeniedHandler;
 import com.concordeu.catalog.exception.ProblemAuthenticationEntryPoint;
 import com.concordeu.catalog.mapper.MapStructMapper;
 import com.concordeu.catalog.service.product.ProductService;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,6 +40,8 @@ class ProductValidationTest {
     MapStructMapper mapper;
     @MockitoBean
     JwtDecoder jwtDecoder;
+    @MockitoBean
+    CircuitBreakerRegistry circuitBreakerRegistry;
 
     @Test
     void should_return400ProblemJson_when_createProductBodyInvalid() throws Exception {

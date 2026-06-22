@@ -3,6 +3,7 @@ package com.concordeu.catalog.config;
 import com.concordeu.catalog.exception.ProblemAccessDeniedHandler;
 import com.concordeu.catalog.exception.ProblemAuthenticationEntryPoint;
 import com.concordeu.client.introspector.CustomOpaqueTokenIntrospector;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,7 +34,8 @@ public class ResourceServerConfig {
     private final ProblemAccessDeniedHandler accessDeniedHandler;
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    SecurityFilterChain securityFilterChain(HttpSecurity http,
+                                            AuthenticationManagerResolver<HttpServletRequest> resolver) throws Exception {
         return http
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -42,7 +44,7 @@ public class ResourceServerConfig {
                         .requestMatchers("/actuator/**").permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2
-                        .authenticationManagerResolver(tokenAuthenticationManagerResolver())
+                        .authenticationManagerResolver(resolver)
                         .authenticationEntryPoint(authenticationEntryPoint))
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(authenticationEntryPoint)
@@ -51,15 +53,16 @@ public class ResourceServerConfig {
     }
 
     @Bean
-    public OpaqueTokenIntrospector opaqueTokenIntrospector() {
-        return new CustomOpaqueTokenIntrospector();
+    public OpaqueTokenIntrospector opaqueTokenIntrospector(CircuitBreakerRegistry registry) {
+        return new ResilientOpaqueTokenIntrospector(new CustomOpaqueTokenIntrospector(), registry);
     }
 
     @Bean
-    AuthenticationManagerResolver<HttpServletRequest> tokenAuthenticationManagerResolver() {
+    AuthenticationManagerResolver<HttpServletRequest> tokenAuthenticationManagerResolver(
+            OpaqueTokenIntrospector introspector) {
         AuthenticationManager jwt = new ProviderManager(new JwtAuthenticationProvider(jwtDecoder));
         AuthenticationManager opaqueToken = new ProviderManager(
-                new OpaqueTokenAuthenticationProvider(opaqueTokenIntrospector()));
+                new OpaqueTokenAuthenticationProvider(introspector));
         return (request) -> isJwt(request) ? jwt : opaqueToken;
     }
 
