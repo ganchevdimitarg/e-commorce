@@ -1,7 +1,7 @@
 package com.concordeu.catalog.service.category;
 
-import com.concordeu.catalog.dao.CategoryDao;
-import com.concordeu.catalog.dao.ProductDao;
+import com.concordeu.catalog.repository.CategoryRepository;
+import com.concordeu.catalog.repository.ProductRepository;
 import com.concordeu.catalog.domain.Category;
 import com.concordeu.catalog.domain.Product;
 import com.concordeu.catalog.dto.category.CategoryResponseDto;
@@ -22,8 +22,8 @@ import java.util.List;
 @Slf4j
 public class CategoryServiceImpl implements CategoryService {
 
-    private final CategoryDao categoryDao;
-    private final ProductDao productDao;
+    private final CategoryRepository categoryRepository;
+    private final ProductRepository productRepository;
     private final MapStructMapper mapper;
 
     public CategoryResponseDto createCategory(CategoryResponseDto categoryResponseDto) {
@@ -32,21 +32,21 @@ public class CategoryServiceImpl implements CategoryService {
             throw new ValidationException("Category name is empty: " + categoryResponseDto.name());
         }
 
-        if (categoryDao.findByName(categoryResponseDto.name()).isPresent()) {
+        if (categoryRepository.findByName(categoryResponseDto.name()).isPresent()) {
             log.warn("Category with the name: {} already exist.", categoryResponseDto.name());
             throw new ConflictException("Category with the name: " + categoryResponseDto.name() + " already exist.");
         }
 
         Category category = new Category();
         category.setName(categoryResponseDto.name());
-        category = categoryDao.saveAndFlush(category);
+        category = categoryRepository.saveAndFlush(category);
 
         return mapper.mapCategoryToCategoryResponseDto(category);
     }
 
     @Override
     public CategoryResponseDto getCategory(String categoryName) {
-        Category category = categoryDao.findByName(categoryName)
+        Category category = categoryRepository.findByName(categoryName)
                 .orElseThrow(() -> new NotFoundException("Category", categoryName));
         return convertCategory(category);
     }
@@ -57,12 +57,12 @@ public class CategoryServiceImpl implements CategoryService {
             log.warn("Category name is empty: {}", categoryName);
             throw new ValidationException("Category name is empty: " + categoryName);
         }
-        if (categoryDao.findByName(categoryName).isEmpty()) {
+        if (categoryRepository.findByName(categoryName).isEmpty()) {
             log.warn("No such category: {}", categoryName);
             throw new NotFoundException("Category", categoryName);
         }
 
-        categoryDao.deleteByName(categoryName);
+        categoryRepository.deleteByName(categoryName);
     }
 
     @Override
@@ -70,7 +70,7 @@ public class CategoryServiceImpl implements CategoryService {
         CategoryResponseDto categoryFrom = getCategory(categoryNameFrom);
         CategoryResponseDto categoryTo = getCategory(categoryNameTo);
 
-        Product product = categoryDao.getById(categoryFrom.id())
+        Product product = categoryRepository.getById(categoryFrom.id())
                 .getProducts()
                 .stream()
                 .filter(p -> p.getName().equals(productName))
@@ -80,7 +80,7 @@ public class CategoryServiceImpl implements CategoryService {
                     return new NotFoundException("Product", productName);
                 });
 
-        productDao.changeCategory(product.getName(), categoryTo.id());
+        productRepository.changeCategory(product.getName(), categoryTo.id());
     }
 
     @Override
@@ -88,7 +88,7 @@ public class CategoryServiceImpl implements CategoryService {
         CategoryResponseDto categoryFrom = getCategory(categoryNameFrom);
         CategoryResponseDto categoryTo = getCategory(categoryNameTo);
 
-        List<Product> category = categoryDao.getById(categoryFrom.id()).getProducts();
+        List<Product> category = categoryRepository.getById(categoryFrom.id()).getProducts();
         for (Product product : category) {
             moveOneProduct(categoryFrom.name(), categoryTo.name(), product.getName());
         }
@@ -96,7 +96,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     public Page<CategoryResponseDto> getCategoriesByPage(int page, int size) {
-        Page<CategoryResponseDto> categories = categoryDao
+        Page<CategoryResponseDto> categories = categoryRepository
                 .findAll(PageRequest.of(page, size))
                 .map(this::convertCategory);
 
