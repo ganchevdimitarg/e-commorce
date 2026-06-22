@@ -266,7 +266,12 @@ class CategoryServiceImplTest {
 
         testService.moveAllProducts("pc", "acc");
 
-        verify(productRepository, times(2)).changeCategory(any(), any());
+        ArgumentCaptor<String> nameCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<String> categoryIdCaptor = ArgumentCaptor.forClass(String.class);
+        verify(productRepository, times(2)).changeCategory(nameCaptor.capture(), categoryIdCaptor.capture());
+
+        org.assertj.core.api.Assertions.assertThat(nameCaptor.getAllValues()).containsExactlyInAnyOrder("mouse", "keyboard");
+        org.assertj.core.api.Assertions.assertThat(categoryIdCaptor.getAllValues()).containsExactly("to-id", "to-id");
     }
 
     @Test
