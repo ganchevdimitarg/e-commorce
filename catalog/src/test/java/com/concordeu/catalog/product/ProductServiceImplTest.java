@@ -289,7 +289,7 @@ class ProductServiceImplTest {
 
         List<ProductResponseDto> result = testService.getProductsById(items);
 
-        assertThat(result.size()).isEqualTo(2);
+        org.assertj.core.api.Assertions.assertThat(result).containsExactly(dto1, dto2);
     }
 
     @Test
