@@ -16,7 +16,7 @@ import jakarta.validation.constraints.Size;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class Comment {
+public class Comment extends Auditable {
     @Id
     @GeneratedValue(generator = "uuid-string")
     @GenericGenerator(name = "uuid-string",
@@ -37,4 +37,3 @@ public class Comment {
     @JoinColumn(name = "product_id", referencedColumnName = "id")
     private Product product;
 }
-
