@@ -1,7 +1,7 @@
 package com.concordeu.catalog.category;
 
-import com.concordeu.catalog.dao.CategoryDao;
-import com.concordeu.catalog.dao.ProductDao;
+import com.concordeu.catalog.repository.CategoryRepository;
+import com.concordeu.catalog.repository.ProductRepository;
 import com.concordeu.catalog.domain.Category;
 import com.concordeu.catalog.domain.Product;
 import com.concordeu.catalog.dto.category.CategoryResponseDto;
@@ -39,9 +39,9 @@ class CategoryServiceImplTest {
     private CategoryService testService;
 
     @Mock
-    CategoryDao categoryDao;
+    CategoryRepository categoryRepository;
     @Mock
-    ProductDao productDao;
+    ProductRepository productRepository;
     @Mock
     MapStructMapper mapStructMapper;
 
@@ -50,7 +50,7 @@ class CategoryServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        testService = new CategoryServiceImpl(categoryDao, productDao, mapStructMapper);
+        testService = new CategoryServiceImpl(categoryRepository, productRepository, mapStructMapper);
         categoryName = "bbbbb";
         categoryResponseDto = new CategoryResponseDto("1", categoryName, new ArrayList<>());
     }
@@ -58,12 +58,12 @@ class CategoryServiceImplTest {
     @Test
     void createCategoryShouldCreateCategoryIfNameIsNotEmpty() {
 
-        when(categoryDao.findByName(categoryName)).thenReturn(Optional.empty());
+        when(categoryRepository.findByName(categoryName)).thenReturn(Optional.empty());
 
         testService.createCategory(categoryResponseDto);
 
         ArgumentCaptor<Category> argumentCaptor = ArgumentCaptor.forClass(Category.class);
-        verify(categoryDao).saveAndFlush(argumentCaptor.capture());
+        verify(categoryRepository).saveAndFlush(argumentCaptor.capture());
 
         Category category = argumentCaptor.getValue();
         assertThat(category).isNotNull();
@@ -77,31 +77,31 @@ class CategoryServiceImplTest {
                 .isInstanceOf(ValidationException.class)
                 .hasMessageContaining("Category name is empty: ");
 
-        verify(categoryDao, never()).saveAndFlush(any());
+        verify(categoryRepository, never()).saveAndFlush(any());
     }
 
     @Test
     void should_throwConflict_when_createCategoryWithExistingName() {
         Category existingCategory = new Category();
         existingCategory.setName(categoryName);
-        when(categoryDao.findByName(categoryName)).thenReturn(Optional.of(existingCategory));
+        when(categoryRepository.findByName(categoryName)).thenReturn(Optional.of(existingCategory));
 
         assertThatThrownBy(() -> testService.createCategory(categoryResponseDto))
                 .isInstanceOf(ConflictException.class)
                 .hasMessageContaining("Category with the name: " + categoryName + " already exist.");
 
-        verify(categoryDao, never()).saveAndFlush(any());
+        verify(categoryRepository, never()).saveAndFlush(any());
     }
 
     @Test
     void deleteCategoryShouldDeleteProductIfProductExist() {
         Category categoryToDelete = new Category();
         categoryToDelete.setName(categoryName);
-        when(categoryDao.findByName(categoryName)).thenReturn(Optional.of(categoryToDelete));
+        when(categoryRepository.findByName(categoryName)).thenReturn(Optional.of(categoryToDelete));
 
         testService.deleteCategory(categoryName);
 
-        verify(categoryDao).deleteByName(categoryName);
+        verify(categoryRepository).deleteByName(categoryName);
     }
 
     @Test
@@ -110,7 +110,7 @@ class CategoryServiceImplTest {
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("Category not found: " + categoryName);
 
-        verify(categoryDao, never()).deleteByName(any());
+        verify(categoryRepository, never()).deleteByName(any());
     }
 
     @Test
@@ -124,15 +124,15 @@ class CategoryServiceImplTest {
         Category categoryTo = new Category();
         categoryTo.setName("acc");
 
-        when(categoryDao.findByName(categoryFrom.getName())).thenReturn(Optional.of(categoryFrom));
+        when(categoryRepository.findByName(categoryFrom.getName())).thenReturn(Optional.of(categoryFrom));
 
-        when(categoryDao.findByName(categoryTo.getName())).thenReturn(Optional.of(categoryTo));
+        when(categoryRepository.findByName(categoryTo.getName())).thenReturn(Optional.of(categoryTo));
 
-        when(categoryDao.getById(any())).thenReturn(categoryFrom);
+        when(categoryRepository.getById(any())).thenReturn(categoryFrom);
 
         testService.moveOneProduct("pc", "acc", "mouse");
 
-        verify(productDao).changeCategory(any(), any());
+        verify(productRepository).changeCategory(any(), any());
     }
 
     @Test
@@ -145,17 +145,17 @@ class CategoryServiceImplTest {
         Category categoryTo = new Category();
         categoryTo.setName("acc");
 
-        when(categoryDao.findByName(categoryFrom.getName())).thenReturn(Optional.of(categoryFrom));
+        when(categoryRepository.findByName(categoryFrom.getName())).thenReturn(Optional.of(categoryFrom));
 
-        when(categoryDao.findByName(categoryTo.getName())).thenReturn(Optional.of(categoryTo));
+        when(categoryRepository.findByName(categoryTo.getName())).thenReturn(Optional.of(categoryTo));
 
-        when(categoryDao.getById(any())).thenReturn(categoryFrom);
+        when(categoryRepository.getById(any())).thenReturn(categoryFrom);
 
         assertThatThrownBy(() -> testService.moveOneProduct(categoryFrom.getName(), categoryTo.getName(), "mouse"))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("Product not found: mouse");
 
-        verify(productDao, never()).changeCategory(any(), any());
+        verify(productRepository, never()).changeCategory(any(), any());
     }
 
     @Test
@@ -164,20 +164,20 @@ class CategoryServiceImplTest {
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("Category not found: ");
 
-        verify(productDao, never()).changeCategory(any(), any());
+        verify(productRepository, never()).changeCategory(any(), any());
     }
 
     @Test
     void should_throwNotFound_when_moveOneProductWithEmptySecondCategoryName() {
         Category categoryForMove = new Category();
         categoryForMove.setName(categoryName);
-        when(categoryDao.findByName(categoryName)).thenReturn(Optional.of(categoryForMove));
+        when(categoryRepository.findByName(categoryName)).thenReturn(Optional.of(categoryForMove));
 
         assertThatThrownBy(() -> testService.moveOneProduct(categoryName, "", "mouse"))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("Category not found: ");
 
-        verify(productDao, never()).changeCategory(any(), any());
+        verify(productRepository, never()).changeCategory(any(), any());
     }
 
     @Test
@@ -186,19 +186,19 @@ class CategoryServiceImplTest {
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("Category not found: " + categoryName);
 
-        verify(productDao, never()).changeCategory(any(), any());
+        verify(productRepository, never()).changeCategory(any(), any());
     }
 
     @Test
     void should_throwNotFound_when_moveOneProductWithNonExistentSecondCategory() {
         Category categoryForNonExistent = new Category();
         categoryForNonExistent.setName(categoryName);
-        when(categoryDao.findByName(categoryName)).thenReturn(Optional.of(categoryForNonExistent));
+        when(categoryRepository.findByName(categoryName)).thenReturn(Optional.of(categoryForNonExistent));
         assertThatThrownBy(() -> testService.moveOneProduct(categoryName, "aaaaa", "mouse"))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("Category not found: aaaaa");
 
-        verify(productDao, never()).changeCategory(any(), any());
+        verify(productRepository, never()).changeCategory(any(), any());
     }
 
     @Test
@@ -206,9 +206,9 @@ class CategoryServiceImplTest {
         PageRequest pageRequest = PageRequest.of(1, 5);
         List<Category> products = Arrays.asList(new Category(), new Category());
         Page<Category> page = new PageImpl<>(products, pageRequest, products.size());
-        when(categoryDao.findAll(pageRequest)).thenReturn(page);
+        when(categoryRepository.findAll(pageRequest)).thenReturn(page);
 
         testService.getCategoriesByPage(1, 5);
-        verify(categoryDao).findAll(pageRequest);
+        verify(categoryRepository).findAll(pageRequest);
     }
 }

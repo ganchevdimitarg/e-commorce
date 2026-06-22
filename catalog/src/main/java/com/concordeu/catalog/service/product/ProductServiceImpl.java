@@ -1,7 +1,7 @@
 package com.concordeu.catalog.service.product;
 
-import com.concordeu.catalog.dao.CategoryDao;
-import com.concordeu.catalog.dao.ProductDao;
+import com.concordeu.catalog.repository.CategoryRepository;
+import com.concordeu.catalog.repository.ProductRepository;
 import com.concordeu.catalog.domain.Category;
 import com.concordeu.catalog.domain.Product;
 import com.concordeu.catalog.dto.product.ItemRequestDto;
@@ -24,20 +24,20 @@ import java.util.stream.Collectors;
 @Slf4j
 public class ProductServiceImpl implements ProductService {
 
-    private final ProductDao productDao;
-    private final CategoryDao categoryDao;
+    private final ProductRepository productRepository;
+    private final CategoryRepository categoryRepository;
     private final MapStructMapper mapper;
 
     @Override
     public ProductResponseDto createProduct(ProductResponseDto productResponseDto, String categoryName) {
-        Category category = categoryDao
+        Category category = categoryRepository
                 .findByName(categoryName)
                 .orElseThrow(() -> {
                     log.warn("No such category: {}", categoryName);
                     return new NotFoundException("Category", categoryName);
                 });
 
-        if (productDao.findByName(productResponseDto.name()).isPresent()) {
+        if (productRepository.findByName(productResponseDto.name()).isPresent()) {
             log.warn("Product with the name: {} already exists.", productResponseDto.name());
             throw new ConflictException("Product with the name: " + productResponseDto.name() + " already exist.");
         }
@@ -47,14 +47,14 @@ public class ProductServiceImpl implements ProductService {
         product.setInStock(true);
 
         log.info("The product {} is save successful", product.getName());
-        productDao.saveAndFlush(product);
+        productRepository.saveAndFlush(product);
 
         return mapper.mapProductToProductResponseDto(product);
     }
 
     @Override
     public Page<ProductResponseDto> getProductsByPage(int page, int size) {
-        Page<ProductResponseDto> products = productDao
+        Page<ProductResponseDto> products = productRepository
                 .findAll(PageRequest.of(page, size))
                 .map(this::convertProduct);
         log.info("Successful get products: {}", products.getSize());
@@ -64,11 +64,11 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public Page<ProductResponseDto> getProductsByCategoryByPage(int page, int size, String categoryName) {
-        Category category = categoryDao
+        Category category = categoryRepository
                 .findByName(categoryName)
                 .orElseThrow(() -> new NotFoundException("Category", categoryName));
 
-        Page<ProductResponseDto> products = productDao
+        Page<ProductResponseDto> products = productRepository
                 .findAllByCategoryIdByPage(category.getId(), PageRequest.of(page, size))
                 .map(this::convertProduct);
         log.info("Successful get products by category: {}", categoryName);
@@ -81,7 +81,7 @@ public class ProductServiceImpl implements ProductService {
         if (name == null || name.isBlank()) {
             throw new ValidationException("Name is empty");
         }
-        Product product = productDao.findByName(name)
+        Product product = productRepository.findByName(name)
                 .orElseThrow(() -> new NotFoundException("Product", name));
         return mapper.mapProductToProductResponseDto(product);
     }
@@ -91,7 +91,7 @@ public class ProductServiceImpl implements ProductService {
         if (id == null || id.isBlank()) {
             throw new ValidationException("Id is empty");
         }
-        Product product = productDao.findById(id)
+        Product product = productRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Product", id));
         return mapper.mapProductToProductResponseDto(product);
     }
@@ -101,7 +101,7 @@ public class ProductServiceImpl implements ProductService {
     public void updateProduct(ProductResponseDto productResponseDto, String productName) {
         checkExistenceProduct(productName);
 
-        productDao.update(productName,
+        productRepository.update(productName,
                 productResponseDto.description(),
                 productResponseDto.price(),
                 productResponseDto.characteristics(),
@@ -112,7 +112,7 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public void deleteProduct(String productName) {
         checkExistenceProduct(productName);
-        productDao.deleteByName(productName);
+        productRepository.deleteByName(productName);
     }
 
     @Override
@@ -122,7 +122,7 @@ public class ProductServiceImpl implements ProductService {
 
 
     private void checkExistenceProduct(String productName) {
-        if (productDao.findByName(productName).isEmpty()) {
+        if (productRepository.findByName(productName).isEmpty()) {
             log.warn("Product with the name: {} does not exist.", productName);
             throw new NotFoundException("Product", productName);
         }
