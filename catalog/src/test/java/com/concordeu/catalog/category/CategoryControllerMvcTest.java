@@ -18,6 +18,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -50,6 +51,8 @@ class CategoryControllerMvcTest {
     JwtDecoder jwtDecoder;
     @MockitoBean
     CircuitBreakerRegistry circuitBreakerRegistry;
+    @MockitoBean
+    StringRedisTemplate stringRedisTemplate;
 
     @Test
     void should_return200WithCategories_when_getCategoriesWithReadScope() throws Exception {
