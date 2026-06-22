@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -26,6 +27,8 @@ public class CategoryServiceImpl implements CategoryService {
     private final ProductRepository productRepository;
     private final MapStructMapper mapper;
 
+    @Override
+    @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
     public CategoryResponseDto createCategory(CategoryResponseDto categoryResponseDto) {
         if (categoryResponseDto.name().isEmpty()) {
             log.warn("Category name is empty: {}", categoryResponseDto.name());
@@ -45,6 +48,7 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
     public CategoryResponseDto getCategory(String categoryName) {
         Category category = categoryRepository.findByName(categoryName)
                 .orElseThrow(() -> new NotFoundException("Category", categoryName));
@@ -52,6 +56,7 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
     public void deleteCategory(String categoryName) {
         if (categoryName.isEmpty()) {
             log.warn("Category name is empty: {}", categoryName);
@@ -66,6 +71,7 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
     public void moveOneProduct(String categoryNameFrom, String categoryNameTo, String productName) {
         CategoryResponseDto categoryFrom = getCategory(categoryNameFrom);
         CategoryResponseDto categoryTo = getCategory(categoryNameTo);
@@ -84,6 +90,7 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
     public void moveAllProducts(String categoryNameFrom, String categoryNameTo) {
         CategoryResponseDto categoryFrom = getCategory(categoryNameFrom);
         CategoryResponseDto categoryTo = getCategory(categoryNameTo);
@@ -95,6 +102,7 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
     public Page<CategoryResponseDto> getCategoriesByPage(int page, int size) {
         Page<CategoryResponseDto> categories = categoryRepository
                 .findAll(PageRequest.of(page, size))

@@ -15,7 +15,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -38,7 +37,6 @@ public class CategoryController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @PostMapping("/create-category")
-    @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
     public CategoryResponseDto createCategory(@RequestBody @Valid CategoryRequestDto requestDto) {
         return categoryService.createCategory(mapper.mapCategoryRequestDtoToCategoryDto(requestDto));
     }
@@ -52,7 +50,6 @@ public class CategoryController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @DeleteMapping("/delete-category")
-    @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
     public void deleteCategory(@RequestParam String categoryName) {
         categoryService.deleteCategory(categoryName);
     }
@@ -66,7 +63,6 @@ public class CategoryController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @GetMapping("/get-categories")
-    @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
     public PageResponse<CategoryResponseDto> getCategories(
             @RequestParam(defaultValue = "0") @Min(0) int page,
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
@@ -82,7 +78,6 @@ public class CategoryController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @PostMapping("/move-one-product")
-    @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
     public void moveOneProduct(
             @RequestParam String categoryNameFrom, @RequestParam String categoryNameTo, @RequestParam String productName) {
         categoryService.moveOneProduct(categoryNameFrom, categoryNameTo, productName);
@@ -97,7 +92,6 @@ public class CategoryController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @PostMapping("/move-all-products")
-    @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
     public void moveAllProducts(@RequestParam String categoryNameFrom, @RequestParam String categoryNameTo) {
         categoryService.moveAllProducts(categoryNameFrom, categoryNameTo);
     }

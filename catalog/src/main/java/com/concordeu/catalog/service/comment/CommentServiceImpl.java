@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -26,6 +27,7 @@ public class CommentServiceImpl implements CommentService {
     private final MapStructMapper mapper;
 
     @Override
+    @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
     public CommentResponseDto createComment(CommentResponseDto commentResponseDto, String productName) {
         Product product = productRepository
                 .findByName(productName)
@@ -44,6 +46,7 @@ public class CommentServiceImpl implements CommentService {
     }
 
     @Override
+    @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
     public Page<CommentResponseDto> findAllByProductNameByPage(String productName, int page, int size) {
         if (productName.isEmpty()) {
             logMessage(productName);
@@ -69,6 +72,7 @@ public class CommentServiceImpl implements CommentService {
     }
 
     @Override
+    @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
     public Page<CommentResponseDto> findAllByAuthorByPage(String author, int page, int size) {
         if (author.isEmpty()) {
             log.warn("No such author: {}", author);
@@ -83,6 +87,7 @@ public class CommentServiceImpl implements CommentService {
     }
 
     @Override
+    @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
     public double getAvgStars(String productName) {
         List<Comment> comments = commentRepository.findAllByProductName(productName);
         double sum = 0.0;
