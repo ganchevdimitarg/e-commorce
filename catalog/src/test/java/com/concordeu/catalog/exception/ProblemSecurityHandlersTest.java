@@ -1,7 +1,7 @@
 package com.concordeu.catalog.exception;
 
-import com.concordeu.catalog.excaption.ProblemAccessDeniedHandler;
-import com.concordeu.catalog.excaption.ProblemAuthenticationEntryPoint;
+import com.concordeu.catalog.exception.ProblemAccessDeniedHandler;
+import com.concordeu.catalog.exception.ProblemAuthenticationEntryPoint;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import jakarta.servlet.http.HttpServletResponse;

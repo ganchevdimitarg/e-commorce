@@ -1,9 +1,9 @@
 package com.concordeu.catalog.exception;
 
-import com.concordeu.catalog.excaption.BusinessException;
-import com.concordeu.catalog.excaption.ConflictException;
-import com.concordeu.catalog.excaption.NotFoundException;
-import com.concordeu.catalog.excaption.ValidationException;
+import com.concordeu.catalog.exception.BusinessException;
+import com.concordeu.catalog.exception.ConflictException;
+import com.concordeu.catalog.exception.NotFoundException;
+import com.concordeu.catalog.exception.ValidationException;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
