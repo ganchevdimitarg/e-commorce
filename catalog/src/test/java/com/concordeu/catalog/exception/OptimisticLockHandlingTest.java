@@ -1,6 +1,6 @@
 package com.concordeu.catalog.exception;
 
-import com.concordeu.catalog.excaption.ControllerExceptionHandler;
+import com.concordeu.catalog.exception.ControllerExceptionHandler;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
