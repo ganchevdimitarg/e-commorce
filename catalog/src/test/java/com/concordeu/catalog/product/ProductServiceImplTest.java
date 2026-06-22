@@ -55,7 +55,7 @@ class ProductServiceImplTest {
     }
 
     @Test
-    void createProductShouldCreateNewProduct() {
+    void should_createNewProduct_when_categoryExistsAndNameUnique() {
         String categoryName = "PC";
 
         Category category = new Category();
@@ -116,7 +116,7 @@ class ProductServiceImplTest {
     }
 
     @Test
-    void getProductsPage() {
+    void should_returnProductsPage_when_pageRequested() {
         PageRequest pageRequest = PageRequest.of(1, 5);
         List<Product> products = Arrays.asList(new Product(), new Product());
         Page<Product> page = new PageImpl<>(products, pageRequest, products.size());
@@ -128,7 +128,7 @@ class ProductServiceImplTest {
     }
 
     @Test
-    void getProductsByCategoryByPageByCategoryShouldReturnProductsIfCategoryExist() {
+    void should_returnProducts_when_categoryExists() {
         Category category = new Category();
         category.setId("1");
         when(categoryRepository.findByName("pc")).thenReturn(Optional.of(category));
@@ -155,7 +155,7 @@ class ProductServiceImplTest {
     }
 
     @Test
-    void updateProductShouldUpdateDataIfProductExist() {
+    void should_updateProduct_when_productExists() {
         ProductResponseDto updateProduct = new ProductResponseDto("","mouse", "aaaaaaaaaaa", BigDecimal.ONE, false, "", null, new ArrayList<>());
         Product productToUpdate = new Product();
         productToUpdate.setName(productResponseDto.name());
@@ -172,7 +172,7 @@ class ProductServiceImplTest {
     }
 
     @Test
-    void deleteProductShouldDeleteProductIfProductExist() {
+    void should_deleteProduct_when_productExists() {
         String productName = "aaaaa";
         Product productToDelete = new Product();
         productToDelete.setName(productName);

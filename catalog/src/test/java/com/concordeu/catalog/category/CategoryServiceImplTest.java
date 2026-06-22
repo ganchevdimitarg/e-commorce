@@ -56,7 +56,7 @@ class CategoryServiceImplTest {
     }
 
     @Test
-    void createCategoryShouldCreateCategoryIfNameIsNotEmpty() {
+    void should_createCategory_when_nameIsNotEmpty() {
 
         when(categoryRepository.findByName(categoryName)).thenReturn(Optional.empty());
 
@@ -94,7 +94,7 @@ class CategoryServiceImplTest {
     }
 
     @Test
-    void deleteCategoryShouldDeleteProductIfProductExist() {
+    void should_deleteCategory_when_categoryExists() {
         Category categoryToDelete = new Category();
         categoryToDelete.setName(categoryName);
         when(categoryRepository.findByName(categoryName)).thenReturn(Optional.of(categoryToDelete));
@@ -114,7 +114,7 @@ class CategoryServiceImplTest {
     }
 
     @Test
-    void moveOneProductShouldMoveProductFromOneCategoryToAnotherCategory() {
+    void should_moveProduct_when_bothCategoriesExist() {
         Product mouseProduct = new Product();
         mouseProduct.setName("mouse");
         Category categoryFrom = new Category();
@@ -202,7 +202,7 @@ class CategoryServiceImplTest {
     }
 
     @Test
-    void getCategoriesShouldReturnAllCategories() {
+    void should_returnCategories_when_pageRequested() {
         PageRequest pageRequest = PageRequest.of(1, 5);
         List<Category> products = Arrays.asList(new Category(), new Category());
         Page<Category> page = new PageImpl<>(products, pageRequest, products.size());
