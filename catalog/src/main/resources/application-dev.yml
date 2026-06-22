@@ -63,19 +63,15 @@ eureka:
 #Prometheus (and other data loggers)
 management:
   endpoint:
-    metrics:
-      enabled: true
-    prometheus:
-      enabled: true
     health:
-      show-details: always
+      show-details: when-authorized
   endpoints:
     web:
       exposure:
-        include: "*"
-  metrics:
-    export:
-      prometheus:
+        include: health,info,prometheus
+  prometheus:
+    metrics:
+      export:
         enabled: true
   health:
     circuitbreakers:
