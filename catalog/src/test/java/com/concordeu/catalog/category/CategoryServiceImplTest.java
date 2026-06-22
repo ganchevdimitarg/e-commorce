@@ -215,6 +215,61 @@ class CategoryServiceImplTest {
     }
 
     @Test
+    void should_throwValidation_when_deleteCategoryWithEmptyName() {
+        assertThatThrownBy(() -> testService.deleteCategory(""))
+                .isInstanceOf(ValidationException.class)
+                .hasMessageContaining("Category name is empty: ");
+
+        verify(categoryRepository, never()).deleteByName(any());
+    }
+
+    @Test
+    void should_returnCategory_when_getCategoryByName() {
+        Category category = new Category();
+        category.setName(categoryName);
+        category.setProducts(new ArrayList<>());
+        when(categoryRepository.findByName(categoryName)).thenReturn(Optional.of(category));
+
+        CategoryResponseDto result = testService.getCategory(categoryName);
+
+        assertThat(result).isNotNull();
+        assertThat(result.name()).isEqualTo(categoryName);
+    }
+
+    @Test
+    void should_throwNotFound_when_getCategoryByNonExistentName() {
+        assertThatThrownBy(() -> testService.getCategory("nonexistent"))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Category not found: nonexistent");
+    }
+
+    @Test
+    void should_moveAllProducts_when_bothCategoriesExist() {
+        Product mouse = new Product();
+        mouse.setName("mouse");
+        Product keyboard = new Product();
+        keyboard.setName("keyboard");
+
+        Category categoryFrom = new Category();
+        categoryFrom.setId("from-id");
+        categoryFrom.setName("pc");
+        categoryFrom.setProducts(List.of(mouse, keyboard));
+
+        Category categoryTo = new Category();
+        categoryTo.setId("to-id");
+        categoryTo.setName("acc");
+        categoryTo.setProducts(new ArrayList<>());
+
+        when(categoryRepository.findByName("pc")).thenReturn(Optional.of(categoryFrom));
+        when(categoryRepository.findByName("acc")).thenReturn(Optional.of(categoryTo));
+        when(categoryRepository.getById(any())).thenReturn(categoryFrom);
+
+        testService.moveAllProducts("pc", "acc");
+
+        verify(productRepository, times(2)).changeCategory(any(), any());
+    }
+
+    @Test
     void should_incrementCreatedCounter_when_categoryCreated() {
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
         CategoryServiceImpl service =

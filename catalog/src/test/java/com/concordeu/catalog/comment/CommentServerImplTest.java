@@ -143,6 +143,22 @@ class CommentServerImplTest {
     }
 
     @Test
+    void should_returnAverageStars_when_commentsExist() {
+        Comment comment1 = new Comment();
+        comment1.setStar(4);
+        Comment comment2 = new Comment();
+        comment2.setStar(5);
+        Comment comment3 = new Comment();
+        comment3.setStar(3);
+
+        when(commentRepository.findAllByProductName("mouse")).thenReturn(List.of(comment1, comment2, comment3));
+
+        double avgStars = testService.getAvgStars("mouse");
+
+        assertThat(avgStars).isEqualTo(4.0);
+    }
+
+    @Test
     void should_incrementCreatedCounter_when_commentCreated() {
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
         CommentServiceImpl service =

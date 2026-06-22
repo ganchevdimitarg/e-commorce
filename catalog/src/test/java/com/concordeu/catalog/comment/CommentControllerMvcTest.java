@@ -19,6 +19,15 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.concordeu.catalog.dto.PageResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+
+import java.util.List;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
@@ -54,6 +63,57 @@ class CommentControllerMvcTest {
                         .with(jwt().authorities(() -> "SCOPE_catalog.read")))
                 .andExpect(status().isOk())
                 .andExpect(content().string("4.5"));
+    }
+
+    @Test
+    void should_return200_when_createCommentWithValidBody() throws Exception {
+        CommentResponseDto response = new CommentResponseDto("Great product", "This is a thorough review text", 5, "john", null);
+        when(mapper.mapCommentRequestDtoToCommentResponseDto(any())).thenReturn(response);
+        when(commentService.createComment(any(), eq("mouse"))).thenReturn(response);
+
+        mockMvc.perform(post("/api/v1/catalog/comment/create-comment")
+                        .param("productName", "mouse")
+                        .with(csrf())
+                        .with(jwt().authorities(() -> "SCOPE_catalog.write"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                    "title": "Great product",
+                                    "text": "This is a thorough review text",
+                                    "star": 5,
+                                    "author": "john"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.title").value("Great product"));
+    }
+
+    @Test
+    void should_return200_when_findAllByProductNameWithReadScope() throws Exception {
+        CommentResponseDto dto = new CommentResponseDto("Great", "Good product review", 5, "john", null);
+        Page<CommentResponseDto> page = new PageImpl<>(
+                List.of(dto), PageRequest.of(0, 20), 1);
+        when(commentService.findAllByProductNameByPage("mouse", 0, 20)).thenReturn(page);
+
+        mockMvc.perform(get("/api/v1/catalog/comment/get-comments-product-name")
+                        .param("productName", "mouse")
+                        .with(jwt().authorities(() -> "SCOPE_catalog.read")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].title").value("Great"));
+    }
+
+    @Test
+    void should_return200_when_findAllByAuthorWithReadScope() throws Exception {
+        CommentResponseDto dto = new CommentResponseDto("Great", "Good product review", 5, "john", null);
+        Page<CommentResponseDto> page = new PageImpl<>(
+                List.of(dto), PageRequest.of(0, 20), 1);
+        when(commentService.findAllByAuthorByPage("john", 0, 20)).thenReturn(page);
+
+        mockMvc.perform(get("/api/v1/catalog/comment/get-comments-author")
+                        .param("author", "john")
+                        .with(jwt().authorities(() -> "SCOPE_catalog.read")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].author").value("john"));
     }
 
     @Test

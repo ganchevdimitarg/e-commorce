@@ -24,6 +24,9 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
+import com.concordeu.catalog.dto.product.ItemRequestDto;
+import com.concordeu.catalog.exception.ValidationException;
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -191,6 +194,102 @@ class ProductServiceImplTest {
                 .hasMessageContaining("Product not found: bbbbb");
 
         verify(productRepository, never()).deleteByName(any());
+    }
+
+    @Test
+    void should_returnProduct_when_getProductByNameWithValidName() {
+        Product product = new Product();
+        product.setName("mouse");
+        when(productRepository.findByName("mouse")).thenReturn(Optional.of(product));
+        ProductResponseDto expectedDto = new ProductResponseDto("", "mouse", "", BigDecimal.ZERO, true, "", null, new ArrayList<>());
+        when(mapStructMapper.mapProductToProductResponseDto(product)).thenReturn(expectedDto);
+
+        ProductResponseDto result = testService.getProductByName("mouse");
+
+        assertThat(result).isNotNull();
+        assertThat(result.name()).isEqualTo("mouse");
+    }
+
+    @Test
+    void should_throwValidation_when_getProductByNameWithNullName() {
+        assertThatThrownBy(() -> testService.getProductByName(null))
+                .isInstanceOf(ValidationException.class)
+                .hasMessageContaining("Name is empty");
+    }
+
+    @Test
+    void should_throwValidation_when_getProductByNameWithBlankName() {
+        assertThatThrownBy(() -> testService.getProductByName("   "))
+                .isInstanceOf(ValidationException.class)
+                .hasMessageContaining("Name is empty");
+    }
+
+    @Test
+    void should_throwNotFound_when_getProductByNameNotFound() {
+        when(productRepository.findByName("nonexistent")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> testService.getProductByName("nonexistent"))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Product not found: nonexistent");
+    }
+
+    @Test
+    void should_returnProduct_when_getProductByIdWithValidId() {
+        Product product = new Product();
+        product.setId("123");
+        when(productRepository.findById("123")).thenReturn(Optional.of(product));
+        ProductResponseDto expectedDto = new ProductResponseDto("123", "mouse", "", BigDecimal.ZERO, true, "", null, new ArrayList<>());
+        when(mapStructMapper.mapProductToProductResponseDto(product)).thenReturn(expectedDto);
+
+        ProductResponseDto result = testService.getProductById("123");
+
+        assertThat(result).isNotNull();
+        assertThat(result.id()).isEqualTo("123");
+    }
+
+    @Test
+    void should_throwValidation_when_getProductByIdWithNullId() {
+        assertThatThrownBy(() -> testService.getProductById(null))
+                .isInstanceOf(ValidationException.class)
+                .hasMessageContaining("Id is empty");
+    }
+
+    @Test
+    void should_throwValidation_when_getProductByIdWithBlankId() {
+        assertThatThrownBy(() -> testService.getProductById("   "))
+                .isInstanceOf(ValidationException.class)
+                .hasMessageContaining("Id is empty");
+    }
+
+    @Test
+    void should_throwNotFound_when_getProductByIdNotFound() {
+        when(productRepository.findById("nonexistent")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> testService.getProductById("nonexistent"))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Product not found: nonexistent");
+    }
+
+    @Test
+    void should_returnProducts_when_getProductsByIdWithValidItems() {
+        ItemRequestDto items = new ItemRequestDto(List.of("id1", "id2"));
+
+        Product product1 = new Product();
+        product1.setId("id1");
+        Product product2 = new Product();
+        product2.setId("id2");
+
+        when(productRepository.findById("id1")).thenReturn(Optional.of(product1));
+        when(productRepository.findById("id2")).thenReturn(Optional.of(product2));
+
+        ProductResponseDto dto1 = new ProductResponseDto("id1", "p1", "", BigDecimal.ZERO, true, "", null, new ArrayList<>());
+        ProductResponseDto dto2 = new ProductResponseDto("id2", "p2", "", BigDecimal.ZERO, true, "", null, new ArrayList<>());
+        when(mapStructMapper.mapProductToProductResponseDto(product1)).thenReturn(dto1);
+        when(mapStructMapper.mapProductToProductResponseDto(product2)).thenReturn(dto2);
+
+        List<ProductResponseDto> result = testService.getProductsById(items);
+
+        assertThat(result.size()).isEqualTo(2);
     }
 
     @Test
