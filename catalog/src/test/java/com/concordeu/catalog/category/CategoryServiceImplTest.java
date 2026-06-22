@@ -11,6 +11,7 @@ import com.concordeu.catalog.exception.ValidationException;
 import com.concordeu.catalog.mapper.MapStructMapper;
 import com.concordeu.catalog.service.category.CategoryService;
 import com.concordeu.catalog.service.category.CategoryServiceImpl;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -31,6 +32,7 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.*;
+import static org.mockito.Mockito.when;
 
 @Tag("unit")
 @ExtendWith(MockitoExtension.class)
@@ -50,7 +52,7 @@ class CategoryServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        testService = new CategoryServiceImpl(categoryRepository, productRepository, mapStructMapper);
+        testService = new CategoryServiceImpl(categoryRepository, productRepository, mapStructMapper, new SimpleMeterRegistry());
         categoryName = "bbbbb";
         categoryResponseDto = new CategoryResponseDto("1", categoryName, new ArrayList<>());
     }
@@ -210,5 +212,21 @@ class CategoryServiceImplTest {
 
         testService.getCategoriesByPage(1, 5);
         verify(categoryRepository).findAll(pageRequest);
+    }
+
+    @Test
+    void should_incrementCreatedCounter_when_categoryCreated() {
+        SimpleMeterRegistry registry = new SimpleMeterRegistry();
+        CategoryServiceImpl service =
+                new CategoryServiceImpl(categoryRepository, productRepository, mapStructMapper, registry);
+
+        when(categoryRepository.findByName(categoryName)).thenReturn(Optional.empty());
+        Category saved = new Category();
+        saved.setName(categoryName);
+        when(categoryRepository.saveAndFlush(any(Category.class))).thenReturn(saved);
+
+        service.createCategory(categoryResponseDto);
+
+        assertThat(registry.get("catalog.category.created").counter().count()).isEqualTo(1.0);
     }
 }

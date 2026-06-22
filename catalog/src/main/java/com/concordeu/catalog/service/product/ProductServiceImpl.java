@@ -10,6 +10,7 @@ import com.concordeu.catalog.exception.ConflictException;
 import com.concordeu.catalog.exception.NotFoundException;
 import com.concordeu.catalog.exception.ValidationException;
 import com.concordeu.catalog.mapper.MapStructMapper;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -28,6 +29,7 @@ public class ProductServiceImpl implements ProductService {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private final MapStructMapper mapper;
+    private final MeterRegistry meterRegistry;
 
     @Override
     @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
@@ -50,6 +52,7 @@ public class ProductServiceImpl implements ProductService {
 
         log.info("The product {} is save successful", product.getName());
         productRepository.saveAndFlush(product);
+        meterRegistry.counter("catalog.product.created").increment();
 
         return mapper.mapProductToProductResponseDto(product);
     }
@@ -113,6 +116,7 @@ public class ProductServiceImpl implements ProductService {
                 productResponseDto.price(),
                 productResponseDto.characteristics(),
                 productResponseDto.inStock());
+        meterRegistry.counter("catalog.product.updated").increment();
         log.info("The updates were successful on product: {}", productName);
     }
 
@@ -121,6 +125,7 @@ public class ProductServiceImpl implements ProductService {
     public void deleteProduct(String productName) {
         checkExistenceProduct(productName);
         productRepository.deleteByName(productName);
+        meterRegistry.counter("catalog.product.deleted").increment();
     }
 
     @Override

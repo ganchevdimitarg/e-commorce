@@ -8,6 +8,7 @@ import com.concordeu.catalog.dto.comment.CommentResponseDto;
 import com.concordeu.catalog.exception.NotFoundException;
 import com.concordeu.catalog.exception.ValidationException;
 import com.concordeu.catalog.mapper.MapStructMapper;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -25,6 +26,7 @@ public class CommentServiceImpl implements CommentService {
     private final CommentRepository commentRepository;
     private final ProductRepository productRepository;
     private final MapStructMapper mapper;
+    private final MeterRegistry meterRegistry;
 
     @Override
     @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
@@ -40,6 +42,7 @@ public class CommentServiceImpl implements CommentService {
         comment.setProduct(product);
 
         commentRepository.saveAndFlush(comment);
+        meterRegistry.counter("catalog.comment.created").increment();
         log.info("The comment {} is save successful", comment.getTitle());
 
         return mapper.mapCommentToCommentResponseDto(comment);
