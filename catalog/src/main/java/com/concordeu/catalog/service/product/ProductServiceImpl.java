@@ -113,7 +113,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
-    @CacheEvict(cacheNames = "product", allEntries = true, beforeInvocation = true)
+    @CacheEvict(cacheNames = "product", allEntries = true)
     public void updateProduct(ProductResponseDto productResponseDto, String productName) {
         checkExistenceProduct(productName);
 
@@ -128,7 +128,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
-    @CacheEvict(cacheNames = "product", allEntries = true, beforeInvocation = true)
+    @CacheEvict(cacheNames = "product", allEntries = true)
     public void deleteProduct(String productName) {
         checkExistenceProduct(productName);
         productRepository.deleteByName(productName);
