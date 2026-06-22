@@ -36,6 +36,11 @@ spring:
   zipkin:
     base-url: http://localhost:9411
 
+  #Virtual Threads
+  threads:
+    virtual:
+      enabled: true
+
 #Show SQL executed with parameter bindings
 #Logging Levels
 #Disable the default loggers
