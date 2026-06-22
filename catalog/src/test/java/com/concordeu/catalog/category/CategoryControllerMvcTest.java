@@ -24,11 +24,12 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -63,6 +64,59 @@ class CategoryControllerMvcTest {
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.content[0].name").value("PC"))
                 .andExpect(jsonPath("$.totalElements").value(1));
+    }
+
+    @Test
+    void should_return200_when_createCategoryWithValidBody() throws Exception {
+        CategoryResponseDto response = new CategoryResponseDto("1", "Electronics", List.of());
+        when(mapper.mapCategoryRequestDtoToCategoryDto(any())).thenReturn(response);
+        when(categoryService.createCategory(any())).thenReturn(response);
+
+        mockMvc.perform(post("/api/v1/catalog/category/create-category")
+                        .with(csrf())
+                        .with(jwt().authorities(() -> "SCOPE_catalog.write"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name": "Electronics"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Electronics"));
+    }
+
+    @Test
+    void should_return200_when_deleteCategoryWithWriteScope() throws Exception {
+        mockMvc.perform(delete("/api/v1/catalog/category/delete-category")
+                        .param("categoryName", "PC")
+                        .with(csrf())
+                        .with(jwt().authorities(() -> "SCOPE_catalog.write")))
+                .andExpect(status().isOk());
+
+        verify(categoryService).deleteCategory("PC");
+    }
+
+    @Test
+    void should_return200_when_moveOneProductWithWriteScope() throws Exception {
+        mockMvc.perform(post("/api/v1/catalog/category/move-one-product")
+                        .param("categoryNameFrom", "PC")
+                        .param("categoryNameTo", "Accessories")
+                        .param("productName", "mouse")
+                        .with(csrf())
+                        .with(jwt().authorities(() -> "SCOPE_catalog.write")))
+                .andExpect(status().isOk());
+
+        verify(categoryService).moveOneProduct("PC", "Accessories", "mouse");
+    }
+
+    @Test
+    void should_return200_when_moveAllProductsWithWriteScope() throws Exception {
+        mockMvc.perform(post("/api/v1/catalog/category/move-all-products")
+                        .param("categoryNameFrom", "PC")
+                        .param("categoryNameTo", "Accessories")
+                        .with(csrf())
+                        .with(jwt().authorities(() -> "SCOPE_catalog.write")))
+                .andExpect(status().isOk());
+
+        verify(categoryService).moveAllProducts("PC", "Accessories");
     }
 
     @Test
