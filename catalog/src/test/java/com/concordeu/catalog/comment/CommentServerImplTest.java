@@ -1,7 +1,7 @@
 package com.concordeu.catalog.comment;
 
-import com.concordeu.catalog.dao.CommentDao;
-import com.concordeu.catalog.dao.ProductDao;
+import com.concordeu.catalog.repository.CommentRepository;
+import com.concordeu.catalog.repository.ProductRepository;
 import com.concordeu.catalog.domain.Comment;
 import com.concordeu.catalog.domain.Product;
 import com.concordeu.catalog.dto.comment.CommentResponseDto;
@@ -37,15 +37,15 @@ class CommentServerImplTest {
     CommentService testService;
 
     @Mock
-    CommentDao commentDao;
+    CommentRepository commentRepository;
     @Mock
-    ProductDao productDao;
+    ProductRepository productRepository;
     @Mock
     MapStructMapper mapStructMapper;
 
     @BeforeEach
     void setUp() {
-        testService = new CommentServiceImpl(commentDao, productDao, mapStructMapper);
+        testService = new CommentServiceImpl(commentRepository, productRepository, mapStructMapper);
     }
 
     @Test
@@ -55,7 +55,7 @@ class CommentServerImplTest {
         String productName = "aaa";
         Product product = new Product();
         product.setName(productName);
-        when(productDao.findByName(productName)).thenReturn(Optional.of(product));
+        when(productRepository.findByName(productName)).thenReturn(Optional.of(product));
 
         Comment comment = new Comment();
         when(mapStructMapper.mapCommentResponseDtoToComment(commentResponseDto)).thenReturn(comment);
@@ -63,7 +63,7 @@ class CommentServerImplTest {
         testService.createComment(commentResponseDto, productName);
 
         ArgumentCaptor<Comment> argument = ArgumentCaptor.forClass(Comment.class);
-        verify(commentDao).saveAndFlush(argument.capture());
+        verify(commentRepository).saveAndFlush(argument.capture());
 
         Comment captureComment = argument.getValue();
         assertThat(captureComment).isNotNull();
@@ -79,7 +79,7 @@ class CommentServerImplTest {
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("Product not found: " + productName);
 
-        verify(commentDao, never()).saveAndFlush(any());
+        verify(commentRepository, never()).saveAndFlush(any());
     }
 
     @Test
@@ -92,12 +92,12 @@ class CommentServerImplTest {
         product.setId(productId);
         product.setName("aaaa89");
 
-        when(productDao.findByName(any(String.class))).thenReturn(Optional.of(product));
-        when(commentDao.findAllByProductIdByPage(productId, pageRequest)).thenReturn(page);
+        when(productRepository.findByName(any(String.class))).thenReturn(Optional.of(product));
+        when(commentRepository.findAllByProductIdByPage(productId, pageRequest)).thenReturn(page);
 
         testService.findAllByProductNameByPage("aaaa89", 1, 5);
 
-        verify(commentDao).findAllByProductIdByPage(product.getId(), pageRequest);
+        verify(commentRepository).findAllByProductIdByPage(product.getId(), pageRequest);
     }
 
     @Test
@@ -106,7 +106,7 @@ class CommentServerImplTest {
                 .isInstanceOf(ValidationException.class)
                 .hasMessageContaining("Product name is empty");
 
-        verify(commentDao, never()).findAllByProductIdByPage(any(String.class), any(PageRequest.class));
+        verify(commentRepository, never()).findAllByProductIdByPage(any(String.class), any(PageRequest.class));
     }
 
     @Test
@@ -115,7 +115,7 @@ class CommentServerImplTest {
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("Product not found: aaaaa");
 
-        verify(commentDao, never()).findAllByProductIdByPage(any(String.class), any(PageRequest.class));
+        verify(commentRepository, never()).findAllByProductIdByPage(any(String.class), any(PageRequest.class));
     }
 
     @Test
@@ -125,11 +125,11 @@ class CommentServerImplTest {
         Page<Comment> page = new PageImpl<>(products, pageRequest, products.size());
         String productName = "aaaa";
 
-        when(commentDao.findAllByAuthorByPage(productName, pageRequest)).thenReturn(page);
+        when(commentRepository.findAllByAuthorByPage(productName, pageRequest)).thenReturn(page);
 
         testService.findAllByAuthorByPage(productName, 1, 5);
 
-        verify(commentDao).findAllByAuthorByPage(any(String.class), any(PageRequest.class));
+        verify(commentRepository).findAllByAuthorByPage(any(String.class), any(PageRequest.class));
     }
 
     @Test
@@ -138,6 +138,6 @@ class CommentServerImplTest {
                 .isInstanceOf(ValidationException.class)
                 .hasMessageContaining("No such author: ");
 
-        verify(commentDao, never()).findAllByAuthorByPage(any(String.class), any(PageRequest.class));
+        verify(commentRepository, never()).findAllByAuthorByPage(any(String.class), any(PageRequest.class));
     }
 }

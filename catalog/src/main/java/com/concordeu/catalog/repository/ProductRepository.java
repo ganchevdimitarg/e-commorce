@@ -1,4 +1,4 @@
-package com.concordeu.catalog.dao;
+package com.concordeu.catalog.repository;
 
 import com.concordeu.catalog.domain.Product;
 import org.springframework.data.domain.Page;
@@ -14,7 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.Optional;
 
-public interface ProductDao extends JpaRepository<Product, String> {
+public interface ProductRepository extends JpaRepository<Product, String> {
     Optional<Product> findByName(String productName);
 
     @Query(value = """

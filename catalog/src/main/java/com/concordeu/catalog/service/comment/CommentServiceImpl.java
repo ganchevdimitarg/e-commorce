@@ -1,7 +1,7 @@
 package com.concordeu.catalog.service.comment;
 
-import com.concordeu.catalog.dao.CommentDao;
-import com.concordeu.catalog.dao.ProductDao;
+import com.concordeu.catalog.repository.CommentRepository;
+import com.concordeu.catalog.repository.ProductRepository;
 import com.concordeu.catalog.domain.Comment;
 import com.concordeu.catalog.domain.Product;
 import com.concordeu.catalog.dto.comment.CommentResponseDto;
@@ -21,13 +21,13 @@ import java.util.List;
 @Slf4j
 public class CommentServiceImpl implements CommentService {
 
-    private final CommentDao commentDao;
-    private final ProductDao productDao;
+    private final CommentRepository commentRepository;
+    private final ProductRepository productRepository;
     private final MapStructMapper mapper;
 
     @Override
     public CommentResponseDto createComment(CommentResponseDto commentResponseDto, String productName) {
-        Product product = productDao
+        Product product = productRepository
                 .findByName(productName)
                 .orElseThrow(() -> {
                     logMessage(productName);
@@ -37,7 +37,7 @@ public class CommentServiceImpl implements CommentService {
         Comment comment = mapper.mapCommentResponseDtoToComment(commentResponseDto);
         comment.setProduct(product);
 
-        commentDao.saveAndFlush(comment);
+        commentRepository.saveAndFlush(comment);
         log.info("The comment {} is save successful", comment.getTitle());
 
         return mapper.mapCommentToCommentResponseDto(comment);
@@ -50,12 +50,12 @@ public class CommentServiceImpl implements CommentService {
             throw new ValidationException("Product name is empty");
         }
 
-        Product product = productDao.findByName(productName).orElseThrow(() -> {
+        Product product = productRepository.findByName(productName).orElseThrow(() -> {
             logMessage(productName);
             return new NotFoundException("Product", productName);
         });
 
-        Page<CommentResponseDto> comments = commentDao
+        Page<CommentResponseDto> comments = commentRepository
                 .findAllByProductIdByPage(product.getId(), PageRequest.of(page, size))
                 .map(this::convertComment);
 
@@ -74,7 +74,7 @@ public class CommentServiceImpl implements CommentService {
             log.warn("No such author: {}", author);
             throw new ValidationException("No such author: " + author);
         }
-        Page<CommentResponseDto> comments = commentDao
+        Page<CommentResponseDto> comments = commentRepository
                 .findAllByAuthorByPage(author, PageRequest.of(page, size))
                 .map(this::convertComment);
         log.info("Successful get comments by author: {}", author);
@@ -84,7 +84,7 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     public double getAvgStars(String productName) {
-        List<Comment> comments = commentDao.findAllByProductName(productName);
+        List<Comment> comments = commentRepository.findAllByProductName(productName);
         double sum = 0.0;
         for (Comment comment : comments) {
             sum += comment.getStar();

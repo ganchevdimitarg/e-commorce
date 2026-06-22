@@ -1,4 +1,4 @@
-package com.concordeu.catalog.dao;
+package com.concordeu.catalog.repository;
 
 import com.concordeu.catalog.domain.Comment;
 import org.springframework.data.domain.Page;
@@ -9,7 +9,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
-public interface CommentDao extends JpaRepository<Comment, String> {
+public interface CommentRepository extends JpaRepository<Comment, String> {
     @Query(value = """
             SELECT * FROM comments WHERE PRODUCT_ID = ?1 AND deleted_at IS NULL
             """, nativeQuery = true)

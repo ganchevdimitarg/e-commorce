@@ -1,8 +1,8 @@
 package com.concordeu.catalog.product;
 
 
-import com.concordeu.catalog.dao.CategoryDao;
-import com.concordeu.catalog.dao.ProductDao;
+import com.concordeu.catalog.repository.CategoryRepository;
+import com.concordeu.catalog.repository.ProductRepository;
 import com.concordeu.catalog.domain.Category;
 import com.concordeu.catalog.domain.Product;
 import com.concordeu.catalog.dto.product.ProductResponseDto;
@@ -39,9 +39,9 @@ class ProductServiceImplTest {
 
     private ProductService testService;
     @Mock
-    ProductDao productDao;
+    ProductRepository productRepository;
     @Mock
-    CategoryDao categoryDao;
+    CategoryRepository categoryRepository;
     @Mock
     MapStructMapper mapStructMapper;
 
@@ -49,7 +49,7 @@ class ProductServiceImplTest {
 
     @BeforeEach
     void setup() {
-        testService = new ProductServiceImpl(productDao, categoryDao, mapStructMapper);
+        testService = new ProductServiceImpl(productRepository, categoryRepository, mapStructMapper);
         productResponseDto = new ProductResponseDto("","mouse", "WiFi mouse USB",
                 BigDecimal.ONE, true, "", null, new ArrayList<>());
     }
@@ -60,7 +60,7 @@ class ProductServiceImplTest {
 
         Category category = new Category();
         category.setName(categoryName);
-        when(categoryDao.findByName(categoryName)).thenReturn(Optional.of(category));
+        when(categoryRepository.findByName(categoryName)).thenReturn(Optional.of(category));
 
         Product product = new Product();
         when(mapStructMapper.mapProductResponseDtoToProduct(productResponseDto)).thenReturn(product);
@@ -68,7 +68,7 @@ class ProductServiceImplTest {
         testService.createProduct(productResponseDto, "PC");
 
         ArgumentCaptor<Product> argument = ArgumentCaptor.forClass(Product.class);
-        verify(productDao).saveAndFlush(argument.capture());
+        verify(productRepository).saveAndFlush(argument.capture());
 
         Product captureProduct = argument.getValue();
         assertThat(captureProduct).isNotNull();
@@ -79,18 +79,18 @@ class ProductServiceImplTest {
     void should_throwConflict_when_createProductWithExistingName() {
         Product existingProduct = new Product();
         existingProduct.setName("mouse");
-        when(productDao.findByName("mouse")).thenReturn(Optional.of(existingProduct));
+        when(productRepository.findByName("mouse")).thenReturn(Optional.of(existingProduct));
 
         String categoryName = "PC";
         Category categoryForCreate = new Category();
         categoryForCreate.setName(categoryName);
-        when(categoryDao.findByName(categoryName)).thenReturn(Optional.of(categoryForCreate));
+        when(categoryRepository.findByName(categoryName)).thenReturn(Optional.of(categoryForCreate));
 
         assertThatThrownBy(() -> testService.createProduct(productResponseDto, categoryName))
                 .isInstanceOf(ConflictException.class)
                 .hasMessageContaining("Product with the name: " + productResponseDto.name() + " already exist.");
 
-        verify(productDao, never()).saveAndFlush(any());
+        verify(productRepository, never()).saveAndFlush(any());
     }
 
     @Test
@@ -101,7 +101,7 @@ class ProductServiceImplTest {
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("Category not found: ");
 
-        verify(productDao, never()).saveAndFlush(any());
+        verify(productRepository, never()).saveAndFlush(any());
     }
 
     @Test
@@ -112,7 +112,7 @@ class ProductServiceImplTest {
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("Category not found: ");
 
-        verify(productDao, never()).saveAndFlush(any());
+        verify(productRepository, never()).saveAndFlush(any());
     }
 
     @Test
@@ -120,28 +120,28 @@ class ProductServiceImplTest {
         PageRequest pageRequest = PageRequest.of(1, 5);
         List<Product> products = Arrays.asList(new Product(), new Product());
         Page<Product> page = new PageImpl<>(products, pageRequest, products.size());
-        when(productDao.findAll(pageRequest)).thenReturn(page);
+        when(productRepository.findAll(pageRequest)).thenReturn(page);
 
         testService.getProductsByPage(1, 5);
 
-        verify(productDao).findAll(pageRequest);
+        verify(productRepository).findAll(pageRequest);
     }
 
     @Test
     void getProductsByCategoryByPageByCategoryShouldReturnProductsIfCategoryExist() {
         Category category = new Category();
         category.setId("1");
-        when(categoryDao.findByName("pc")).thenReturn(Optional.of(category));
+        when(categoryRepository.findByName("pc")).thenReturn(Optional.of(category));
 
         Pageable pageRequest = PageRequest.of(1, 5);
         List<Product> products = Arrays.asList(new Product(), new Product());
         Page<Product> page = new PageImpl<>(products, pageRequest, products.size());
 
-        when(productDao.findAllByCategoryIdByPage("1", pageRequest)).thenReturn(page);
+        when(productRepository.findAllByCategoryIdByPage("1", pageRequest)).thenReturn(page);
 
         testService.getProductsByCategoryByPage(1, 5, "pc");
 
-        verify(productDao).findAllByCategoryIdByPage(category.getId(), pageRequest);
+        verify(productRepository).findAllByCategoryIdByPage(category.getId(), pageRequest);
     }
 
     @Test
@@ -151,7 +151,7 @@ class ProductServiceImplTest {
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("Category not found: ");
 
-        verify(productDao, never()).findAllByCategoryIdByPage(new Category().getId(), pageRequest);
+        verify(productRepository, never()).findAllByCategoryIdByPage(new Category().getId(), pageRequest);
     }
 
     @Test
@@ -159,9 +159,9 @@ class ProductServiceImplTest {
         ProductResponseDto updateProduct = new ProductResponseDto("","mouse", "aaaaaaaaaaa", BigDecimal.ONE, false, "", null, new ArrayList<>());
         Product productToUpdate = new Product();
         productToUpdate.setName(productResponseDto.name());
-        when(productDao.findByName(productResponseDto.name())).thenReturn(Optional.of(productToUpdate));
+        when(productRepository.findByName(productResponseDto.name())).thenReturn(Optional.of(productToUpdate));
         testService.updateProduct(updateProduct, productResponseDto.name());
-        verify(productDao).update(productResponseDto.name(), "aaaaaaaaaaa", BigDecimal.ONE, "", false);
+        verify(productRepository).update(productResponseDto.name(), "aaaaaaaaaaa", BigDecimal.ONE, "", false);
     }
 
     @Test
@@ -176,11 +176,11 @@ class ProductServiceImplTest {
         String productName = "aaaaa";
         Product productToDelete = new Product();
         productToDelete.setName(productName);
-        when(productDao.findByName(productName)).thenReturn(Optional.of(productToDelete));
+        when(productRepository.findByName(productName)).thenReturn(Optional.of(productToDelete));
 
         testService.deleteProduct(productName);
 
-        verify(productDao).deleteByName(productName);
+        verify(productRepository).deleteByName(productName);
     }
 
     @Test
@@ -189,6 +189,6 @@ class ProductServiceImplTest {
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("Product not found: bbbbb");
 
-        verify(productDao, never()).deleteByName(any());
+        verify(productRepository, never()).deleteByName(any());
     }
 }
