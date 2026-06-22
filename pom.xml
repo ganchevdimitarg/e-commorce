@@ -32,7 +32,7 @@
     </modules>
 
     <properties>
-        <java.version>21</java.version>
+    <java.version>25</java.version>
         <spring.boot.maven.plugin.version>4.0.2</spring.boot.maven.plugin.version>
         <spring.boot.dependecies.version>4.0.2</spring.boot.dependecies.version>
         <spring.cloud-version>2025.1.1</spring.cloud-version>
