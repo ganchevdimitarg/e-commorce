@@ -9,6 +9,7 @@ import com.concordeu.catalog.exception.ConflictException;
 import com.concordeu.catalog.exception.NotFoundException;
 import com.concordeu.catalog.exception.ValidationException;
 import com.concordeu.catalog.mapper.MapStructMapper;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -26,6 +27,7 @@ public class CategoryServiceImpl implements CategoryService {
     private final CategoryRepository categoryRepository;
     private final ProductRepository productRepository;
     private final MapStructMapper mapper;
+    private final MeterRegistry meterRegistry;
 
     @Override
     @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
@@ -43,6 +45,7 @@ public class CategoryServiceImpl implements CategoryService {
         Category category = new Category();
         category.setName(categoryResponseDto.name());
         category = categoryRepository.saveAndFlush(category);
+        meterRegistry.counter("catalog.category.created").increment();
 
         return mapper.mapCategoryToCategoryResponseDto(category);
     }
@@ -68,6 +71,7 @@ public class CategoryServiceImpl implements CategoryService {
         }
 
         categoryRepository.deleteByName(categoryName);
+        meterRegistry.counter("catalog.category.deleted").increment();
     }
 
     @Override

@@ -10,6 +10,7 @@ import com.concordeu.catalog.exception.ValidationException;
 import com.concordeu.catalog.mapper.MapStructMapper;
 import com.concordeu.catalog.service.comment.CommentService;
 import com.concordeu.catalog.service.comment.CommentServiceImpl;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -45,7 +46,7 @@ class CommentServerImplTest {
 
     @BeforeEach
     void setUp() {
-        testService = new CommentServiceImpl(commentRepository, productRepository, mapStructMapper);
+        testService = new CommentServiceImpl(commentRepository, productRepository, mapStructMapper, new SimpleMeterRegistry());
     }
 
     @Test
@@ -139,5 +140,25 @@ class CommentServerImplTest {
                 .hasMessageContaining("No such author: ");
 
         verify(commentRepository, never()).findAllByAuthorByPage(any(String.class), any(PageRequest.class));
+    }
+
+    @Test
+    void should_incrementCreatedCounter_when_commentCreated() {
+        SimpleMeterRegistry registry = new SimpleMeterRegistry();
+        CommentServiceImpl service =
+                new CommentServiceImpl(commentRepository, productRepository, mapStructMapper, registry);
+
+        CommentResponseDto commentResponseDto = new CommentResponseDto("", "", 0, "", null);
+        String productName = "aaa";
+        Product product = new Product();
+        product.setName(productName);
+        when(productRepository.findByName(productName)).thenReturn(Optional.of(product));
+
+        Comment comment = new Comment();
+        when(mapStructMapper.mapCommentResponseDtoToComment(commentResponseDto)).thenReturn(comment);
+
+        service.createComment(commentResponseDto, productName);
+
+        assertThat(registry.get("catalog.comment.created").counter().count()).isEqualTo(1.0);
     }
 }

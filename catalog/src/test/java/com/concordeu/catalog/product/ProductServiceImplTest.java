@@ -11,6 +11,7 @@ import com.concordeu.catalog.exception.NotFoundException;
 import com.concordeu.catalog.mapper.MapStructMapper;
 import com.concordeu.catalog.service.product.ProductService;
 import com.concordeu.catalog.service.product.ProductServiceImpl;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -49,7 +50,7 @@ class ProductServiceImplTest {
 
     @BeforeEach
     void setup() {
-        testService = new ProductServiceImpl(productRepository, categoryRepository, mapStructMapper);
+        testService = new ProductServiceImpl(productRepository, categoryRepository, mapStructMapper, new SimpleMeterRegistry());
         productResponseDto = new ProductResponseDto("","mouse", "WiFi mouse USB",
                 BigDecimal.ONE, true, "", null, new ArrayList<>());
     }
@@ -190,5 +191,21 @@ class ProductServiceImplTest {
                 .hasMessageContaining("Product not found: bbbbb");
 
         verify(productRepository, never()).deleteByName(any());
+    }
+
+    @Test
+    void should_incrementCreatedCounter_when_productCreated() {
+        SimpleMeterRegistry registry = new SimpleMeterRegistry();
+        ProductServiceImpl service =
+                new ProductServiceImpl(productRepository, categoryRepository, mapStructMapper, registry);
+
+        Category category = new Category();
+        category.setName("PC");
+        when(categoryRepository.findByName("PC")).thenReturn(Optional.of(category));
+        when(mapStructMapper.mapProductResponseDtoToProduct(productResponseDto)).thenReturn(new Product());
+
+        service.createProduct(productResponseDto, "PC");
+
+        assertThat(registry.get("catalog.product.created").counter().count()).isEqualTo(1.0);
     }
 }
