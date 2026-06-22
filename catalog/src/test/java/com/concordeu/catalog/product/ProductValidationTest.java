@@ -20,6 +20,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -60,5 +61,14 @@ class ProductValidationTest {
                 .andExpect(jsonPath("$.status").value(400));
 
         verifyNoInteractions(productService);
+    }
+
+    @Test
+    void should_return400ProblemJson_when_pageSizeExceedsMax() throws Exception {
+        mockMvc.perform(get("/api/v1/catalog/product/get-products")
+                        .param("page", "0").param("size", "500")
+                        .with(jwt().authorities(() -> "SCOPE_catalog.read")))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON));
     }
 }

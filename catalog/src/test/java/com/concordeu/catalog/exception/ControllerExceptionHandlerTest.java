@@ -54,4 +54,18 @@ class ControllerExceptionHandlerTest {
         assertThat(response.getBody().getStatus()).isEqualTo(500);
         assertThat(response.getBody().getProperties()).containsEntry("code", "INTERNAL_ERROR");
     }
+
+    @Test
+    void should_return400ProblemDetail_when_constraintViolation() {
+        var violations = new java.util.HashSet<jakarta.validation.ConstraintViolation<?>>();
+        jakarta.validation.ConstraintViolationException ex =
+                new jakarta.validation.ConstraintViolationException("size: must be <= 100", violations);
+
+        org.springframework.http.ResponseEntity<org.springframework.http.ProblemDetail> response =
+                handler.handleConstraintViolation(ex);
+
+        assertThat(response.getStatusCode()).isEqualTo(org.springframework.http.HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getProperties()).containsEntry("code", "VALIDATION_ERROR");
+    }
 }
