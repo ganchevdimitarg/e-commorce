@@ -6,6 +6,7 @@ import com.concordeu.catalog.repository.ProductRepository;
 import com.concordeu.catalog.domain.Category;
 import com.concordeu.catalog.domain.Product;
 import com.concordeu.catalog.dto.product.ProductResponseDto;
+import com.concordeu.catalog.event.ProductEventPublisher;
 import com.concordeu.catalog.exception.ConflictException;
 import com.concordeu.catalog.exception.NotFoundException;
 import com.concordeu.catalog.mapper.MapStructMapper;
@@ -48,12 +49,14 @@ class ProductServiceImplTest {
     CategoryRepository categoryRepository;
     @Mock
     MapStructMapper mapStructMapper;
+    @Mock
+    ProductEventPublisher productEventPublisher;
 
     ProductResponseDto productResponseDto;
 
     @BeforeEach
     void setup() {
-        testService = new ProductServiceImpl(productRepository, categoryRepository, mapStructMapper, new SimpleMeterRegistry());
+        testService = new ProductServiceImpl(productRepository, categoryRepository, mapStructMapper, new SimpleMeterRegistry(), productEventPublisher);
         productResponseDto = new ProductResponseDto("","mouse", "WiFi mouse USB",
                 BigDecimal.ONE, true, "", null, new ArrayList<>());
     }
@@ -77,6 +80,7 @@ class ProductServiceImplTest {
         Product captureProduct = argument.getValue();
         assertThat(captureProduct).isNotNull();
         assertThat(captureProduct).isEqualTo(product);
+        verify(productEventPublisher).publishCreated(product.getName());
     }
 
     @Test
@@ -166,6 +170,7 @@ class ProductServiceImplTest {
         when(productRepository.findByName(productResponseDto.name())).thenReturn(Optional.of(productToUpdate));
         testService.updateProduct(updateProduct, productResponseDto.name());
         verify(productRepository).update(productResponseDto.name(), "aaaaaaaaaaa", BigDecimal.ONE, "", false);
+        verify(productEventPublisher).publishUpdated(productResponseDto.name());
     }
 
     @Test
@@ -185,6 +190,7 @@ class ProductServiceImplTest {
         testService.deleteProduct(productName);
 
         verify(productRepository).deleteByName(productName);
+        verify(productEventPublisher).publishDeleted(productName);
     }
 
     @Test
@@ -296,7 +302,7 @@ class ProductServiceImplTest {
     void should_incrementCreatedCounter_when_productCreated() {
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
         ProductServiceImpl service =
-                new ProductServiceImpl(productRepository, categoryRepository, mapStructMapper, registry);
+                new ProductServiceImpl(productRepository, categoryRepository, mapStructMapper, registry, productEventPublisher);
 
         Category category = new Category();
         category.setName("PC");
