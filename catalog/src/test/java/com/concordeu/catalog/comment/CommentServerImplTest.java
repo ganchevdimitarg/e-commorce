@@ -143,6 +143,15 @@ class CommentServerImplTest {
     }
 
     @Test
+    void should_returnZero_when_noCommentsExist() {
+        when(commentRepository.findAllByProductName("empty")).thenReturn(List.of());
+
+        double avgStars = testService.getAvgStars("empty");
+
+        assertThat(avgStars).isEqualTo(0.0);
+    }
+
+    @Test
     void should_returnAverageStars_when_commentsExist() {
         Comment comment1 = new Comment();
         comment1.setStar(4);

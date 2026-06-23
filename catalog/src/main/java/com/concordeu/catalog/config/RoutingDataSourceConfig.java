@@ -12,8 +12,7 @@ import org.springframework.jdbc.datasource.LazyConnectionDataSourceProxy;
 
 import javax.sql.DataSource;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BooleanSupplier;
 
 @Slf4j
@@ -73,16 +72,25 @@ public class RoutingDataSourceConfig {
      * last known result is returned, avoiding per-transaction connection churn.
      */
     private static BooleanSupplier cachedHealthProbe(DataSource readerDataSource) {
-        AtomicLong lastCheckTime = new AtomicLong(0);
-        AtomicBoolean lastResult = new AtomicBoolean(true); // optimistic initial assumption
+        ReentrantLock probeLock = new ReentrantLock();
+        long[] lastCheckTime = {0};
+        boolean[] lastResult = {true};
 
         return () -> {
             long now = System.currentTimeMillis();
-            if (now - lastCheckTime.get() >= HEALTH_PROBE_TTL_MS) {
-                lastResult.set(isHealthy(readerDataSource));
-                lastCheckTime.set(now);
+            if (now - lastCheckTime[0] >= HEALTH_PROBE_TTL_MS) {
+                if (probeLock.tryLock()) {
+                    try {
+                        if (now - lastCheckTime[0] >= HEALTH_PROBE_TTL_MS) {
+                            lastResult[0] = isHealthy(readerDataSource);
+                            lastCheckTime[0] = now;
+                        }
+                    } finally {
+                        probeLock.unlock();
+                    }
+                }
             }
-            return lastResult.get();
+            return lastResult[0];
         };
     }
 
