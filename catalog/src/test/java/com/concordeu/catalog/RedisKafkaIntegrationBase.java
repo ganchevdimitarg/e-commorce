@@ -10,6 +10,9 @@ import org.testcontainers.kafka.KafkaContainer;
  * Extends the Postgres-only {@link AbstractIntegrationTest} with Redis and Kafka containers.
  * Subclass this for any integration test that exercises caching or event publishing
  * against real infrastructure.
+ *
+ * <p>Postgres is a singleton managed by the parent; Redis and Kafka are managed per-class by
+ * the inherited {@code @Testcontainers} extension, as they are only used by this IT branch.
  */
 public abstract class RedisKafkaIntegrationBase extends AbstractIntegrationTest {
 
