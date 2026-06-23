@@ -25,9 +25,14 @@ public class KafkaProducerConfig {
     }
 
     @Bean
+    public ProducerFactory<String, ProductEvent> productEventProducerFactory() {
+        return new DefaultKafkaProducerFactory<>(producerConfig());
+    }
+
+    @Bean
     public KafkaTemplate<String, ProductEvent> productEventKafkaTemplate(
-            ProducerFactory<String, ProductEvent> factory) {
-        KafkaTemplate<String, ProductEvent> template = new KafkaTemplate<>(factory);
+            ProducerFactory<String, ProductEvent> productEventProducerFactory) {
+        KafkaTemplate<String, ProductEvent> template = new KafkaTemplate<>(productEventProducerFactory);
         template.setObservationEnabled(true);   // propagates trace context
         return template;
     }
