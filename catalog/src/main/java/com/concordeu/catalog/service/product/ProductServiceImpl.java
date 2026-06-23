@@ -37,6 +37,7 @@ public class ProductServiceImpl implements ProductService {
     private final ProductEventPublisher productEventPublisher;
 
     @Override
+    @Transactional
     @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
     public ProductResponseDto createProduct(ProductResponseDto productResponseDto, String categoryName) {
         Category category = categoryRepository
@@ -64,6 +65,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
     public Page<ProductResponseDto> getProductsByPage(int page, int size) {
         Page<ProductResponseDto> products = productRepository
@@ -75,6 +77,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
     public Page<ProductResponseDto> getProductsByCategoryByPage(int page, int size, String categoryName) {
         Category category = categoryRepository
@@ -90,6 +93,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
     public ProductResponseDto getProductByName(String name) {
         if (name == null || name.isBlank()) {
@@ -115,6 +119,7 @@ public class ProductServiceImpl implements ProductService {
 
 
     @Override
+    @Transactional
     @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
     @CacheEvict(cacheNames = "product", allEntries = true)
     public void updateProduct(ProductResponseDto productResponseDto, String productName) {
@@ -131,6 +136,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @Transactional
     @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
     @CacheEvict(cacheNames = "product", allEntries = true)
     public void deleteProduct(String productName) {
@@ -141,6 +147,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
     public List<ProductResponseDto> getProductsById(ItemRequestDto product) {
         return product.items().stream().map(this::getProductById).collect(Collectors.toList());

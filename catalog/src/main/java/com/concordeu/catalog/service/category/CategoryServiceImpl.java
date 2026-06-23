@@ -16,6 +16,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -30,6 +31,7 @@ public class CategoryServiceImpl implements CategoryService {
     private final MeterRegistry meterRegistry;
 
     @Override
+    @Transactional
     @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
     public CategoryResponseDto createCategory(CategoryResponseDto categoryResponseDto) {
         if (categoryResponseDto.name().isEmpty()) {
@@ -51,6 +53,7 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
     public CategoryResponseDto getCategory(String categoryName) {
         Category category = categoryRepository.findByName(categoryName)
@@ -59,6 +62,7 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    @Transactional
     @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
     public void deleteCategory(String categoryName) {
         if (categoryName.isEmpty()) {
@@ -75,6 +79,7 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    @Transactional
     @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
     public void moveOneProduct(String categoryNameFrom, String categoryNameTo, String productName) {
         CategoryResponseDto categoryFrom = getCategory(categoryNameFrom);
@@ -94,6 +99,7 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    @Transactional
     @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
     public void moveAllProducts(String categoryNameFrom, String categoryNameTo) {
         CategoryResponseDto categoryFrom = getCategory(categoryNameFrom);
@@ -106,6 +112,7 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
     public Page<CategoryResponseDto> getCategoriesByPage(int page, int size) {
         Page<CategoryResponseDto> categories = categoryRepository
