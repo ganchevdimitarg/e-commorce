@@ -2,12 +2,10 @@ server:
   port: 8084
 
 spring:
-  #Data Source Properties
-  #Data Source Properties
+  #Data Source Properties — credentials shared by the routed writer/reader pools
   datasource:
     username: ${POSTGRES_USER}
     password: ${POSTGRES_PASSWORD}
-    url: jdbc:postgresql://localhost:5432/catalog
 
   #JPA Properties
   jpa:
@@ -131,3 +129,11 @@ springdoc:
 #Kafka custom
 kafka:
   bootstrapAddress: localhost:9092
+
+#Routing datasource — writes + Flyway to the primary, read-only tx to the replica
+catalog:
+  datasource:
+    writer:
+      url: jdbc:postgresql://localhost:5432/catalog
+    reader:
+      url: jdbc:postgresql://localhost:5433/catalog
