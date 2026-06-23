@@ -167,6 +167,11 @@ cache via `@Cacheable`/`@CacheEvict` (10-min TTL, namespace `catalog:`).
 `LazyConnectionDataSourceProxy`. Health probe every 2s with `tryLock()`. Graceful fallback to writer.
 Reference: `@docs/context/read-replica-patterns.md`
 
+**CI/CD:** Jenkins declarative pipeline (`Jenkinsfile`). Stages: checkout → build → unit test
+(`-Dgroups=unit`, Surefire) → verify (full suite incl. Testcontainers; `jacoco:check` gate) →
+publish coverage → Docker build → push → deploy. PR branches skip deploy. Images tagged
+`catalog:<git-sha>`. Reference: `@docs/context/cicd-patterns.md`
+
 ---
 
 ## Flyway
