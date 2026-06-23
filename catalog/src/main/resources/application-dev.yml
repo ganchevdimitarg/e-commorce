@@ -44,6 +44,15 @@ spring:
   kafka:
     bootstrap-servers: localhost:9092
 
+  #Docker Compose Support
+  docker:
+    compose:
+      enabled: true
+      file: compose.yaml
+      lifecycle-management: start_and_stop
+      skip:
+        in-tests: true
+
   #Virtual Threads
   threads:
     virtual:

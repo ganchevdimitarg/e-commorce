@@ -259,6 +259,11 @@ Infrastructure (Postgres, Vault, Eureka, auth server, OTLP Collector) runs via t
 `docker-compose`. catalog depends on: PostgreSQL `:5432` (`catalog` DB), Vault `:8200`,
 Eureka `:8761`, auth server `:8082`, OTLP Collector `:4318`.
 
+Catalog auto-manages its own data-plane infra (PostgreSQL writer/reader, Redis, Kafka) via
+`catalog/compose.yaml` on `./mvnw spring-boot:run` (dev profile; skipped in tests, which use
+Testcontainers); shared platform services (Vault, Eureka, auth server, OTLP collector) remain in
+the monorepo root `docker-compose.yaml`.
+
 ```bash
 ./mvnw spring-boot:run -pl catalog            # run catalog (profile: dev, port 8084)
 ./mvnw clean verify -pl catalog -am           # build + test
