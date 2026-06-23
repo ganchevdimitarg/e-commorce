@@ -6,8 +6,8 @@
 > backed by **PostgreSQL**. It is a stateless OAuth2 **resource server**, registered with
 > **Eureka**, configured via **Spring Cloud Vault**, and traced via the **OpenTelemetry** (OTLP) bridge + Prometheus.
 >
-> This file describes the **target conventions** the parent pom already pins (Boot 4.0.2,
-> Java 21). Parts of the catalog source still lag that target — see
+> This file describes the **target conventions** the parent pom already pins (Boot 4.1.0,
+> Java 25). Parts of the catalog source still lag that target — see
 > [Known migration gaps](#known-migration-gaps). When you touch lagging code, migrate it
 > toward these conventions; do not copy the legacy pattern forward.
 
@@ -15,7 +15,7 @@
 
 ## The monorepo
 
-Parent: `com.concordeu:e-commerce` (Spring Boot **4.0.2**, Java **21**). Modules:
+Parent: `com.concordeu:e-commerce` (Spring Boot **4.1.0**, Java **25**). Modules:
 
 | Module | Role | Port |
 |---|---|---|
@@ -36,7 +36,7 @@ schema registry in catalog** — do not scaffold those here.
 
 ## Stack (catalog)
 
-- **Java 21** · Spring Boot **4.0.2** · **WebMVC** (records preferred for DTOs/commands/responses)
+- **Java 25** · Spring Boot **4.1.0** · **WebMVC** (records preferred for DTOs/commands/responses)
 - **PostgreSQL** (`catalog` DB) · Spring Data JPA · **Flyway** migrations · `ddl-auto: validate`
 - **Redis** (Spring Data Redis + Spring Cache): `Idempotency-Key` guard (`catalog:idempotency:<key>`,
   24h TTL, duplicate → 409) and product read cache-aside (`catalog:product::<id>`, write-through evict)
@@ -67,23 +67,21 @@ schema registry in catalog** — do not scaffold those here.
 
 ---
 
-## Java 21 & Spring Boot 4 conventions
+## Java 25 & Spring Boot 4 conventions
 
 ### Platform features
-- **Virtual threads** (stable in 21) for blocking I/O fan-out
+- **Virtual threads** for blocking I/O fan-out
 - `record` **preferred** for DTOs, commands, query results, API request/response, value objects —
   anything immutable with no JPA concern (catalog already does this: `ProductResponseDto`, etc.)
 - Record patterns + pattern-matching `switch` over `instanceof` chains
 - `SequencedCollection` / `SequencedMap` where ordered access matters
-- `StructuredTaskScope` / `ScopedValue` are **preview in 21** — only behind `--enable-preview`;
-  prefer plain constructor injection for request context until the module is on Java 25
+- `StructuredTaskScope` / `ScopedValue` (stable in 25) for structured concurrency and request-scoped context
 - `String.format()` / text blocks for multiline strings — no string concatenation in hot paths
 
 @docs/context/java25-patterns.md
 
 ### Lombok
 - `@Getter` + `@Setter` + `@NoArgsConstructor` on JPA entities — **nothing more**
-  (current `Product`/`Category`/`Comment` also carry `@Builder`/`@AllArgsConstructor` — trim on touch)
 - `@RequiredArgsConstructor` on `@Service` / `@Component` — never `@Autowired`
 - `@Slf4j` for all logging — never declare a `Logger` manually
 - Never `@Data`, `@ToString`, or `@EqualsAndHashCode` on JPA entities with associations (N+1 / recursion)
@@ -129,7 +127,6 @@ Subclasses: `NotFoundException` (404), `ConflictException` (409), `ValidationExc
 - `@Valid` on every `@RequestBody` controller param — validated before the service runs
 - Cross-field / business rules in the record's compact constructor, throwing `ValidationException`
 - Don't re-implement in a service-layer validator what a Bean Validation constraint already expresses
-  (the current `ProductDataValidator`/`CommentDataValidator` duplicate entity `@Size` rules — fold in on touch)
 
 @docs/context/validation-patterns.md
 
@@ -154,7 +151,21 @@ Fallback method = same signature + a trailing `Throwable`. Circuit-breaker healt
 - Metrics via Micrometer → Prometheus; custom metric names `catalog.<entity>.<action>`
   (e.g. `catalog.product.created`)
 - `/actuator/health` exposes details; lock down public exposure before prod
-  (`management.endpoints.web.exposure.include` is currently `*`)
+  (actuator exposure narrowed to `health, info, prometheus`)
+
+**Kafka (product domain events):** JSON serialisation via `JsonSerializer` (no Avro/schema registry).
+Topics: `catalog.product.{created,updated,deleted}`. Events published after commit via
+`TransactionSynchronization.afterCommit()`. Producer: acks=all, idempotence enabled, observation
+enabled. Sealed interface `ProductEvent` with record subtypes. Reference: `@docs/context/kafka-patterns.md`
+
+**Redis:** Idempotency via `Idempotency-Key` header → Redis SETNX (24h TTL, duplicate → 409). Read
+cache via `@Cacheable`/`@CacheEvict` (10-min TTL, namespace `catalog:`).
+`GenericJackson2JsonRedisSerializer` — DTO renames invalidate cache. Reference: `@docs/context/caching.md`
+
+**Read replica:** `DataSourceRouter` extends `AbstractRoutingDataSource`, routes on
+`isCurrentTransactionReadOnly()`. Writer pool (10, :5432) / reader pool (20, :5433).
+`LazyConnectionDataSourceProxy`. Health probe every 2s with `tryLock()`. Graceful fallback to writer.
+Reference: `@docs/context/read-replica-patterns.md`
 
 ---
 
@@ -174,7 +185,7 @@ Rules:
 - One logical change per migration (table ≠ index ≠ constraint)
 - `IF [NOT] EXISTS` guards on DDL
 - **Never edit a committed migration** — add a new version
-- **New tables must include audit columns** (see below) — the existing tables predate this rule
+- **New tables must include audit columns** (see below)
 
 @docs/context/database-patterns.md
 
@@ -187,9 +198,8 @@ Rules:
 `deleted_at TIMESTAMPTZ NULL`.
 Soft-delete: set `deleted_at = now()` — never `DELETE`. All queries filter `WHERE deleted_at IS NULL`.
 
-> Current state: `products` / `categories` / `comments` have **no audit columns** and the service
-> hard-deletes (`deleteByName`). Add the columns in a new migration and switch to soft-delete when
-> next touching delete paths.
+> All tables carry audit columns (added in `V4`). Soft-delete is active — set `deleted_at = now()`
+> rather than issuing `DELETE`; all queries filter `WHERE deleted_at IS NULL`.
 
 @docs/context/database-patterns.md
 
@@ -199,22 +209,20 @@ Soft-delete: set `deleted_at = now()` — never `DELETE`. All queries filter `WH
 
 - Unit: JUnit 5 + AssertJ; Mockito for collaborators, real objects for domain logic
 - Naming: `should_<expectedBehavior>_when_<condition>`
-  (existing tests use `createProductShouldCreateNewProduct` style — rename on touch)
 - **Integration tests should use Testcontainers (PostgreSQL) + real Flyway** — see
-  `.claude/context/testcontainers-patterns.md`
+  `docs/context/testcontainers-patterns.md`
 - Coverage gate: 80% line · 100% on domain logic
 
-> Current state: tests run on **H2** with `ddl-auto=create-drop` (`application-test.properties`),
-> so they never exercise the real Postgres migrations. Migrating to Testcontainers is the
-> highest-value test improvement.
+> Tests use **Testcontainers** (PostgreSQL 16) + real Flyway migrations. No H2. Unit vs integration
+> are split by JUnit 5 tags (`@Tag("unit")` / `@Tag("integration")`).
 
-@.claude/context/testcontainers-patterns.md
+@docs/context/testcontainers-patterns.md
 
 ---
 
 ## Docker
 
-Multi-stage build on `eclipse-temurin:21`. Non-root `USER`. Explicit artifact name in `COPY`
+Multi-stage build on `eclipse-temurin:25`. Non-root `USER`. Explicit artifact name in `COPY`
 (no `*.jar` glob). `HEALTHCHECK` hitting `/actuator/health`.
 
 @docs/context/docker-patterns.md
@@ -223,28 +231,28 @@ Multi-stage build on `eclipse-temurin:21`. Non-root `USER`. Explicit artifact na
 
 ## Known migration gaps
 
-The pom targets Boot 4.0.2 / Java 21, but parts of the catalog source still use the Boot 2.x
+The pom targets Boot 4.1.0 / Java 25, but parts of the catalog source still use the Boot 2.x
 idiom. When you touch these, migrate them — do not propagate the old pattern:
 
-| Gap | Current | Target |
-|---|---|---|
-| Persistence/validation imports | `javax.persistence.*`, `javax.validation.*`, `javax.servlet.*` | `jakarta.*` |
-| Security DSL | `authorizeRequests()`, `mvcMatchers()`, `.and()`, `@EnableGlobalMethodSecurity` | `authorizeHttpRequests()`, `requestMatchers()`, lambda DSL, `@EnableMethodSecurity` |
-| OpenAPI | `springdoc-openapi-ui` 1.6.13 (Boot 2 line) | `springdoc-openapi-starter-webmvc-ui` 2.x |
-| Tests | H2 + `ddl-auto=create-drop` | Testcontainers + Flyway |
-| Errors | `IllegalArgumentException` everywhere; `@ControllerAdvice` returns mismatched 400/404 | `BusinessException` hierarchy → problem+json |
-| Pagination | raw `Page<Dto>`, `@RequestParam int page,size` | `PageResponse<T>`, `@PageableDefault`, `@Max(100)` |
-| Package typo | `com.concordeu.catalog.excaption` | `...exception` |
-| Repo naming | `*Dao` | `*Repository` |
-| Java | 21 | 25 (in-flight — branch `authentication-update-java-version-25`) |
+| Gap | Status |
+|---|---|
+| Persistence/validation imports (`javax.*` → `jakarta.*`) | **Done** |
+| Security DSL (lambda DSL, `requestMatchers()`, `@EnableMethodSecurity`) | **Done** |
+| OpenAPI (`springdoc-openapi-starter-webmvc-ui`) | **Done** |
+| Tests (Testcontainers + Flyway) | **Done** |
+| Errors (`BusinessException` hierarchy, problem+json) | **Done** |
+| Pagination (raw `int page, int size` → `PageResponse<T>`, `@PageableDefault`) | **Open** — migrate on touch |
+| Package typo (`excaption` → `exception`) | **Done** |
+| Repo naming (`*Dao` → `*Repository`) | **Done** |
+| Java 25 | **Done** |
 
 ---
 
 ## Local development
 
-Infrastructure (Postgres, Vault, Eureka, auth server, Zipkin) runs via the monorepo's root
+Infrastructure (Postgres, Vault, Eureka, auth server, OTLP Collector) runs via the monorepo's root
 `docker-compose`. catalog depends on: PostgreSQL `:5432` (`catalog` DB), Vault `:8200`,
-Eureka `:8761`, auth server `:8082`, Zipkin `:9411`.
+Eureka `:8761`, auth server `:8082`, OTLP Collector `:4318`.
 
 ```bash
 ./mvnw spring-boot:run -pl catalog            # run catalog (profile: dev, port 8084)
