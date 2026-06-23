@@ -20,11 +20,13 @@ public class KafkaProducerConfig {
     @Value("${kafka.bootstrapAddress}")
     private String bootstrapAddress;
 
-    public Map<String, Object> producerConfig() {
+    private Map<String, Object> producerConfig() {
         Map<String, Object> props = new HashMap<>();
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapAddress);
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
+        props.put(ProducerConfig.ACKS_CONFIG, "all");
+        props.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
         return props;
     }
 
@@ -36,6 +38,8 @@ public class KafkaProducerConfig {
     @Bean
     public KafkaTemplate<String, ProductEvent> productEventKafkaTemplate(
             ProducerFactory<String, ProductEvent> productEventProducerFactory) {
-        return new KafkaTemplate<>(productEventProducerFactory);
+        KafkaTemplate<String, ProductEvent> template = new KafkaTemplate<>(productEventProducerFactory);
+        template.setObservationEnabled(true);
+        return template;
     }
 }

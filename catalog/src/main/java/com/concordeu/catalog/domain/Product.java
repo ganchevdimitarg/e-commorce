@@ -47,10 +47,10 @@ public class Product extends Auditable {
     private boolean inStock;
     @Column(name = "characteristics", columnDefinition = "TEXT")
     private String characteristics;
-    @ManyToOne(cascade = CascadeType.ALL)
+    @ManyToOne
     @JoinColumn(name = "category_id", referencedColumnName = "id")
     private Category category;
-    @OneToMany(mappedBy = "product", targetEntity = Comment.class, cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "product", targetEntity = Comment.class, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JsonIgnore
     private List<Comment> comments;
 }

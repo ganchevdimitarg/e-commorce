@@ -8,8 +8,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.Optional;
@@ -22,20 +20,25 @@ public interface ProductRepository extends JpaRepository<Product, String> {
             """, nativeQuery = true)
     Page<Product> findAllByCategoryIdByPage(String categoryId, Pageable pageRequest);
 
-    @Transactional
     @Modifying(clearAutomatically = true)
     @Query("""
-            update Product p set p.description= :description, p.price= :price, p.characteristics= :characteristics, p.inStock= :inStock where p.name= :name
+            update Product p set p.description = :description, p.price = :price, \
+            p.characteristics = :characteristics, p.inStock = :inStock, \
+            p.version = p.version + 1 \
+            where p.name = :name and p.version = :version
             """)
-    void update(@Param("name") String name, @Param("description") String description, @Param("price") BigDecimal price, @Param("characteristics") String characteristics, @Param("inStock") boolean inStock);
+    int update(@Param("name") String name, @Param("description") String description,
+               @Param("price") BigDecimal price, @Param("characteristics") String characteristics,
+               @Param("inStock") boolean inStock, @Param("version") long version);
 
-    @Transactional
     @Modifying
     @Query("""
-            update Product p set p.category.id= :category_id where p.name= :name
+            update Product p set p.category.id = :categoryId, \
+            p.version = p.version + 1 \
+            where p.name = :name and p.version = :version
             """)
-    void changeCategory(@Param("name") String name, @Param("category_id") String category_id);
+    int changeCategory(@Param("name") String name, @Param("categoryId") String categoryId,
+                       @Param("version") long version);
 
-    @Transactional
     void deleteByName(String productName);
 }

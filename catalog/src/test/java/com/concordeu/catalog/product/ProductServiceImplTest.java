@@ -34,6 +34,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
+
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.Mockito.*;
@@ -167,10 +169,25 @@ class ProductServiceImplTest {
         ProductResponseDto updateProduct = new ProductResponseDto("","mouse", "aaaaaaaaaaa", BigDecimal.ONE, false, "", null, new ArrayList<>());
         Product productToUpdate = new Product();
         productToUpdate.setName(productResponseDto.name());
+        productToUpdate.setVersion(1L);
         when(productRepository.findByName(productResponseDto.name())).thenReturn(Optional.of(productToUpdate));
+        when(productRepository.update(productResponseDto.name(), "aaaaaaaaaaa", BigDecimal.ONE, "", false, 1L)).thenReturn(1);
         testService.updateProduct(updateProduct, productResponseDto.name());
-        verify(productRepository).update(productResponseDto.name(), "aaaaaaaaaaa", BigDecimal.ONE, "", false);
+        verify(productRepository).update(productResponseDto.name(), "aaaaaaaaaaa", BigDecimal.ONE, "", false, 1L);
         verify(productEventPublisher).publishUpdated(productResponseDto.name());
+    }
+
+    @Test
+    void should_throwOptimisticLock_when_updateProductVersionMismatch() {
+        ProductResponseDto updateProduct = new ProductResponseDto("","mouse", "aaaaaaaaaaa", BigDecimal.ONE, false, "", null, new ArrayList<>());
+        Product productToUpdate = new Product();
+        productToUpdate.setName(productResponseDto.name());
+        productToUpdate.setVersion(1L);
+        when(productRepository.findByName(productResponseDto.name())).thenReturn(Optional.of(productToUpdate));
+        when(productRepository.update(productResponseDto.name(), "aaaaaaaaaaa", BigDecimal.ONE, "", false, 1L)).thenReturn(0);
+
+        assertThatThrownBy(() -> testService.updateProduct(updateProduct, productResponseDto.name()))
+                .isInstanceOf(ObjectOptimisticLockingFailureException.class);
     }
 
     @Test

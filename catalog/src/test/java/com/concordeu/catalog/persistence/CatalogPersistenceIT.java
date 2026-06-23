@@ -6,6 +6,7 @@ import com.concordeu.catalog.repository.CategoryRepository;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -29,6 +30,7 @@ class CatalogPersistenceIT extends AbstractIntegrationTest {
     }
 
     @Test
+    @Transactional
     void should_hideRow_when_softDeleted() {
         Category category = new Category();
         category.setName("to-delete");

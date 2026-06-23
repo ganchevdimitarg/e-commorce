@@ -28,9 +28,12 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
+
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.*;
 import static org.mockito.Mockito.when;
 
@@ -119,6 +122,7 @@ class CategoryServiceImplTest {
     void should_moveProduct_when_bothCategoriesExist() {
         Product mouseProduct = new Product();
         mouseProduct.setName("mouse");
+        mouseProduct.setVersion(1L);
         Category categoryFrom = new Category();
         categoryFrom.setName("pc");
         categoryFrom.setProducts(List.of(mouseProduct));
@@ -130,11 +134,34 @@ class CategoryServiceImplTest {
 
         when(categoryRepository.findByName(categoryTo.getName())).thenReturn(Optional.of(categoryTo));
 
-        when(categoryRepository.getById(any())).thenReturn(categoryFrom);
+        when(categoryRepository.getReferenceById(any())).thenReturn(categoryFrom);
+
+        when(productRepository.changeCategory(any(), any(), anyLong())).thenReturn(1);
 
         testService.moveOneProduct("pc", "acc", "mouse");
 
-        verify(productRepository).changeCategory(any(), any());
+        verify(productRepository).changeCategory(any(), any(), anyLong());
+    }
+
+    @Test
+    void should_throwOptimisticLock_when_moveProductVersionMismatch() {
+        Product mouseProduct = new Product();
+        mouseProduct.setName("mouse");
+        mouseProduct.setVersion(1L);
+        Category categoryFrom = new Category();
+        categoryFrom.setName("pc");
+        categoryFrom.setProducts(List.of(mouseProduct));
+
+        Category categoryTo = new Category();
+        categoryTo.setName("acc");
+
+        when(categoryRepository.findByName(categoryFrom.getName())).thenReturn(Optional.of(categoryFrom));
+        when(categoryRepository.findByName(categoryTo.getName())).thenReturn(Optional.of(categoryTo));
+        when(categoryRepository.getReferenceById(any())).thenReturn(categoryFrom);
+        when(productRepository.changeCategory(any(), any(), anyLong())).thenReturn(0);
+
+        assertThatThrownBy(() -> testService.moveOneProduct("pc", "acc", "mouse"))
+                .isInstanceOf(ObjectOptimisticLockingFailureException.class);
     }
 
     @Test
@@ -151,13 +178,13 @@ class CategoryServiceImplTest {
 
         when(categoryRepository.findByName(categoryTo.getName())).thenReturn(Optional.of(categoryTo));
 
-        when(categoryRepository.getById(any())).thenReturn(categoryFrom);
+        when(categoryRepository.getReferenceById(any())).thenReturn(categoryFrom);
 
         assertThatThrownBy(() -> testService.moveOneProduct(categoryFrom.getName(), categoryTo.getName(), "mouse"))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("Product not found: mouse");
 
-        verify(productRepository, never()).changeCategory(any(), any());
+        verify(productRepository, never()).changeCategory(any(), any(), anyLong());
     }
 
     @Test
@@ -166,7 +193,7 @@ class CategoryServiceImplTest {
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("Category not found: ");
 
-        verify(productRepository, never()).changeCategory(any(), any());
+        verify(productRepository, never()).changeCategory(any(), any(), anyLong());
     }
 
     @Test
@@ -179,7 +206,7 @@ class CategoryServiceImplTest {
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("Category not found: ");
 
-        verify(productRepository, never()).changeCategory(any(), any());
+        verify(productRepository, never()).changeCategory(any(), any(), anyLong());
     }
 
     @Test
@@ -188,7 +215,7 @@ class CategoryServiceImplTest {
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("Category not found: " + categoryName);
 
-        verify(productRepository, never()).changeCategory(any(), any());
+        verify(productRepository, never()).changeCategory(any(), any(), anyLong());
     }
 
     @Test
@@ -200,7 +227,7 @@ class CategoryServiceImplTest {
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("Category not found: aaaaa");
 
-        verify(productRepository, never()).changeCategory(any(), any());
+        verify(productRepository, never()).changeCategory(any(), any(), anyLong());
     }
 
     @Test
@@ -247,8 +274,10 @@ class CategoryServiceImplTest {
     void should_moveAllProducts_when_bothCategoriesExist() {
         Product mouse = new Product();
         mouse.setName("mouse");
+        mouse.setVersion(1L);
         Product keyboard = new Product();
         keyboard.setName("keyboard");
+        keyboard.setVersion(2L);
 
         Category categoryFrom = new Category();
         categoryFrom.setId("from-id");
@@ -262,13 +291,15 @@ class CategoryServiceImplTest {
 
         when(categoryRepository.findByName("pc")).thenReturn(Optional.of(categoryFrom));
         when(categoryRepository.findByName("acc")).thenReturn(Optional.of(categoryTo));
-        when(categoryRepository.getById(any())).thenReturn(categoryFrom);
+        when(categoryRepository.getReferenceById(any())).thenReturn(categoryFrom);
+        when(productRepository.changeCategory(any(), any(), anyLong())).thenReturn(1);
 
         testService.moveAllProducts("pc", "acc");
 
         ArgumentCaptor<String> nameCaptor = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<String> categoryIdCaptor = ArgumentCaptor.forClass(String.class);
-        verify(productRepository, times(2)).changeCategory(nameCaptor.capture(), categoryIdCaptor.capture());
+        ArgumentCaptor<Long> versionCaptor = ArgumentCaptor.forClass(Long.class);
+        verify(productRepository, times(2)).changeCategory(nameCaptor.capture(), categoryIdCaptor.capture(), versionCaptor.capture());
 
         org.assertj.core.api.Assertions.assertThat(nameCaptor.getAllValues()).containsExactlyInAnyOrder("mouse", "keyboard");
         org.assertj.core.api.Assertions.assertThat(categoryIdCaptor.getAllValues()).containsExactly("to-id", "to-id");

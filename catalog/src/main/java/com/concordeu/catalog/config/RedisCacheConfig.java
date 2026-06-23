@@ -21,6 +21,7 @@ public class RedisCacheConfig {
         RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
                 .entryTtl(Duration.ofMinutes(10))
                 .prefixCacheNameWith("catalog:")
+                // Uses @class type info — renaming DTOs invalidates cache entries
                 .serializeValuesWith(RedisSerializationContext.SerializationPair
                         .fromSerializer(new GenericJackson2JsonRedisSerializer()));
 

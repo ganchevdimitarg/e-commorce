@@ -35,7 +35,7 @@ public class Comment extends Auditable {
     private double star;
     @Column(name = "author", length = 200)
     private String author;
-    @ManyToOne(cascade = CascadeType.ALL)
+    @ManyToOne
     @JoinColumn(name = "product_id", referencedColumnName = "id")
     private Product product;
 }
