@@ -1,6 +1,7 @@
 package com.concordeu.catalog.config;
 
 import com.zaxxer.hikari.HikariDataSource;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.flyway.autoconfigure.FlywayDataSource;
 import org.springframework.context.annotation.Bean;
@@ -11,10 +12,16 @@ import org.springframework.jdbc.datasource.LazyConnectionDataSourceProxy;
 
 import javax.sql.DataSource;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BooleanSupplier;
 
+@Slf4j
 @Configuration
 @Profile("!test")
 public class RoutingDataSourceConfig {
+
+    private static final long HEALTH_PROBE_TTL_MS = 2_000;
 
     @Bean
     @FlywayDataSource
@@ -30,13 +37,17 @@ public class RoutingDataSourceConfig {
             @Value("${catalog.datasource.reader.url}") String url,
             @Value("${POSTGRES_USER}") String user,
             @Value("${POSTGRES_PASSWORD}") String password) {
-        return hikari(url, user, password, "catalog-reader", 20);
+        HikariDataSource ds = hikari(url, user, password, "catalog-reader", 20);
+        ds.setConnectionTimeout(2_000);
+        ds.setValidationTimeout(1_000);
+        return ds;
     }
 
     @Bean
     @Primary
     public DataSource dataSource(DataSource writerDataSource, DataSource readerDataSource) {
-        DataSourceRouter router = new DataSourceRouter(() -> isHealthy(readerDataSource));
+        BooleanSupplier replicaHealthy = cachedHealthProbe(readerDataSource);
+        DataSourceRouter router = new DataSourceRouter(replicaHealthy);
         router.setTargetDataSources(Map.of(
                 DataSourceRouter.Route.WRITER, writerDataSource,
                 DataSourceRouter.Route.READER, readerDataSource));
@@ -56,10 +67,30 @@ public class RoutingDataSourceConfig {
         return ds;
     }
 
+    /**
+     * Wraps the raw health probe in a TTL cache so the replica is probed at most
+     * once every {@link #HEALTH_PROBE_TTL_MS} milliseconds. Between probes the
+     * last known result is returned, avoiding per-transaction connection churn.
+     */
+    private static BooleanSupplier cachedHealthProbe(DataSource readerDataSource) {
+        AtomicLong lastCheckTime = new AtomicLong(0);
+        AtomicBoolean lastResult = new AtomicBoolean(true); // optimistic initial assumption
+
+        return () -> {
+            long now = System.currentTimeMillis();
+            if (now - lastCheckTime.get() >= HEALTH_PROBE_TTL_MS) {
+                lastResult.set(isHealthy(readerDataSource));
+                lastCheckTime.set(now);
+            }
+            return lastResult.get();
+        };
+    }
+
     private static boolean isHealthy(DataSource readerDataSource) {
         try (var c = readerDataSource.getConnection()) {
             return c.isValid(1);
         } catch (Exception e) {
+            log.warn("Replica health probe failed: {}", e.getMessage(), e);
             return false;
         }
     }
