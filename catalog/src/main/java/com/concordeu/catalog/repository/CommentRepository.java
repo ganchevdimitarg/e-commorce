@@ -20,5 +20,10 @@ public interface CommentRepository extends JpaRepository<Comment, String> {
             """, nativeQuery = true)
     Page<Comment> findAllByAuthorByPage(String author, Pageable pageable);
 
+    @Query(value = """
+            SELECT c.* FROM comments c
+            JOIN products p ON c.product_id = p.id
+            WHERE p.name = ?1 AND c.deleted_at IS NULL AND p.deleted_at IS NULL
+            """, nativeQuery = true)
     List<Comment> findAllByProductName(String productName);
 }

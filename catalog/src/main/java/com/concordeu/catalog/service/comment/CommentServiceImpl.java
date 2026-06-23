@@ -98,11 +98,13 @@ public class CommentServiceImpl implements CommentService {
     @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
     public double getAvgStars(String productName) {
         List<Comment> comments = commentRepository.findAllByProductName(productName);
+        if (comments.isEmpty()) {
+            return 0.0;
+        }
         double sum = 0.0;
         for (Comment comment : comments) {
             sum += comment.getStar();
         }
-
         return sum / comments.size();
     }
 

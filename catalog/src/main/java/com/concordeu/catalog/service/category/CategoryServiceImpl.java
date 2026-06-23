@@ -9,6 +9,7 @@ import com.concordeu.catalog.exception.ConflictException;
 import com.concordeu.catalog.exception.NotFoundException;
 import com.concordeu.catalog.exception.ValidationException;
 import com.concordeu.catalog.mapper.MapStructMapper;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -85,7 +86,7 @@ public class CategoryServiceImpl implements CategoryService {
         CategoryResponseDto categoryFrom = getCategory(categoryNameFrom);
         CategoryResponseDto categoryTo = getCategory(categoryNameTo);
 
-        Product product = categoryRepository.getById(categoryFrom.id())
+        Product product = categoryRepository.getReferenceById(categoryFrom.id())
                 .getProducts()
                 .stream()
                 .filter(p -> p.getName().equals(productName))
@@ -95,7 +96,10 @@ public class CategoryServiceImpl implements CategoryService {
                     return new NotFoundException("Product", productName);
                 });
 
-        productRepository.changeCategory(product.getName(), categoryTo.id());
+        int updated = productRepository.changeCategory(product.getName(), categoryTo.id(), product.getVersion());
+        if (updated == 0) {
+            throw new ObjectOptimisticLockingFailureException(Product.class.getSimpleName(), product.getName());
+        }
     }
 
     @Override
@@ -105,7 +109,7 @@ public class CategoryServiceImpl implements CategoryService {
         CategoryResponseDto categoryFrom = getCategory(categoryNameFrom);
         CategoryResponseDto categoryTo = getCategory(categoryNameTo);
 
-        List<Product> category = categoryRepository.getById(categoryFrom.id()).getProducts();
+        List<Product> category = categoryRepository.getReferenceById(categoryFrom.id()).getProducts();
         for (Product product : category) {
             moveOneProduct(categoryFrom.name(), categoryTo.name(), product.getName());
         }

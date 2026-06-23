@@ -18,12 +18,14 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -56,10 +58,10 @@ public class ProductServiceImpl implements ProductService {
         product.setCategory(category);
         product.setInStock(true);
 
-        log.info("The product {} is save successful", product.getName());
         productRepository.saveAndFlush(product);
+        log.info("The product {} is save successful", product.getName());
         meterRegistry.counter("catalog.product.created").increment();
-        productEventPublisher.publishCreated(product.getName());
+        publishAfterCommit(() -> productEventPublisher.publishCreated(product.getName()));
 
         return mapper.mapProductToProductResponseDto(product);
     }
@@ -123,15 +125,19 @@ public class ProductServiceImpl implements ProductService {
     @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
     @CacheEvict(cacheNames = "product", allEntries = true)
     public void updateProduct(ProductResponseDto productResponseDto, String productName) {
-        checkExistenceProduct(productName);
+        Product existing = findProductByName(productName);
 
-        productRepository.update(productName,
+        int updated = productRepository.update(productName,
                 productResponseDto.description(),
                 productResponseDto.price(),
                 productResponseDto.characteristics(),
-                productResponseDto.inStock());
+                productResponseDto.inStock(),
+                existing.getVersion());
+        if (updated == 0) {
+            throw new ObjectOptimisticLockingFailureException(Product.class.getSimpleName(), productName);
+        }
         meterRegistry.counter("catalog.product.updated").increment();
-        productEventPublisher.publishUpdated(productName);
+        publishAfterCommit(() -> productEventPublisher.publishUpdated(productName));
         log.info("The updates were successful on product: {}", productName);
     }
 
@@ -140,24 +146,37 @@ public class ProductServiceImpl implements ProductService {
     @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
     @CacheEvict(cacheNames = "product", allEntries = true)
     public void deleteProduct(String productName) {
-        checkExistenceProduct(productName);
+        findProductByName(productName);
         productRepository.deleteByName(productName);
         meterRegistry.counter("catalog.product.deleted").increment();
-        productEventPublisher.publishDeleted(productName);
+        publishAfterCommit(() -> productEventPublisher.publishDeleted(productName));
     }
 
     @Override
     @Transactional(readOnly = true)
     @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
     public List<ProductResponseDto> getProductsById(ItemRequestDto product) {
-        return product.items().stream().map(this::getProductById).collect(Collectors.toList());
+        return product.items().stream().map(this::getProductById).toList();
     }
 
+    private Product findProductByName(String productName) {
+        return productRepository.findByName(productName)
+                .orElseThrow(() -> {
+                    log.warn("Product with the name: {} does not exist.", productName);
+                    return new NotFoundException("Product", productName);
+                });
+    }
 
-    private void checkExistenceProduct(String productName) {
-        if (productRepository.findByName(productName).isEmpty()) {
-            log.warn("Product with the name: {} does not exist.", productName);
-            throw new NotFoundException("Product", productName);
+    private void publishAfterCommit(Runnable action) {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    action.run();
+                }
+            });
+        } else {
+            action.run();
         }
     }
 
