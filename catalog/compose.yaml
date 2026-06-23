@@ -1,0 +1,37 @@
+# Catalog-scoped local-dev infra for Spring Boot Docker Compose Support.
+# Started/stopped automatically on `./mvnw spring-boot:run` (dev profile).
+# Shared platform services (Vault, Eureka, auth server, OTLP collector) live in the
+# monorepo root docker-compose.yaml — NOT here.
+# NOTE: postgres-reader is a plain second instance, not a configured streaming replica;
+# local dev only needs a reachable :5433 so the read-replica router does not fall back to
+# the writer for every read. Replication staleness is not reproduced locally.
+services:
+  postgres-writer:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: catalog
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    labels:
+      # Custom RoutingDataSourceConfig owns the datasources; do not let Boot derive one.
+      org.springframework.boot.ignore: "true"
+  postgres-reader:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: catalog
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5433:5432"
+    labels:
+      org.springframework.boot.ignore: "true"
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+  kafka:
+    image: apache/kafka:3.8.1
+    ports:
+      - "9092:9092"
