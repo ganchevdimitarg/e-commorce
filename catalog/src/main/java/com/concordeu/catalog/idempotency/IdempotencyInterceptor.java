@@ -1,6 +1,7 @@
 package com.concordeu.catalog.idempotency;
 
 import com.concordeu.catalog.exception.ConflictException;
+import com.concordeu.catalog.exception.ValidationException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -22,12 +23,12 @@ public class IdempotencyInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
-        if (!GUARDED.contains(request.getMethod())) {
+        if (!GUARDED.contains(request.getMethod()) || isReadViaPost(request)) {
             return true;
         }
         String key = request.getHeader("Idempotency-Key");
         if (key == null || key.isBlank()) {
-            return true;
+            throw new ValidationException("Idempotency-Key header is required for write requests");
         }
         Boolean firstSeen = redis.opsForValue()
                 .setIfAbsent("catalog:idempotency:" + key, "1", TTL);
@@ -36,5 +37,9 @@ public class IdempotencyInterceptor implements HandlerInterceptor {
             throw new ConflictException("Duplicate request for Idempotency-Key: " + key);
         }
         return true;
+    }
+
+    private boolean isReadViaPost(HttpServletRequest request) {
+        return request.getRequestURI().endsWith(":batch-get");
     }
 }

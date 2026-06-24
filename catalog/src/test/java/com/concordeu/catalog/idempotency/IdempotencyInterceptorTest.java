@@ -1,6 +1,7 @@
 package com.concordeu.catalog.idempotency;
 
 import com.concordeu.catalog.exception.ConflictException;
+import com.concordeu.catalog.exception.ValidationException;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -55,6 +56,40 @@ class IdempotencyInterceptorTest {
         IdempotencyInterceptor interceptor = new IdempotencyInterceptor(redis);
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/x");
         request.addHeader("Idempotency-Key", "k1");
+
+        assertThat(interceptor.preHandle(request, new MockHttpServletResponse(), new Object())).isTrue();
+    }
+
+    @Test
+    void should_throwValidation_when_writeMissingIdempotencyKey() {
+        StringRedisTemplate redis = mock(StringRedisTemplate.class);
+        IdempotencyInterceptor interceptor = new IdempotencyInterceptor(redis);
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/catalog/products");
+        // Do not add Idempotency-Key header
+
+        assertThatThrownBy(() -> interceptor.preHandle(request, new MockHttpServletResponse(), new Object()))
+                .isInstanceOf(ValidationException.class)
+                .hasMessageContaining("Idempotency-Key");
+    }
+
+    @Test
+    void should_throwValidation_when_writeBlankIdempotencyKey() {
+        StringRedisTemplate redis = mock(StringRedisTemplate.class);
+        IdempotencyInterceptor interceptor = new IdempotencyInterceptor(redis);
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/catalog/products");
+        request.addHeader("Idempotency-Key", "  ");
+
+        assertThatThrownBy(() -> interceptor.preHandle(request, new MockHttpServletResponse(), new Object()))
+                .isInstanceOf(ValidationException.class)
+                .hasMessageContaining("Idempotency-Key");
+    }
+
+    @Test
+    void should_allowBatchGet_withoutIdempotencyKey() throws Exception {
+        StringRedisTemplate redis = mock(StringRedisTemplate.class);
+        IdempotencyInterceptor interceptor = new IdempotencyInterceptor(redis);
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/catalog/products:batch-get");
+        // Do not add Idempotency-Key header
 
         assertThat(interceptor.preHandle(request, new MockHttpServletResponse(), new Object())).isTrue();
     }
