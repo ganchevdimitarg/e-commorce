@@ -237,7 +237,7 @@ class CategoryServiceImplTest {
         Page<Category> page = new PageImpl<>(products, pageRequest, products.size());
         when(categoryRepository.findAll(pageRequest)).thenReturn(page);
 
-        testService.getCategoriesByPage(1, 5);
+        testService.getCategoriesByPage(pageRequest);
         verify(categoryRepository).findAll(pageRequest);
     }
 

@@ -6,8 +6,6 @@ import com.concordeu.catalog.dto.category.CategoryResponseDto;
 import com.concordeu.catalog.mapper.MapStructMapper;
 import com.concordeu.catalog.service.category.CategoryService;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -15,6 +13,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -63,10 +63,8 @@ public class CategoryController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @GetMapping("/get-categories")
-    public PageResponse<CategoryResponseDto> getCategories(
-            @RequestParam(defaultValue = "0") @Min(0) int page,
-            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
-        return PageResponse.of(categoryService.getCategoriesByPage(page, size));
+    public PageResponse<CategoryResponseDto> getCategories(@PageableDefault(size = 20) Pageable pageable) {
+        return PageResponse.of(categoryService.getCategoriesByPage(PageableSupport.capped(pageable)));
     }
 
     @Operation(summary = "Move One Product",  description = "Move one product from one category to another category",
