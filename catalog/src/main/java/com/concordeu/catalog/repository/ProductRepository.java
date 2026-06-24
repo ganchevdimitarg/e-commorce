@@ -14,6 +14,7 @@ import java.util.Optional;
 
 public interface ProductRepository extends JpaRepository<Product, String> {
     Optional<Product> findByName(String productName);
+    Optional<Product> findByNameAndCategoryId(String name, String categoryId);
 
     @Query(value = """
             SELECT * FROM products WHERE CATEGORY_ID = ?1 AND deleted_at IS NULL
