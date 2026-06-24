@@ -1,7 +1,7 @@
 package com.concordeu.catalog.event;
 
 import com.concordeu.catalog.RedisKafkaIntegrationBase;
-import com.concordeu.catalog.dto.product.ProductResponseDto;
+import com.concordeu.catalog.dto.product.CreateProductCommand;
 import com.concordeu.catalog.service.product.ProductService;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -20,7 +20,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -86,16 +85,16 @@ class ProductEventIT extends RedisKafkaIntegrationBase {
     @Test
     @WithMockUser(authorities = "SCOPE_catalog.write")
     void should_publishCreatedEvent_when_productIsCreated() {
-        // Given: a product DTO
-        ProductResponseDto dto = new ProductResponseDto(
-                null, PRODUCT_NAME, "Wireless USB mouse",
+        // Given: a product command
+        CreateProductCommand cmd = new CreateProductCommand(
+                PRODUCT_NAME, "Wireless USB mouse",
                 BigDecimal.valueOf(29.99), true, "Bluetooth 5.0",
-                null, new ArrayList<>());
+                CATEGORY_NAME);
 
         // When: the product is created via the service within a single transaction
         // (createProduct lacks @Transactional, so we wrap it to keep the Category managed)
         txTemplate.executeWithoutResult(status ->
-                productService.createProduct(dto, CATEGORY_NAME));
+                productService.createProduct(cmd));
 
         // Then: a Kafka record with key "mouse" arrives on the topic
         CopyOnWriteArrayList<String> consumedKeys = new CopyOnWriteArrayList<>();

@@ -1,14 +1,14 @@
 package com.concordeu.catalog.controller;
 
 import com.concordeu.catalog.dto.PageResponse;
+import com.concordeu.catalog.dto.product.CreateProductCommand;
 import com.concordeu.catalog.dto.product.ItemRequestDto;
 import com.concordeu.catalog.dto.product.ProductRequestDto;
 import com.concordeu.catalog.dto.product.ProductResponseDto;
+import com.concordeu.catalog.dto.product.UpdateProductCommand;
 import com.concordeu.catalog.mapper.MapStructMapper;
 import com.concordeu.catalog.service.product.ProductService;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -16,6 +16,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -42,8 +44,10 @@ public class ProductController {
     @PostMapping("/create-product")
     public ProductResponseDto createProduct(@RequestBody @Valid ProductRequestDto requestDto,
                                             @RequestParam String categoryName) {
-        ProductResponseDto productResponseDto = mapper.mapProductRequestDtoToProductResponseDto(requestDto);
-        return productService.createProduct(productResponseDto, categoryName);
+        CreateProductCommand cmd = new CreateProductCommand(
+                requestDto.name(), requestDto.description(), requestDto.price(),
+                requestDto.inStock(), requestDto.characteristics(), categoryName);
+        return productService.createProduct(cmd);
     }
 
     @Operation(summary = "Get Products", description = "Get all products from the database",
@@ -55,10 +59,8 @@ public class ProductController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @GetMapping("/get-products")
-    public PageResponse<ProductResponseDto> getProducts(
-            @RequestParam(defaultValue = "0") @Min(0) int page,
-            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
-        return PageResponse.of(productService.getProductsByPage(page, size));
+    public PageResponse<ProductResponseDto> getProducts(@PageableDefault(size = 20) Pageable pageable) {
+        return PageResponse.of(productService.getProductsByPage(PageableSupport.capped(pageable)));
     }
 
     @Operation(summary = "Get Products By Category Name", description = "Get all products by category name",
@@ -71,10 +73,9 @@ public class ProductController {
     })
     @GetMapping("/get-category-products")
     public PageResponse<ProductResponseDto> getProductsByCategory(
-            @RequestParam(defaultValue = "0") @Min(0) int page,
-            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,
+            @PageableDefault(size = 20) Pageable pageable,
             @RequestParam String categoryName) {
-        return PageResponse.of(productService.getProductsByCategoryByPage(page, size, categoryName));
+        return PageResponse.of(productService.getProductsByCategoryByPage(PageableSupport.capped(pageable), categoryName));
     }
 
     @Operation(summary = "Get Product Product Name", description = "Get product by product name",
@@ -120,8 +121,10 @@ public class ProductController {
     @PutMapping("/update-product")
     public void updateProduct(@RequestBody @Valid ProductRequestDto requestDto,
                               @RequestParam String productName) {
-        ProductResponseDto productResponseDto = mapper.mapProductRequestDtoToProductResponseDto(requestDto);
-        productService.updateProduct(productResponseDto, productName);
+        UpdateProductCommand cmd = new UpdateProductCommand(
+                requestDto.description(), requestDto.price(),
+                requestDto.inStock(), requestDto.characteristics());
+        productService.updateProduct(productName, cmd);
     }
 
     @Operation(summary = "Delete Product By Product Name", description = "Delete product by product name",
