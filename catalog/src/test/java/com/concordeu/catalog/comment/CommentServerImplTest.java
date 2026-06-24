@@ -5,6 +5,7 @@ import com.concordeu.catalog.repository.ProductRepository;
 import com.concordeu.catalog.domain.Comment;
 import com.concordeu.catalog.domain.Product;
 import com.concordeu.catalog.dto.comment.CommentResponseDto;
+import com.concordeu.catalog.dto.comment.CreateCommentCommand;
 import com.concordeu.catalog.exception.NotFoundException;
 import com.concordeu.catalog.exception.ValidationException;
 import com.concordeu.catalog.mapper.MapStructMapper;
@@ -51,32 +52,27 @@ class CommentServerImplTest {
 
     @Test
     void should_createComment_when_productExists() {
-        CommentResponseDto commentResponseDto = new CommentResponseDto("", "", 0, "", null);
-
-        String productName = "aaa";
         Product product = new Product();
-        product.setName(productName);
-        when(productRepository.findByName(productName)).thenReturn(Optional.of(product));
-
+        product.setName("mouse");
+        when(productRepository.findByName("mouse")).thenReturn(Optional.of(product));
         Comment comment = new Comment();
-        when(mapStructMapper.mapCommentResponseDtoToComment(commentResponseDto)).thenReturn(comment);
+        comment.setTitle("nice");
+        when(mapStructMapper.mapCreateCommentCommandToComment(any())).thenReturn(comment);
+        when(mapStructMapper.mapCommentToCommentResponseDto(comment))
+                .thenReturn(new CommentResponseDto("nice", "great product!!", 5.0, "joe", null));
 
-        testService.createComment(commentResponseDto, productName);
+        CommentResponseDto result = testService.createComment(
+                new CreateCommentCommand("nice", "great product!!", 5.0, "joe", "mouse"));
 
-        ArgumentCaptor<Comment> argument = ArgumentCaptor.forClass(Comment.class);
-        verify(commentRepository).saveAndFlush(argument.capture());
-
-        Comment captureComment = argument.getValue();
-        assertThat(captureComment).isNotNull();
-        assertThat(captureComment).isEqualTo(comment);
+        verify(commentRepository).saveAndFlush(comment);
+        assertThat(result.title()).isEqualTo("nice");
     }
 
     @Test
     void should_throwNotFound_when_createCommentForNonExistentProduct() {
-        CommentResponseDto commentResponseDto = new CommentResponseDto("", "", 0, "", null);
-
         String productName = "aaa";
-        assertThatThrownBy(() -> testService.createComment(commentResponseDto, productName))
+        assertThatThrownBy(() -> testService.createComment(
+                new CreateCommentCommand("nice", "great product!!", 5.0, "joe", productName)))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("Product not found: " + productName);
 
@@ -173,16 +169,16 @@ class CommentServerImplTest {
         CommentServiceImpl service =
                 new CommentServiceImpl(commentRepository, productRepository, mapStructMapper, registry);
 
-        CommentResponseDto commentResponseDto = new CommentResponseDto("", "", 0, "", null);
-        String productName = "aaa";
         Product product = new Product();
-        product.setName(productName);
-        when(productRepository.findByName(productName)).thenReturn(Optional.of(product));
+        product.setName("aaa");
+        when(productRepository.findByName("aaa")).thenReturn(Optional.of(product));
 
         Comment comment = new Comment();
-        when(mapStructMapper.mapCommentResponseDtoToComment(commentResponseDto)).thenReturn(comment);
+        when(mapStructMapper.mapCreateCommentCommandToComment(any())).thenReturn(comment);
+        when(mapStructMapper.mapCommentToCommentResponseDto(comment))
+                .thenReturn(new CommentResponseDto("", "", 0, "", null));
 
-        service.createComment(commentResponseDto, productName);
+        service.createComment(new CreateCommentCommand("nice", "great product!!", 5.0, "joe", "aaa"));
 
         assertThat(registry.get("catalog.comment.created").counter().count()).isEqualTo(1.0);
     }

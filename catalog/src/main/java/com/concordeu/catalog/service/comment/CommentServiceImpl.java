@@ -5,6 +5,7 @@ import com.concordeu.catalog.repository.ProductRepository;
 import com.concordeu.catalog.domain.Comment;
 import com.concordeu.catalog.domain.Product;
 import com.concordeu.catalog.dto.comment.CommentResponseDto;
+import com.concordeu.catalog.dto.comment.CreateCommentCommand;
 import com.concordeu.catalog.exception.NotFoundException;
 import com.concordeu.catalog.exception.ValidationException;
 import com.concordeu.catalog.mapper.MapStructMapper;
@@ -32,21 +33,17 @@ public class CommentServiceImpl implements CommentService {
     @Override
     @Transactional
     @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
-    public CommentResponseDto createComment(CommentResponseDto commentResponseDto, String productName) {
-        Product product = productRepository
-                .findByName(productName)
+    public CommentResponseDto createComment(CreateCommentCommand command) {
+        Product product = productRepository.findByName(command.productName())
                 .orElseThrow(() -> {
-                    logMessage(productName);
-                    return new NotFoundException("Product", productName);
+                    logMessage(command.productName());
+                    return new NotFoundException("Product", command.productName());
                 });
-
-        Comment comment = mapper.mapCommentResponseDtoToComment(commentResponseDto);
+        Comment comment = mapper.mapCreateCommentCommandToComment(command);
         comment.setProduct(product);
-
         commentRepository.saveAndFlush(comment);
         meterRegistry.counter("catalog.comment.created").increment();
         log.info("The comment {} is save successful", comment.getTitle());
-
         return mapper.mapCommentToCommentResponseDto(comment);
     }
 
@@ -118,4 +115,3 @@ public class CommentServiceImpl implements CommentService {
     }
 
 }
-
