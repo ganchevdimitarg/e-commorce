@@ -110,8 +110,8 @@ schema registry in catalog** — do not scaffold those here.
 
 ### Pagination
 - Wrap `Page<T>` in a `PageResponse<T>` record — never return a raw `Page<Entity>` or `Page<Dto>` to the API
-- Accept `Pageable` via `@PageableDefault(size = 20)`; default size 20, max 100 (`@Max(100)`)
-  (current product/category endpoints take raw `int page, int size` — migrate on touch)
+- Accept `Pageable` via `@PageableDefault(size = 20)`; default size 20, max 100
+  (enforced by `PageableSupport.capped()`, which rejects oversized requests with a 400)
 
 @docs/context/pagination-patterns.md
 
@@ -246,7 +246,7 @@ idiom. When you touch these, migrate them — do not propagate the old pattern:
 | OpenAPI (`springdoc-openapi-starter-webmvc-ui`) | **Done** |
 | Tests (Testcontainers + Flyway) | **Done** |
 | Errors (`BusinessException` hierarchy, problem+json) | **Done** |
-| Pagination (raw `int page, int size` → `PageResponse<T>`, `@PageableDefault`) | **Open** — migrate on touch |
+| Pagination (`PageResponse<T>`, `@PageableDefault`, max-100 via `PageableSupport`) | **Done** |
 | Package typo (`excaption` → `exception`) | **Done** |
 | Repo naming (`*Dao` → `*Repository`) | **Done** |
 | Java 25 | **Done** |
