@@ -35,6 +35,7 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.*;
 import static org.mockito.Mockito.when;
 
@@ -242,39 +243,21 @@ class CategoryServiceImplTest {
     }
 
     @Test
-    void should_moveAllProducts_when_bothCategoriesExist() {
-        Product mouse = new Product();
-        mouse.setName("mouse");
-        mouse.setVersion(1L);
-        Product keyboard = new Product();
-        keyboard.setName("keyboard");
-        keyboard.setVersion(2L);
+    void should_issueSingleBulkUpdate_when_moveAllProducts() {
+        Category from = new Category();
+        from.setId("from-1");
+        from.setName("PC");
+        Category to = new Category();
+        to.setId("to-1");
+        to.setName("Laptop");
+        when(categoryRepository.findByName("PC")).thenReturn(Optional.of(from));
+        when(categoryRepository.findByName("Laptop")).thenReturn(Optional.of(to));
+        when(productRepository.moveAllProductsToCategory("from-1", "to-1")).thenReturn(3);
 
-        Category categoryFrom = new Category();
-        categoryFrom.setId("from-id");
-        categoryFrom.setName("pc");
-        categoryFrom.setProducts(List.of(mouse, keyboard));
+        testService.moveAllProducts("PC", "Laptop");
 
-        Category categoryTo = new Category();
-        categoryTo.setId("to-id");
-        categoryTo.setName("acc");
-        categoryTo.setProducts(new ArrayList<>());
-
-        when(categoryRepository.findByName("pc")).thenReturn(Optional.of(categoryFrom));
-        when(categoryRepository.findByName("acc")).thenReturn(Optional.of(categoryTo));
-        when(productRepository.findByNameAndCategoryId("mouse", "from-id")).thenReturn(Optional.of(mouse));
-        when(productRepository.findByNameAndCategoryId("keyboard", "from-id")).thenReturn(Optional.of(keyboard));
-        when(productRepository.changeCategory(any(), any(), anyLong())).thenReturn(1);
-
-        testService.moveAllProducts("pc", "acc");
-
-        ArgumentCaptor<String> nameCaptor = ArgumentCaptor.forClass(String.class);
-        ArgumentCaptor<String> categoryIdCaptor = ArgumentCaptor.forClass(String.class);
-        ArgumentCaptor<Long> versionCaptor = ArgumentCaptor.forClass(Long.class);
-        verify(productRepository, times(2)).changeCategory(nameCaptor.capture(), categoryIdCaptor.capture(), versionCaptor.capture());
-
-        org.assertj.core.api.Assertions.assertThat(nameCaptor.getAllValues()).containsExactlyInAnyOrder("mouse", "keyboard");
-        org.assertj.core.api.Assertions.assertThat(categoryIdCaptor.getAllValues()).containsExactly("to-id", "to-id");
+        verify(productRepository, times(1)).moveAllProductsToCategory("from-1", "to-1");
+        verify(productRepository, never()).changeCategory(anyString(), anyString(), anyLong());
     }
 
     @Test

@@ -89,12 +89,12 @@ public class CategoryServiceImpl implements CategoryService {
     @Transactional
     @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
     public void moveAllProducts(String categoryNameFrom, String categoryNameTo) {
-        Category categoryFrom = requireCategory(categoryNameFrom);
+        Category from = requireCategory(categoryNameFrom);
+        Category to = requireCategory(categoryNameTo);
 
-        List<Product> products = categoryFrom.getProducts();
-        for (Product product : products) {
-            moveOneProduct(new MoveProductCommand(categoryNameFrom, categoryNameTo, product.getName()));
-        }
+        int moved = productRepository.moveAllProductsToCategory(from.getId(), to.getId());
+        meterRegistry.counter("catalog.category.moved").increment(moved);
+        log.info("Moved {} products from {} to {}", moved, categoryNameFrom, categoryNameTo);
     }
 
     @Override
