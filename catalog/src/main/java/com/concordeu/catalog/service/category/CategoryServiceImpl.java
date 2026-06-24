@@ -5,9 +5,10 @@ import com.concordeu.catalog.repository.ProductRepository;
 import com.concordeu.catalog.domain.Category;
 import com.concordeu.catalog.domain.Product;
 import com.concordeu.catalog.dto.category.CategoryResponseDto;
+import com.concordeu.catalog.dto.category.CreateCategoryCommand;
+import com.concordeu.catalog.dto.category.MoveProductCommand;
 import com.concordeu.catalog.exception.ConflictException;
 import com.concordeu.catalog.exception.NotFoundException;
-import com.concordeu.catalog.exception.ValidationException;
 import com.concordeu.catalog.mapper.MapStructMapper;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -34,22 +35,15 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     @Transactional
     @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
-    public CategoryResponseDto createCategory(CategoryResponseDto categoryResponseDto) {
-        if (categoryResponseDto.name().isEmpty()) {
-            log.warn("Category name is empty: {}", categoryResponseDto.name());
-            throw new ValidationException("Category name is empty: " + categoryResponseDto.name());
+    public CategoryResponseDto createCategory(CreateCategoryCommand command) {
+        if (categoryRepository.findByName(command.name()).isPresent()) {
+            log.warn("Category with the name: {} already exist.", command.name());
+            throw new ConflictException("Category with the name: " + command.name() + " already exist.");
         }
-
-        if (categoryRepository.findByName(categoryResponseDto.name()).isPresent()) {
-            log.warn("Category with the name: {} already exist.", categoryResponseDto.name());
-            throw new ConflictException("Category with the name: " + categoryResponseDto.name() + " already exist.");
-        }
-
         Category category = new Category();
-        category.setName(categoryResponseDto.name());
+        category.setName(command.name());
         category = categoryRepository.saveAndFlush(category);
         meterRegistry.counter("catalog.category.created").increment();
-
         return mapper.mapCategoryToCategoryResponseDto(category);
     }
 
@@ -57,8 +51,7 @@ public class CategoryServiceImpl implements CategoryService {
     @Transactional(readOnly = true)
     @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
     public CategoryResponseDto getCategory(String categoryName) {
-        Category category = categoryRepository.findByName(categoryName)
-                .orElseThrow(() -> new NotFoundException("Category", categoryName));
+        Category category = requireCategory(categoryName);
         return convertCategory(category);
     }
 
@@ -66,10 +59,6 @@ public class CategoryServiceImpl implements CategoryService {
     @Transactional
     @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
     public void deleteCategory(String categoryName) {
-        if (categoryName.isEmpty()) {
-            log.warn("Category name is empty: {}", categoryName);
-            throw new ValidationException("Category name is empty: " + categoryName);
-        }
         if (categoryRepository.findByName(categoryName).isEmpty()) {
             log.warn("No such category: {}", categoryName);
             throw new NotFoundException("Category", categoryName);
@@ -82,36 +71,33 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     @Transactional
     @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
-    public void moveOneProduct(String categoryNameFrom, String categoryNameTo, String productName) {
-        CategoryResponseDto categoryFrom = getCategory(categoryNameFrom);
-        CategoryResponseDto categoryTo = getCategory(categoryNameTo);
+    public void moveOneProduct(MoveProductCommand command) {
+        Category from = requireCategory(command.categoryNameFrom());
+        Category to = requireCategory(command.categoryNameTo());
 
-        Product product = categoryRepository.getReferenceById(categoryFrom.id())
-                .getProducts()
-                .stream()
-                .filter(p -> p.getName().equals(productName))
-                .findFirst()
+        Product product = productRepository
+                .findByNameAndCategoryId(command.productName(), from.getId())
                 .orElseThrow(() -> {
-                    log.warn("No such product: {}", productName);
-                    return new NotFoundException("Product", productName);
+                    log.warn("No such product: {}", command.productName());
+                    return new NotFoundException("Product", command.productName());
                 });
 
-        int updated = productRepository.changeCategory(product.getName(), categoryTo.id(), product.getVersion());
+        int updated = productRepository.changeCategory(product.getName(), to.getId(), product.getVersion());
         if (updated == 0) {
             throw new ObjectOptimisticLockingFailureException(Product.class.getSimpleName(), product.getName());
         }
+        meterRegistry.counter("catalog.category.moved").increment();
     }
 
     @Override
     @Transactional
     @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
     public void moveAllProducts(String categoryNameFrom, String categoryNameTo) {
-        CategoryResponseDto categoryFrom = getCategory(categoryNameFrom);
-        CategoryResponseDto categoryTo = getCategory(categoryNameTo);
+        Category categoryFrom = requireCategory(categoryNameFrom);
 
-        List<Product> category = categoryRepository.getReferenceById(categoryFrom.id()).getProducts();
-        for (Product product : category) {
-            moveOneProduct(categoryFrom.name(), categoryTo.name(), product.getName());
+        List<Product> products = categoryFrom.getProducts();
+        for (Product product : products) {
+            moveOneProduct(new MoveProductCommand(categoryNameFrom, categoryNameTo, product.getName()));
         }
     }
 
@@ -126,6 +112,11 @@ public class CategoryServiceImpl implements CategoryService {
         log.info("Successful get categories: {}", categories.getSize());
 
         return categories;
+    }
+
+    private Category requireCategory(String name) {
+        return categoryRepository.findByName(name)
+                .orElseThrow(() -> new NotFoundException("Category", name));
     }
 
     private CategoryResponseDto convertCategory(Category category) {
