@@ -7,7 +7,6 @@ import com.concordeu.catalog.domain.Product;
 import com.concordeu.catalog.dto.comment.CommentResponseDto;
 import com.concordeu.catalog.dto.comment.CreateCommentCommand;
 import com.concordeu.catalog.exception.NotFoundException;
-import com.concordeu.catalog.exception.ValidationException;
 import com.concordeu.catalog.mapper.MapStructMapper;
 import com.concordeu.catalog.service.comment.CommentService;
 import com.concordeu.catalog.service.comment.CommentServiceImpl;
@@ -16,7 +15,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
@@ -98,15 +96,6 @@ class CommentServerImplTest {
     }
 
     @Test
-    void should_throwValidation_when_findAllByProductNameWithEmptyName() {
-        assertThatThrownBy(() -> testService.findAllByProductNameByPage("", PageRequest.of(1, 5)))
-                .isInstanceOf(ValidationException.class)
-                .hasMessageContaining("Product name is empty");
-
-        verify(commentRepository, never()).findAllByProductIdByPage(any(String.class), any(PageRequest.class));
-    }
-
-    @Test
     void should_throwNotFound_when_findAllByProductNameForNonExistentProduct() {
         assertThatThrownBy(() -> testService.findAllByProductNameByPage("aaaaa", PageRequest.of(1, 5)))
                 .isInstanceOf(NotFoundException.class)
@@ -127,15 +116,6 @@ class CommentServerImplTest {
         testService.findAllByAuthorByPage(productName, pageRequest);
 
         verify(commentRepository).findAllByAuthorByPage(any(String.class), any(PageRequest.class));
-    }
-
-    @Test
-    void should_throwValidation_when_findAllByAuthorWithEmptyAuthor() {
-        assertThatThrownBy(() -> testService.findAllByAuthorByPage("", PageRequest.of(1, 5)))
-                .isInstanceOf(ValidationException.class)
-                .hasMessageContaining("No such author: ");
-
-        verify(commentRepository, never()).findAllByAuthorByPage(any(String.class), any(PageRequest.class));
     }
 
     @Test

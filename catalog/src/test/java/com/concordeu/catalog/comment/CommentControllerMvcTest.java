@@ -59,7 +59,7 @@ class CommentControllerMvcTest {
     @MockitoBean
     StringRedisTemplate stringRedisTemplate;
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings("unchecked") // Mockito generic erasure on mock(ValueOperations.class)
     @BeforeEach
     void setUpRedis() {
         ValueOperations<String, String> ops = mock(ValueOperations.class);
