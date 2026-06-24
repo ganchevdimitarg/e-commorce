@@ -5,9 +5,10 @@ import com.concordeu.catalog.repository.ProductRepository;
 import com.concordeu.catalog.domain.Category;
 import com.concordeu.catalog.domain.Product;
 import com.concordeu.catalog.dto.category.CategoryResponseDto;
+import com.concordeu.catalog.dto.category.CreateCategoryCommand;
+import com.concordeu.catalog.dto.category.MoveProductCommand;
 import com.concordeu.catalog.exception.ConflictException;
 import com.concordeu.catalog.exception.NotFoundException;
-import com.concordeu.catalog.exception.ValidationException;
 import com.concordeu.catalog.mapper.MapStructMapper;
 import com.concordeu.catalog.service.category.CategoryService;
 import com.concordeu.catalog.service.category.CategoryServiceImpl;
@@ -51,21 +52,41 @@ class CategoryServiceImplTest {
     MapStructMapper mapStructMapper;
 
     String categoryName;
-    CategoryResponseDto categoryResponseDto;
 
     @BeforeEach
     void setUp() {
         testService = new CategoryServiceImpl(categoryRepository, productRepository, mapStructMapper, new SimpleMeterRegistry());
         categoryName = "bbbbb";
-        categoryResponseDto = new CategoryResponseDto("1", categoryName, new ArrayList<>());
+    }
+
+    @Test
+    void should_createCategory_when_nameUnique() {
+        when(categoryRepository.findByName("PC")).thenReturn(Optional.empty());
+        Category saved = new Category();
+        saved.setId("c1");
+        saved.setName("PC");
+        when(categoryRepository.saveAndFlush(any())).thenReturn(saved);
+        when(mapStructMapper.mapCategoryToCategoryResponseDto(saved))
+                .thenReturn(new CategoryResponseDto("c1", "PC", List.of()));
+
+        CategoryResponseDto result = testService.createCategory(new CreateCategoryCommand("PC"));
+
+        assertThat(result.name()).isEqualTo("PC");
+    }
+
+    @Test
+    void should_throwConflict_when_createCategoryDuplicate() {
+        when(categoryRepository.findByName("PC")).thenReturn(Optional.of(new Category()));
+
+        assertThatThrownBy(() -> testService.createCategory(new CreateCategoryCommand("PC")))
+                .isInstanceOf(ConflictException.class);
     }
 
     @Test
     void should_createCategory_when_nameIsNotEmpty() {
-
         when(categoryRepository.findByName(categoryName)).thenReturn(Optional.empty());
 
-        testService.createCategory(categoryResponseDto);
+        testService.createCategory(new CreateCategoryCommand(categoryName));
 
         ArgumentCaptor<Category> argumentCaptor = ArgumentCaptor.forClass(Category.class);
         verify(categoryRepository).saveAndFlush(argumentCaptor.capture());
@@ -76,22 +97,12 @@ class CategoryServiceImplTest {
     }
 
     @Test
-    void should_throwValidation_when_createCategoryWithEmptyName() {
-        categoryResponseDto = new CategoryResponseDto("1", "", new ArrayList<>());
-        assertThatThrownBy(() -> testService.createCategory(categoryResponseDto))
-                .isInstanceOf(ValidationException.class)
-                .hasMessageContaining("Category name is empty: ");
-
-        verify(categoryRepository, never()).saveAndFlush(any());
-    }
-
-    @Test
     void should_throwConflict_when_createCategoryWithExistingName() {
         Category existingCategory = new Category();
         existingCategory.setName(categoryName);
         when(categoryRepository.findByName(categoryName)).thenReturn(Optional.of(existingCategory));
 
-        assertThatThrownBy(() -> testService.createCategory(categoryResponseDto))
+        assertThatThrownBy(() -> testService.createCategory(new CreateCategoryCommand(categoryName)))
                 .isInstanceOf(ConflictException.class)
                 .hasMessageContaining("Category with the name: " + categoryName + " already exist.");
 
@@ -124,21 +135,20 @@ class CategoryServiceImplTest {
         mouseProduct.setName("mouse");
         mouseProduct.setVersion(1L);
         Category categoryFrom = new Category();
+        categoryFrom.setId("from-id");
         categoryFrom.setName("pc");
         categoryFrom.setProducts(List.of(mouseProduct));
 
         Category categoryTo = new Category();
+        categoryTo.setId("to-id");
         categoryTo.setName("acc");
 
-        when(categoryRepository.findByName(categoryFrom.getName())).thenReturn(Optional.of(categoryFrom));
-
-        when(categoryRepository.findByName(categoryTo.getName())).thenReturn(Optional.of(categoryTo));
-
-        when(categoryRepository.getReferenceById(any())).thenReturn(categoryFrom);
-
+        when(categoryRepository.findByName("pc")).thenReturn(Optional.of(categoryFrom));
+        when(categoryRepository.findByName("acc")).thenReturn(Optional.of(categoryTo));
+        when(productRepository.findByNameAndCategoryId("mouse", "from-id")).thenReturn(Optional.of(mouseProduct));
         when(productRepository.changeCategory(any(), any(), anyLong())).thenReturn(1);
 
-        testService.moveOneProduct("pc", "acc", "mouse");
+        testService.moveOneProduct(new MoveProductCommand("pc", "acc", "mouse"));
 
         verify(productRepository).changeCategory(any(), any(), anyLong());
     }
@@ -149,38 +159,38 @@ class CategoryServiceImplTest {
         mouseProduct.setName("mouse");
         mouseProduct.setVersion(1L);
         Category categoryFrom = new Category();
+        categoryFrom.setId("from-id");
         categoryFrom.setName("pc");
         categoryFrom.setProducts(List.of(mouseProduct));
 
         Category categoryTo = new Category();
+        categoryTo.setId("to-id");
         categoryTo.setName("acc");
 
-        when(categoryRepository.findByName(categoryFrom.getName())).thenReturn(Optional.of(categoryFrom));
-        when(categoryRepository.findByName(categoryTo.getName())).thenReturn(Optional.of(categoryTo));
-        when(categoryRepository.getReferenceById(any())).thenReturn(categoryFrom);
+        when(categoryRepository.findByName("pc")).thenReturn(Optional.of(categoryFrom));
+        when(categoryRepository.findByName("acc")).thenReturn(Optional.of(categoryTo));
+        when(productRepository.findByNameAndCategoryId("mouse", "from-id")).thenReturn(Optional.of(mouseProduct));
         when(productRepository.changeCategory(any(), any(), anyLong())).thenReturn(0);
 
-        assertThatThrownBy(() -> testService.moveOneProduct("pc", "acc", "mouse"))
+        assertThatThrownBy(() -> testService.moveOneProduct(new MoveProductCommand("pc", "acc", "mouse")))
                 .isInstanceOf(ObjectOptimisticLockingFailureException.class);
     }
 
     @Test
     void should_throwNotFound_when_moveOneProductThatDoesNotExist() {
-        Product emptyNameProduct = new Product();
-        emptyNameProduct.setName("");
         Category categoryFrom = new Category();
+        categoryFrom.setId("from-id");
         categoryFrom.setName("pc");
-        categoryFrom.setProducts(List.of(emptyNameProduct));
+        categoryFrom.setProducts(List.of());
         Category categoryTo = new Category();
+        categoryTo.setId("to-id");
         categoryTo.setName("acc");
 
-        when(categoryRepository.findByName(categoryFrom.getName())).thenReturn(Optional.of(categoryFrom));
+        when(categoryRepository.findByName("pc")).thenReturn(Optional.of(categoryFrom));
+        when(categoryRepository.findByName("acc")).thenReturn(Optional.of(categoryTo));
+        when(productRepository.findByNameAndCategoryId("mouse", "from-id")).thenReturn(Optional.empty());
 
-        when(categoryRepository.findByName(categoryTo.getName())).thenReturn(Optional.of(categoryTo));
-
-        when(categoryRepository.getReferenceById(any())).thenReturn(categoryFrom);
-
-        assertThatThrownBy(() -> testService.moveOneProduct(categoryFrom.getName(), categoryTo.getName(), "mouse"))
+        assertThatThrownBy(() -> testService.moveOneProduct(new MoveProductCommand("pc", "acc", "mouse")))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("Product not found: mouse");
 
@@ -188,30 +198,8 @@ class CategoryServiceImplTest {
     }
 
     @Test
-    void should_throwNotFound_when_moveOneProductWithEmptyFirstCategoryName() {
-        assertThatThrownBy(() -> testService.moveOneProduct("", "acc", "mouse"))
-                .isInstanceOf(NotFoundException.class)
-                .hasMessageContaining("Category not found: ");
-
-        verify(productRepository, never()).changeCategory(any(), any(), anyLong());
-    }
-
-    @Test
-    void should_throwNotFound_when_moveOneProductWithEmptySecondCategoryName() {
-        Category categoryForMove = new Category();
-        categoryForMove.setName(categoryName);
-        when(categoryRepository.findByName(categoryName)).thenReturn(Optional.of(categoryForMove));
-
-        assertThatThrownBy(() -> testService.moveOneProduct(categoryName, "", "mouse"))
-                .isInstanceOf(NotFoundException.class)
-                .hasMessageContaining("Category not found: ");
-
-        verify(productRepository, never()).changeCategory(any(), any(), anyLong());
-    }
-
-    @Test
     void should_throwNotFound_when_moveOneProductWithNonExistentFirstCategory() {
-        assertThatThrownBy(() -> testService.moveOneProduct(categoryName, "aaaaa", "mouse"))
+        assertThatThrownBy(() -> testService.moveOneProduct(new MoveProductCommand(categoryName, "aaaaa", "mouse")))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("Category not found: " + categoryName);
 
@@ -223,7 +211,7 @@ class CategoryServiceImplTest {
         Category categoryForNonExistent = new Category();
         categoryForNonExistent.setName(categoryName);
         when(categoryRepository.findByName(categoryName)).thenReturn(Optional.of(categoryForNonExistent));
-        assertThatThrownBy(() -> testService.moveOneProduct(categoryName, "aaaaa", "mouse"))
+        assertThatThrownBy(() -> testService.moveOneProduct(new MoveProductCommand(categoryName, "aaaaa", "mouse")))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("Category not found: aaaaa");
 
@@ -239,15 +227,6 @@ class CategoryServiceImplTest {
 
         testService.getCategoriesByPage(pageRequest);
         verify(categoryRepository).findAll(pageRequest);
-    }
-
-    @Test
-    void should_throwValidation_when_deleteCategoryWithEmptyName() {
-        assertThatThrownBy(() -> testService.deleteCategory(""))
-                .isInstanceOf(ValidationException.class)
-                .hasMessageContaining("Category name is empty: ");
-
-        verify(categoryRepository, never()).deleteByName(any());
     }
 
     @Test
@@ -291,7 +270,8 @@ class CategoryServiceImplTest {
 
         when(categoryRepository.findByName("pc")).thenReturn(Optional.of(categoryFrom));
         when(categoryRepository.findByName("acc")).thenReturn(Optional.of(categoryTo));
-        when(categoryRepository.getReferenceById(any())).thenReturn(categoryFrom);
+        when(productRepository.findByNameAndCategoryId("mouse", "from-id")).thenReturn(Optional.of(mouse));
+        when(productRepository.findByNameAndCategoryId("keyboard", "from-id")).thenReturn(Optional.of(keyboard));
         when(productRepository.changeCategory(any(), any(), anyLong())).thenReturn(1);
 
         testService.moveAllProducts("pc", "acc");
@@ -316,7 +296,7 @@ class CategoryServiceImplTest {
         saved.setName(categoryName);
         when(categoryRepository.saveAndFlush(any(Category.class))).thenReturn(saved);
 
-        service.createCategory(categoryResponseDto);
+        service.createCategory(new CreateCategoryCommand(categoryName));
 
         assertThat(registry.get("catalog.category.created").counter().count()).isEqualTo(1.0);
     }

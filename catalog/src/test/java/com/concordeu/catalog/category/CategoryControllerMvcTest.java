@@ -3,6 +3,8 @@ package com.concordeu.catalog.category;
 import com.concordeu.catalog.config.ResourceServerConfig;
 import com.concordeu.catalog.controller.CategoryController;
 import com.concordeu.catalog.dto.category.CategoryResponseDto;
+import com.concordeu.catalog.dto.category.CreateCategoryCommand;
+import com.concordeu.catalog.dto.category.MoveProductCommand;
 import com.concordeu.catalog.exception.ControllerExceptionHandler;
 import com.concordeu.catalog.exception.ProblemAccessDeniedHandler;
 import com.concordeu.catalog.exception.ProblemAuthenticationEntryPoint;
@@ -61,7 +63,7 @@ class CategoryControllerMvcTest {
                 List.of(dto), PageRequest.of(0, 20), 1);
         when(categoryService.getCategoriesByPage(any())).thenReturn(page);
 
-        mockMvc.perform(get("/api/v1/catalog/category/get-categories")
+        mockMvc.perform(get("/api/v1/catalog/categories")
                         .with(jwt().authorities(() -> "SCOPE_catalog.read")))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
@@ -70,51 +72,46 @@ class CategoryControllerMvcTest {
     }
 
     @Test
-    void should_return200_when_createCategoryWithValidBody() throws Exception {
+    void should_return201_when_createCategoryWithValidBody() throws Exception {
         CategoryResponseDto response = new CategoryResponseDto("1", "Electronics", List.of());
-        when(mapper.mapCategoryRequestDtoToCategoryDto(any())).thenReturn(response);
-        when(categoryService.createCategory(any())).thenReturn(response);
+        when(categoryService.createCategory(any(CreateCategoryCommand.class))).thenReturn(response);
 
-        mockMvc.perform(post("/api/v1/catalog/category/create-category")
+        mockMvc.perform(post("/api/v1/catalog/categories")
                         .with(csrf())
                         .with(jwt().authorities(() -> "SCOPE_catalog.write"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"name": "Electronics"}
                                 """))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.name").value("Electronics"));
     }
 
     @Test
-    void should_return200_when_deleteCategoryWithWriteScope() throws Exception {
-        mockMvc.perform(delete("/api/v1/catalog/category/delete-category")
-                        .param("categoryName", "PC")
+    void should_return204_when_deleteCategoryWithWriteScope() throws Exception {
+        mockMvc.perform(delete("/api/v1/catalog/categories/PC")
                         .with(csrf())
                         .with(jwt().authorities(() -> "SCOPE_catalog.write")))
-                .andExpect(status().isOk());
+                .andExpect(status().isNoContent());
 
         verify(categoryService).deleteCategory("PC");
     }
 
     @Test
     void should_return200_when_moveOneProductWithWriteScope() throws Exception {
-        mockMvc.perform(post("/api/v1/catalog/category/move-one-product")
-                        .param("categoryNameFrom", "PC")
-                        .param("categoryNameTo", "Accessories")
-                        .param("productName", "mouse")
+        mockMvc.perform(post("/api/v1/catalog/categories/PC/products/mouse:move")
+                        .param("to", "Accessories")
                         .with(csrf())
                         .with(jwt().authorities(() -> "SCOPE_catalog.write")))
                 .andExpect(status().isOk());
 
-        verify(categoryService).moveOneProduct("PC", "Accessories", "mouse");
+        verify(categoryService).moveOneProduct(new MoveProductCommand("PC", "Accessories", "mouse"));
     }
 
     @Test
     void should_return200_when_moveAllProductsWithWriteScope() throws Exception {
-        mockMvc.perform(post("/api/v1/catalog/category/move-all-products")
-                        .param("categoryNameFrom", "PC")
-                        .param("categoryNameTo", "Accessories")
+        mockMvc.perform(post("/api/v1/catalog/categories/PC/products:move-all")
+                        .param("to", "Accessories")
                         .with(csrf())
                         .with(jwt().authorities(() -> "SCOPE_catalog.write")))
                 .andExpect(status().isOk());
@@ -124,7 +121,7 @@ class CategoryControllerMvcTest {
 
     @Test
     void should_return400ProblemJson_when_createCategoryWithEmptyName() throws Exception {
-        mockMvc.perform(post("/api/v1/catalog/category/create-category")
+        mockMvc.perform(post("/api/v1/catalog/categories")
                         .with(csrf())
                         .with(jwt().authorities(() -> "SCOPE_catalog.write"))
                         .contentType(MediaType.APPLICATION_JSON)
