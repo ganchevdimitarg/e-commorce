@@ -82,7 +82,7 @@ class ProductControllerMvcTest {
                 true, "black", null, List.of());
         Page<ProductResponseDto> page = new PageImpl<>(
                 List.of(dto), PageRequest.of(0, 20), 1);
-        when(productService.getProductsByPage(0, 20)).thenReturn(page);
+        when(productService.getProductsByPage(any())).thenReturn(page);
 
         mockMvc.perform(get("/api/v1/catalog/product/get-products")
                         .with(jwt().authorities(() -> "SCOPE_catalog.read")))
@@ -98,7 +98,7 @@ class ProductControllerMvcTest {
                 true, "black", null, List.of());
         Page<ProductResponseDto> page = new PageImpl<>(
                 List.of(dto), PageRequest.of(0, 20), 1);
-        when(productService.getProductsByCategoryByPage(0, 20, "PC")).thenReturn(page);
+        when(productService.getProductsByCategoryByPage(any(), eq("PC"))).thenReturn(page);
 
         mockMvc.perform(get("/api/v1/catalog/product/get-category-products")
                         .param("categoryName", "PC")
@@ -144,8 +144,7 @@ class ProductControllerMvcTest {
         ProductResponseDto response = new ProductResponseDto(
                 "1", "mouse123", "WiFi mouse USB device", BigDecimal.valueOf(29.99),
                 true, "black", null, List.of());
-        when(mapper.mapProductRequestDtoToProductResponseDto(any())).thenReturn(response);
-        when(productService.createProduct(any(), eq("PC"))).thenReturn(response);
+        when(productService.createProduct(any())).thenReturn(response);
 
         mockMvc.perform(post("/api/v1/catalog/product/create-product")
                         .param("categoryName", "PC")
@@ -167,9 +166,6 @@ class ProductControllerMvcTest {
 
     @Test
     void should_return200_when_updateProductWithValidBody() throws Exception {
-        when(mapper.mapProductRequestDtoToProductResponseDto(any())).thenReturn(
-                new ProductResponseDto("", "mouse", "updated description", BigDecimal.ONE, true, "black", null, List.of()));
-
         mockMvc.perform(put("/api/v1/catalog/product/update-product")
                         .param("productName", "mouse")
                         .with(csrf())
@@ -186,7 +182,7 @@ class ProductControllerMvcTest {
                                 """))
                 .andExpect(status().isOk());
 
-        verify(productService).updateProduct(any(), eq("mouse"));
+        verify(productService).updateProduct(eq("mouse"), any());
     }
 
     @Test
