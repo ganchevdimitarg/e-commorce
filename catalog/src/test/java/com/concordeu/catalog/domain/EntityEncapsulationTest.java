@@ -25,4 +25,18 @@ class EntityEncapsulationTest {
                 .isInstanceOf(UnsupportedOperationException.class);
         assertThat(category.getProducts()).hasSize(1);
     }
+
+    @Test
+    void should_returnDefensiveCopy_fromProductComments() {
+        Product product = new Product();
+        List<Comment> backing = new ArrayList<>();
+        backing.add(new Comment());
+        product.setComments(backing);
+
+        List<Comment> exposed = product.getComments();
+
+        assertThatThrownBy(() -> exposed.add(new Comment()))
+                .isInstanceOf(UnsupportedOperationException.class);
+        assertThat(product.getComments()).hasSize(1);
+    }
 }
