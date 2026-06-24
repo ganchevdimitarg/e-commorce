@@ -1,30 +1,28 @@
 package com.concordeu.catalog.controller;
 
 import com.concordeu.catalog.dto.PageResponse;
-import com.concordeu.catalog.dto.product.CreateProductCommand;
 import com.concordeu.catalog.dto.product.ItemRequestDto;
 import com.concordeu.catalog.dto.product.ProductRequestDto;
 import com.concordeu.catalog.dto.product.ProductResponseDto;
-import com.concordeu.catalog.dto.product.UpdateProductCommand;
 import com.concordeu.catalog.mapper.MapStructMapper;
 import com.concordeu.catalog.service.product.ProductService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.URI;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/catalog/product")
+@RequestMapping("/api/v1/catalog/products")
 @RequiredArgsConstructor
 @Slf4j
 @Validated
@@ -33,112 +31,58 @@ public class ProductController {
     private final ProductService productService;
     private final MapStructMapper mapper;
 
-    @Operation(summary = "Create Product", description = "Create a product in the database",
-            security = @SecurityRequirement(name = "security_auth"))
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
-            @ApiResponse(responseCode = "401", description = "Unauthenticated"),
-            @ApiResponse(responseCode = "403", description = "Unauthorized"),
-            @ApiResponse(responseCode = "500", description = "Server Error")
-    })
-    @PostMapping("/create-product")
-    public ProductResponseDto createProduct(@RequestBody @Valid ProductRequestDto requestDto,
-                                            @RequestParam String categoryName) {
-        CreateProductCommand cmd = new CreateProductCommand(
-                requestDto.name(), requestDto.description(), requestDto.price(),
-                requestDto.inStock(), requestDto.characteristics(), categoryName);
-        return productService.createProduct(cmd);
+    @Operation(summary = "Create product", security = @SecurityRequirement(name = "security_auth"))
+    @PostMapping
+    public ResponseEntity<ProductResponseDto> createProduct(@RequestBody @Valid ProductRequestDto requestDto,
+                                                            @RequestParam @NotBlank String categoryName) {
+        ProductResponseDto created =
+                productService.createProduct(mapper.mapProductRequestToCreateCommand(requestDto, categoryName));
+        return ResponseEntity.created(URI.create("/api/v1/catalog/products/" + created.id())).body(created);
     }
 
-    @Operation(summary = "Get Products", description = "Get all products from the database",
-            security = @SecurityRequirement(name = "security_auth"))
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
-            @ApiResponse(responseCode = "401", description = "Unauthenticated"),
-            @ApiResponse(responseCode = "403", description = "Unauthorized"),
-            @ApiResponse(responseCode = "500", description = "Server Error")
-    })
-    @GetMapping("/get-products")
+    @Operation(summary = "List products", security = @SecurityRequirement(name = "security_auth"))
+    @GetMapping
     public PageResponse<ProductResponseDto> getProducts(@PageableDefault(size = 20) Pageable pageable) {
         return PageResponse.of(productService.getProductsByPage(PageableSupport.capped(pageable)));
     }
 
-    @Operation(summary = "Get Products By Category Name", description = "Get all products by category name",
-            security = @SecurityRequirement(name = "security_auth"))
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
-            @ApiResponse(responseCode = "401", description = "Unauthenticated"),
-            @ApiResponse(responseCode = "403", description = "Unauthorized"),
-            @ApiResponse(responseCode = "500", description = "Server Error")
-    })
-    @GetMapping("/get-category-products")
-    public PageResponse<ProductResponseDto> getProductsByCategory(
-            @PageableDefault(size = 20) Pageable pageable,
-            @RequestParam String categoryName) {
+    @Operation(summary = "List products by category", security = @SecurityRequirement(name = "security_auth"))
+    @GetMapping(params = "categoryName")
+    public PageResponse<ProductResponseDto> getProductsByCategory(@PageableDefault(size = 20) Pageable pageable,
+                                                                  @RequestParam @NotBlank String categoryName) {
         return PageResponse.of(productService.getProductsByCategoryByPage(PageableSupport.capped(pageable), categoryName));
     }
 
-    @Operation(summary = "Get Product Product Name", description = "Get product by product name",
-            security = @SecurityRequirement(name = "security_auth"))
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
-            @ApiResponse(responseCode = "401", description = "Unauthenticated"),
-            @ApiResponse(responseCode = "403", description = "Unauthorized"),
-            @ApiResponse(responseCode = "500", description = "Server Error")
-    })
-    @GetMapping("/get-product")
-    public ProductResponseDto getProductByName(@RequestParam String productName) {
-        return productService.getProductByName(productName);
+    @Operation(summary = "Get product by id", security = @SecurityRequirement(name = "security_auth"))
+    @GetMapping("/{id}")
+    public ProductResponseDto getProductById(@PathVariable @NotBlank String id) {
+        return productService.getProductById(id);
     }
 
-    @Operation(summary = "Get Product Id", description = "Get product by product id",
-            security = @SecurityRequirement(name = "security_auth"))
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
-            @ApiResponse(responseCode = "401", description = "Unauthenticated"),
-            @ApiResponse(responseCode = "403", description = "Unauthorized"),
-            @ApiResponse(responseCode = "500", description = "Server Error")
-    })
-
-    @GetMapping("/get-product-id")
-    public ProductResponseDto getProductById(@RequestParam String productId) {
-        return productService.getProductById(productId);
+    @Operation(summary = "Get product by name", security = @SecurityRequirement(name = "security_auth"))
+    @GetMapping("/by-name/{name}")
+    public ProductResponseDto getProductByName(@PathVariable @NotBlank String name) {
+        return productService.getProductByName(name);
     }
 
-    @PostMapping("/get-products-id")
+    @Operation(summary = "Batch get products by id", security = @SecurityRequirement(name = "security_auth"))
+    @PostMapping(":batch-get")
     public List<ProductResponseDto> getProductsById(@RequestBody @Valid ItemRequestDto items) {
         return productService.getProductsById(items);
     }
 
-    @Operation(summary = "Update Product By Product Name", description = "Update product by product name",
-            security = @SecurityRequirement(name = "security_auth"))
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
-            @ApiResponse(responseCode = "401", description = "Unauthenticated"),
-            @ApiResponse(responseCode = "403", description = "Unauthorized"),
-            @ApiResponse(responseCode = "500", description = "Server Error")
-    })
-    @PutMapping("/update-product")
-    public void updateProduct(@RequestBody @Valid ProductRequestDto requestDto,
-                              @RequestParam String productName) {
-        UpdateProductCommand cmd = new UpdateProductCommand(
-                requestDto.description(), requestDto.price(),
-                requestDto.inStock(), requestDto.characteristics());
-        productService.updateProduct(productName, cmd);
+    @Operation(summary = "Update product", security = @SecurityRequirement(name = "security_auth"))
+    @PutMapping("/{id}")
+    public ResponseEntity<Void> updateProduct(@PathVariable @NotBlank String id,
+                                              @RequestBody @Valid ProductRequestDto requestDto) {
+        productService.updateProduct(id, mapper.mapProductRequestToUpdateCommand(requestDto));
+        return ResponseEntity.ok().build();
     }
 
-    @Operation(summary = "Delete Product By Product Name", description = "Delete product by product name",
-            security = @SecurityRequirement(name = "security_auth"))
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
-            @ApiResponse(responseCode = "401", description = "Unauthenticated"),
-            @ApiResponse(responseCode = "403", description = "Unauthorized"),
-            @ApiResponse(responseCode = "500", description = "Server Error")
-    })
-    @DeleteMapping("/delete-product")
-    public void deleteProduct(@RequestParam String productName) {
-        productService.deleteProduct(productName);
+    @Operation(summary = "Delete product", security = @SecurityRequirement(name = "security_auth"))
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteProduct(@PathVariable @NotBlank String id) {
+        productService.deleteProduct(id);
+        return ResponseEntity.noContent().build();
     }
-
-
 }
