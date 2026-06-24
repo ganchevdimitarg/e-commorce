@@ -10,6 +10,7 @@ import com.concordeu.catalog.exception.ProblemAccessDeniedHandler;
 import com.concordeu.catalog.exception.ProblemAuthenticationEntryPoint;
 import com.concordeu.catalog.service.category.CategoryService;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import io.micrometer.tracing.Tracer;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,6 +54,8 @@ class CategoryControllerMvcTest {
     CircuitBreakerRegistry circuitBreakerRegistry;
     @MockitoBean
     StringRedisTemplate stringRedisTemplate;
+    @MockitoBean
+    Tracer tracer; // MdcRequestFilter dependency, not exercised by web-slice tests
 
     @Test
     void should_return200WithCategories_when_getCategoriesWithReadScope() throws Exception {

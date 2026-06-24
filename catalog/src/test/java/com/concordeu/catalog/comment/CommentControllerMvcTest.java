@@ -9,6 +9,7 @@ import com.concordeu.catalog.exception.ProblemAccessDeniedHandler;
 import com.concordeu.catalog.exception.ProblemAuthenticationEntryPoint;
 import com.concordeu.catalog.service.comment.CommentService;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import io.micrometer.tracing.Tracer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -58,6 +59,8 @@ class CommentControllerMvcTest {
     CircuitBreakerRegistry circuitBreakerRegistry;
     @MockitoBean
     StringRedisTemplate stringRedisTemplate;
+    @MockitoBean
+    Tracer tracer; // MdcRequestFilter dependency, not exercised by web-slice tests
 
     @SuppressWarnings("unchecked") // Mockito generic erasure on mock(ValueOperations.class)
     @BeforeEach
