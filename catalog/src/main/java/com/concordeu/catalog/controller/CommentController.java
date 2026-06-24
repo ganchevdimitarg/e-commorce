@@ -3,87 +3,58 @@ package com.concordeu.catalog.controller;
 import com.concordeu.catalog.dto.PageResponse;
 import com.concordeu.catalog.dto.comment.CommentRequestDto;
 import com.concordeu.catalog.dto.comment.CommentResponseDto;
-import com.concordeu.catalog.mapper.MapStructMapper;
+import com.concordeu.catalog.dto.comment.CreateCommentCommand;
 import com.concordeu.catalog.service.comment.CommentService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.URI;
+
 @RestController
-@RequestMapping("/api/v1/catalog/comment")
+@RequestMapping("/api/v1/catalog")
 @RequiredArgsConstructor
 @Slf4j
 @Validated
 public class CommentController {
 
     private final CommentService commentService;
-    private final MapStructMapper mapper;
 
-    @Operation(summary = "Create Comment",  description = "Create a comment for the product and save it in the database",
-            security = @SecurityRequirement(name = "security_auth"))
-    @ApiResponses({
-            @ApiResponse(responseCode="200", description ="Success", content = {@Content(mediaType = "application/json")}),
-            @ApiResponse(responseCode = "401", description = "Unauthenticated"),
-            @ApiResponse(responseCode = "403", description = "Unauthorized"),
-            @ApiResponse(responseCode = "500", description = "Server Error")
-    })
-    @PostMapping("/create-comment")
-    public CommentResponseDto createComment(@RequestBody @Valid CommentRequestDto requestDto,
-                                            @RequestParam String productName) {
-        CommentResponseDto commentResponseDto = mapper.mapCommentRequestDtoToCommentResponseDto(requestDto);
-        return commentService.createComment(commentResponseDto, productName);
+    @Operation(summary = "Create comment", security = @SecurityRequirement(name = "security_auth"))
+    @PostMapping("/products/{productName}/comments")
+    public ResponseEntity<CommentResponseDto> createComment(@PathVariable @NotBlank String productName,
+                                                            @RequestBody @Valid CommentRequestDto requestDto) {
+        CommentResponseDto created = commentService.createComment(new CreateCommentCommand(
+                requestDto.title(), requestDto.text(), requestDto.star(), requestDto.author(), productName));
+        return ResponseEntity.created(
+                URI.create("/api/v1/catalog/products/" + productName + "/comments")).body(created);
     }
 
-    @Operation(summary = "Get Comments Product Name",  description = "Get Comments By Product Name",
-            security = @SecurityRequirement(name = "security_auth"))
-    @ApiResponses({
-            @ApiResponse(responseCode="200", description ="Success", content = {@Content(mediaType = "application/json")}),
-            @ApiResponse(responseCode = "401", description = "Unauthenticated"),
-            @ApiResponse(responseCode = "403", description = "Unauthorized"),
-            @ApiResponse(responseCode = "500", description = "Server Error")
-    })
-    @GetMapping("/get-comments-product-name")
-    public PageResponse<CommentResponseDto> findAllByProductName(
-            @PageableDefault(size = 20) Pageable pageable,
-            @RequestParam String productName) {
+    @Operation(summary = "List comments by product", security = @SecurityRequirement(name = "security_auth"))
+    @GetMapping("/products/{productName}/comments")
+    public PageResponse<CommentResponseDto> findAllByProductName(@PathVariable @NotBlank String productName,
+                                                                 @PageableDefault(size = 20) Pageable pageable) {
         return PageResponse.of(commentService.findAllByProductNameByPage(productName, PageableSupport.capped(pageable)));
     }
 
-    @Operation(summary = "Get Comment Author",  description = "Get an author's comment on the product",
-            security = @SecurityRequirement(name = "security_auth"))
-    @ApiResponses({
-            @ApiResponse(responseCode="200", description ="Success", content = {@Content(mediaType = "application/json")}),
-            @ApiResponse(responseCode = "401", description = "Unauthenticated"),
-            @ApiResponse(responseCode = "403", description = "Unauthorized"),
-            @ApiResponse(responseCode = "500", description = "Server Error")
-    })
-    @GetMapping("/get-comments-author")
-    public PageResponse<CommentResponseDto> findAllByAuthor(
-            @PageableDefault(size = 20) Pageable pageable,
-            @RequestParam String author) {
+    @Operation(summary = "List comments by author", security = @SecurityRequirement(name = "security_auth"))
+    @GetMapping("/comments/by-author/{author}")
+    public PageResponse<CommentResponseDto> findAllByAuthor(@PathVariable @NotBlank String author,
+                                                            @PageableDefault(size = 20) Pageable pageable) {
         return PageResponse.of(commentService.findAllByAuthorByPage(author, PageableSupport.capped(pageable)));
     }
 
-    @Operation(summary = "Get Average Stars",  description = "Get Get average stars for the product",
-            security = @SecurityRequirement(name = "security_auth"))
-    @ApiResponses({
-            @ApiResponse(responseCode="200", description ="Success", content = {@Content(mediaType = "application/json")}),
-            @ApiResponse(responseCode = "401", description = "Unauthenticated"),
-            @ApiResponse(responseCode = "403", description = "Unauthorized"),
-            @ApiResponse(responseCode = "500", description = "Server Error")
-    })
-    @GetMapping("/get-avg-stars")
-    public double getAvgStars(@RequestParam String productName) {
+    @Operation(summary = "Average stars for product", security = @SecurityRequirement(name = "security_auth"))
+    @GetMapping("/products/{productName}/comments/avg-stars")
+    public double getAvgStars(@PathVariable @NotBlank String productName) {
         return commentService.getAvgStars(productName);
     }
-
 }
