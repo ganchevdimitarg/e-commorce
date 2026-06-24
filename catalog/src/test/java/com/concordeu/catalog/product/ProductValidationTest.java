@@ -8,6 +8,7 @@ import com.concordeu.catalog.exception.ProblemAuthenticationEntryPoint;
 import com.concordeu.catalog.mapper.MapStructMapper;
 import com.concordeu.catalog.service.product.ProductService;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import io.micrometer.tracing.Tracer;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
@@ -53,6 +54,8 @@ class ProductValidationTest {
     CircuitBreakerRegistry circuitBreakerRegistry;
     @MockitoBean
     StringRedisTemplate stringRedisTemplate;
+    @MockitoBean
+    Tracer tracer; // MdcRequestFilter dependency, not exercised by web-slice tests
 
     @SuppressWarnings("unchecked")
     @BeforeEach
