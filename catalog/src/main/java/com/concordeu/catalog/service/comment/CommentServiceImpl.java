@@ -7,7 +7,6 @@ import com.concordeu.catalog.domain.Product;
 import com.concordeu.catalog.dto.comment.CommentResponseDto;
 import com.concordeu.catalog.dto.comment.CreateCommentCommand;
 import com.concordeu.catalog.exception.NotFoundException;
-import com.concordeu.catalog.exception.ValidationException;
 import com.concordeu.catalog.mapper.MapStructMapper;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
@@ -43,7 +42,7 @@ public class CommentServiceImpl implements CommentService {
         comment.setProduct(product);
         commentRepository.saveAndFlush(comment);
         meterRegistry.counter("catalog.comment.created").increment();
-        log.info("The comment {} is save successful", comment.getTitle());
+        log.info("The comment {} is saved successfully", comment.getTitle());
         return mapper.mapCommentToCommentResponseDto(comment);
     }
 
@@ -51,11 +50,6 @@ public class CommentServiceImpl implements CommentService {
     @Transactional(readOnly = true)
     @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
     public Page<CommentResponseDto> findAllByProductNameByPage(String productName, Pageable pageable) {
-        if (productName.isEmpty()) {
-            logMessage(productName);
-            throw new ValidationException("Product name is empty");
-        }
-
         Product product = productRepository.findByName(productName).orElseThrow(() -> {
             logMessage(productName);
             return new NotFoundException("Product", productName);
@@ -78,10 +72,6 @@ public class CommentServiceImpl implements CommentService {
     @Transactional(readOnly = true)
     @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
     public Page<CommentResponseDto> findAllByAuthorByPage(String author, Pageable pageable) {
-        if (author.isEmpty()) {
-            log.warn("No such author: {}", author);
-            throw new ValidationException("No such author: " + author);
-        }
         Page<CommentResponseDto> comments = commentRepository
                 .findAllByAuthorByPage(author, pageable)
                 .map(this::convertComment);
