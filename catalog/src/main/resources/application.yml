@@ -1,0 +1,22 @@
+# Profile-neutral base config. Replaces the legacy bootstrap context (spring-cloud-starter-bootstrap +
+# bootstrap.yml), which Spring Cloud 2025.1 supersedes with spring.config.import. Secrets are imported
+# from Vault at startup; the dev overlay (application-dev.yml) carries datasource/Redis/Kafka/Eureka.
+spring:
+  application:
+    name: catalog-service
+  profiles:
+    include: dev
+  config:
+    import: "optional:vault://"
+  devtools:
+    livereload:
+      port: 35730
+  cloud:
+    vault:
+      uri: http://localhost:8200
+      authentication: TOKEN
+      token: ${VAULT_DEV_ROOT_TOKEN_ID}
+      generic:
+        enable: true
+        backend: auth-service
+        default-context: credentials
