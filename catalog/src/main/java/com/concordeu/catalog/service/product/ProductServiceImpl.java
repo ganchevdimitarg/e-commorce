@@ -146,10 +146,11 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
     public List<ProductResponseDto> getProductsById(ItemRequestDto product) {
-        // No @Transactional here: each id is fetched as an independent read on its own virtual
-        // thread via VirtualThreads#mapParallel, so Spring's ThreadLocal-bound transaction would
-        // not propagate to the child threads anyway. Each delegate call to getProductById carries
-        // its own @Transactional(readOnly = true) and @Cacheable.
+        // Each id is fetched as an independent read on its own virtual thread via
+        // VirtualThreads#mapParallel. Because this is a self-invocation (this::getProductById),
+        // the proxy-applied @Transactional/@Cacheable on getProductById do NOT apply here — each
+        // lookup is a plain auto-commit read. A missing id still surfaces as NotFoundException
+        // (fail-fast via VirtualThreads#mapParallel).
         return VirtualThreads.mapParallel(product.items(), this::getProductById);
     }
 
