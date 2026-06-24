@@ -52,5 +52,12 @@ public interface ProductRepository extends JpaRepository<Product, String> {
     int changeCategory(@Param("name") String name, @Param("categoryId") String categoryId,
                        @Param("version") long version);
 
+    @Modifying(clearAutomatically = true)
+    @Query("""
+            update Product p set p.category.id = :toId, p.version = p.version + 1 \
+            where p.category.id = :fromId
+            """)
+    int moveAllProductsToCategory(@Param("fromId") String fromId, @Param("toId") String toId);
+
     void deleteByName(String productName);
 }
