@@ -1,38 +1,36 @@
 package com.concordeu.catalog.aop;
 
 import lombok.extern.slf4j.Slf4j;
-import org.aspectj.lang.JoinPoint;
-import org.aspectj.lang.annotation.*;
+import org.aspectj.lang.ProceedingJoinPoint;
+import org.aspectj.lang.annotation.Around;
+import org.aspectj.lang.annotation.Aspect;
+import org.aspectj.lang.annotation.Pointcut;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StopWatch;
 
 @Component
 @Aspect
 @Slf4j
 public class MeasureAspect {
-    private final StopWatch stopWatch = new StopWatch();
 
     @Pointcut("execution(* com.concordeu.catalog.controller.*.*(..))")
     private void trackAllControllers() {}
 
-    @Before("trackAllControllers()")
-    public void startMeasureTime() {
-        stopWatch.start();
+    @Around("trackAllControllers()")
+    public Object measureExecutionTime(ProceedingJoinPoint joinPoint) throws Throwable {
+        long startNanos = System.nanoTime();
+        String method = joinPoint.getSignature().getName();
+        try {
+            Object result = joinPoint.proceed();
+            log.info("Method named: \"{}\" finished in {}ms.", method, elapsedMillis(startNanos));
+            return result;
+        } catch (Throwable ex) {
+            log.info("Method named: \"{}\" finished with exception: \"{}\" in {} milliseconds.",
+                    method, ex.toString(), elapsedMillis(startNanos));
+            throw ex;
+        }
     }
 
-    @AfterReturning("trackAllControllers()")
-    public void stopMeasureTimeSucceed(JoinPoint joinPoint) {
-        stopWatch.stop();
-        log.info("Method named: \"{}\" finished in {}ms.",
-                joinPoint.getSignature().getName(), stopWatch.getLastTaskTimeMillis());
+    private static long elapsedMillis(long startNanos) {
+        return (System.nanoTime() - startNanos) / 1_000_000;
     }
-
-    @AfterThrowing(value = "trackAllControllers()", throwing = "ex")
-    public void stopMeasureTimeException(JoinPoint joinPoint, Throwable ex) {
-        stopWatch.stop();
-        log.info("Method named: \"{}\" finished with exception: \"{}\" in {} milliseconds.",
-                joinPoint.getSignature().getName(), ex.toString(), stopWatch.getLastTaskTimeMillis());
-    }
-
-
 }
