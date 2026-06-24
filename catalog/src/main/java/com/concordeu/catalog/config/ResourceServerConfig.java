@@ -5,6 +5,8 @@ import com.concordeu.catalog.exception.ProblemAuthenticationEntryPoint;
 import com.concordeu.client.introspector.CustomOpaqueTokenIntrospector;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import jakarta.servlet.http.HttpServletRequest;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
@@ -17,7 +19,6 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.oauth2.jwt.BadJwtException;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationProvider;
 import org.springframework.security.oauth2.server.resource.authentication.OpaqueTokenAuthenticationProvider;
@@ -73,11 +74,18 @@ public class ResourceServerConfig {
         if (authorization == null || authorization.isBlank()) {
             return false;
         }
+        String token = authorization.startsWith("Bearer ")
+                ? authorization.substring("Bearer ".length()).trim()
+                : authorization.trim();
+        String[] parts = token.split("\\.");
+        if (parts.length != 3) {
+            return false;   // opaque
+        }
         try {
-            jwtDecoder.decode(authorization.replace("Bearer ", ""));
-            return true;
-        } catch (BadJwtException e) {
-            log.debug(e.getMessage());
+            String header = new String(Base64.getUrlDecoder().decode(parts[0]), StandardCharsets.UTF_8);
+            return header.startsWith("{") && header.contains("alg");
+        } catch (IllegalArgumentException e) {
+            log.debug("Authorization token is not a JOSE header: {}", e.getMessage());
             return false;
         }
     }
