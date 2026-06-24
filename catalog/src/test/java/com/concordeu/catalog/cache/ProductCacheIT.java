@@ -2,6 +2,7 @@ package com.concordeu.catalog.cache;
 
 import com.concordeu.catalog.AbstractIntegrationTest;
 import com.concordeu.catalog.dto.product.ProductResponseDto;
+import com.concordeu.catalog.dto.product.UpdateProductCommand;
 import com.concordeu.catalog.event.ProductEventPublisher;
 import com.concordeu.catalog.repository.ProductRepository;
 import com.concordeu.catalog.service.product.ProductService;
@@ -124,9 +125,9 @@ class ProductCacheIT extends AbstractIntegrationTest {
         verify(productRepository, times(1)).findById(PRODUCT_ID);
 
         // Update product: evicts the cache after method completes successfully
-        ProductResponseDto updateDto = new ProductResponseDto(
-                null, null, "Updated description!", BigDecimal.ONE, true, "new-chars", null, null);
-        productService.updateProduct(updateDto, PRODUCT_NAME);
+        UpdateProductCommand updateCmd = new UpdateProductCommand(
+                "Updated description!", BigDecimal.ONE, true, "new-chars");
+        productService.updateProduct(PRODUCT_ID, updateCmd);
 
         // Clear invocation count so we can assert fresh
         clearInvocations(productRepository);
@@ -147,7 +148,7 @@ class ProductCacheIT extends AbstractIntegrationTest {
         verify(productRepository, times(1)).findById(PRODUCT_ID);
 
         // Delete product: evicts the cache after method completes successfully
-        productService.deleteProduct(PRODUCT_NAME);
+        productService.deleteProduct(PRODUCT_ID);
 
         // Verify cache is empty after eviction
         assertThat(cacheManager.getCache("product").get(PRODUCT_ID)).isNull();

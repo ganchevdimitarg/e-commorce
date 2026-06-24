@@ -25,7 +25,7 @@ class ProductEventPublisherTest {
         when(template.send(any(String.class), any(String.class), any(ProductEvent.class)))
                 .thenReturn(CompletableFuture.completedFuture(null));
 
-        publisher.publishCreated("mouse");
+        publisher.publishCreated("product-id-1", "mouse");
 
         verify(template).send(eq("catalog.product.created"), eq("mouse"),
                 eq(new ProductEvent.ProductCreated("mouse")));

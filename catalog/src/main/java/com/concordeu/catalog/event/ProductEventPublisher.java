@@ -18,15 +18,15 @@ public class ProductEventPublisher {
     private final KafkaTemplate<String, ProductEvent> kafkaTemplate;
     private final MeterRegistry meterRegistry;
 
-    public void publishCreated(String productName) {
+    public void publishCreated(String productId, String productName) {
         send(CREATED, productName, new ProductEvent.ProductCreated(productName));
     }
 
-    public void publishUpdated(String productName) {
+    public void publishUpdated(String productId, String productName) {
         send(UPDATED, productName, new ProductEvent.ProductUpdated(productName));
     }
 
-    public void publishDeleted(String productName) {
+    public void publishDeleted(String productId, String productName) {
         send(DELETED, productName, new ProductEvent.ProductDeleted(productName));
     }
 

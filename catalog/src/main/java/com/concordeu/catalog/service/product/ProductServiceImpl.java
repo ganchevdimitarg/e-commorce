@@ -4,12 +4,14 @@ import com.concordeu.catalog.repository.CategoryRepository;
 import com.concordeu.catalog.repository.ProductRepository;
 import com.concordeu.catalog.domain.Category;
 import com.concordeu.catalog.domain.Product;
+import com.concordeu.catalog.dto.product.CreateProductCommand;
 import com.concordeu.catalog.dto.product.ItemRequestDto;
 import com.concordeu.catalog.dto.product.ProductResponseDto;
+import com.concordeu.catalog.dto.product.UpdateProductCommand;
+import com.concordeu.catalog.concurrency.VirtualThreads;
 import com.concordeu.catalog.event.ProductEventPublisher;
 import com.concordeu.catalog.exception.ConflictException;
 import com.concordeu.catalog.exception.NotFoundException;
-import com.concordeu.catalog.exception.ValidationException;
 import com.concordeu.catalog.mapper.MapStructMapper;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
@@ -17,7 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
@@ -41,27 +43,25 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional
     @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
-    public ProductResponseDto createProduct(ProductResponseDto productResponseDto, String categoryName) {
-        Category category = categoryRepository
-                .findByName(categoryName)
+    public ProductResponseDto createProduct(CreateProductCommand command) {
+        Category category = categoryRepository.findByName(command.categoryName())
                 .orElseThrow(() -> {
-                    log.warn("No such category: {}", categoryName);
-                    return new NotFoundException("Category", categoryName);
+                    log.warn("No such category: {}", command.categoryName());
+                    return new NotFoundException("Category", command.categoryName());
                 });
 
-        if (productRepository.findByName(productResponseDto.name()).isPresent()) {
-            log.warn("Product with the name: {} already exists.", productResponseDto.name());
-            throw new ConflictException("Product with the name: " + productResponseDto.name() + " already exist.");
+        if (productRepository.findByName(command.name()).isPresent()) {
+            log.warn("Product with the name: {} already exists.", command.name());
+            throw new ConflictException("Product with the name: " + command.name() + " already exist.");
         }
 
-        Product product = mapper.mapProductResponseDtoToProduct(productResponseDto);
+        Product product = mapper.mapCreateCommandToProduct(command);
         product.setCategory(category);
-        product.setInStock(true);
 
         productRepository.saveAndFlush(product);
         log.info("The product {} is save successful", product.getName());
         meterRegistry.counter("catalog.product.created").increment();
-        publishAfterCommit(() -> productEventPublisher.publishCreated(product.getName()));
+        publishAfterCommit(() -> productEventPublisher.publishCreated(product.getId(), product.getName()));
 
         return mapper.mapProductToProductResponseDto(product);
     }
@@ -69,9 +69,9 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional(readOnly = true)
     @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
-    public Page<ProductResponseDto> getProductsByPage(int page, int size) {
+    public Page<ProductResponseDto> getProductsByPage(Pageable pageable) {
         Page<ProductResponseDto> products = productRepository
-                .findAll(PageRequest.of(page, size))
+                .findAll(pageable)
                 .map(this::convertProduct);
         log.info("Successful get products: {}", products.getSize());
 
@@ -81,13 +81,13 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional(readOnly = true)
     @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
-    public Page<ProductResponseDto> getProductsByCategoryByPage(int page, int size, String categoryName) {
+    public Page<ProductResponseDto> getProductsByCategoryByPage(Pageable pageable, String categoryName) {
         Category category = categoryRepository
                 .findByName(categoryName)
                 .orElseThrow(() -> new NotFoundException("Category", categoryName));
 
         Page<ProductResponseDto> products = productRepository
-                .findAllByCategoryIdByPage(category.getId(), PageRequest.of(page, size))
+                .findAllByCategoryIdByPage(category.getId(), pageable)
                 .map(this::convertProduct);
         log.info("Successful get products by category: {}", categoryName);
 
@@ -98,9 +98,6 @@ public class ProductServiceImpl implements ProductService {
     @Transactional(readOnly = true)
     @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
     public ProductResponseDto getProductByName(String name) {
-        if (name == null || name.isBlank()) {
-            throw new ValidationException("Name is empty");
-        }
         Product product = productRepository.findByName(name)
                 .orElseThrow(() -> new NotFoundException("Product", name));
         return mapper.mapProductToProductResponseDto(product);
@@ -111,9 +108,6 @@ public class ProductServiceImpl implements ProductService {
     @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
     @Cacheable(cacheNames = "product", key = "#id")
     public ProductResponseDto getProductById(String id) {
-        if (id == null || id.isBlank()) {
-            throw new ValidationException("Id is empty");
-        }
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Product", id));
         return mapper.mapProductToProductResponseDto(product);
@@ -123,47 +117,47 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional
     @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
-    @CacheEvict(cacheNames = "product", allEntries = true)
-    public void updateProduct(ProductResponseDto productResponseDto, String productName) {
-        Product existing = findProductByName(productName);
+    @CacheEvict(cacheNames = "product", key = "#id")
+    public void updateProduct(String id, UpdateProductCommand command) {
+        Product existing = findProductById(id);
 
-        int updated = productRepository.update(productName,
-                productResponseDto.description(),
-                productResponseDto.price(),
-                productResponseDto.characteristics(),
-                productResponseDto.inStock(),
-                existing.getVersion());
+        int updated = productRepository.updateById(id,
+                command.description(), command.price(), command.characteristics(),
+                command.inStock(), existing.getVersion());
         if (updated == 0) {
-            throw new ObjectOptimisticLockingFailureException(Product.class.getSimpleName(), productName);
+            throw new ObjectOptimisticLockingFailureException(Product.class.getSimpleName(), id);
         }
         meterRegistry.counter("catalog.product.updated").increment();
-        publishAfterCommit(() -> productEventPublisher.publishUpdated(productName));
-        log.info("The updates were successful on product: {}", productName);
+        publishAfterCommit(() -> productEventPublisher.publishUpdated(id, existing.getName()));
+        log.info("The updates were successful on product: {}", id);
     }
 
     @Override
     @Transactional
     @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
-    @CacheEvict(cacheNames = "product", allEntries = true)
-    public void deleteProduct(String productName) {
-        findProductByName(productName);
-        productRepository.deleteByName(productName);
+    @CacheEvict(cacheNames = "product", key = "#id")
+    public void deleteProduct(String id) {
+        Product existing = findProductById(id);
+        productRepository.delete(existing);   // honours @SQLDelete soft-delete
         meterRegistry.counter("catalog.product.deleted").increment();
-        publishAfterCommit(() -> productEventPublisher.publishDeleted(productName));
+        publishAfterCommit(() -> productEventPublisher.publishDeleted(id, existing.getName()));
     }
 
     @Override
     @Transactional(readOnly = true)
     @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
     public List<ProductResponseDto> getProductsById(ItemRequestDto product) {
-        return product.items().stream().map(this::getProductById).toList();
+        // Each id is an independent read, so fan the lookups out across virtual threads rather than
+        // running N serial round-trips. Results are returned in request order; a missing id still
+        // surfaces as NotFoundException (fail-fast). See VirtualThreads#mapParallel.
+        return VirtualThreads.mapParallel(product.items(), this::getProductById);
     }
 
-    private Product findProductByName(String productName) {
-        return productRepository.findByName(productName)
+    private Product findProductById(String id) {
+        return productRepository.findById(id)
                 .orElseThrow(() -> {
-                    log.warn("Product with the name: {} does not exist.", productName);
-                    return new NotFoundException("Product", productName);
+                    log.warn("Product with the id: {} does not exist.", id);
+                    return new NotFoundException("Product", id);
                 });
     }
 

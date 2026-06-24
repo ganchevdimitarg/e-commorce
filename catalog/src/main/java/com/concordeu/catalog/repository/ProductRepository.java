@@ -31,6 +31,17 @@ public interface ProductRepository extends JpaRepository<Product, String> {
                @Param("price") BigDecimal price, @Param("characteristics") String characteristics,
                @Param("inStock") boolean inStock, @Param("version") long version);
 
+    @Modifying(clearAutomatically = true)
+    @Query("""
+            update Product p set p.description = :description, p.price = :price, \
+            p.characteristics = :characteristics, p.inStock = :inStock, \
+            p.version = p.version + 1 \
+            where p.id = :id and p.version = :version
+            """)
+    int updateById(@Param("id") String id, @Param("description") String description,
+                   @Param("price") BigDecimal price, @Param("characteristics") String characteristics,
+                   @Param("inStock") boolean inStock, @Param("version") long version);
+
     @Modifying
     @Query("""
             update Product p set p.category.id = :categoryId, \
