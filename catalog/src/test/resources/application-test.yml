@@ -14,6 +14,17 @@ spring:
       enabled: false
   config:
     import: "optional:configserver:"
+  # JWT resource-server config — tests use @WithMockUser so the JWK endpoint is never contacted,
+  # but the JwtDecoder bean must exist for the security filter chain to initialise.
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: http://localhost:8082/oauth2/jwks
+  # Ensure Docker Compose support is off in tests (Testcontainers provides infrastructure)
+  docker:
+    compose:
+      enabled: false
 
 kafka:
   bootstrapAddress: localhost:9092

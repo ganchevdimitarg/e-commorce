@@ -5,7 +5,8 @@ spring:
   application:
     name: catalog-service
   profiles:
-    include: dev
+    group:
+      default: dev
   config:
     import: "optional:vault://"
   devtools:
