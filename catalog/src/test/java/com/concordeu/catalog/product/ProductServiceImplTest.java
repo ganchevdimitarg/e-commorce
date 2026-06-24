@@ -37,8 +37,8 @@ import java.util.Optional;
 
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
 @Tag("unit")
@@ -108,15 +108,20 @@ class ProductServiceImplTest {
     }
 
     @Test
-    void should_returnProductsPage_when_pageRequested() {
-        PageRequest pageRequest = PageRequest.of(1, 5);
-        List<Product> products = Arrays.asList(new Product(), new Product());
-        Page<Product> page = new PageImpl<>(products, pageRequest, products.size());
+    void should_returnMappedProductsPage_when_pageRequested() {
+        PageRequest pageRequest = PageRequest.of(0, 2);
+        Product p = new Product();
+        p.setId("p1");
+        p.setName("mouse");
+        p.setCategory(new Category());
+        Page<Product> page = new PageImpl<>(List.of(p), pageRequest, 1);
         when(productRepository.findAll(pageRequest)).thenReturn(page);
 
-        testService.getProductsByPage(pageRequest);
+        Page<ProductResponseDto> result = testService.getProductsByPage(pageRequest);
 
-        verify(productRepository).findAll(pageRequest);
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).name()).isEqualTo("mouse");
+        assertThat(result.getTotalElements()).isEqualTo(1);
     }
 
     @Test
@@ -273,7 +278,7 @@ class ProductServiceImplTest {
 
         List<ProductResponseDto> result = testService.getProductsById(items);
 
-        org.assertj.core.api.Assertions.assertThat(result).containsExactly(dto1, dto2);
+        assertThat(result).containsExactly(dto1, dto2);
     }
 
     @Test
