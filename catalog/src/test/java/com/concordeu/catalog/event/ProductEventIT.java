@@ -3,10 +3,13 @@ package com.concordeu.catalog.event;
 import com.concordeu.catalog.RedisKafkaIntegrationBase;
 import com.concordeu.catalog.dto.product.CreateProductCommand;
 import com.concordeu.catalog.service.product.ProductService;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.jupiter.api.AfterEach;
@@ -19,6 +22,7 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -31,7 +35,8 @@ import static org.awaitility.Awaitility.await;
 
 /**
  * End-to-end integration test: creates a product via the service layer and asserts
- * the corresponding {@code catalog.product.created} Kafka event arrives on the topic.
+ * the corresponding {@code catalog.product.created} Kafka event arrives on the topic
+ * with the correct payload fields and message headers.
  */
 @Tag("integration")
 class ProductEventIT extends RedisKafkaIntegrationBase {
@@ -39,6 +44,9 @@ class ProductEventIT extends RedisKafkaIntegrationBase {
     private static final String TOPIC = "catalog.product.created";
     private static final String PRODUCT_NAME = "mouse";
     private static final String CATEGORY_NAME = "peripherals";
+
+    private static final ObjectMapper MAPPER = new ObjectMapper()
+            .registerModule(new JavaTimeModule());
 
     @Autowired
     private ProductService productService;
@@ -84,7 +92,7 @@ class ProductEventIT extends RedisKafkaIntegrationBase {
 
     @Test
     @WithMockUser(authorities = "SCOPE_catalog.write")
-    void should_publishCreatedEvent_when_productIsCreated() {
+    void should_publishEventWithPayloadAndHeaders_when_productIsCreated() throws Exception {
         // Given: a product command
         CreateProductCommand cmd = new CreateProductCommand(
                 PRODUCT_NAME, "Wireless USB mouse",
@@ -92,21 +100,47 @@ class ProductEventIT extends RedisKafkaIntegrationBase {
                 CATEGORY_NAME);
 
         // When: the product is created via the service within a single transaction
-        // (createProduct lacks @Transactional, so we wrap it to keep the Category managed)
         txTemplate.executeWithoutResult(status ->
                 productService.createProduct(cmd));
 
-        // Then: a Kafka record keyed by productId arrives on the topic
-        CopyOnWriteArrayList<String> consumedKeys = new CopyOnWriteArrayList<>();
+        // Then: a Kafka record arrives with enriched payload and trace headers
+        CopyOnWriteArrayList<ConsumerRecord<String, byte[]>> consumed = new CopyOnWriteArrayList<>();
 
         await().atMost(10, SECONDS)
                 .pollInterval(Duration.ofMillis(200))
                 .untilAsserted(() -> {
                     ConsumerRecords<String, byte[]> records = consumer.poll(Duration.ofMillis(100));
-                    for (ConsumerRecord<String, byte[]> record : records) {
-                        consumedKeys.add(record.key());
+                    for (ConsumerRecord<String, byte[]> r : records) {
+                        consumed.add(r);
                     }
-                    assertThat(consumedKeys).isNotEmpty();
+                    assertThat(consumed).isNotEmpty();
                 });
+
+        ConsumerRecord<String, byte[]> record = consumed.getFirst();
+
+        // -- Payload assertions --
+        ProductEvent.ProductCreated event = MAPPER.readValue(
+                record.value(), ProductEvent.ProductCreated.class);
+
+        assertThat(event.productName()).isEqualTo(PRODUCT_NAME);
+        assertThat(event.productId()).isNotBlank();
+        assertThat(event.eventId()).isNotBlank();
+        assertThat(event.occurredAt()).isNotNull();
+
+        // Record key must equal the productId in the payload
+        assertThat(record.key()).isEqualTo(event.productId());
+
+        // -- Header assertions --
+        assertThat(headerValue(record, "eventType")).isEqualTo("created");
+        assertThat(headerValue(record, "correlationId")).isEqualTo(event.eventId());
+
+        Header traceIdHeader = record.headers().lastHeader("traceId");
+        assertThat(traceIdHeader).as("traceId header must be present").isNotNull();
+    }
+
+    private static String headerValue(ConsumerRecord<?, ?> record, String key) {
+        Header header = record.headers().lastHeader(key);
+        assertThat(header).as("Header '%s' must be present", key).isNotNull();
+        return new String(header.value(), StandardCharsets.UTF_8);
     }
 }
