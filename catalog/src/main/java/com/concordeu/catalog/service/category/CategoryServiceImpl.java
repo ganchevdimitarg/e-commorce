@@ -59,11 +59,7 @@ public class CategoryServiceImpl implements CategoryService {
     @Transactional
     @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
     public void deleteCategory(String categoryName) {
-        if (categoryRepository.findByName(categoryName).isEmpty()) {
-            log.warn("No such category: {}", categoryName);
-            throw new NotFoundException("Category", categoryName);
-        }
-
+        requireCategory(categoryName);
         categoryRepository.deleteByName(categoryName);
         meterRegistry.counter("catalog.category.deleted").increment();
     }

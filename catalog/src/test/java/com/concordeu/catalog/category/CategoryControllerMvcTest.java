@@ -8,7 +8,6 @@ import com.concordeu.catalog.dto.category.MoveProductCommand;
 import com.concordeu.catalog.exception.ControllerExceptionHandler;
 import com.concordeu.catalog.exception.ProblemAccessDeniedHandler;
 import com.concordeu.catalog.exception.ProblemAuthenticationEntryPoint;
-import com.concordeu.catalog.mapper.MapStructMapper;
 import com.concordeu.catalog.service.category.CategoryService;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import org.junit.jupiter.api.Tag;
@@ -34,6 +33,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -47,8 +47,6 @@ class CategoryControllerMvcTest {
     MockMvc mockMvc;
     @MockitoBean
     CategoryService categoryService;
-    @MockitoBean
-    MapStructMapper mapper;
     @MockitoBean
     JwtDecoder jwtDecoder;
     @MockitoBean
@@ -84,6 +82,7 @@ class CategoryControllerMvcTest {
                                 {"name": "Electronics"}
                                 """))
                 .andExpect(status().isCreated())
+                .andExpect(header().string("Location", "/api/v1/catalog/categories/Electronics"))
                 .andExpect(jsonPath("$.name").value("Electronics"));
     }
 

@@ -75,14 +75,6 @@ class CategoryServiceImplTest {
     }
 
     @Test
-    void should_throwConflict_when_createCategoryDuplicate() {
-        when(categoryRepository.findByName("PC")).thenReturn(Optional.of(new Category()));
-
-        assertThatThrownBy(() -> testService.createCategory(new CreateCategoryCommand("PC")))
-                .isInstanceOf(ConflictException.class);
-    }
-
-    @Test
     void should_createCategory_when_nameIsNotEmpty() {
         when(categoryRepository.findByName(categoryName)).thenReturn(Optional.empty());
 

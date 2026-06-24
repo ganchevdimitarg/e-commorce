@@ -5,7 +5,6 @@ import com.concordeu.catalog.dto.category.CategoryRequestDto;
 import com.concordeu.catalog.dto.category.CategoryResponseDto;
 import com.concordeu.catalog.dto.category.CreateCategoryCommand;
 import com.concordeu.catalog.dto.category.MoveProductCommand;
-import com.concordeu.catalog.mapper.MapStructMapper;
 import com.concordeu.catalog.service.category.CategoryService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -29,7 +28,6 @@ import java.net.URI;
 public class CategoryController {
 
     private final CategoryService categoryService;
-    private final MapStructMapper mapper;
 
     @Operation(summary = "Create category", security = @SecurityRequirement(name = "security_auth"))
     @PostMapping
