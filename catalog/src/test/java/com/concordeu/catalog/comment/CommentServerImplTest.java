@@ -96,14 +96,14 @@ class CommentServerImplTest {
         when(productRepository.findByName(any(String.class))).thenReturn(Optional.of(product));
         when(commentRepository.findAllByProductIdByPage(productId, pageRequest)).thenReturn(page);
 
-        testService.findAllByProductNameByPage("aaaa89", 1, 5);
+        testService.findAllByProductNameByPage("aaaa89", pageRequest);
 
         verify(commentRepository).findAllByProductIdByPage(product.getId(), pageRequest);
     }
 
     @Test
     void should_throwValidation_when_findAllByProductNameWithEmptyName() {
-        assertThatThrownBy(() -> testService.findAllByProductNameByPage("", 1, 5))
+        assertThatThrownBy(() -> testService.findAllByProductNameByPage("", PageRequest.of(1, 5)))
                 .isInstanceOf(ValidationException.class)
                 .hasMessageContaining("Product name is empty");
 
@@ -112,7 +112,7 @@ class CommentServerImplTest {
 
     @Test
     void should_throwNotFound_when_findAllByProductNameForNonExistentProduct() {
-        assertThatThrownBy(() -> testService.findAllByProductNameByPage("aaaaa", 1, 5))
+        assertThatThrownBy(() -> testService.findAllByProductNameByPage("aaaaa", PageRequest.of(1, 5)))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("Product not found: aaaaa");
 
@@ -128,14 +128,14 @@ class CommentServerImplTest {
 
         when(commentRepository.findAllByAuthorByPage(productName, pageRequest)).thenReturn(page);
 
-        testService.findAllByAuthorByPage(productName, 1, 5);
+        testService.findAllByAuthorByPage(productName, pageRequest);
 
         verify(commentRepository).findAllByAuthorByPage(any(String.class), any(PageRequest.class));
     }
 
     @Test
     void should_throwValidation_when_findAllByAuthorWithEmptyAuthor() {
-        assertThatThrownBy(() -> testService.findAllByAuthorByPage("", 1, 5))
+        assertThatThrownBy(() -> testService.findAllByAuthorByPage("", PageRequest.of(1, 5)))
                 .isInstanceOf(ValidationException.class)
                 .hasMessageContaining("No such author: ");
 

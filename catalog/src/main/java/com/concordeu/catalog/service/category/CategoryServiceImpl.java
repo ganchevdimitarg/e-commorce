@@ -14,7 +14,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -118,9 +118,9 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     @Transactional(readOnly = true)
     @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
-    public Page<CategoryResponseDto> getCategoriesByPage(int page, int size) {
+    public Page<CategoryResponseDto> getCategoriesByPage(Pageable pageable) {
         Page<CategoryResponseDto> categories = categoryRepository
-                .findAll(PageRequest.of(page, size))
+                .findAll(pageable)
                 .map(this::convertCategory);
 
         log.info("Successful get categories: {}", categories.getSize());

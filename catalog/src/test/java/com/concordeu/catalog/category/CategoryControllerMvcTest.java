@@ -59,7 +59,7 @@ class CategoryControllerMvcTest {
         CategoryResponseDto dto = new CategoryResponseDto("1", "PC", List.of());
         Page<CategoryResponseDto> page = new PageImpl<>(
                 List.of(dto), PageRequest.of(0, 20), 1);
-        when(categoryService.getCategoriesByPage(0, 20)).thenReturn(page);
+        when(categoryService.getCategoriesByPage(any())).thenReturn(page);
 
         mockMvc.perform(get("/api/v1/catalog/category/get-categories")
                         .with(jwt().authorities(() -> "SCOPE_catalog.read")))

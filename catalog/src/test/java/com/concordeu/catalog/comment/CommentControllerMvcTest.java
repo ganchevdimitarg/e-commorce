@@ -96,7 +96,7 @@ class CommentControllerMvcTest {
         CommentResponseDto dto = new CommentResponseDto("Great", "Good product review", 5, "john", null);
         Page<CommentResponseDto> page = new PageImpl<>(
                 List.of(dto), PageRequest.of(0, 20), 1);
-        when(commentService.findAllByProductNameByPage("mouse", 0, 20)).thenReturn(page);
+        when(commentService.findAllByProductNameByPage(eq("mouse"), any())).thenReturn(page);
 
         mockMvc.perform(get("/api/v1/catalog/comment/get-comments-product-name")
                         .param("productName", "mouse")
@@ -110,7 +110,7 @@ class CommentControllerMvcTest {
         CommentResponseDto dto = new CommentResponseDto("Great", "Good product review", 5, "john", null);
         Page<CommentResponseDto> page = new PageImpl<>(
                 List.of(dto), PageRequest.of(0, 20), 1);
-        when(commentService.findAllByAuthorByPage("john", 0, 20)).thenReturn(page);
+        when(commentService.findAllByAuthorByPage(eq("john"), any())).thenReturn(page);
 
         mockMvc.perform(get("/api/v1/catalog/comment/get-comments-author")
                         .param("author", "john")
