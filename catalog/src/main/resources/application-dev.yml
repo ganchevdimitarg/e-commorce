@@ -36,6 +36,11 @@ spring:
       host: localhost
       port: 6379
 
+  #Spring Cloud — Spring Cloud 2025.1 only certifies Boot 4.0.x; suppress the verifier on Boot 4.1.x
+  cloud:
+    compatibility-verifier:
+      enabled: false
+
   #Cache
   cache:
     type: redis

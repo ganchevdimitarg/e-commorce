@@ -12,7 +12,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -53,7 +53,7 @@ public class CommentServiceImpl implements CommentService {
     @Override
     @Transactional(readOnly = true)
     @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
-    public Page<CommentResponseDto> findAllByProductNameByPage(String productName, int page, int size) {
+    public Page<CommentResponseDto> findAllByProductNameByPage(String productName, Pageable pageable) {
         if (productName.isEmpty()) {
             logMessage(productName);
             throw new ValidationException("Product name is empty");
@@ -65,7 +65,7 @@ public class CommentServiceImpl implements CommentService {
         });
 
         Page<CommentResponseDto> comments = commentRepository
-                .findAllByProductIdByPage(product.getId(), PageRequest.of(page, size))
+                .findAllByProductIdByPage(product.getId(), pageable)
                 .map(this::convertComment);
 
         log.info("Successful get comments by product: {}", productName);
@@ -80,13 +80,13 @@ public class CommentServiceImpl implements CommentService {
     @Override
     @Transactional(readOnly = true)
     @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
-    public Page<CommentResponseDto> findAllByAuthorByPage(String author, int page, int size) {
+    public Page<CommentResponseDto> findAllByAuthorByPage(String author, Pageable pageable) {
         if (author.isEmpty()) {
             log.warn("No such author: {}", author);
             throw new ValidationException("No such author: " + author);
         }
         Page<CommentResponseDto> comments = commentRepository
-                .findAllByAuthorByPage(author, PageRequest.of(page, size))
+                .findAllByAuthorByPage(author, pageable)
                 .map(this::convertComment);
         log.info("Successful get comments by author: {}", author);
 
