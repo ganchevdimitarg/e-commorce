@@ -5,6 +5,7 @@ import com.concordeu.catalog.controller.CommentController;
 import com.concordeu.catalog.dto.comment.CommentResponseDto;
 import com.concordeu.catalog.dto.comment.CreateCommentCommand;
 import com.concordeu.catalog.exception.ControllerExceptionHandler;
+import com.concordeu.catalog.exception.NotFoundException;
 import com.concordeu.catalog.exception.ProblemAccessDeniedHandler;
 import com.concordeu.catalog.exception.ProblemAuthenticationEntryPoint;
 import com.concordeu.catalog.service.comment.CommentService;
@@ -148,5 +149,35 @@ class CommentControllerMvcTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
+    void should_return400ProblemJson_when_createCommentWithoutIdempotencyKey() throws Exception {
+        mockMvc.perform(post("/api/v1/catalog/products/mouse/comments")
+                        .with(jwt().authorities(() -> "SCOPE_catalog.write"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                    "title": "Great product",
+                                    "text": "This is a thorough review text",
+                                    "star": 5,
+                                    "author": "john"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON));
+    }
+
+    @Test
+    void should_return404ProblemJson_when_getAvgStarsForNonexistentProduct() throws Exception {
+        when(commentService.getAvgStars("nonexistent"))
+                .thenThrow(new NotFoundException("Product", "nonexistent"));
+
+        mockMvc.perform(get("/api/v1/catalog/products/nonexistent/comments/avg-stars")
+                        .with(jwt().authorities(() -> "SCOPE_catalog.read")))
+                .andExpect(status().isNotFound())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.detail").value("Product not found: nonexistent"));
     }
 }

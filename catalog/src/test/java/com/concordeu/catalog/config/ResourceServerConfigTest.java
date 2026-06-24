@@ -62,4 +62,24 @@ class ResourceServerConfigTest {
         assertThat(config.isJwt(request)).isFalse();
         verifyNoInteractions(jwtDecoder);
     }
+
+    @Test
+    void should_returnFalse_when_firstSegmentIsNotValidBase64url() {
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getHeader("Authorization")).thenReturn("Bearer !!!.payload.sig");
+
+        assertThat(config.isJwt(request)).isFalse();
+        verifyNoInteractions(jwtDecoder);
+    }
+
+    @Test
+    void should_returnFalse_when_headerJsonHasNoAlgKey() {
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        // {"typ":"JWT"} base64url = eyJ0eXAiOiJKV1QifQ
+        when(request.getHeader("Authorization"))
+                .thenReturn("Bearer eyJ0eXAiOiJKV1QifQ.eyJzdWIiOiJ4In0.sig");
+
+        assertThat(config.isJwt(request)).isFalse();
+        verifyNoInteractions(jwtDecoder);
+    }
 }
