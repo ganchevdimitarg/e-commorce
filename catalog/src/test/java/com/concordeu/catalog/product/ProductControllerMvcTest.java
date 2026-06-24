@@ -23,6 +23,7 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.concordeu.catalog.exception.NotFoundException;
 import com.concordeu.catalog.dto.product.ItemRequestDto;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -222,5 +223,32 @@ class ProductControllerMvcTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
+    void should_return400ProblemJson_when_createProductWithoutIdempotencyKey() throws Exception {
+        mockMvc.perform(post("/api/v1/catalog/products")
+                        .param("categoryName", "PC")
+                        .with(csrf())
+                        .with(jwt().authorities(() -> "SCOPE_catalog.write"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"mouse","description":"WiFi mouse USB","price":1,"inStock":true,"characteristics":""}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON));
+    }
+
+    @Test
+    void should_return404ProblemJson_when_getProductByIdNotFound() throws Exception {
+        when(productService.getProductById("nonexistent"))
+                .thenThrow(new NotFoundException("Product", "nonexistent"));
+
+        mockMvc.perform(get("/api/v1/catalog/products/nonexistent")
+                        .with(jwt().authorities(() -> "SCOPE_catalog.read")))
+                .andExpect(status().isNotFound())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.detail").value("Product not found: nonexistent"));
     }
 }

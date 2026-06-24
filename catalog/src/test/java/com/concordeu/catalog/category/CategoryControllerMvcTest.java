@@ -6,6 +6,7 @@ import com.concordeu.catalog.dto.category.CategoryResponseDto;
 import com.concordeu.catalog.dto.category.CreateCategoryCommand;
 import com.concordeu.catalog.dto.category.MoveProductCommand;
 import com.concordeu.catalog.exception.ControllerExceptionHandler;
+import com.concordeu.catalog.exception.NotFoundException;
 import com.concordeu.catalog.exception.ProblemAccessDeniedHandler;
 import com.concordeu.catalog.exception.ProblemAuthenticationEntryPoint;
 import com.concordeu.catalog.service.category.CategoryService;
@@ -32,6 +33,8 @@ import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -153,5 +156,33 @@ class CategoryControllerMvcTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
+    void should_return400ProblemJson_when_createCategoryWithoutIdempotencyKey() throws Exception {
+        mockMvc.perform(post("/api/v1/catalog/categories")
+                        .with(csrf())
+                        .with(jwt().authorities(() -> "SCOPE_catalog.write"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name": "Electronics"}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON));
+    }
+
+    @Test
+    void should_return404ProblemJson_when_deleteCategoryNotFound() throws Exception {
+        doThrow(new NotFoundException("Category", "nonexistent"))
+                .when(categoryService).deleteCategory(eq("nonexistent"));
+
+        mockMvc.perform(delete("/api/v1/catalog/categories/nonexistent")
+                        .with(csrf())
+                        .with(jwt().authorities(() -> "SCOPE_catalog.write"))
+                        .header("Idempotency-Key", "k-404"))
+                .andExpect(status().isNotFound())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.detail").value("Category not found: nonexistent"));
     }
 }
