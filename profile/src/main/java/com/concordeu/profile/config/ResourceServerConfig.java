@@ -9,9 +9,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationManagerResolver;
 import org.springframework.security.authentication.ProviderManager;
-import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.jwt.BadJwtException;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
@@ -21,10 +22,10 @@ import org.springframework.security.oauth2.server.resource.introspection.OpaqueT
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 @EnableWebSecurity
-@EnableGlobalMethodSecurity(prePostEnabled = true)
+@EnableMethodSecurity(prePostEnabled = true)
 @RequiredArgsConstructor
 @Slf4j
 public class ResourceServerConfig {
@@ -33,29 +34,26 @@ public class ResourceServerConfig {
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-                .csrf().disable()
-                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                .and()
-                .authorizeRequests()
-                    .mvcMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                    .mvcMatchers("/actuator/**").permitAll()
-                    .mvcMatchers("/api/v1/profile/register-admin").permitAll()
-                    .mvcMatchers("/api/v1/profile/register-worker").permitAll()
-                    .mvcMatchers("/api/v1/profile/register-user").permitAll()
-                    .mvcMatchers("/api/v1/profile/password-reset").permitAll()
-                    .anyRequest().authenticated()
-                .and()
-                .logout()
-                    .logoutUrl("/api/v1/profile/logout")
-                    .addLogoutHandler(logoutHandler)
-                    .logoutSuccessHandler(new HttpStatusReturningLogoutSuccessHandler(HttpStatus.OK))
-                    .permitAll()
-                .and()
-                .oauth2ResourceServer()
-                    .authenticationManagerResolver(this.tokenAuthenticationManagerResolver());
-
-        return http.build();
+        return http
+                .csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                        .requestMatchers("/actuator/**").permitAll()
+                        .requestMatchers("/api/v1/profile/register-admin").permitAll()
+                        .requestMatchers("/api/v1/profile/register-worker").permitAll()
+                        .requestMatchers("/api/v1/profile/register-user").permitAll()
+                        .requestMatchers("/api/v1/profile/password-reset").permitAll()
+                        .anyRequest().authenticated())
+                .logout(logout -> logout
+                        .logoutUrl("/api/v1/profile/logout")
+                        .addLogoutHandler(logoutHandler)
+                        .logoutSuccessHandler(new HttpStatusReturningLogoutSuccessHandler(HttpStatus.OK))
+                        .permitAll())
+                .oauth2ResourceServer(oauth2 -> oauth2
+                        .authenticationManagerResolver(this.tokenAuthenticationManagerResolver()))
+                .build();
     }
 
     @Bean
