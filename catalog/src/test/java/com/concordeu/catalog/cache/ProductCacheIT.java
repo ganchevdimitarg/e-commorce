@@ -26,6 +26,7 @@ import org.testcontainers.junit.jupiter.Container;
 
 import java.math.BigDecimal;
 import java.util.Objects;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.clearInvocations;
@@ -36,8 +37,8 @@ import static org.mockito.Mockito.verify;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class ProductCacheIT extends AbstractIntegrationTest {
 
-    private static final String CATEGORY_ID = "cache-cat-id";
-    private static final String PRODUCT_ID = "cache-prod-id";
+    private static final UUID CATEGORY_ID = UUID.fromString("aaaaaaaa-0000-0000-0000-00000000ca11");
+    private static final UUID PRODUCT_ID = UUID.fromString("bbbbbbbb-0000-0000-0000-00000000d00d");
     private static final String PRODUCT_NAME = "cache-test-product";
 
     @Container

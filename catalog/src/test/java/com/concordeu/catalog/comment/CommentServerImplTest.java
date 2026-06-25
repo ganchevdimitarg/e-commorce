@@ -24,6 +24,7 @@ import org.springframework.data.domain.PageRequest;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
@@ -82,7 +83,7 @@ class CommentServerImplTest {
         PageRequest pageRequest = PageRequest.of(1, 5);
         List<Comment> products = Arrays.asList(new Comment(), new Comment());
         Page<Comment> page = new PageImpl<>(products, pageRequest, products.size());
-        String productId = "0030223b-fdb9-40e2-a4b0-81bdf54479a2";
+        UUID productId = UUID.fromString("0030223b-fdb9-40e2-a4b0-81bdf54479a2");
         Product product = new Product();
         product.setId(productId);
         product.setName("aaaa89");
@@ -101,7 +102,7 @@ class CommentServerImplTest {
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("Product not found: aaaaa");
 
-        verify(commentRepository, never()).findAllByProductIdByPage(any(String.class), any(PageRequest.class));
+        verify(commentRepository, never()).findAllByProductIdByPage(any(UUID.class), any(PageRequest.class));
     }
 
     @Test
