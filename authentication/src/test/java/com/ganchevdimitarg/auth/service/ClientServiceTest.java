@@ -164,6 +164,18 @@ class ClientServiceTest {
                 () -> clientService.findById(clientUuid.toString()));
     }
 
+    // NOTE: getAuthMethod()'s empty-set guard (ClientConfigurationException) is defensive only —
+    // RegisteredClient.build() always populates at least one authentication method, so the empty
+    // branch is unreachable through the public save() API and is intentionally left without a test
+    // (a reflection-driven test of an unreachable branch would assert against an impossible state).
+
+    @Test
+    @DisplayName("findById() returns null when id is malformed (repository contract)")
+    void should_returnNull_when_idMalformed() {
+        assertNull(clientService.findById("not-a-uuid"));
+        verifyNoInteractions(clientDao);
+    }
+
     @Test
     @DisplayName("findById() should handle multiple scopes correctly")
     void findById_ShouldHandleMultipleScopes() {
