@@ -14,8 +14,11 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 
 @Document("users")
@@ -24,7 +27,7 @@ import java.util.Set;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString(exclude = {"password", "grantedAuthorities"})
+@ToString(exclude = {"password"})
 public class AuthUser {
     @Id
     private String id;
@@ -44,7 +47,8 @@ public class AuthUser {
                     no whitespace allowed in the entire string
                     """)
     private String password;
-    private Set<? extends GrantedAuthority> grantedAuthorities;
+    /** Role/authority names persisted as plain strings so they round-trip through MongoDB. */
+    private Set<String> authorities;
     @Size(min = 3, max = 12, message = "First name must be between 3 and 12 characters!")
     @NotBlank(message = "First name can not be empty!")
     @Pattern(regexp = "^([A-Z])(\\p{L})(?=\\S+$).{3,12}$",
@@ -64,4 +68,14 @@ public class AuthUser {
             message = "Phone number must contain only digits!")
     private String phoneNumber;
     private LocalDateTime created;
+
+    /** Maps the persisted authority names to Spring Security {@link GrantedAuthority} instances. */
+    public Collection<? extends GrantedAuthority> getGrantedAuthorities() {
+        if (authorities == null) {
+            return List.of();
+        }
+        return authorities.stream()
+                .map(SimpleGrantedAuthority::new)
+                .toList();
+    }
 }
