@@ -34,9 +34,25 @@ public class ClientService implements RegisteredClientRepository {
 
     @Override
     public RegisteredClient findById(String id) {
-        return clientDao.findById(UUID.fromString(id))
+        UUID clientId = parseUuidOrNull(id);
+        if (clientId == null) {
+            return null;
+        }
+        return clientDao.findById(clientId)
                 .map(this::getRegisteredClient)
                 .orElse(null);
+    }
+
+    /**
+     * Parses an id into a UUID, returning null for malformed input so callers honour the
+     * RegisteredClientRepository contract (null on miss) rather than throwing.
+     */
+    private UUID parseUuidOrNull(String id) {
+        try {
+            return UUID.fromString(id);
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
     }
 
     @Override
@@ -47,7 +63,7 @@ public class ClientService implements RegisteredClientRepository {
     }
 
     /**
-     * Converts a client to a registere client with settings
+     * Converts a client to a registered client with settings
      */
     private RegisteredClient getRegisteredClient(Client client) {
         Consumer<Set<AuthorizationGrantType>> authorizationGrantTypesConsumer = authGrantType -> client.getGrantType()
