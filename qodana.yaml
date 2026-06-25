@@ -4,28 +4,72 @@
 #-------------------------------------------------------------------------------#
 version: "1.0"
 
-#Specify the inspection profile for code analysis
 profile:
-  name: qodana.starter
+  name: qodana.recommended
 
-#Enable inspections
-#include:
-#  - name: <SomeEnabledInspectionId>
+projectJDK: "21"
 
-#Disable inspections
-#exclude:
-#  - name: <SomeDisabledInspectionId>
-#    paths:
-#      - <path/where/not/run/inspection>
-
-projectJDK: "21" #(Applied in CI/CD pipeline)
-
-#Execute shell command before Qodana execution (Applied in CI/CD pipeline)
-#bootstrap: sh ./prepare-qodana.sh
-
-#Install IDE plugins before Qodana execution (Applied in CI/CD pipeline)
-#plugins:
-#  - id: <plugin.id> #(plugin id can be found at https://plugins.jetbrains.com)
-
-#Specify Qodana linter for analysis (Applied in CI/CD pipeline)
 linter: jetbrains/qodana-jvm:2024.3
+
+include:
+
+  # Spring & Dependency Injection
+  - name: SpringJavaInjectionPointsAutowiringInspection
+  - name: SpringTransactionalComponentInspection
+  - name: SpringEventListenerInspection
+  - name: SpringCacheAnnotationsOnInterfaceInspection
+
+  # Spring Security
+  - name: SpringSecurityDebugEnabled
+
+  # JPA / Database
+  - name: JpaObjectClassSuportUtilityInspection
+  - name: HibernatePersistedObjectEventualConsistency
+
+  # General Java quality
+  - name: ConstantConditions
+  - name: ResultOfMethodCallIgnored
+  - name: resource  # AutoCloseable resource leak detection
+  - name: ThrowablePrintStackTrace
+  - name: ThrowableNotThrown
+  - name: NestedTryStatement
+  - name: UnnecessaryLocalVariable
+  - name: StringEquality
+  - name: NullableProblems
+  - name: OptionalUsedAsFieldOrParameterType
+
+exclude:
+  # Suppress generated code from Lombok and build dirs
+  - name: All
+    paths:
+      - target
+      - build
+      - .idea
+      - .mvn
+
+  # Flyway migrations — SQL style is intentional, skip style warnings
+  - name: SqlNoDataSourceInspection
+    paths:
+      - src/main/resources/db/migration
+
+  # MongoDB repositories — dynamic queries flagged as unresolved
+  - name: SpringDataMongoDBJsonFieldInspection
+    paths:
+      - src/main/java
+
+  # Test code — relax some rules
+  - name: ConstantConditions
+    paths:
+      - src/test
+  - name: HardcodedCredentials
+    paths:
+      - src/test
+
+bootstrap: |
+  echo "Starting Qodana bootstrap..."
+
+plugins:
+  - id: com.intellij.java                  # Core Java support
+  - id: com.intellij.spring               # Spring framework support
+  - id: com.intellij.spring.security      # Spring Security inspections
+  - id: com.intellij.persistence         # JPA / Hibernate support

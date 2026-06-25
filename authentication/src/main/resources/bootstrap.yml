@@ -11,7 +11,7 @@ spring:
   config:
     import:
       - "optional:vault://"
-#      - "optional:file:.env[.properties]"
+      - "optional:file:.env[.properties]"
 
   devtools:
     livereload:
@@ -21,7 +21,7 @@ spring:
     vault:
       uri: http://localhost:8200
       authentication: TOKEN
-      token: root
+      token: ${VAULT_DEV_ROOT_TOKEN_ID}
       kv:
         enabled: true
         backend: secret

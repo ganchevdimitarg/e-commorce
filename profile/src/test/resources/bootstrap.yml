@@ -1,0 +1,14 @@
+spring:
+  cloud:
+    config:
+      enabled: false
+    vault:
+      enabled: false
+      config:
+        import-check:
+          enabled: false
+    bootstrap:
+      enabled: false
+  config:
+    import: ""
+    use-legacy-processing: false
