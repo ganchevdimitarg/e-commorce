@@ -1,13 +1,18 @@
-package com.ganchevdimitarg.catalog.domain;
+package com.concordeu.catalog.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
+
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
-import lombok.*;
-
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.UUID;
 
 @Entity(name = "Product")
 @Table(
@@ -16,17 +21,17 @@ import java.util.List;
                 @UniqueConstraint(name = "product_name", columnNames = "name")
         },
         indexes = @Index(name = "product_index",columnList = "name"))
+@SQLDelete(sql = "UPDATE products SET deleted_at = now() WHERE id = ? AND version = ?")
+@SQLRestriction("deleted_at IS NULL")
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
-@Setter
 @Getter
-public class Product {
+@Setter
+public class Product extends Auditable {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", unique = true, nullable = false, updatable = false)
-    private String id;
-    @Column(name = "name", nullable = false, length = 200)
+    private UUID id;
+    @Column(name = "name", nullable = false, length = 20)
     @NotEmpty
     @Size(min = 3, max = 20)
     private String name;
@@ -40,11 +45,14 @@ public class Product {
     private boolean inStock;
     @Column(name = "characteristics", columnDefinition = "TEXT")
     private String characteristics;
-    @ManyToOne(cascade = CascadeType.ALL)
+    @ManyToOne
     @JoinColumn(name = "category_id", referencedColumnName = "id")
-    private com.ganchevdimitarg.catalog.domain.Category category;
-    @OneToMany(mappedBy = "product", targetEntity = Comment.class, cascade = CascadeType.ALL)
+    private Category category;
+    @OneToMany(mappedBy = "product", targetEntity = Comment.class, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JsonIgnore
     private List<Comment> comments;
-}
 
+    public List<Comment> getComments() {
+        return comments == null ? List.of() : List.copyOf(comments);
+    }
+}
