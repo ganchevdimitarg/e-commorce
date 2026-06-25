@@ -23,6 +23,7 @@ class ControllerExceptionHandlerTest {
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().getProperties()).containsKey("code");
         assertThat(response.getBody().getProperties().get("code")).isEqualTo("NOT_FOUND");
+        assertThat(response.getBody().getProperties()).containsKey("timestamp");
     }
 
     @Test
@@ -32,5 +33,17 @@ class ControllerExceptionHandlerTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
         assertThat(response.getBody().getProperties().get("code")).isEqualTo("CLIENT_MISCONFIGURED");
+    }
+
+    @Test
+    void should_returnInternalError_when_unexpectedException() {
+        ResponseEntity<ProblemDetail> response =
+                handler.handleUnexpected(new RuntimeException("boom"));
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+        assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_PROBLEM_JSON);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getProperties().get("code")).isEqualTo("INTERNAL_ERROR");
+        assertThat(response.getBody().getDetail()).isEqualTo("An unexpected error occurred");
     }
 }

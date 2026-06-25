@@ -50,3 +50,8 @@ Reference with `@docs/decisions.md` in prompts when Claude re-raises settled que
   ownership + cascade) is deferred as a higher-risk structural change.
 - **Deferred — profile fields on `AuthUser`** (`firstName`/`lastName`/`address`/`phoneNumber`) belong
   to the `profile` service's bounded context; extraction deferred to avoid breaking unverified consumers.
+- **Soft-delete filter intentionally omitted on OAuth config tables.** The `deleted_at` audit column
+  exists for convention uniformity, but client/scope/grant-type/redirect/token-setting rows are static
+  configuration that is never soft-deleted (clients are seeded, not deleted at runtime), so queries do
+  not filter `WHERE deleted_at IS NULL`. Revisit alongside the `save()`/ownership rework if a delete
+  path is ever added.
