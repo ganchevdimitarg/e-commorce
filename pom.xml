@@ -6,13 +6,13 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>4.0.2</version>
-        <relativePath/>
+        <version>4.1.0</version>
+        <relativePath/> <!-- lookup parent from a repository -->
     </parent>
 
-    <groupId>com.concordeu</groupId>
+    <groupId>com.ganchevdimitarg</groupId>
     <artifactId>e-commerce</artifactId>
-    <version>0.0.2-SNAPSHOT</version>
+    <version>0.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>e-commerce</name>
@@ -20,68 +20,46 @@
 
     <modules>
         <module>catalog</module>
-        <module>authentication</module>
-        <module>eureka-server</module>
-        <module>gateway</module>
-        <module>profile</module>
-        <module>notification</module>
-        <module>order</module>
-        <module>config-server</module>
+<!--        <module>authentication</module>-->
+<!--        <module>eureka-server</module>-->
+<!--        <module>gateway</module>-->
+<!--        <module>profile</module>-->
+<!--        <module>notification</module>-->
+<!--        <module>order</module>-->
+<!--        <module>config-server</module>-->
         <module>client</module>
-        <module>payment</module>
+<!--        <module>payment</module>-->
     </modules>
 
     <properties>
-        <java.version>21</java.version>
-        <spring.boot.maven.plugin.version>4.0.3</spring.boot.maven.plugin.version>
-        <spring.boot.dependecies.version>4.0.3</spring.boot.dependecies.version>
-        <spring-cloud.version>2025.1.0</spring-cloud.version>
-        <springdoc.version>2.7.0</springdoc.version>
+        <java.version>25</java.version>
+        <spring.boot.maven.plugin.version>4.0.2</spring.boot.maven.plugin.version>
+        <spring.boot.dependencies.version>4.1.0</spring.boot.dependencies.version>
+        <spring.cloud-version>2025.1.1</spring.cloud-version>
         <metrics.version>0.5.1.RELEASE</metrics.version>
-        <testcontainers.version>2.0.2</testcontainers.version>
-
+        <oauth2-oidc-sdk.version>11.23</oauth2-oidc-sdk.version>
     </properties>
 
     <dependencyManagement>
         <dependencies>
             <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring.boot.dependencies.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
                 <groupId>org.springframework.cloud</groupId>
                 <artifactId>spring-cloud-dependencies</artifactId>
-                <version>${spring-cloud.version}</version>
+                <version>${spring.cloud-version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
             <dependency>
-                <groupId>org.springdoc</groupId>
-                <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-                <version>${springdoc.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.springdoc</groupId>
-                <artifactId>springdoc-openapi-starter-webflux-ui</artifactId>
-                <version>${springdoc.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.testcontainers</groupId>
-                <artifactId>testcontainers-bom</artifactId>
-                <version>${testcontainers.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.flywaydb</groupId>
-                <artifactId>flyway-core</artifactId>
-                <version>10.10.0</version>
-            </dependency>
-            <dependency>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-starter-aop</artifactId>
-                <version>3.5.11</version>
-            </dependency>
-            <dependency>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-starter-flyway</artifactId>
-                <version>${spring.boot.dependecies.version}</version>
+                <groupId>com.nimbusds</groupId>
+                <artifactId>oauth2-oidc-sdk</artifactId>
+                <version>${oauth2-oidc-sdk.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -98,31 +76,13 @@
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
 
+        <!-- JUnit 5 -->
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-opentelemetry</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.opentelemetry.instrumentation</groupId>
-            <artifactId>opentelemetry-logback-appender-1.0</artifactId>
-            <version>2.21.0-alpha</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-opentelemetry-test</artifactId>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>5.12.2</version>
             <scope>test</scope>
         </dependency>
-
-        <!-- Mockito Core + JUnit 5 Integration for mocking static methods -->
-        <dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-junit-jupiter</artifactId>
-            <version>5.20.0</version>
-            <scope>test</scope>
-        </dependency>
-
-
     </dependencies>
 
     <build>
@@ -172,7 +132,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.13.0</version>
+                <version>3.13.0</version> <!-- Try 3.13.0 instead of 3.15.0 -->
                 <configuration>
                     <source>${java.version}</source>
                     <target>${java.version}</target>

@@ -1,4 +1,8 @@
 package com.ganchevdimitarg.catalog.dto.category;
 
-public record CategoryRequestDto(String name) {
+import jakarta.validation.constraints.NotEmpty;
+
+public record CategoryRequestDto(
+        @NotEmpty(message = "Category name is empty")
+        String name) {
 }

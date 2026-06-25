@@ -1,6 +1,6 @@
-package com.ganchevdimitarg.catalog.service.category;
+package com.concordeu.catalog.service.category;
 
-import com.ganchevdimitarg.catalog.dto.category.CategoryResponseDto;
+import com.concordeu.catalog.dto.category.CategoryResponseDto;
 import org.springframework.data.domain.Page;
 
 public interface CategoryService {

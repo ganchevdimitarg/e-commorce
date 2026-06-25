@@ -1,15 +1,20 @@
-package com.ganchevdimitarg.catalog.product;
+package com.concordeu.catalog.product;
 
 
-import com.ganchevdimitarg.catalog.dao.CategoryDao;
-import com.ganchevdimitarg.catalog.dao.ProductDao;
-import com.ganchevdimitarg.catalog.domain.Category;
-import com.ganchevdimitarg.catalog.domain.Product;
-import com.ganchevdimitarg.catalog.dto.product.ProductResponseDto;
-import com.ganchevdimitarg.catalog.mapper.MapStructMapper;
-import com.ganchevdimitarg.catalog.service.product.ProductService;
-import com.ganchevdimitarg.catalog.service.product.ProductServiceImpl;
-import com.ganchevdimitarg.catalog.validator.ProductDataValidator;
+import com.concordeu.catalog.repository.CategoryRepository;
+import com.concordeu.catalog.repository.ProductRepository;
+import com.concordeu.catalog.domain.Category;
+import com.concordeu.catalog.domain.Product;
+import com.concordeu.catalog.dto.product.CreateProductCommand;
+import com.concordeu.catalog.dto.product.ProductResponseDto;
+import com.concordeu.catalog.dto.product.UpdateProductCommand;
+import com.concordeu.catalog.event.ProductEventPublisher;
+import com.concordeu.catalog.exception.ConflictException;
+import com.concordeu.catalog.exception.NotFoundException;
+import com.concordeu.catalog.mapper.MapStructMapper;
+import com.concordeu.catalog.service.product.ProductService;
+import com.concordeu.catalog.service.product.ProductServiceImpl;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -22,171 +27,296 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
+import com.concordeu.catalog.dto.product.ItemRequestDto;
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
 @Tag("unit")
 @ExtendWith(MockitoExtension.class)
 class ProductServiceImplTest {
 
+    private static final UUID P1 = UUID.fromString("11111111-1111-1111-1111-111111111111");
+    private static final UUID CAT_1 = UUID.fromString("22222222-2222-2222-2222-222222222222");
+    private static final UUID PROD_123 = UUID.fromString("33333333-3333-3333-3333-333333333333");
+    private static final UUID ID_1 = UUID.fromString("44444444-4444-4444-4444-444444444444");
+    private static final UUID ID_2 = UUID.fromString("55555555-5555-5555-5555-555555555555");
+    private static final UUID MISSING = UUID.fromString("66666666-6666-6666-6666-666666666666");
+    private static final UUID NONEXISTENT = UUID.fromString("77777777-7777-7777-7777-777777777777");
+
     private ProductService testService;
     @Mock
-    ProductDao productDao;
+    ProductRepository productRepository;
     @Mock
-    CategoryDao categoryDao;
+    CategoryRepository categoryRepository;
     @Mock
     MapStructMapper mapStructMapper;
     @Mock
-    ProductDataValidator validator;
-
-    ProductResponseDto productResponseDto;
+    ProductEventPublisher productEventPublisher;
 
     @BeforeEach
     void setup() {
-        testService = new ProductServiceImpl(productDao, categoryDao, validator, mapStructMapper);
-        productResponseDto = new ProductResponseDto("","mouse", "WiFi mouse USB",
-                BigDecimal.ONE, true, "", null, new ArrayList<>());
+        testService = new ProductServiceImpl(productRepository, categoryRepository, mapStructMapper, new SimpleMeterRegistry(), productEventPublisher);
     }
 
     @Test
-    void createProductShouldCreateNewProduct() {
-        String categoryName = "PC";
+    void should_createNewProduct_when_categoryExistsAndNameUnique() {
+        CreateProductCommand cmd = new CreateProductCommand("mouse", "WiFi mouse USB", BigDecimal.ONE, true, "", "PC");
+        Category category = new Category();
+        category.setName("PC");
+        when(categoryRepository.findByName("PC")).thenReturn(Optional.of(category));
+        Product product = new Product();
+        product.setId(P1);
+        product.setInStock(true);
+        when(mapStructMapper.mapCreateCommandToProduct(cmd)).thenReturn(product);
 
-        when(validator.validateData(productResponseDto, categoryName)).thenReturn(true);
-
-        Category category = Category.builder().name(categoryName).build();
-        when(categoryDao.findByName(categoryName)).thenReturn(Optional.of(category));
-
-        Product product = Product.builder().build();
-        when(mapStructMapper.mapProductResponseDtoToProduct(productResponseDto)).thenReturn(product);
-
-        testService.createProduct(productResponseDto, "PC");
+        testService.createProduct(cmd);
 
         ArgumentCaptor<Product> argument = ArgumentCaptor.forClass(Product.class);
-        verify(productDao).saveAndFlush(argument.capture());
-
-        Product captureProduct = argument.getValue();
-        assertThat(captureProduct).isNotNull();
-        assertThat(captureProduct).isEqualTo(product);
+        verify(productRepository).saveAndFlush(argument.capture());
+        assertThat(argument.getValue().isInStock()).isTrue();
+        verify(productEventPublisher).publishCreated(P1.toString(), product.getName());
     }
 
     @Test
-    void createProductShouldThrowExceptionIfProductAlreadyExist() {
-        when(productDao.findByName("mouse")).thenReturn(Optional.of(Product.builder().name("mouse").build()));
+    void should_throwConflict_when_createProductWithExistingName() {
+        CreateProductCommand cmd = new CreateProductCommand("mouse", "WiFi mouse USB", BigDecimal.ONE, true, "", "PC");
+        Product existingProduct = new Product();
+        existingProduct.setName("mouse");
+        when(productRepository.findByName("mouse")).thenReturn(Optional.of(existingProduct));
 
-        String categoryName = "PC";
-        when(categoryDao.findByName(categoryName)).thenReturn(Optional.of(Category.builder().name(categoryName).build()));
+        Category categoryForCreate = new Category();
+        categoryForCreate.setName("PC");
+        when(categoryRepository.findByName("PC")).thenReturn(Optional.of(categoryForCreate));
 
-        assertThatThrownBy(() -> testService.createProduct(productResponseDto, categoryName))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Product with the name: " + productResponseDto.name() + " already exist.");
+        assertThatThrownBy(() -> testService.createProduct(cmd))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("Product with the name: mouse already exist.");
 
-        verify(productDao, never()).saveAndFlush(any());
+        verify(productRepository, never()).saveAndFlush(any());
     }
 
     @Test
-    void createProductShouldThrowExceptionIncorrectCategoryName() {
-        String categoryName = "";
+    void should_throwNotFound_when_createProductCategoryDoesNotExist() {
+        CreateProductCommand cmd = new CreateProductCommand("mouse", "WiFi mouse USB", BigDecimal.ONE, true, "", "PC");
 
-        assertThatThrownBy(() -> testService.createProduct(productResponseDto, categoryName))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("No such category: " + categoryName);
+        assertThatThrownBy(() -> testService.createProduct(cmd))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Category not found: PC");
 
-        verify(productDao, never()).saveAndFlush(any());
+        verify(productRepository, never()).saveAndFlush(any());
     }
 
     @Test
-    void createProductShouldThrowExceptionCategoryDoesNotExist() {
-        String categoryName = "PC";
+    void should_returnMappedProductsPage_when_pageRequested() {
+        PageRequest pageRequest = PageRequest.of(0, 2);
+        Product p = new Product();
+        p.setId(P1);
+        p.setName("mouse");
+        p.setCategory(new Category());
+        Page<Product> page = new PageImpl<>(List.of(p), pageRequest, 1);
+        when(productRepository.findAll(pageRequest)).thenReturn(page);
 
-        when(validator.validateData(productResponseDto, categoryName)).thenReturn(true);
+        Page<ProductResponseDto> result = testService.getProductsByPage(pageRequest);
 
-        assertThatThrownBy(() -> testService.createProduct(productResponseDto, categoryName))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("No such category: " + categoryName);
-
-        verify(productDao, never()).saveAndFlush(any());
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).name()).isEqualTo("mouse");
+        assertThat(result.getTotalElements()).isEqualTo(1);
     }
 
     @Test
-    void getProductsPage() {
-        PageRequest pageRequest = PageRequest.of(1, 5);
-        List<Product> products = Arrays.asList(new Product(), new Product());
-        Page<Product> page = new PageImpl<>(products, pageRequest, products.size());
-        when(productDao.findAll(pageRequest)).thenReturn(page);
-
-        testService.getProductsByPage(1, 5);
-
-        verify(productDao).findAll(pageRequest);
-    }
-
-    @Test
-    void getProductsByCategoryByPageByCategoryShouldReturnProductsIfCategoryExist() {
-        Category category = Category.builder().id("1").build();
-        when(categoryDao.findByName("pc")).thenReturn(Optional.of(category));
+    void should_returnProducts_when_categoryExists() {
+        Category category = new Category();
+        category.setId(CAT_1);
+        when(categoryRepository.findByName("pc")).thenReturn(Optional.of(category));
 
         Pageable pageRequest = PageRequest.of(1, 5);
         List<Product> products = Arrays.asList(new Product(), new Product());
         Page<Product> page = new PageImpl<>(products, pageRequest, products.size());
 
-        when(productDao.findAllByCategoryIdByPage("1", pageRequest)).thenReturn(page);
+        when(productRepository.findAllByCategoryIdByPage(CAT_1, pageRequest)).thenReturn(page);
 
-        testService.getProductsByCategoryByPage(1, 5, "pc");
+        testService.getProductsByCategoryByPage(pageRequest, "pc");
 
-        verify(productDao).findAllByCategoryIdByPage(category.getId(), pageRequest);
+        verify(productRepository).findAllByCategoryIdByPage(category.getId(), pageRequest);
     }
 
     @Test
-    void getProductsByCategoryShouldThrowExceptionIfCategoryNotExist() {
+    void should_throwNotFound_when_getProductsByMissingCategory() {
         Pageable pageRequest = PageRequest.of(1, 5);
-        assertThatThrownBy(() -> testService.getProductsByCategoryByPage(1, 2, ""))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("No such category: " + "");
+        assertThatThrownBy(() -> testService.getProductsByCategoryByPage(pageRequest, ""))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Category not found: ");
 
-        verify(productDao, never()).findAllByCategoryIdByPage(new Category().getId(), pageRequest);
+        verify(productRepository, never()).findAllByCategoryIdByPage(new Category().getId(), pageRequest);
     }
 
     @Test
-    void updateProductShouldUpdateDataIfProductExist() {
-        ProductResponseDto updateProduct = new ProductResponseDto("","mouse", "aaaaaaaaaaa", BigDecimal.ONE, false, "", null, new ArrayList<>());
-        when(validator.validateData(updateProduct, productResponseDto.name())).thenReturn(true);
-        when(productDao.findByName(productResponseDto.name())).thenReturn(Optional.of(Product.builder().name(productResponseDto.name()).build()));
-        testService.updateProduct(updateProduct, productResponseDto.name());
-        verify(productDao).update(productResponseDto.name(), "aaaaaaaaaaa", BigDecimal.ONE, "", false);
+    void should_updateProductById_when_productExists() {
+        Product existing = new Product();
+        existing.setId(P1);
+        existing.setVersion(1L);
+        when(productRepository.findById(P1)).thenReturn(Optional.of(existing));
+        when(productRepository.updateById(P1, "aaaaaaaaaaa", BigDecimal.ONE, "", false, 1L)).thenReturn(1);
+        UpdateProductCommand cmd = new UpdateProductCommand("aaaaaaaaaaa", BigDecimal.ONE, false, "");
+
+        testService.updateProduct(P1, cmd);
+
+        verify(productRepository).updateById(P1, "aaaaaaaaaaa", BigDecimal.ONE, "", false, 1L);
+        verify(productEventPublisher).publishUpdated(P1.toString(), existing.getName());
     }
 
     @Test
-    void updateProductShouldThrowExceptionIfProductDoesNotExist() {
-        String productName = "mouse";
-        when(validator.validateData(productResponseDto, "bbbbb")).thenReturn(true);
-        assertThatThrownBy(() -> testService.updateProduct(productResponseDto, "bbbbb"))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Product with the name: bbbbb does not exist.");
+    void should_throwOptimisticLock_when_updateByIdVersionMismatch() {
+        Product existing = new Product();
+        existing.setId(P1);
+        existing.setVersion(1L);
+        when(productRepository.findById(P1)).thenReturn(Optional.of(existing));
+        when(productRepository.updateById(P1, "aaaaaaaaaaa", BigDecimal.ONE, "", false, 1L)).thenReturn(0);
+        UpdateProductCommand cmd = new UpdateProductCommand("aaaaaaaaaaa", BigDecimal.ONE, false, "");
+
+        assertThatThrownBy(() -> testService.updateProduct(P1, cmd))
+                .isInstanceOf(ObjectOptimisticLockingFailureException.class);
     }
 
     @Test
-    void deleteProductShouldDeleteProductIfProductExist() {
-        String productName = "aaaaa";
-        when(productDao.findByName(productName)).thenReturn(Optional.of(Product.builder().name(productName).build()));
-
-        testService.deleteProduct(productName);
-
-        verify(productDao).deleteByName(productName);
+    void should_throwNotFound_when_updateMissingProduct() {
+        UpdateProductCommand cmd = new UpdateProductCommand("aaaaaaaaaaa", BigDecimal.ONE, false, "");
+        assertThatThrownBy(() -> testService.updateProduct(MISSING, cmd))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Product not found: " + MISSING);
     }
 
     @Test
-    void deleteProductShouldDeleteIfProductDoesNotExist() {
-        assertThatThrownBy(() -> testService.deleteProduct("bbbbb"))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Product with the name: bbbbb does not exist.");
+    void should_deleteProductById_when_productExists() {
+        Product existing = new Product();
+        existing.setId(P1);
+        existing.setName("mouse");
+        when(productRepository.findById(P1)).thenReturn(Optional.of(existing));
 
-        verify(productDao, never()).deleteByName(any());
+        testService.deleteProduct(P1);
+
+        verify(productRepository).delete(existing);
+        verify(productEventPublisher).publishDeleted(P1.toString(), "mouse");
+    }
+
+    @Test
+    void should_throwNotFound_when_deleteMissingProduct() {
+        assertThatThrownBy(() -> testService.deleteProduct(MISSING))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Product not found: " + MISSING);
+
+        verify(productRepository, never()).delete(any(Product.class));
+    }
+
+    @Test
+    void should_returnProduct_when_getProductByNameWithValidName() {
+        Product product = new Product();
+        product.setName("mouse");
+        when(productRepository.findByName("mouse")).thenReturn(Optional.of(product));
+        ProductResponseDto expectedDto = new ProductResponseDto(P1, "mouse", "", BigDecimal.ZERO, true, "", null, new ArrayList<>());
+        when(mapStructMapper.mapProductToProductResponseDto(product)).thenReturn(expectedDto);
+
+        ProductResponseDto result = testService.getProductByName("mouse");
+
+        assertThat(result).isNotNull();
+        assertThat(result.name()).isEqualTo("mouse");
+    }
+
+    // Validation of null/blank name now enforced at the controller layer (@NotBlank)
+
+    @Test
+    void should_throwNotFound_when_getProductByNameNotFound() {
+        when(productRepository.findByName("nonexistent")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> testService.getProductByName("nonexistent"))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Product not found: nonexistent");
+    }
+
+    @Test
+    void should_returnProduct_when_getProductByIdWithValidId() {
+        Product product = new Product();
+        product.setId(PROD_123);
+        when(productRepository.findById(PROD_123)).thenReturn(Optional.of(product));
+        ProductResponseDto expectedDto = new ProductResponseDto(PROD_123, "mouse", "", BigDecimal.ZERO, true, "", null, new ArrayList<>());
+        when(mapStructMapper.mapProductToProductResponseDto(product)).thenReturn(expectedDto);
+
+        ProductResponseDto result = testService.getProductById(PROD_123);
+
+        assertThat(result).isNotNull();
+        assertThat(result.id()).isEqualTo(PROD_123);
+    }
+
+    // Validation of null/blank id now enforced at the controller layer (path-variable type binding)
+
+    @Test
+    void should_throwNotFound_when_getProductByIdNotFound() {
+        when(productRepository.findById(NONEXISTENT)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> testService.getProductById(NONEXISTENT))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Product not found: " + NONEXISTENT);
+    }
+
+    @Test
+    void should_returnProducts_when_getProductsByIdWithValidItems() {
+        ItemRequestDto items = new ItemRequestDto(List.of(ID_1, ID_2));
+
+        Product product1 = new Product();
+        product1.setId(ID_1);
+        Product product2 = new Product();
+        product2.setId(ID_2);
+
+        when(productRepository.findById(ID_1)).thenReturn(Optional.of(product1));
+        when(productRepository.findById(ID_2)).thenReturn(Optional.of(product2));
+
+        ProductResponseDto dto1 = new ProductResponseDto(ID_1, "p1", "", BigDecimal.ZERO, true, "", null, new ArrayList<>());
+        ProductResponseDto dto2 = new ProductResponseDto(ID_2, "p2", "", BigDecimal.ZERO, true, "", null, new ArrayList<>());
+        when(mapStructMapper.mapProductToProductResponseDto(product1)).thenReturn(dto1);
+        when(mapStructMapper.mapProductToProductResponseDto(product2)).thenReturn(dto2);
+
+        List<ProductResponseDto> result = testService.getProductsById(items);
+
+        assertThat(result).containsExactly(dto1, dto2);
+    }
+
+    @Test
+    void should_throwNotFound_when_getProductsByIdWithUnknownId() {
+        ItemRequestDto items = new ItemRequestDto(List.of(MISSING));
+        when(productRepository.findById(MISSING)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> testService.getProductsById(items))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Product not found: " + MISSING);
+    }
+
+    @Test
+    void should_incrementCreatedCounter_when_productCreated() {
+        SimpleMeterRegistry registry = new SimpleMeterRegistry();
+        ProductServiceImpl service =
+                new ProductServiceImpl(productRepository, categoryRepository, mapStructMapper, registry, productEventPublisher);
+
+        CreateProductCommand cmd = new CreateProductCommand("mouse", "WiFi mouse USB", BigDecimal.ONE, true, "", "PC");
+        Category category = new Category();
+        category.setName("PC");
+        when(categoryRepository.findByName("PC")).thenReturn(Optional.of(category));
+        Product product = new Product();
+        product.setId(P1);
+        when(mapStructMapper.mapCreateCommandToProduct(cmd)).thenReturn(product);
+
+        service.createProduct(cmd);
+
+        assertThat(registry.get("catalog.product.created").counter().count()).isEqualTo(1.0);
     }
 }
