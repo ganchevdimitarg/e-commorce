@@ -7,17 +7,19 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
-import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
@@ -29,84 +31,63 @@ class UserServiceTest {
     private UserService userService;
 
     @Test
-    void loadUserByUsername_WhenUserExists_ShouldReturnUserDetails() {
-        // Arrange
-        String username = "testuser";
-        String password = "encodedPassword";
-        Set<GrantedAuthority> authorities = Set.of(
-                new SimpleGrantedAuthority("ROLE_USER"),
-                new SimpleGrantedAuthority("ROLE_ADMIN")
-        );
+    void should_returnUserDetails_when_userExists() {
+        AuthUser authUser = AuthUser.builder()
+                .username("user@test.io")
+                .password("encodedPassword")
+                .authorities(Set.of("ROLE_USER", "ROLE_ADMIN"))
+                .build();
+        when(authUserDao.findByUsername("user@test.io")).thenReturn(Optional.of(authUser));
 
-        AuthUser authUser = mock(AuthUser.class);
-        when(authUser.getUsername()).thenReturn(username);
-        when(authUser.getPassword()).thenReturn(password);
-        when(authUser.getGrantedAuthorities()).thenAnswer(invocation -> authorities);
+        UserDetails result = userService.loadUserByUsername("user@test.io");
 
-        when(authUserDao.findByUsername(username)).thenReturn(Optional.of(authUser));
-
-        // Act
-        UserDetails result = userService.loadUserByUsername(username);
-
-        // Assert
         assertNotNull(result);
-        assertEquals(username, result.getUsername());
-        assertEquals(password, result.getPassword());
+        assertEquals("user@test.io", result.getUsername());
+        assertEquals("encodedPassword", result.getPassword());
         assertEquals(2, result.getAuthorities().size());
-        assertTrue(result.getAuthorities().containsAll(authorities));
-        verify(authUserDao, times(1)).findByUsername(username);
+        assertTrue(result.getAuthorities().stream()
+                .map(Object::toString)
+                .toList()
+                .containsAll(Set.of("ROLE_USER", "ROLE_ADMIN")));
+        verify(authUserDao, times(1)).findByUsername("user@test.io");
     }
 
     @Test
-    void loadUserByUsername_WhenUserNotFound_ShouldThrowUsernameNotFoundException() {
-        // Arrange
-        String username = "nonexistent";
-        when(authUserDao.findByUsername(username)).thenReturn(Optional.empty());
+    void should_throwUsernameNotFound_when_userMissing() {
+        when(authUserDao.findByUsername("nonexistent")).thenReturn(Optional.empty());
 
-        // Act & Assert
         UsernameNotFoundException exception = assertThrows(
                 UsernameNotFoundException.class,
-                () -> userService.loadUserByUsername(username)
-        );
+                () -> userService.loadUserByUsername("nonexistent"));
 
         assertEquals("No such user", exception.getMessage());
-        verify(authUserDao, times(1)).findByUsername(username);
+        verify(authUserDao, times(1)).findByUsername("nonexistent");
     }
 
     @Test
-    void loadUserByUsername_WithEmptyAuthorities_ShouldReturnUserDetailsWithNoAuthorities() {
-        // Arrange
-        String username = "userwithoutroles";
-        String password = "password";
-        Set<GrantedAuthority> emptyAuthorities = Set.of();
+    void should_returnNoAuthorities_when_userHasNoRoles() {
+        AuthUser authUser = AuthUser.builder()
+                .username("noroles@test.io")
+                .password("password")
+                .authorities(Set.of())
+                .build();
+        when(authUserDao.findByUsername("noroles@test.io")).thenReturn(Optional.of(authUser));
 
-        AuthUser authUser = mock(AuthUser.class);
-        when(authUser.getUsername()).thenReturn(username);
-        when(authUser.getPassword()).thenReturn(password);
-        when(authUser.getGrantedAuthorities()).thenAnswer(invocation -> new HashSet<>());
+        UserDetails result = userService.loadUserByUsername("noroles@test.io");
 
-        when(authUserDao.findByUsername(username)).thenReturn(Optional.of(authUser));
-
-        // Act
-        UserDetails result = userService.loadUserByUsername(username);
-
-        // Assert
         assertNotNull(result);
-        assertEquals(username, result.getUsername());
+        assertEquals("noroles@test.io", result.getUsername());
         assertTrue(result.getAuthorities().isEmpty());
-        verify(authUserDao, times(1)).findByUsername(username);
+        verify(authUserDao, times(1)).findByUsername("noroles@test.io");
     }
 
     @Test
-    void loadUserByUsername_WithNullUsername_ShouldDelegateToDao() {
-        // Arrange
+    void should_delegateToDao_when_usernameNull() {
         when(authUserDao.findByUsername(null)).thenReturn(Optional.empty());
 
-        // Act & Assert
         assertThrows(
                 UsernameNotFoundException.class,
-                () -> userService.loadUserByUsername(null)
-        );
+                () -> userService.loadUserByUsername(null));
 
         verify(authUserDao, times(1)).findByUsername(null);
     }

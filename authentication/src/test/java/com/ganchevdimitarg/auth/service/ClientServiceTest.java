@@ -87,7 +87,7 @@ class ClientServiceTest {
 
     @Test
     @DisplayName("save() should convert and save RegisteredClient successfully")
-    void save_ShouldConvertAndSaveRegisteredClient() {
+    void should_convertAndSave_when_registeredClientGiven() {
         // Arrange
         when(clientDao.save(any(Client.class))).thenReturn(mockClient);
 
@@ -100,7 +100,7 @@ class ClientServiceTest {
 
     @Test
     @DisplayName("findById() should return RegisteredClient when client exists")
-    void findById_ShouldReturnRegisteredClient_WhenClientExists() {
+    void should_returnRegisteredClient_when_findByIdExists() {
         // Arrange
         when(clientDao.findById(any(UUID.class))).thenReturn(Optional.of(mockClient));
 
@@ -129,7 +129,7 @@ class ClientServiceTest {
 
     @Test
     @DisplayName("findByClientId() should return RegisteredClient when client exists")
-    void findByClientId_ShouldReturnRegisteredClient_WhenClientExists() {
+    void should_returnRegisteredClient_when_findByClientIdExists() {
         // Arrange
         when(clientDao.findByClientId(anyString())).thenReturn(Optional.of(mockClient));
 
@@ -178,7 +178,7 @@ class ClientServiceTest {
 
     @Test
     @DisplayName("findById() should handle multiple scopes correctly")
-    void findById_ShouldHandleMultipleScopes() {
+    void should_mapMultipleScopes_when_findById() {
         // Arrange
         Scope scope1 = Scope.builder().scopeName("read").build();
         Scope scope2 = Scope.builder().scopeName("write").build();
@@ -199,7 +199,7 @@ class ClientServiceTest {
 
     @Test
     @DisplayName("findById() should handle multiple grant types correctly")
-    void findById_ShouldHandleMultipleGrantTypes() {
+    void should_mapMultipleGrantTypes_when_findById() {
         // Arrange
         GrantType grantType1 = GrantType.builder().grantType("authorization_code").build();
         GrantType grantType2 = GrantType.builder().grantType("refresh_token").build();
@@ -220,7 +220,7 @@ class ClientServiceTest {
 
     @Test
     @DisplayName("findById() should handle multiple redirect URIs correctly")
-    void findById_ShouldHandleMultipleRedirectUris() {
+    void should_mapMultipleRedirectUris_when_findById() {
         // Arrange
         RedirectUri uri1 = RedirectUri.builder().redirectUri("http://localhost:8080/callback").build();
         RedirectUri uri2 = RedirectUri.builder().redirectUri("http://localhost:8080/callback2").build();
@@ -241,7 +241,7 @@ class ClientServiceTest {
 
     @Test
     @DisplayName("save() should convert RegisteredClient with multiple authentication methods")
-    void save_ShouldHandleMultipleAuthMethods() {
+    void should_convertAndSave_when_multipleAuthMethods() {
         // Arrange
         RegisteredClient clientWithMultipleAuthMethods = RegisteredClient.withId(clientUuid.toString())
                 .clientId("test-client")
