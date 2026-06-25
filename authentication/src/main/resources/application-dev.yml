@@ -60,6 +60,13 @@ eureka:
 
 
 management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
   tracing:
     sampling:
       probability: 1.0  # 100% for development
