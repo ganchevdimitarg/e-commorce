@@ -1,4 +1,8 @@
 spring:
+  threads:
+    virtual:
+      enabled: true
+
   #Data Source Properties
   mongodb:
     username: ${MONGO_DB_USERNAME}
@@ -35,6 +39,11 @@ logging:
         oauth2: INFO
         vault: DEBUG
         cloud.vault: DEBUG
+    io:
+      github:
+        resilience4j: ERROR
+  pattern:
+    level: "%5p [${spring.application.name},%X{traceId},%X{spanId}]"
 
 #Eureka
 eureka:
@@ -42,16 +51,21 @@ eureka:
     service-url:
       defaultZone: http://localhost:8761/eureka
 
-#Prometheus (and other data loggers)
+
 management:
-  endpoint:
+  tracing:
+    sampling:
+      probability: 1.0  # 100% for development
+  otlp:
     metrics:
-      enabled: true
-    prometheus:
-      enabled: true
-    health:
-      show-details: always
-  endpoints:
-    web:
-      exposure:
-        include: "*"
+      export:
+        url: http://localhost:4318/v1/metrics
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: http://localhost:4318/v1/traces
+    logging:
+      export:
+        otlp:
+          endpoint: http://localhost:4318/v1/logs
