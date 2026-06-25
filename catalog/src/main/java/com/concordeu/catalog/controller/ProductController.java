@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/catalog/products")
@@ -55,7 +56,7 @@ public class ProductController {
 
     @Operation(summary = "Get product by id", security = @SecurityRequirement(name = "security_auth"))
     @GetMapping("/{id}")
-    public ProductResponseDto getProductById(@PathVariable @NotBlank String id) {
+    public ProductResponseDto getProductById(@PathVariable UUID id) {
         return productService.getProductById(id);
     }
 
@@ -73,7 +74,7 @@ public class ProductController {
 
     @Operation(summary = "Update product", security = @SecurityRequirement(name = "security_auth"))
     @PutMapping("/{id}")
-    public ResponseEntity<Void> updateProduct(@PathVariable @NotBlank String id,
+    public ResponseEntity<Void> updateProduct(@PathVariable UUID id,
                                               @RequestBody @Valid ProductRequestDto requestDto) {
         productService.updateProduct(id, mapper.mapProductRequestToUpdateCommand(requestDto));
         return ResponseEntity.ok().build();
@@ -81,7 +82,7 @@ public class ProductController {
 
     @Operation(summary = "Delete product", security = @SecurityRequirement(name = "security_auth"))
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteProduct(@PathVariable @NotBlank String id) {
+    public ResponseEntity<Void> deleteProduct(@PathVariable UUID id) {
         productService.deleteProduct(id);
         return ResponseEntity.noContent().build();
     }

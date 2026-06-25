@@ -62,7 +62,7 @@ class ProductEventIT extends RedisKafkaIntegrationBase {
     @BeforeEach
     void setUp() {
         // Seed a category via JDBC so createProduct can resolve it
-        String categoryId = UUID.randomUUID().toString();
+        UUID categoryId = UUID.randomUUID();
         jdbc.update("""
                 INSERT INTO categories (id, name, created_at, updated_at, version)
                 VALUES (?, ?, now(), now(), 0)

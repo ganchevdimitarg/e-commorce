@@ -10,7 +10,7 @@
         <relativePath/> <!-- lookup parent from a repository -->
     </parent>
 
-    <groupId>com.concordeu</groupId>
+    <groupId>com.ganchevdimitarg</groupId>
     <artifactId>e-commerce</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
@@ -20,33 +20,46 @@
 
     <modules>
         <module>catalog</module>
-        <module>authentication</module>
-        <module>eureka-server</module>
-        <module>gateway</module>
-        <module>profile</module>
-        <module>notification</module>
-        <module>order</module>
-        <module>config-server</module>
+<!--        <module>authentication</module>-->
+<!--        <module>eureka-server</module>-->
+<!--        <module>gateway</module>-->
+<!--        <module>profile</module>-->
+<!--        <module>notification</module>-->
+<!--        <module>order</module>-->
+<!--        <module>config-server</module>-->
         <module>client</module>
-        <module>payment</module>
+<!--        <module>payment</module>-->
     </modules>
 
     <properties>
-    <java.version>25</java.version>
+        <java.version>25</java.version>
         <spring.boot.maven.plugin.version>4.0.2</spring.boot.maven.plugin.version>
-        <spring.boot.dependecies.version>4.0.2</spring.boot.dependecies.version>
+        <spring.boot.dependencies.version>4.1.0</spring.boot.dependencies.version>
         <spring.cloud-version>2025.1.1</spring.cloud-version>
         <metrics.version>0.5.1.RELEASE</metrics.version>
+        <oauth2-oidc-sdk.version>11.23</oauth2-oidc-sdk.version>
     </properties>
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring.boot.dependencies.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
             <dependency>
                 <groupId>org.springframework.cloud</groupId>
                 <artifactId>spring-cloud-dependencies</artifactId>
                 <version>${spring.cloud-version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.nimbusds</groupId>
+                <artifactId>oauth2-oidc-sdk</artifactId>
+                <version>${oauth2-oidc-sdk.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

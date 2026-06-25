@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
@@ -42,6 +43,10 @@ import static org.mockito.Mockito.when;
 @Tag("unit")
 @ExtendWith(MockitoExtension.class)
 class CategoryServiceImplTest {
+
+    private static final UUID C1 = UUID.fromString("11111111-1111-1111-1111-111111111111");
+    private static final UUID FROM_ID = UUID.fromString("22222222-2222-2222-2222-222222222222");
+    private static final UUID TO_ID = UUID.fromString("33333333-3333-3333-3333-333333333333");
 
     private CategoryService testService;
 
@@ -64,11 +69,11 @@ class CategoryServiceImplTest {
     void should_createCategory_when_nameUnique() {
         when(categoryRepository.findByName("PC")).thenReturn(Optional.empty());
         Category saved = new Category();
-        saved.setId("c1");
+        saved.setId(C1);
         saved.setName("PC");
         when(categoryRepository.saveAndFlush(any())).thenReturn(saved);
         when(mapStructMapper.mapCategoryToCategoryResponseDto(saved))
-                .thenReturn(new CategoryResponseDto("c1", "PC", List.of()));
+                .thenReturn(new CategoryResponseDto(C1, "PC", List.of()));
 
         CategoryResponseDto result = testService.createCategory(new CreateCategoryCommand("PC"));
 
@@ -128,17 +133,17 @@ class CategoryServiceImplTest {
         mouseProduct.setName("mouse");
         mouseProduct.setVersion(1L);
         Category categoryFrom = new Category();
-        categoryFrom.setId("from-id");
+        categoryFrom.setId(FROM_ID);
         categoryFrom.setName("pc");
         categoryFrom.setProducts(List.of(mouseProduct));
 
         Category categoryTo = new Category();
-        categoryTo.setId("to-id");
+        categoryTo.setId(TO_ID);
         categoryTo.setName("acc");
 
         when(categoryRepository.findByName("pc")).thenReturn(Optional.of(categoryFrom));
         when(categoryRepository.findByName("acc")).thenReturn(Optional.of(categoryTo));
-        when(productRepository.findByNameAndCategoryId("mouse", "from-id")).thenReturn(Optional.of(mouseProduct));
+        when(productRepository.findByNameAndCategoryId("mouse", FROM_ID)).thenReturn(Optional.of(mouseProduct));
         when(productRepository.changeCategory(any(), any(), anyLong())).thenReturn(1);
 
         testService.moveOneProduct(new MoveProductCommand("pc", "acc", "mouse"));
@@ -152,17 +157,17 @@ class CategoryServiceImplTest {
         mouseProduct.setName("mouse");
         mouseProduct.setVersion(1L);
         Category categoryFrom = new Category();
-        categoryFrom.setId("from-id");
+        categoryFrom.setId(FROM_ID);
         categoryFrom.setName("pc");
         categoryFrom.setProducts(List.of(mouseProduct));
 
         Category categoryTo = new Category();
-        categoryTo.setId("to-id");
+        categoryTo.setId(TO_ID);
         categoryTo.setName("acc");
 
         when(categoryRepository.findByName("pc")).thenReturn(Optional.of(categoryFrom));
         when(categoryRepository.findByName("acc")).thenReturn(Optional.of(categoryTo));
-        when(productRepository.findByNameAndCategoryId("mouse", "from-id")).thenReturn(Optional.of(mouseProduct));
+        when(productRepository.findByNameAndCategoryId("mouse", FROM_ID)).thenReturn(Optional.of(mouseProduct));
         when(productRepository.changeCategory(any(), any(), anyLong())).thenReturn(0);
 
         assertThatThrownBy(() -> testService.moveOneProduct(new MoveProductCommand("pc", "acc", "mouse")))
@@ -172,16 +177,16 @@ class CategoryServiceImplTest {
     @Test
     void should_throwNotFound_when_moveOneProductThatDoesNotExist() {
         Category categoryFrom = new Category();
-        categoryFrom.setId("from-id");
+        categoryFrom.setId(FROM_ID);
         categoryFrom.setName("pc");
         categoryFrom.setProducts(List.of());
         Category categoryTo = new Category();
-        categoryTo.setId("to-id");
+        categoryTo.setId(TO_ID);
         categoryTo.setName("acc");
 
         when(categoryRepository.findByName("pc")).thenReturn(Optional.of(categoryFrom));
         when(categoryRepository.findByName("acc")).thenReturn(Optional.of(categoryTo));
-        when(productRepository.findByNameAndCategoryId("mouse", "from-id")).thenReturn(Optional.empty());
+        when(productRepository.findByNameAndCategoryId("mouse", FROM_ID)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> testService.moveOneProduct(new MoveProductCommand("pc", "acc", "mouse")))
                 .isInstanceOf(NotFoundException.class)
@@ -245,19 +250,19 @@ class CategoryServiceImplTest {
     @Test
     void should_issueSingleBulkUpdate_when_moveAllProducts() {
         Category from = new Category();
-        from.setId("from-1");
+        from.setId(FROM_ID);
         from.setName("PC");
         Category to = new Category();
-        to.setId("to-1");
+        to.setId(TO_ID);
         to.setName("Laptop");
         when(categoryRepository.findByName("PC")).thenReturn(Optional.of(from));
         when(categoryRepository.findByName("Laptop")).thenReturn(Optional.of(to));
-        when(productRepository.moveAllProductsToCategory("from-1", "to-1")).thenReturn(3);
+        when(productRepository.moveAllProductsToCategory(FROM_ID, TO_ID)).thenReturn(3);
 
         testService.moveAllProducts("PC", "Laptop");
 
-        verify(productRepository, times(1)).moveAllProductsToCategory("from-1", "to-1");
-        verify(productRepository, never()).changeCategory(anyString(), anyString(), anyLong());
+        verify(productRepository, times(1)).moveAllProductsToCategory(FROM_ID, TO_ID);
+        verify(productRepository, never()).changeCategory(anyString(), any(UUID.class), anyLong());
     }
 
     @Test

@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.GenericGenerator;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
@@ -13,6 +12,7 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.UUID;
 
 @Entity(name = "Product")
 @Table(
@@ -25,38 +25,29 @@ import java.util.List;
 @SQLRestriction("deleted_at IS NULL")
 @NoArgsConstructor
 @Getter
+@Setter
 public class Product extends Auditable {
     @Id
-    @Setter
-    @GeneratedValue(generator = "uuid-string")
-    @GenericGenerator(name = "uuid-string",
-            strategy = "org.hibernate.id.UUIDGenerator")
+    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", unique = true, nullable = false, updatable = false)
-    private String id;
-    @Setter
+    private UUID id;
     @Column(name = "name", nullable = false, length = 20)
     @NotEmpty
     @Size(min = 3, max = 20)
     private String name;
-    @Setter
     @Column(name = "description", nullable = false, columnDefinition = "TEXT")
     @NotEmpty
     @Size(min = 10, max = 50)
     private String description;
-    @Setter
     @Column(name = "price", nullable = false)
     private BigDecimal price;
-    @Setter
     @Column(name = "stock")
     private boolean inStock;
-    @Setter
     @Column(name = "characteristics", columnDefinition = "TEXT")
     private String characteristics;
-    @Setter
     @ManyToOne
     @JoinColumn(name = "category_id", referencedColumnName = "id")
     private Category category;
-    @Setter
     @OneToMany(mappedBy = "product", targetEntity = Comment.class, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JsonIgnore
     private List<Comment> comments;

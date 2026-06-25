@@ -30,6 +30,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -51,6 +52,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import({ResourceServerConfig.class, ControllerExceptionHandler.class,
         ProblemAuthenticationEntryPoint.class, ProblemAccessDeniedHandler.class})
 class CategoryControllerMvcTest {
+
+    private static final UUID CATEGORY_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
 
     @Autowired
     MockMvc mockMvc;
@@ -75,7 +78,7 @@ class CategoryControllerMvcTest {
 
     @Test
     void should_return200WithCategories_when_getCategoriesWithReadScope() throws Exception {
-        CategoryResponseDto dto = new CategoryResponseDto("1", "PC", List.of());
+        CategoryResponseDto dto = new CategoryResponseDto(CATEGORY_ID, "PC", List.of());
         Page<CategoryResponseDto> page = new PageImpl<>(
                 List.of(dto), PageRequest.of(0, 20), 1);
         when(categoryService.getCategoriesByPage(any())).thenReturn(page);
@@ -90,7 +93,7 @@ class CategoryControllerMvcTest {
 
     @Test
     void should_return201_when_createCategoryWithValidBody() throws Exception {
-        CategoryResponseDto response = new CategoryResponseDto("1", "Electronics", List.of());
+        CategoryResponseDto response = new CategoryResponseDto(CATEGORY_ID, "Electronics", List.of());
         when(categoryService.createCategory(any(CreateCategoryCommand.class))).thenReturn(response);
 
         mockMvc.perform(post("/api/v1/catalog/categories")
