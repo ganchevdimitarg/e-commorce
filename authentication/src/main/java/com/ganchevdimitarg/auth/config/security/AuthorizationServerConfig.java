@@ -3,6 +3,9 @@ package com.ganchevdimitarg.auth.config.security;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
@@ -23,12 +26,10 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Configuration(proxyBeanMethods = false)
+@RequiredArgsConstructor
+@EnableConfigurationProperties(JwkProperties.class)
 public class AuthorizationServerConfig {
     private final KeyManager keyManager;
-
-    public AuthorizationServerConfig(KeyManager keyManager) {
-        this.keyManager = keyManager;
-    }
 
     /**
      * Defines bean with the highest precedence to secure authorization endpoints; sets up JWK source and settings
@@ -58,14 +59,15 @@ public class AuthorizationServerConfig {
 
     @Bean
     public JWKSource<SecurityContext> jwkSource() {
-        JWKSet jwkSet = new JWKSet(keyManager.generateRsaKey());
+        JWKSet jwkSet = new JWKSet(keyManager.loadRsaKey());
         return (jwkSelector, securityContext) -> jwkSelector.select(jwkSet);
     }
 
     @Bean
-    public AuthorizationServerSettings authorizationServerSettings() {
+    public AuthorizationServerSettings authorizationServerSettings(
+            @Value("${auth.issuer-uri}") String issuerUri) {
         return AuthorizationServerSettings.builder()
-                .issuer("http://localhost:8082")
+                .issuer(issuerUri)
                 .build();
     }
 

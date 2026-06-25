@@ -47,6 +47,11 @@ logging:
   pattern:
     level: "%5p [${spring.application.name},%X{traceId},%X{spanId}]"
 
+auth:
+  issuer-uri: ${AUTH_ISSUER_URI:http://localhost:8082}
+  jwk:
+    location: ${AUTH_JWK_DIR:./.localkeys}
+
 #Eureka
 eureka:
   client:
