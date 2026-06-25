@@ -2,17 +2,15 @@ package com.ganchevdimitarg.auth;
 
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.instrumentation.logback.appender.v1_0.OpenTelemetryAppender;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
 class InstallOpenTelemetryAppender implements InitializingBean {
 
     private final OpenTelemetry openTelemetry;
-
-    InstallOpenTelemetryAppender(OpenTelemetry openTelemetry) {
-        this.openTelemetry = openTelemetry;
-    }
 
     @Override
     public void afterPropertiesSet() {
