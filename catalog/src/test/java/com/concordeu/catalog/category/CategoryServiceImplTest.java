@@ -1,13 +1,18 @@
-package com.ganchevdimitarg.catalog.category;
+package com.concordeu.catalog.category;
 
-import com.ganchevdimitarg.catalog.dao.CategoryDao;
-import com.ganchevdimitarg.catalog.dao.ProductDao;
-import com.ganchevdimitarg.catalog.domain.Category;
-import com.ganchevdimitarg.catalog.domain.Product;
-import com.ganchevdimitarg.catalog.dto.category.CategoryResponseDto;
-import com.ganchevdimitarg.catalog.mapper.MapStructMapper;
-import com.ganchevdimitarg.catalog.service.category.CategoryService;
-import com.ganchevdimitarg.catalog.service.category.CategoryServiceImpl;
+import com.concordeu.catalog.repository.CategoryRepository;
+import com.concordeu.catalog.repository.ProductRepository;
+import com.concordeu.catalog.domain.Category;
+import com.concordeu.catalog.domain.Product;
+import com.concordeu.catalog.dto.category.CategoryResponseDto;
+import com.concordeu.catalog.dto.category.CreateCategoryCommand;
+import com.concordeu.catalog.dto.category.MoveProductCommand;
+import com.concordeu.catalog.exception.ConflictException;
+import com.concordeu.catalog.exception.NotFoundException;
+import com.concordeu.catalog.mapper.MapStructMapper;
+import com.concordeu.catalog.service.category.CategoryService;
+import com.concordeu.catalog.service.category.CategoryServiceImpl;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -23,44 +28,66 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
+
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.*;
+import static org.mockito.Mockito.when;
 
 @Tag("unit")
 @ExtendWith(MockitoExtension.class)
 class CategoryServiceImplTest {
 
+    private static final UUID C1 = UUID.fromString("11111111-1111-1111-1111-111111111111");
+    private static final UUID FROM_ID = UUID.fromString("22222222-2222-2222-2222-222222222222");
+    private static final UUID TO_ID = UUID.fromString("33333333-3333-3333-3333-333333333333");
+
     private CategoryService testService;
 
     @Mock
-    CategoryDao categoryDao;
+    CategoryRepository categoryRepository;
     @Mock
-    ProductDao productDao;
+    ProductRepository productRepository;
     @Mock
     MapStructMapper mapStructMapper;
 
     String categoryName;
-    CategoryResponseDto categoryResponseDto;
 
     @BeforeEach
     void setUp() {
-        testService = new CategoryServiceImpl(categoryDao, productDao, mapStructMapper);
+        testService = new CategoryServiceImpl(categoryRepository, productRepository, mapStructMapper, new SimpleMeterRegistry());
         categoryName = "bbbbb";
-        categoryResponseDto = new CategoryResponseDto("1", categoryName, new ArrayList<>());
     }
 
     @Test
-    void createCategoryShouldCreateCategoryIfNameIsNotEmpty() {
+    void should_createCategory_when_nameUnique() {
+        when(categoryRepository.findByName("PC")).thenReturn(Optional.empty());
+        Category saved = new Category();
+        saved.setId(C1);
+        saved.setName("PC");
+        when(categoryRepository.saveAndFlush(any())).thenReturn(saved);
+        when(mapStructMapper.mapCategoryToCategoryResponseDto(saved))
+                .thenReturn(new CategoryResponseDto(C1, "PC", List.of()));
 
-        when(categoryDao.findByName(categoryName)).thenReturn(Optional.empty());
+        CategoryResponseDto result = testService.createCategory(new CreateCategoryCommand("PC"));
 
-        testService.createCategory(categoryResponseDto);
+        assertThat(result.name()).isEqualTo("PC");
+    }
+
+    @Test
+    void should_createCategory_when_nameIsNotEmpty() {
+        when(categoryRepository.findByName(categoryName)).thenReturn(Optional.empty());
+
+        testService.createCategory(new CreateCategoryCommand(categoryName));
 
         ArgumentCaptor<Category> argumentCaptor = ArgumentCaptor.forClass(Category.class);
-        verify(categoryDao).saveAndFlush(argumentCaptor.capture());
+        verify(categoryRepository).saveAndFlush(argumentCaptor.capture());
 
         Category category = argumentCaptor.getValue();
         assertThat(category).isNotNull();
@@ -68,129 +95,189 @@ class CategoryServiceImplTest {
     }
 
     @Test
-    void createCategoryShouldThrowExceptionIfNameIsEmpty() {
-        categoryResponseDto = new CategoryResponseDto("1", "", new ArrayList<>());
-        assertThatThrownBy(() -> testService.createCategory(categoryResponseDto))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Category name is empty: ");
+    void should_throwConflict_when_createCategoryWithExistingName() {
+        Category existingCategory = new Category();
+        existingCategory.setName(categoryName);
+        when(categoryRepository.findByName(categoryName)).thenReturn(Optional.of(existingCategory));
 
-        verify(categoryDao, never()).saveAndFlush(any());
-    }
-
-    @Test
-    void createCategoryShouldThrowExceptionIfCategoryExist() {
-        when(categoryDao.findByName(categoryName)).thenReturn(Optional.of(Category.builder().name(categoryName).build()));
-
-        assertThatThrownBy(() -> testService.createCategory(categoryResponseDto))
-                .isInstanceOf(IllegalArgumentException.class)
+        assertThatThrownBy(() -> testService.createCategory(new CreateCategoryCommand(categoryName)))
+                .isInstanceOf(ConflictException.class)
                 .hasMessageContaining("Category with the name: " + categoryName + " already exist.");
 
-        verify(categoryDao, never()).saveAndFlush(any());
+        verify(categoryRepository, never()).saveAndFlush(any());
     }
 
     @Test
-    void deleteCategoryShouldDeleteProductIfProductExist() {
-        when(categoryDao.findByName(categoryName)).thenReturn(Optional.of(Category.builder().name(categoryName).build()));
+    void should_deleteCategory_when_categoryExists() {
+        Category categoryToDelete = new Category();
+        categoryToDelete.setName(categoryName);
+        when(categoryRepository.findByName(categoryName)).thenReturn(Optional.of(categoryToDelete));
 
         testService.deleteCategory(categoryName);
 
-        verify(categoryDao).deleteByName(categoryName);
+        verify(categoryRepository).deleteByName(categoryName);
     }
 
     @Test
-    void deleteCategoryShouldDeleteIfProductDoesNotExist() {
+    void should_throwNotFound_when_deleteCategoryThatDoesNotExist() {
         assertThatThrownBy(() -> testService.deleteCategory(categoryName))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("No such category: bbbbb");
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Category not found: " + categoryName);
 
-        verify(categoryDao, never()).deleteByName(any());
+        verify(categoryRepository, never()).deleteByName(any());
     }
 
     @Test
-    void moveOneProductShouldMoveProductFromOneCategoryToAnotherCategory() {
-        Category categoryFrom = Category.builder()
-                .name("pc")
-                .products(List.of(Product.builder().name("mouse").build()))
-                .build();
+    void should_moveProduct_when_bothCategoriesExist() {
+        Product mouseProduct = new Product();
+        mouseProduct.setName("mouse");
+        mouseProduct.setVersion(1L);
+        Category categoryFrom = new Category();
+        categoryFrom.setId(FROM_ID);
+        categoryFrom.setName("pc");
+        categoryFrom.setProducts(List.of(mouseProduct));
 
-        Category categoryTo = Category.builder().name("acc").build();
+        Category categoryTo = new Category();
+        categoryTo.setId(TO_ID);
+        categoryTo.setName("acc");
 
-        when(categoryDao.findByName(categoryFrom.getName())).thenReturn(Optional.of(categoryFrom));
+        when(categoryRepository.findByName("pc")).thenReturn(Optional.of(categoryFrom));
+        when(categoryRepository.findByName("acc")).thenReturn(Optional.of(categoryTo));
+        when(productRepository.findByNameAndCategoryId("mouse", FROM_ID)).thenReturn(Optional.of(mouseProduct));
+        when(productRepository.changeCategory(any(), any(), anyLong())).thenReturn(1);
 
-        when(categoryDao.findByName(categoryTo.getName())).thenReturn(Optional.of(categoryTo));
+        testService.moveOneProduct(new MoveProductCommand("pc", "acc", "mouse"));
 
-        when(categoryDao.getById(any())).thenReturn(categoryFrom);
-
-        testService.moveOneProduct("pc", "acc", "mouse");
-
-        verify(productDao).changeCategory(any(), any());
+        verify(productRepository).changeCategory(any(), any(), anyLong());
     }
 
     @Test
-    void moveOneProductShouldThrowExceptionIfProductDoesNotExist() {
-        Category categoryFrom = Category.builder().name("pc").products(List.of(Product.builder().name("").build())).build();
-        Category categoryTo = Category.builder().name("acc").build();
+    void should_throwOptimisticLock_when_moveProductVersionMismatch() {
+        Product mouseProduct = new Product();
+        mouseProduct.setName("mouse");
+        mouseProduct.setVersion(1L);
+        Category categoryFrom = new Category();
+        categoryFrom.setId(FROM_ID);
+        categoryFrom.setName("pc");
+        categoryFrom.setProducts(List.of(mouseProduct));
 
-        when(categoryDao.findByName(categoryFrom.getName())).thenReturn(Optional.of(categoryFrom));
+        Category categoryTo = new Category();
+        categoryTo.setId(TO_ID);
+        categoryTo.setName("acc");
 
-        when(categoryDao.findByName(categoryTo.getName())).thenReturn(Optional.of(categoryTo));
+        when(categoryRepository.findByName("pc")).thenReturn(Optional.of(categoryFrom));
+        when(categoryRepository.findByName("acc")).thenReturn(Optional.of(categoryTo));
+        when(productRepository.findByNameAndCategoryId("mouse", FROM_ID)).thenReturn(Optional.of(mouseProduct));
+        when(productRepository.changeCategory(any(), any(), anyLong())).thenReturn(0);
 
-        when(categoryDao.getById(any())).thenReturn(categoryFrom);
-
-        assertThatThrownBy(() -> testService.moveOneProduct(categoryFrom.getName(), categoryTo.getName(), "mouse"))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("No such product: mouse");
-
-        verify(productDao, never()).changeCategory(any(), any());
+        assertThatThrownBy(() -> testService.moveOneProduct(new MoveProductCommand("pc", "acc", "mouse")))
+                .isInstanceOf(ObjectOptimisticLockingFailureException.class);
     }
 
     @Test
-    void moveOneProductShouldThrowExceptionIfFirstCategoryNameIsEmpty() {
-        assertThatThrownBy(() -> testService.moveOneProduct("", "acc", "mouse"))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("No such category: ");
+    void should_throwNotFound_when_moveOneProductThatDoesNotExist() {
+        Category categoryFrom = new Category();
+        categoryFrom.setId(FROM_ID);
+        categoryFrom.setName("pc");
+        categoryFrom.setProducts(List.of());
+        Category categoryTo = new Category();
+        categoryTo.setId(TO_ID);
+        categoryTo.setName("acc");
 
-        verify(productDao, never()).changeCategory(any(), any());
+        when(categoryRepository.findByName("pc")).thenReturn(Optional.of(categoryFrom));
+        when(categoryRepository.findByName("acc")).thenReturn(Optional.of(categoryTo));
+        when(productRepository.findByNameAndCategoryId("mouse", FROM_ID)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> testService.moveOneProduct(new MoveProductCommand("pc", "acc", "mouse")))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Product not found: mouse");
+
+        verify(productRepository, never()).changeCategory(any(), any(), anyLong());
     }
 
     @Test
-    void moveOneProductShouldThrowExceptionIfSecondCategoryNameIsEmpty() {
-        when(categoryDao.findByName(categoryName)).thenReturn(Optional.of(Category.builder().name(categoryName).build()));
+    void should_throwNotFound_when_moveOneProductWithNonExistentFirstCategory() {
+        assertThatThrownBy(() -> testService.moveOneProduct(new MoveProductCommand(categoryName, "aaaaa", "mouse")))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Category not found: " + categoryName);
 
-        assertThatThrownBy(() -> testService.moveOneProduct(categoryName, "", "mouse"))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("No such category: ");
-
-        verify(productDao, never()).changeCategory(any(), any());
+        verify(productRepository, never()).changeCategory(any(), any(), anyLong());
     }
 
     @Test
-    void moveOneProductShouldThrowExceptionIfFirstCategoryDoesNotExist() {
-        assertThatThrownBy(() -> testService.moveOneProduct(categoryName, "aaaaa", "mouse"))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("No such category: " + categoryName);
+    void should_throwNotFound_when_moveOneProductWithNonExistentSecondCategory() {
+        Category categoryForNonExistent = new Category();
+        categoryForNonExistent.setName(categoryName);
+        when(categoryRepository.findByName(categoryName)).thenReturn(Optional.of(categoryForNonExistent));
+        assertThatThrownBy(() -> testService.moveOneProduct(new MoveProductCommand(categoryName, "aaaaa", "mouse")))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Category not found: aaaaa");
 
-        verify(productDao, never()).changeCategory(any(), any());
+        verify(productRepository, never()).changeCategory(any(), any(), anyLong());
     }
 
     @Test
-    void moveOneProductShouldThrowExceptionIfSecondCategoryDoesNotExist() {
-        when(categoryDao.findByName(categoryName)).thenReturn(Optional.of(Category.builder().name(categoryName).build()));
-        assertThatThrownBy(() -> testService.moveOneProduct(categoryName, "aaaaa", "mouse"))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("No such category: aaaaa");
-
-        verify(productDao, never()).changeCategory(any(), any());
-    }
-
-    @Test
-    void getCategoriesShouldReturnAllCategories() {
+    void should_returnCategories_when_pageRequested() {
         PageRequest pageRequest = PageRequest.of(1, 5);
         List<Category> products = Arrays.asList(new Category(), new Category());
         Page<Category> page = new PageImpl<>(products, pageRequest, products.size());
-        when(categoryDao.findAll(pageRequest)).thenReturn(page);
+        when(categoryRepository.findAll(pageRequest)).thenReturn(page);
 
-        testService.getCategoriesByPage(1, 5);
-        verify(categoryDao).findAll(pageRequest);
+        testService.getCategoriesByPage(pageRequest);
+        verify(categoryRepository).findAll(pageRequest);
+    }
+
+    @Test
+    void should_returnCategory_when_getCategoryByName() {
+        Category category = new Category();
+        category.setName(categoryName);
+        category.setProducts(new ArrayList<>());
+        when(categoryRepository.findByName(categoryName)).thenReturn(Optional.of(category));
+
+        CategoryResponseDto result = testService.getCategory(categoryName);
+
+        assertThat(result).isNotNull();
+        assertThat(result.name()).isEqualTo(categoryName);
+    }
+
+    @Test
+    void should_throwNotFound_when_getCategoryByNonExistentName() {
+        assertThatThrownBy(() -> testService.getCategory("nonexistent"))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Category not found: nonexistent");
+    }
+
+    @Test
+    void should_issueSingleBulkUpdate_when_moveAllProducts() {
+        Category from = new Category();
+        from.setId(FROM_ID);
+        from.setName("PC");
+        Category to = new Category();
+        to.setId(TO_ID);
+        to.setName("Laptop");
+        when(categoryRepository.findByName("PC")).thenReturn(Optional.of(from));
+        when(categoryRepository.findByName("Laptop")).thenReturn(Optional.of(to));
+        when(productRepository.moveAllProductsToCategory(FROM_ID, TO_ID)).thenReturn(3);
+
+        testService.moveAllProducts("PC", "Laptop");
+
+        verify(productRepository, times(1)).moveAllProductsToCategory(FROM_ID, TO_ID);
+        verify(productRepository, never()).changeCategory(anyString(), any(UUID.class), anyLong());
+    }
+
+    @Test
+    void should_incrementCreatedCounter_when_categoryCreated() {
+        SimpleMeterRegistry registry = new SimpleMeterRegistry();
+        CategoryServiceImpl service =
+                new CategoryServiceImpl(categoryRepository, productRepository, mapStructMapper, registry);
+
+        when(categoryRepository.findByName(categoryName)).thenReturn(Optional.empty());
+        Category saved = new Category();
+        saved.setName(categoryName);
+        when(categoryRepository.saveAndFlush(any(Category.class))).thenReturn(saved);
+
+        service.createCategory(new CreateCategoryCommand(categoryName));
+
+        assertThat(registry.get("catalog.category.created").counter().count()).isEqualTo(1.0);
     }
 }

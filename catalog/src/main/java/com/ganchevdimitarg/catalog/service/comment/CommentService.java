@@ -1,12 +1,13 @@
-package com.ganchevdimitarg.catalog.service.comment;
+package com.concordeu.catalog.service.comment;
 
-import com.ganchevdimitarg.catalog.dto.comment.CommentResponseDto;
+import com.concordeu.catalog.dto.comment.CommentResponseDto;
+import com.concordeu.catalog.dto.comment.CreateCommentCommand;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface CommentService {
-    CommentResponseDto createComment(CommentResponseDto commentResponseDto, String productName);
-    Page<CommentResponseDto> findAllByProductNameByPage(String productName, int page, int pageSize);
-    Page<CommentResponseDto> findAllByAuthorByPage(String author, int page, int pageSize);
+    CommentResponseDto createComment(CreateCommentCommand command);
+    Page<CommentResponseDto> findAllByProductNameByPage(String productName, Pageable pageable);
+    Page<CommentResponseDto> findAllByAuthorByPage(String author, Pageable pageable);
     double getAvgStars(String productName);
 }
-

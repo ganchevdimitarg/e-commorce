@@ -1,17 +1,21 @@
-package com.ganchevdimitarg.catalog.service.comment;
+package com.concordeu.catalog.service.comment;
 
-import com.ganchevdimitarg.catalog.dao.CommentDao;
-import com.ganchevdimitarg.catalog.dao.ProductDao;
-import com.ganchevdimitarg.catalog.domain.Comment;
-import com.ganchevdimitarg.catalog.domain.Product;
-import com.ganchevdimitarg.catalog.dto.comment.CommentResponseDto;
-import com.ganchevdimitarg.catalog.mapper.MapStructMapper;
-import com.ganchevdimitarg.catalog.validator.CommentDataValidator;
+import com.concordeu.catalog.repository.CommentRepository;
+import com.concordeu.catalog.repository.ProductRepository;
+import com.concordeu.catalog.domain.Comment;
+import com.concordeu.catalog.domain.Product;
+import com.concordeu.catalog.dto.comment.CommentResponseDto;
+import com.concordeu.catalog.dto.comment.CreateCommentCommand;
+import com.concordeu.catalog.exception.NotFoundException;
+import com.concordeu.catalog.mapper.MapStructMapper;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -20,45 +24,39 @@ import java.util.List;
 @Slf4j
 public class CommentServiceImpl implements CommentService {
 
-    private final CommentDao commentDao;
-    private final ProductDao productDao;
-    private final CommentDataValidator commentDataValidator;
+    private final CommentRepository commentRepository;
+    private final ProductRepository productRepository;
     private final MapStructMapper mapper;
+    private final MeterRegistry meterRegistry;
 
     @Override
-    public CommentResponseDto createComment(CommentResponseDto commentResponseDto, String productName) {
-        commentDataValidator.validateData(commentResponseDto);
-
-        Product product = productDao
-                .findByName(productName)
+    @Transactional
+    @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
+    public CommentResponseDto createComment(CreateCommentCommand command) {
+        Product product = productRepository.findByName(command.productName())
                 .orElseThrow(() -> {
-                    logMessage(productName);
-                    return new IllegalArgumentException("No such product: " + productName);
+                    logMessage(command.productName());
+                    return new NotFoundException("Product", command.productName());
                 });
-
-        Comment comment = mapper.mapCommentResponseDtoToComment(commentResponseDto);
+        Comment comment = mapper.mapCreateCommentCommandToComment(command);
         comment.setProduct(product);
-
-        commentDao.saveAndFlush(comment);
-        log.info("The comment {} is save successful", comment.getTitle());
-
+        commentRepository.saveAndFlush(comment);
+        meterRegistry.counter("catalog.comment.created").increment();
+        log.info("The comment {} is saved successfully", comment.getTitle());
         return mapper.mapCommentToCommentResponseDto(comment);
     }
 
     @Override
-    public Page<CommentResponseDto> findAllByProductNameByPage(String productName, int page, int size) {
-        if (productName.isEmpty()) {
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
+    public Page<CommentResponseDto> findAllByProductNameByPage(String productName, Pageable pageable) {
+        Product product = productRepository.findByName(productName).orElseThrow(() -> {
             logMessage(productName);
-            throw new IllegalArgumentException("No such product: " + productName);
-        }
-
-        Product product = productDao.findByName(productName).orElseThrow(() -> {
-            logMessage(productName);
-            return new IllegalArgumentException("No such product: " + productName);
+            return new NotFoundException("Product", productName);
         });
 
-        Page<CommentResponseDto> comments = commentDao
-                .findAllByProductIdByPage(product.getId(), PageRequest.of(page, size))
+        Page<CommentResponseDto> comments = commentRepository
+                .findAllByProductIdByPage(product.getId(), pageable)
                 .map(this::convertComment);
 
         log.info("Successful get comments by product: {}", productName);
@@ -71,13 +69,11 @@ public class CommentServiceImpl implements CommentService {
     }
 
     @Override
-    public Page<CommentResponseDto> findAllByAuthorByPage(String author, int page, int size) {
-        if (author.isEmpty()) {
-            log.warn("No such author: {}", author);
-            throw new IllegalArgumentException("No such author: " + author);
-        }
-        Page<CommentResponseDto> comments = commentDao
-                .findAllByAuthorByPage(author, PageRequest.of(page, size))
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
+    public Page<CommentResponseDto> findAllByAuthorByPage(String author, Pageable pageable) {
+        Page<CommentResponseDto> comments = commentRepository
+                .findAllByAuthorByPage(author, pageable)
                 .map(this::convertComment);
         log.info("Successful get comments by author: {}", author);
 
@@ -85,13 +81,17 @@ public class CommentServiceImpl implements CommentService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
     public double getAvgStars(String productName) {
-        List<Comment> comments = commentDao.findAllByProductName(productName);
+        List<Comment> comments = commentRepository.findAllByProductName(productName);
+        if (comments.isEmpty()) {
+            return 0.0;
+        }
         double sum = 0.0;
         for (Comment comment : comments) {
             sum += comment.getStar();
         }
-
         return sum / comments.size();
     }
 
@@ -105,4 +105,3 @@ public class CommentServiceImpl implements CommentService {
     }
 
 }
-

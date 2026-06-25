@@ -5,9 +5,10 @@ import com.ganchevdimitarg.catalog.dto.comment.CommentResponseDto;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.UUID;
 
 public record ProductResponseDto(
-        String id,
+        UUID id,
         String name,
         String description,
         BigDecimal price,

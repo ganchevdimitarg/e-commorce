@@ -36,3 +36,9 @@ build/
 
 ### ENV ###
 .env
+
+### Claude Code ###
+# Match .claude/ at repo root and in any module (e.g. catalog/.claude/)
+**/.claude/audit.log
+**/.claude/settings.local.json
+**/.claude/session-checkpoint.md

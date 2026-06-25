@@ -29,6 +29,12 @@ services:
       - "5432:5432"
     restart: unless-stopped
 
+  zipkin:
+    image: openzipkin/zipkin
+    container_name: zipkin
+    ports:
+      - "9411:9411"
+
   vault:
     image: hashicorp/vault:latest
     container_name: vault
@@ -123,67 +129,45 @@ services:
       vault agent -config=/helpers/vault-agent.hcl
       "
 
-  zookeeper:
-    image: confluentinc/cp-zookeeper:7.5.0
-    container_name: zookeeper
+  redis:
+    image: redis:7
+    container_name: redis
+    ports:
+      - "6379:6379"
     restart: unless-stopped
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.1
+    container_name: zookeeper
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
-    volumes:
-      - zookeeper-data:/var/lib/zookeeper/data
-      - zookeeper-logs:/var/lib/zookeeper/log
-    healthcheck:
-      test: ["CMD", "nc", "-z", "localhost", "2181"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    restart: unless-stopped
 
   kafka:
-    image: confluentinc/cp-kafka:7.5.0
+    image: confluentinc/cp-kafka:7.6.1
     container_name: kafka
-    restart: unless-stopped
     ports:
       - "9092:9092"
     depends_on:
-      zookeeper:
-        condition: service_healthy
+      - zookeeper
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka:29092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_INTERNAL://0.0.0.0:29092
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
-      KAFKA_LOG_RETENTION_HOURS: 168
-    volumes:
-      - kafka-data:/var/lib/kafka/data
-    healthcheck:
-      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
-      interval: 15s
-      timeout: 10s
-      retries: 5
-
-
-  grafana-lgtm:
-    image: 'grafana/otel-lgtm:latest'
-    container_name: grafana-otel
-    ports:
-      - '3000:3000'
-      - '4317:4317'
-      - '4318:4318'
+    restart: unless-stopped
 
 volumes:
   mongodb_data:
   data:
   postgres:
   vault_data:
-  zookeeper-data:
-  zookeeper-logs:
-  kafka-data:
 
 networks:
   mongodb-network:
