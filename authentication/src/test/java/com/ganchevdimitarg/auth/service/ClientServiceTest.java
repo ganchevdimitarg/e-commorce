@@ -2,6 +2,7 @@ package com.ganchevdimitarg.auth.service;
 
 import com.ganchevdimitarg.auth.dao.ClientDao;
 import com.ganchevdimitarg.auth.domain.*;
+import com.ganchevdimitarg.auth.exception.ClientConfigurationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -101,7 +102,7 @@ class ClientServiceTest {
     @DisplayName("findById() should return RegisteredClient when client exists")
     void findById_ShouldReturnRegisteredClient_WhenClientExists() {
         // Arrange
-        when(clientDao.findById(anyString())).thenReturn(Optional.of(mockClient));
+        when(clientDao.findById(any(UUID.class))).thenReturn(Optional.of(mockClient));
 
         // Act
         RegisteredClient result = clientService.findById(clientUuid.toString());
@@ -115,22 +116,15 @@ class ClientServiceTest {
         assertTrue(result.getRedirectUris().contains("http://localhost:8080/callback"));
         assertEquals(Duration.ofSeconds(3600), result.getTokenSettings().getAccessTokenTimeToLive());
         assertEquals(Duration.ofSeconds(86400), result.getTokenSettings().getRefreshTokenTimeToLive());
-        verify(clientDao, times(1)).findById(clientUuid.toString());
+        verify(clientDao, times(1)).findById(clientUuid);
     }
 
     @Test
-    @DisplayName("findById() should throw IllegalArgumentException when client not found")
-    void findById_ShouldThrowException_WhenClientNotFound() {
-        // Arrange
-        when(clientDao.findById(anyString())).thenReturn(Optional.empty());
+    @DisplayName("findById() returns null when client not found (repository contract)")
+    void should_returnNull_when_findByIdMisses() {
+        when(clientDao.findById(any(UUID.class))).thenReturn(Optional.empty());
 
-        // Act & Assert
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
-                () -> clientService.findById("non-existent-id")
-        );
-        assertEquals("No such client", exception.getMessage());
-        verify(clientDao, times(1)).findById("non-existent-id");
+        assertNull(clientService.findById(clientUuid.toString()));
     }
 
     @Test
@@ -153,18 +147,21 @@ class ClientServiceTest {
     }
 
     @Test
-    @DisplayName("findByClientId() should throw IllegalArgumentException when client not found")
-    void findByClientId_ShouldThrowException_WhenClientNotFound() {
-        // Arrange
+    @DisplayName("findByClientId() returns null when client not found (repository contract)")
+    void should_returnNull_when_findByClientIdMisses() {
         when(clientDao.findByClientId(anyString())).thenReturn(Optional.empty());
 
-        // Act & Assert
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
-                () -> clientService.findByClientId("non-existent-client")
-        );
-        assertEquals("No such client", exception.getMessage());
-        verify(clientDao, times(1)).findByClientId("non-existent-client");
+        assertNull(clientService.findByClientId("non-existent-client"));
+    }
+
+    @Test
+    @DisplayName("findById() throws ClientConfigurationException when token settings missing")
+    void should_throwClientConfiguration_when_tokenSettingsMissing() {
+        mockClient.setTokenSettings(Set.of());
+        when(clientDao.findById(any(UUID.class))).thenReturn(Optional.of(mockClient));
+
+        assertThrows(ClientConfigurationException.class,
+                () -> clientService.findById(clientUuid.toString()));
     }
 
     @Test
@@ -176,7 +173,7 @@ class ClientServiceTest {
         mockClient.setScope(Set.of(scope1, scope2));
         Client clientWithMultipleScopes = mockClient;
 
-        when(clientDao.findById(anyString())).thenReturn(Optional.of(clientWithMultipleScopes));
+        when(clientDao.findById(any(UUID.class))).thenReturn(Optional.of(clientWithMultipleScopes));
 
         // Act
         RegisteredClient result = clientService.findById(clientUuid.toString());
@@ -197,7 +194,7 @@ class ClientServiceTest {
         mockClient.setGrantType(Set.of(grantType1, grantType2));
         Client clientWithMultipleGrants = mockClient;
 
-        when(clientDao.findById(anyString())).thenReturn(Optional.of(clientWithMultipleGrants));
+        when(clientDao.findById(any(UUID.class))).thenReturn(Optional.of(clientWithMultipleGrants));
 
         // Act
         RegisteredClient result = clientService.findById(clientUuid.toString());
@@ -218,7 +215,7 @@ class ClientServiceTest {
         mockClient.setRedirectUri(Set.of(uri1, uri2));
         Client clientWithMultipleUris = mockClient;
 
-        when(clientDao.findById(anyString())).thenReturn(Optional.of(clientWithMultipleUris));
+        when(clientDao.findById(any(UUID.class))).thenReturn(Optional.of(clientWithMultipleUris));
 
         // Act
         RegisteredClient result = clientService.findById(clientUuid.toString());

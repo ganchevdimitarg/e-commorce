@@ -2,6 +2,7 @@ package com.ganchevdimitarg.auth.service;
 
 import com.ganchevdimitarg.auth.dao.ClientDao;
 import com.ganchevdimitarg.auth.domain.*;
+import com.ganchevdimitarg.auth.exception.ClientConfigurationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
@@ -13,8 +14,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
-import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -33,16 +34,16 @@ public class ClientService implements RegisteredClientRepository {
 
     @Override
     public RegisteredClient findById(String id) {
-        Client client = clientDao.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("No such client"));
-        return getRegisteredClient(client);
+        return clientDao.findById(UUID.fromString(id))
+                .map(this::getRegisteredClient)
+                .orElse(null);
     }
 
     @Override
     public RegisteredClient findByClientId(String clientId) {
-        Client client = clientDao.findByClientId(clientId)
-                .orElseThrow(() -> new IllegalArgumentException("No such client"));
-        return getRegisteredClient(client);
+        return clientDao.findByClientId(clientId)
+                .map(this::getRegisteredClient)
+                .orElse(null);
     }
 
     /**
@@ -54,9 +55,10 @@ public class ClientService implements RegisteredClientRepository {
         Consumer<Set<String>> scopesConsumer = scope -> client.getScope()
                 .forEach(s -> scope.add(s.getScopeName()));
         Consumer<Set<String>> redirectUrisConsumer = redirectUri -> client.getRedirectUri().forEach(r -> redirectUri.add(r.getRedirectUri()));
-        Optional<TokenSetting> tokenSettingOptional = client.getTokenSettings().stream().findFirst();
-        assert tokenSettingOptional.isPresent();
-        TokenSetting tokenSettings = tokenSettingOptional.get();
+        TokenSetting tokenSettings = client.getTokenSettings().stream()
+                .findFirst()
+                .orElseThrow(() -> new ClientConfigurationException(
+                        "client %s has no token settings".formatted(client.getId())));
 
         // Configures a client with ID, secret, and authentication method
         return RegisteredClient.withId(client.getId().toString())
@@ -119,10 +121,11 @@ public class ClientService implements RegisteredClientRepository {
     }
 
     private String getAuthMethod(Set<ClientAuthenticationMethod> clientAuthenticationMethods) {
-        Optional<ClientAuthenticationMethod> method = clientAuthenticationMethods.stream().findAny();
-
-        assert method.isPresent();
-        return method.get().getValue();
+        return clientAuthenticationMethods.stream()
+                .findAny()
+                .map(ClientAuthenticationMethod::getValue)
+                .orElseThrow(() -> new ClientConfigurationException(
+                        "registered client has no authentication method"));
     }
 
     /**
