@@ -20,15 +20,15 @@
 
     <modules>
         <module>catalog</module>
-<!--        <module>authentication</module>-->
-<!--        <module>eureka-server</module>-->
-<!--        <module>gateway</module>-->
-<!--        <module>profile</module>-->
-<!--        <module>notification</module>-->
-<!--        <module>order</module>-->
-<!--        <module>config-server</module>-->
+        <module>authentication</module>
+        <module>eureka-server</module>
+        <module>gateway</module>
+        <module>profile</module>
+        <module>notification</module>
+        <module>order</module>
+        <module>config-server</module>
         <module>client</module>
-<!--        <module>payment</module>-->
+        <module>payment</module>
     </modules>
 
     <properties>
