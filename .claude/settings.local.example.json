@@ -1,0 +1,29 @@
+{
+  "_note": "Copy to settings.local.json (gitignored), then add only the narrow, machine-specific allows you need (e.g. absolute tool paths). This is the recommended minimal safe baseline - never blanket 'Bash(bash *)' / 'Bash(git *)'. Scope any Read allows to the project tree plus the specific dirs you need (e.g. 'Read(<repo>/**)', 'Read(<home>/.claude/**)') - never the whole drive or whole home. The deny list and PreToolUse guard hooks are your real safety net; keep this allow-list tight.",
+  "permissions": {
+    "allow": [
+      "Bash(./mvnw *)",
+      "Bash(git status)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git add -p)",
+      "Bash(git restore *)",
+      "Bash(git commit *)",
+      "Bash(.claude/hooks/test/run-tests.sh)",
+      "Bash(bash .claude/hooks/test/run-tests.sh)"
+    ],
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(rm -fr *)",
+      "Bash(git add -A)",
+      "Bash(git add --all)",
+      "Bash(git push --force *)",
+      "Bash(git push --force-with-lease *)"
+    ]
+  },
+  "enabledMcpjsonServers": [
+    "context7",
+    "github",
+    "code-review-graph"
+  ]
+}
