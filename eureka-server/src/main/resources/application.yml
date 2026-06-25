@@ -11,3 +11,18 @@ eureka:
   client:
     fetch-registry: false
     register-with-eureka: false
+
+management:
+  otlp:
+    metrics:
+      export:
+        enabled: false
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          enabled: false
+  tracing:
+    sampling:
+      probability: 0.0
+
