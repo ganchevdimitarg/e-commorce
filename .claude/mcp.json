@@ -1,0 +1,17 @@
+{
+  "_note": "Reference catalogue only — Claude Code does NOT load this file. Active servers are defined in the repo-root .mcp.json AND must be approved in .claude/settings.local.json under `enabledMcpjsonServers`. A server defined in .mcp.json but absent from `enabledMcpjsonServers` is NOT live. `status` below reflects the true end-to-end state.",
+  "_activate": {
+    "1_define": "Add the server block to the repo-root .mcp.json (see `command`/`url` below).",
+    "2_enable": "Add the server name to `enabledMcpjsonServers` in .claude/settings.local.json.",
+    "3_auth":   "Export any env vars the server needs (see `env`), then restart Claude Code.",
+    "4_verify": "Run `claude mcp list` (or start with `--mcp-debug`) — the server must show as connected."
+  },
+  "available": {
+    "context7":        { "status": "live",      "where": "root .mcp.json + enabledMcpjsonServers", "command": "npx -y @upstash/context7-mcp@latest", "env": [], "purpose": "Live library docs (Spring Boot, Avro, Kafka, Testcontainers, Resilience4j)." },
+    "github":          { "status": "live",      "where": "root .mcp.json + enabledMcpjsonServers", "url": "https://api.githubcopilot.com/mcp/", "env": ["GITHUB_TOKEN (repo scope) or OAuth on first connect"], "purpose": "Read PRs, issues, CI status. First connect may prompt for auth." },
+    "code-review-graph": { "status": "live",     "where": "root .mcp.json + enabledMcpjsonServers", "command": "code-review-graph serve --auto-watch", "env": ["code-review-graph CLI on PATH (pip install code-review-graph); else set command to the absolute path of code-review-graph.exe"], "purpose": "Local knowledge-graph for token-efficient review: blast-radius / impact / test-coverage queries. Backs the review-changes, explore-codebase, refactor-safely, debug-issue skills. Run `code-review-graph build` once per repo to create .code-review-graph/." },
+    "postgres":        { "status": "catalogue", "env": ["POSTGRES_MCP_URL"], "enable": "Define in root .mcp.json + enabledMcpjsonServers once a PG schema exists.", "purpose": "Inspect live schema/indexes before writing migrations." },
+    "schema-registry": { "status": "catalogue", "env": ["SCHEMA_REGISTRY_MCP_URL"], "enable": "Define + enable once Schema Registry is deployed.", "purpose": "Query registered Avro schemas / check compatibility." },
+    "jira":            { "status": "catalogue", "env": ["JIRA_MCP_URL", "JIRA_TOKEN"], "enable": "Define + enable to read ticket descriptions / acceptance criteria.", "purpose": "Issue tracker integration." }
+  }
+}
