@@ -32,6 +32,7 @@ import org.springframework.data.domain.PageRequest;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.List;
+import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -52,6 +53,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import({ResourceServerConfig.class, ControllerExceptionHandler.class,
         ProblemAuthenticationEntryPoint.class, ProblemAccessDeniedHandler.class})
 class ProductControllerMvcTest {
+
+    private static final UUID P1 = UUID.fromString("11111111-1111-1111-1111-111111111111");
+    private static final UUID PROD_123 = UUID.fromString("33333333-3333-3333-3333-333333333333");
+    private static final UUID ID_1 = UUID.fromString("44444444-4444-4444-4444-444444444444");
+    private static final UUID NONEXISTENT = UUID.fromString("77777777-7777-7777-7777-777777777777");
 
     @Autowired
     MockMvc mockMvc;
@@ -78,7 +84,7 @@ class ProductControllerMvcTest {
 
     @Test
     void should_return201AndLocation_when_createProduct() throws Exception {
-        ProductResponseDto created = new ProductResponseDto("p1", "mouse", "WiFi mouse USB",
+        ProductResponseDto created = new ProductResponseDto(P1, "mouse", "WiFi mouse USB",
                 BigDecimal.ONE, true, "", null, List.of());
         when(productService.createProduct(any())).thenReturn(created);
 
@@ -90,13 +96,13 @@ class ProductControllerMvcTest {
                                 {"name":"mouse","description":"WiFi mouse USB","price":1,"inStock":true,"characteristics":""}
                                 """))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", "/api/v1/catalog/products/p1"));
+                .andExpect(header().string("Location", "/api/v1/catalog/products/" + P1));
     }
 
     @Test
     void should_return200WithProduct_when_getProductByNameWithReadScope() throws Exception {
         ProductResponseDto response = new ProductResponseDto(
-                "1", "mouse", "WiFi mouse USB", BigDecimal.valueOf(29.99),
+                P1, "mouse", "WiFi mouse USB", BigDecimal.valueOf(29.99),
                 true, "black", null, List.of());
         when(productService.getProductByName("mouse")).thenReturn(response);
 
@@ -111,7 +117,7 @@ class ProductControllerMvcTest {
     @Test
     void should_return200WithProducts_when_getProductsWithReadScope() throws Exception {
         ProductResponseDto dto = new ProductResponseDto(
-                "1", "mouse", "WiFi mouse USB", BigDecimal.valueOf(29.99),
+                P1, "mouse", "WiFi mouse USB", BigDecimal.valueOf(29.99),
                 true, "black", null, List.of());
         Page<ProductResponseDto> page = new PageImpl<>(
                 List.of(dto), PageRequest.of(0, 20), 1);
@@ -127,7 +133,7 @@ class ProductControllerMvcTest {
     @Test
     void should_return200WithProductsByCategory_when_getCategoryProductsWithReadScope() throws Exception {
         ProductResponseDto dto = new ProductResponseDto(
-                "1", "mouse", "WiFi mouse USB", BigDecimal.valueOf(29.99),
+                P1, "mouse", "WiFi mouse USB", BigDecimal.valueOf(29.99),
                 true, "black", null, List.of());
         Page<ProductResponseDto> page = new PageImpl<>(
                 List.of(dto), PageRequest.of(0, 20), 1);
@@ -142,20 +148,20 @@ class ProductControllerMvcTest {
     @Test
     void should_return200_when_getProductByIdWithReadScope() throws Exception {
         ProductResponseDto response = new ProductResponseDto(
-                "123", "mouse", "WiFi mouse USB", BigDecimal.valueOf(29.99),
+                PROD_123, "mouse", "WiFi mouse USB", BigDecimal.valueOf(29.99),
                 true, "black", null, List.of());
-        when(productService.getProductById("123")).thenReturn(response);
+        when(productService.getProductById(PROD_123)).thenReturn(response);
 
-        mockMvc.perform(get("/api/v1/catalog/products/123")
+        mockMvc.perform(get("/api/v1/catalog/products/" + PROD_123)
                         .with(jwt().authorities(() -> "SCOPE_catalog.read")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value("123"));
+                .andExpect(jsonPath("$.id").value(PROD_123.toString()));
     }
 
     @Test
     void should_return200_when_getProductsByIdWithReadScope() throws Exception {
         ProductResponseDto dto = new ProductResponseDto(
-                "id1", "mouse", "WiFi mouse USB", BigDecimal.valueOf(29.99),
+                ID_1, "mouse", "WiFi mouse USB", BigDecimal.valueOf(29.99),
                 true, "black", null, List.of());
         when(productService.getProductsById(any(ItemRequestDto.class))).thenReturn(List.of(dto));
 
@@ -165,15 +171,15 @@ class ProductControllerMvcTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("Idempotency-Key", "k-batch")
                         .content("""
-                                {"items": ["id1"]}
-                                """))
+                                {"items": ["%s"]}
+                                """.formatted(ID_1)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value("id1"));
+                .andExpect(jsonPath("$[0].id").value(ID_1.toString()));
     }
 
     @Test
     void should_return200_when_updateProductWithValidBody() throws Exception {
-        mockMvc.perform(put("/api/v1/catalog/products/prod-1")
+        mockMvc.perform(put("/api/v1/catalog/products/" + PROD_123)
                         .with(csrf())
                         .with(jwt().authorities(() -> "SCOPE_catalog.write"))
                         .contentType(MediaType.APPLICATION_JSON)
@@ -189,18 +195,18 @@ class ProductControllerMvcTest {
                                 """))
                 .andExpect(status().isOk());
 
-        verify(productService).updateProduct(eq("prod-1"), any());
+        verify(productService).updateProduct(eq(PROD_123), any());
     }
 
     @Test
     void should_return204_when_deleteProductWithWriteScope() throws Exception {
-        mockMvc.perform(delete("/api/v1/catalog/products/prod-1")
+        mockMvc.perform(delete("/api/v1/catalog/products/" + PROD_123)
                         .with(csrf())
                         .with(jwt().authorities(() -> "SCOPE_catalog.write"))
                         .header("Idempotency-Key", "k-3"))
                 .andExpect(status().isNoContent());
 
-        verify(productService).deleteProduct("prod-1");
+        verify(productService).deleteProduct(PROD_123);
     }
 
     @Test
@@ -241,14 +247,14 @@ class ProductControllerMvcTest {
 
     @Test
     void should_return404ProblemJson_when_getProductByIdNotFound() throws Exception {
-        when(productService.getProductById("nonexistent"))
-                .thenThrow(new NotFoundException("Product", "nonexistent"));
+        when(productService.getProductById(NONEXISTENT))
+                .thenThrow(new NotFoundException("Product", NONEXISTENT));
 
-        mockMvc.perform(get("/api/v1/catalog/products/nonexistent")
+        mockMvc.perform(get("/api/v1/catalog/products/" + NONEXISTENT)
                         .with(jwt().authorities(() -> "SCOPE_catalog.read")))
                 .andExpect(status().isNotFound())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.code").value("NOT_FOUND"))
-                .andExpect(jsonPath("$.detail").value("Product not found: nonexistent"));
+                .andExpect(jsonPath("$.detail").value("Product not found: " + NONEXISTENT));
     }
 }

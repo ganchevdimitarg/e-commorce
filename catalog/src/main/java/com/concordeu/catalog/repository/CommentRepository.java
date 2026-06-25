@@ -8,12 +8,13 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.UUID;
 
-public interface CommentRepository extends JpaRepository<Comment, String> {
+public interface CommentRepository extends JpaRepository<Comment, UUID> {
     @Query(value = """
             SELECT * FROM comments WHERE PRODUCT_ID = ?1 AND deleted_at IS NULL
             """, nativeQuery = true)
-    Page<Comment> findAllByProductIdByPage(String productId, Pageable pageable);
+    Page<Comment> findAllByProductIdByPage(UUID productId, Pageable pageable);
 
     @Query(value = """
             SELECT * FROM comments WHERE AUTHOR = ?1 AND deleted_at IS NULL

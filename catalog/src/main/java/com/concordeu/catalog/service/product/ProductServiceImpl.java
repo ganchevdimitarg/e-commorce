@@ -28,6 +28,7 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -61,7 +62,7 @@ public class ProductServiceImpl implements ProductService {
         productRepository.saveAndFlush(product);
         log.info("The product {} is save successful", product.getName());
         meterRegistry.counter("catalog.product.created").increment();
-        publishAfterCommit(() -> productEventPublisher.publishCreated(product.getId(), product.getName()));
+        publishAfterCommit(() -> productEventPublisher.publishCreated(product.getId().toString(), product.getName()));
 
         return mapper.mapProductToProductResponseDto(product);
     }
@@ -107,7 +108,7 @@ public class ProductServiceImpl implements ProductService {
     @Transactional(readOnly = true)
     @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
     @Cacheable(cacheNames = "product", key = "#id")
-    public ProductResponseDto getProductById(String id) {
+    public ProductResponseDto getProductById(UUID id) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Product", id));
         return mapper.mapProductToProductResponseDto(product);
@@ -118,7 +119,7 @@ public class ProductServiceImpl implements ProductService {
     @Transactional
     @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
     @CacheEvict(cacheNames = "product", key = "#id")
-    public void updateProduct(String id, UpdateProductCommand command) {
+    public void updateProduct(UUID id, UpdateProductCommand command) {
         Product existing = findProductById(id);
 
         int updated = productRepository.updateById(id,
@@ -128,7 +129,7 @@ public class ProductServiceImpl implements ProductService {
             throw new ObjectOptimisticLockingFailureException(Product.class.getSimpleName(), id);
         }
         meterRegistry.counter("catalog.product.updated").increment();
-        publishAfterCommit(() -> productEventPublisher.publishUpdated(id, existing.getName()));
+        publishAfterCommit(() -> productEventPublisher.publishUpdated(id.toString(), existing.getName()));
         log.info("The updates were successful on product: {}", id);
     }
 
@@ -136,11 +137,11 @@ public class ProductServiceImpl implements ProductService {
     @Transactional
     @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
     @CacheEvict(cacheNames = "product", key = "#id")
-    public void deleteProduct(String id) {
+    public void deleteProduct(UUID id) {
         Product existing = findProductById(id);
         productRepository.delete(existing);   // honours @SQLDelete soft-delete
         meterRegistry.counter("catalog.product.deleted").increment();
-        publishAfterCommit(() -> productEventPublisher.publishDeleted(id, existing.getName()));
+        publishAfterCommit(() -> productEventPublisher.publishDeleted(id.toString(), existing.getName()));
     }
 
     @Override
@@ -154,7 +155,7 @@ public class ProductServiceImpl implements ProductService {
         return VirtualThreads.mapParallel(product.items(), this::getProductById);
     }
 
-    private Product findProductById(String id) {
+    private Product findProductById(UUID id) {
         return productRepository.findById(id)
                 .orElseThrow(() -> {
                     log.warn("Product with the id: {} does not exist.", id);
