@@ -16,18 +16,20 @@ for m in $MODULES; do
 done
 
 # 2. Every @import in every CLAUDE.md resolves, relative to the importing file's dir.
+# Use here-strings (not process substitution / pipes) so the loop runs in the main
+# shell — `bad` must mutate $fail, and Windows git-bash mishandles `< <(...)`.
+CLAUDE_FILES="$(find . -name CLAUDE.md -not -path '*/node_modules/*')"
 while IFS= read -r f; do
+  [ -z "$f" ] && continue
   d="$(dirname "$f")"
-  grep -nE '^@' "$f" 2>/dev/null | sed 's/^[0-9]*:@//' | while IFS= read -r imp; do
-    imp="${imp%% *}"
+  imports="$(grep -hE '^@' "$f" 2>/dev/null)"
+  [ -z "$imports" ] && continue
+  while IFS= read -r imp; do
+    imp="${imp#@}"; imp="${imp%% *}"
     [ -z "$imp" ] && continue
-    if [ -f "$d/$imp" ]; then ok "@import $imp (from $f)"; else echo "FAIL: missing @import '$imp' in $f"; fi
-  done
-done < <(find . -name CLAUDE.md -not -path '*/node_modules/*')
-grep -RInE '^@' --include=CLAUDE.md . | while IFS=: read -r f _ line; do
-  d="$(dirname "$f")"; imp="${line#@}"; imp="${imp%% *}"
-  [ -f "$d/$imp" ] || { echo "FAIL: missing @import '$imp' in $f"; }
-done | grep -q FAIL && fail=1
+    if [ -f "$d/$imp" ]; then ok "@import $imp (from $f)"; else bad "missing @import '$imp' in $f"; fi
+  done <<< "$imports"
+done <<< "$CLAUDE_FILES"
 
 # 3. Root CLAUDE.md line budget (<= 230 incl. tables/headers).
 rc=$(wc -l < CLAUDE.md)
