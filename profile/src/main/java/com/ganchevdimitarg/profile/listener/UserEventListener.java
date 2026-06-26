@@ -1,5 +1,6 @@
 package com.ganchevdimitarg.profile.listener;
 
+import com.ganchevdimitarg.profile.event.UserDeletedEvent;
 import com.ganchevdimitarg.profile.event.UserRegisteredEvent;
 import com.ganchevdimitarg.profile.service.ProfileService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -27,5 +28,11 @@ public class UserEventListener {
     public void onUserRegistered(String payload) throws Exception {
         UserRegisteredEvent event = objectMapper.readValue(payload, UserRegisteredEvent.class);
         profileService.createProfileShell(event).block();      // listener thread; block is acceptable
+    }
+
+    @KafkaListener(topics = "auth.user.deleted", groupId = "profile-group")
+    public void onUserDeleted(String payload) throws Exception {
+        UserDeletedEvent event = objectMapper.readValue(payload, UserDeletedEvent.class);
+        profileService.softDeleteProfile(event.userId()).block();
     }
 }
