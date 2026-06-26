@@ -4,8 +4,11 @@ import com.ganchevdimitarg.auth.dao.UserCredentialRepository;
 import com.ganchevdimitarg.auth.domain.UserCredential;
 import com.ganchevdimitarg.auth.dto.RegisterUserCommand;
 import com.ganchevdimitarg.auth.dto.RegisterUserResponse;
+import com.ganchevdimitarg.auth.dto.SetNewPasswordCommand;
+import com.ganchevdimitarg.auth.event.UserDeletedEvent;
 import com.ganchevdimitarg.auth.event.UserRegisteredEvent;
 import com.ganchevdimitarg.auth.exception.ConflictException;
+import com.ganchevdimitarg.auth.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -46,5 +49,25 @@ public class AccountService {
 
         log.info("Registered user {} with role {}", cmd.email(), cmd.role());
         return new RegisterUserResponse(id.toString());
+    }
+
+    @Transactional
+    public void deleteOwnAccount(String userId) {
+        UserCredential c = repository.findByIdAndDeletedAtIsNull(UUID.fromString(userId))
+                .orElseThrow(() -> new NotFoundException("user", userId));
+        c.setDeletedAt(Instant.now());
+        c.setEnabled(false);
+        repository.save(c);
+        publisher.publishDeleted(new UserDeletedEvent(userId, Instant.now()));
+        log.info("Soft-deleted account {}", userId);
+    }
+
+    @Transactional
+    public void setNewPassword(SetNewPasswordCommand cmd) {
+        UserCredential c = repository.findByEmailAndDeletedAtIsNull(cmd.email())
+                .orElseThrow(() -> new NotFoundException("user", cmd.email()));
+        c.setPasswordHash(passwordEncoder.encode(cmd.password()));
+        repository.save(c);
+        log.info("Password changed for {}", cmd.email());
     }
 }

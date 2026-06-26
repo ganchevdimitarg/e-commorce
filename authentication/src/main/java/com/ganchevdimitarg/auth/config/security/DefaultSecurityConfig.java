@@ -23,6 +23,12 @@ public class DefaultSecurityConfig {
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                         .requestMatchers("/actuator/**").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/register").permitAll()
+                        .requestMatchers(
+                                HttpMethod.PATCH,
+                                "/api/v1/auth/set-new-password").permitAll()
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/v1/auth/password-reset").permitAll()
                         .anyRequest().authenticated());
         return http.build();
     }
