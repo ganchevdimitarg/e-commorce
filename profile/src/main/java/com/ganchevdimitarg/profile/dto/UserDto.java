@@ -3,22 +3,11 @@ package com.ganchevdimitarg.profile.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 
-import java.util.Set;
-
 @Schema(description = "User profile response payload")
 @Builder
 public record UserDto(
-        @Schema(description = "Profile document ID")
-        String id,
-
-        @Schema(description = "User email address used as login", example = "user@example.com")
-        String username,
-
-        @Schema(description = "Always returned empty — never expose encoded password")
-        String password,
-
-        @Schema(description = "Granted authority names e.g. ROLE_USER, profile.read")
-        Set<String> grantedAuthorities,
+        @Schema(description = "Shared user identifier (auth subject)", example = "9f1c...")
+        String userId,
 
         @Schema(description = "First name", example = "Test")
         String firstName,

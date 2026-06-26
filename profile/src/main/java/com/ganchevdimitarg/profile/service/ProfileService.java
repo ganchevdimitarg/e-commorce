@@ -1,26 +1,38 @@
 package com.ganchevdimitarg.profile.service;
 
+import com.ganchevdimitarg.profile.dto.CardSetupCommand;
+import com.ganchevdimitarg.profile.dto.UpdateProfileCommand;
 import com.ganchevdimitarg.profile.dto.UserDto;
-import com.ganchevdimitarg.profile.dto.UserRequestDto;
+import com.ganchevdimitarg.profile.event.UserRegisteredEvent;
 import reactor.core.publisher.Mono;
 
 public interface ProfileService {
 
-    Mono<UserDto> createAdmin(UserRequestDto userRequestDto);
+    /**
+     * Creates a profile shell from a consumed {@code UserRegisteredEvent}.
+     * Idempotent on {@code userId} — a second delivery is a no-op.
+     */
+    Mono<Void> createProfileShell(UserRegisteredEvent event);
 
-    Mono<UserDto> createWorker(UserRequestDto userRequestDto);
+    /**
+     * Soft-deletes the profile for the given userId and tears down the
+     * associated payment customer. Sets {@code deletedAt}; never hard-deletes.
+     */
+    Mono<Void> softDeleteProfile(String userId);
 
-    Mono<UserDto> createUser(UserRequestDto userRequestDto);
+    /**
+     * Returns the active profile for the given userId, enriched with the
+     * payment card reference fetched from the payment service.
+     */
+    Mono<UserDto> getByUserId(String userId);
 
-    Mono<Void> updateUser(String username, UserRequestDto userRequestDto);
+    /**
+     * Updates the display fields of the active profile for the given userId.
+     */
+    Mono<Void> updateProfile(String userId, UpdateProfileCommand command);
 
-    Mono<Void> deleteUser(String username);
-
-    Mono<UserDto> getUserByUsername(String username);
-
-    Mono<Void> passwordReset(String username);
-
-    Mono<Boolean> isPasswordResetTokenValid(String token);
-
-    Mono<Void> setNewPassword(String username, String password);
+    /**
+     * Sets up a payment customer and attaches a card for the given userId.
+     */
+    Mono<UserDto> setupPayment(String userId, CardSetupCommand command);
 }

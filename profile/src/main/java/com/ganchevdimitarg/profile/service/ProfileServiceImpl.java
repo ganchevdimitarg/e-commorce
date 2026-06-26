@@ -4,9 +4,11 @@ import com.ganchevdimitarg.profile.dao.ProfileDao;
 import com.ganchevdimitarg.profile.domain.Address;
 import com.ganchevdimitarg.profile.domain.Profile;
 import com.ganchevdimitarg.profile.dto.CardDto;
+import com.ganchevdimitarg.profile.dto.CardSetupCommand;
 import com.ganchevdimitarg.profile.dto.PaymentDto;
+import com.ganchevdimitarg.profile.dto.UpdateProfileCommand;
 import com.ganchevdimitarg.profile.dto.UserDto;
-import com.ganchevdimitarg.profile.dto.UserRequestDto;
+import com.ganchevdimitarg.profile.event.UserRegisteredEvent;
 import com.ganchevdimitarg.profile.exception.InvalidRequestDataException;
 import com.ganchevdimitarg.profile.property.PaymentServiceProperties;
 import lombok.extern.slf4j.Slf4j;
@@ -14,18 +16,13 @@ import org.springframework.cloud.client.circuitbreaker.ReactiveCircuitBreaker;
 import org.springframework.cloud.client.circuitbreaker.ReactiveCircuitBreakerFactory;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Set;
-import java.util.stream.Collectors;
-
-import static com.ganchevdimitarg.profile.security.UserRole.*;
 
 @Service
 @Slf4j
@@ -36,144 +33,82 @@ public class ProfileServiceImpl implements ProfileService {
 
     private final WebClient webClient;
     private final ProfileDao profileDao;
-    private final JwtService jwtService;
-    private final MailService mailService;
     private final ReactiveCircuitBreaker circuitBreaker;
     private final PaymentServiceProperties paymentProps;
 
     public ProfileServiceImpl(
             WebClient webClient,
             ProfileDao profileDao,
-            JwtService jwtService,
-            MailService mailService,
-            ReactiveCircuitBreakerFactory<?, ?> reactiveCircuitBreakerFactory, PaymentServiceProperties paymentProps) {
+            ReactiveCircuitBreakerFactory<?, ?> reactiveCircuitBreakerFactory,
+            PaymentServiceProperties paymentProps) {
         this.webClient = webClient;
         this.profileDao = profileDao;
-        this.jwtService = jwtService;
-        this.mailService = mailService;
         this.circuitBreaker = reactiveCircuitBreakerFactory.create("profileService");
         this.paymentProps = paymentProps;
     }
 
     /**
-     * Creates a new admin user profile with full system permissions.
+     * Creates a profile shell from a consumed {@link UserRegisteredEvent}.
+     * Idempotent on {@code userId}: if an active profile already exists the
+     * insert is skipped, so a redelivered event is a no-op.
      *
-     * @param userRequestDto the request payload containing admin profile details
-     * @return a {@link Mono} emitting the created {@link UserDto}, never empty
-     * @throws InvalidRequestDataException if a profile with the same username already exists
+     * @param e the consumed registration event
+     * @return a {@link Mono} completing empty once the shell exists
      */
     @Override
-    public Mono<UserDto> createAdmin(UserRequestDto userRequestDto) {
-        return createStaff(userRequestDto, ADMIN.getGrantedAuthorities())
-                .map(profile -> getUserDto(profile, ""))
-                .doOnSuccess(u -> log.info("Admin user with username: {} was created", u.username()));
-    }
-
-    /**
-     * Creates a new worker user profile with read-only permissions
-     * across catalog, profile, order, and notification domains.
-     *
-     * @param userRequestDto the request payload containing worker profile details
-     * @return a {@link Mono} emitting the created {@link UserDto}, never empty
-     * @throws InvalidRequestDataException if a profile with the same username already exists
-     */
-    @Override
-    public Mono<UserDto> createWorker(UserRequestDto userRequestDto) {
-        return createStaff(userRequestDto, WORKER.getGrantedAuthorities())
-                .map(profile -> getUserDto(profile, ""))
-                .doOnSuccess(u -> log.info("Worker user with username: {} was created", u.username()));
-    }
-
-    /**
-     * Creates a new regular user profile and sets up their payment customer and card.
-     * Profile insertion only occurs after both payment customer and card are created successfully.
-     *
-     * @param userRequestDto the request payload containing user profile and card details
-     * @return a {@link Mono} emitting the created {@link UserDto} with card ID, never empty
-     * @throws InvalidRequestDataException if a profile already exists or payment service is unavailable
-     */
-    @Override
-    public Mono<UserDto> createUser(UserRequestDto userRequestDto) {
-        return buildProfile(userRequestDto, USER.getGrantedAuthorities())
-                .flatMap(authProfile ->
-                        createPaymentCustomer(userRequestDto.username())
-                                .flatMap(paymentCustomer -> {
-                                    log.info("Payment customer created: {}", paymentCustomer.customerId());
-                                    return addCardToCustomer(userRequestDto, paymentCustomer.customerId());
-                                })
-                                .flatMap(paymentDto -> {
-                                    log.info("Payment card {} added to customer", paymentDto.cardId());
-                                    return profileDao.insert(authProfile)
-                                            .map(saved -> getUserDto(saved, paymentDto.cardId()));
-                                })
-                )
-                .doOnSuccess(u -> log.info("User with username: {} was created", u.username()));
-    }
-
-    /**
-     * Updates an existing user profile with new details from the request payload.
-     *
-     * @param username       the username identifying the profile to update
-     * @param userRequestDto the request payload containing updated profile fields
-     * @return a {@link Mono} completing empty on success
-     * @throws UsernameNotFoundException if no profile exists for the given username
-     */
-    @Override
-    public Mono<Void> updateUser(String username, UserRequestDto userRequestDto) {
-        return profileDao.findByUsername(username)
-                .switchIfEmpty(Mono.error(new UsernameNotFoundException(PROFILE_DOES_NOT_EXIST)))
-                .flatMap(profile -> {
-                    profile.setUsername(userRequestDto.username());
-//                    profile.setPassword(passwordEncoder.encode(userRequestDto.password()));
-                    profile.setFirstName(userRequestDto.firstName());
-                    profile.setLastName(userRequestDto.lastName());
-                    profile.setPhoneNumber(userRequestDto.phoneNumber());
-                    profile.setAddress(new Address(
-                            userRequestDto.city(),
-                            userRequestDto.street(),
-                            userRequestDto.postCode()));
-                    return profileDao.save(profile);
-                })
-                .doOnSuccess(p -> log.info("Profile with username {} updated", p.getUsername()))
+    public Mono<Void> createProfileShell(UserRegisteredEvent e) {
+        return profileDao.findByUserIdAndDeletedAtIsNull(e.userId())
+                .doOnNext(existing -> log.info("Profile shell already exists for userId {}", e.userId()))
+                .switchIfEmpty(Mono.defer(() -> profileDao.insert(Profile.builder()
+                                .userId(e.userId())
+                                .firstName(e.firstName())
+                                .lastName(e.lastName())
+                                .phoneNumber(e.phoneNumber())
+                                .address(new Address(e.city(), e.street(), e.postCode()))
+                                .created(LocalDateTime.now())
+                                .build())
+                        .doOnSuccess(p -> log.info("Profile shell created for userId {}", e.userId()))))
                 .then();
     }
 
     /**
-     * Deletes an existing user profile and their associated payment customer record.
-     * Payment customer deletion is attempted first; profile deletion only proceeds on success.
+     * Soft-deletes the active profile for the given userId and tears down the
+     * associated payment customer. Payment cleanup runs first; the profile's
+     * {@code deletedAt} is set only on success.
      *
-     * @param username the username identifying the profile to delete
+     * @param userId the shared user identifier
      * @return a {@link Mono} completing empty on success
-     * @throws UsernameNotFoundException   if no profile exists for the given username
-     * @throws InvalidRequestDataException if the payment service is unavailable
+     * @throws InvalidRequestDataException if no active profile exists or payment is down
      */
     @Override
-    public Mono<Void> deleteUser(String username) {
-        return profileDao.findByUsername(username)
-                .switchIfEmpty(Mono.error(new UsernameNotFoundException(PROFILE_DOES_NOT_EXIST)))
-                .flatMap(profile ->
-                        deletePaymentCustomer(username)
-                                .then(profileDao.delete(profile))
-                )
-                .doOnSuccess(v -> log.info("User with username: {} was deleted", username));
+    public Mono<Void> softDeleteProfile(String userId) {
+        return profileDao.findByUserIdAndDeletedAtIsNull(userId)
+                .switchIfEmpty(Mono.error(new InvalidRequestDataException(PROFILE_DOES_NOT_EXIST)))
+                .flatMap(profile -> deletePaymentCustomer(userId)
+                        .then(Mono.defer(() -> {
+                            profile.setDeletedAt(Instant.now());
+                            return profileDao.save(profile);
+                        })))
+                .doOnSuccess(p -> log.info("Profile soft-deleted for userId {}", userId))
+                .then();
     }
 
     /**
-     * Retrieves a user profile by username, enriched with their payment card ID
-     * fetched from the payment service. Falls back to an empty card ID if the
-     * payment service is unavailable.
+     * Retrieves the active profile for the given userId, enriched with the
+     * payment card reference. Falls back to an empty card ID when the payment
+     * service is unavailable.
      *
-     * @param username the username identifying the profile to retrieve
-     * @return a {@link Mono} emitting the {@link UserDto} enriched with card data
-     * @throws UsernameNotFoundException if no profile exists for the given username
+     * @param userId the shared user identifier
+     * @return a {@link Mono} emitting the {@link UserDto}
+     * @throws InvalidRequestDataException if no active profile exists
      */
     @Override
-    public Mono<UserDto> getUserByUsername(String username) {
-        return profileDao.findByUsername(username)
-                .switchIfEmpty(Mono.error(new UsernameNotFoundException(PROFILE_DOES_NOT_EXIST)))
+    public Mono<UserDto> getByUserId(String userId) {
+        return profileDao.findByUserIdAndDeletedAtIsNull(userId)
+                .switchIfEmpty(Mono.error(new InvalidRequestDataException(PROFILE_DOES_NOT_EXIST)))
                 .flatMap(profile ->
                         webClient.get()
-                                .uri(paymentProps.card().get() + username)
+                                .uri(paymentProps.card().get() + userId)
                                 .retrieve()
                                 .bodyToMono(new ParameterizedTypeReference<Set<String>>() {})
                                 .transform(it -> circuitBreaker.run(it, throwable -> {
@@ -185,98 +120,69 @@ public class ProfileServiceImpl implements ProfileService {
     }
 
     /**
-     * Generates a password reset JWT token for the given user and sends it via email.
-     * The token is never returned to the caller — it is delivered exclusively via email.
+     * Updates the display fields of the active profile for the given userId.
      *
-     * @param username the username of the user requesting a password reset
-     * @return a {@link Mono} completing empty after the email is dispatched
-     * @throws InvalidRequestDataException if no profile exists for the given username
-     */
-    @Override
-    public Mono<Void> passwordReset(String username) {
-        return profileDao.findByUsername(username)
-                .switchIfEmpty(Mono.error(new InvalidRequestDataException("User does not exist")))
-                .flatMap(profile -> jwtService.generateToken(
-                        new User(username, "", USER.getGrantedAuthorities())
-                ))
-                .flatMap(token -> mailService.sendPasswordResetTokenMail(username, token))
-                .doOnSuccess(v -> log.info("Password reset token sent for user {}", username));
-    }
-
-    /**
-     * Delegates JWT password reset token validation to {@link JwtService}.
-     *
-     * @param token the compact JWT string to validate
-     * @return a {@link Mono} emitting {@code true} if the token is valid, {@code false} otherwise
-     */
-    @Override
-    public Mono<Boolean> isPasswordResetTokenValid(String token) {
-        return jwtService.isTokenValid(token);
-    }
-
-    /**
-     * Sets a new encoded password for the specified user profile.
-     *
-     * @param username the username identifying the profile to update
-     * @param password the new raw password to encode and persist
+     * @param userId  the shared user identifier
+     * @param command the new display values
      * @return a {@link Mono} completing empty on success
-     * @throws InvalidRequestDataException if no profile exists for the given username
+     * @throws InvalidRequestDataException if no active profile exists
      */
     @Override
-    public Mono<Void> setNewPassword(String username, String password) {
-        //                    profile.setPassword(passwordEncoder.encode(password));
-        return profileDao.findByUsername(username)
-                .switchIfEmpty(Mono.error(new InvalidRequestDataException("User does not exist")))
-                .flatMap(profileDao::save)
-                .doOnSuccess(p -> log.info("Password changed for user {}", username))
+    public Mono<Void> updateProfile(String userId, UpdateProfileCommand command) {
+        return profileDao.findByUserIdAndDeletedAtIsNull(userId)
+                .switchIfEmpty(Mono.error(new InvalidRequestDataException(PROFILE_DOES_NOT_EXIST)))
+                .flatMap(profile -> {
+                    profile.setFirstName(command.firstName());
+                    profile.setLastName(command.lastName());
+                    profile.setPhoneNumber(command.phoneNumber());
+                    profile.setAddress(new Address(command.city(), command.street(), command.postCode()));
+                    return profileDao.save(profile);
+                })
+                .doOnSuccess(p -> log.info("Profile updated for userId {}", userId))
                 .then();
     }
 
-    private Mono<Profile> createStaff(UserRequestDto userRequestDto,
-                                      Set<SimpleGrantedAuthority> grantedAuthorities) {
-        return buildProfile(userRequestDto, grantedAuthorities)
-                .flatMap(profileDao::insert)
-                .doOnSuccess(p -> log.info("Profile was successfully created"));
+    /**
+     * Sets up a payment customer and attaches a card for the given userId,
+     * returning the profile enriched with the new card reference.
+     *
+     * @param userId  the shared user identifier
+     * @param command the card details
+     * @return a {@link Mono} emitting the {@link UserDto} with the card ID
+     * @throws InvalidRequestDataException if no active profile exists or payment is down
+     */
+    @Override
+    public Mono<UserDto> setupPayment(String userId, CardSetupCommand command) {
+        return profileDao.findByUserIdAndDeletedAtIsNull(userId)
+                .switchIfEmpty(Mono.error(new InvalidRequestDataException(PROFILE_DOES_NOT_EXIST)))
+                .flatMap(profile -> createPaymentCustomer(userId)
+                        .flatMap(paymentCustomer -> {
+                            log.info("Payment customer created: {}", paymentCustomer.customerId());
+                            return addCardToCustomer(command, paymentCustomer.customerId());
+                        })
+                        .map(paymentDto -> {
+                            log.info("Payment card {} added to customer", paymentDto.cardId());
+                            return getUserDto(profile, paymentDto.cardId());
+                        }))
+                .doOnSuccess(u -> log.info("Payment set up for userId {}", userId));
     }
 
-    private Mono<Profile> buildProfile(UserRequestDto model,
-                                       Set<SimpleGrantedAuthority> grantedAuthorities) {
-        return profileDao.findByUsername(model.username())
-                .flatMap(existing -> Mono.<Profile>error(
-                        new InvalidRequestDataException(
-                                String.format("Profile already exists: %s", model.username()))))
-                .switchIfEmpty(Mono.fromCallable(() ->
-                        Profile.builder()
-                                .username(model.username())
-//                                .password(passwordEncoder.encode(model.password().trim()))
-                                .grantedAuthorities(grantedAuthorities.stream()
-                                        .map(SimpleGrantedAuthority::getAuthority)
-                                        .collect(Collectors.toSet()))
-                                .firstName(model.firstName())
-                                .lastName(model.lastName())
-                                .address(new Address(model.city(), model.street(), model.postCode()))
-                                .phoneNumber(model.phoneNumber())
-                                .created(LocalDateTime.now())
-                                .build()
-                ));
-    }
-
-    private Mono<PaymentDto> createPaymentCustomer(String username) {
+    private Mono<PaymentDto> createPaymentCustomer(String userId) {
         return sendRequestToPaymentService(
                 paymentProps.customer().post(),
-                PaymentDto.builder().username(username).customerName(username).build()
+                PaymentDto.builder().username(userId).customerName(userId).build()
         );
     }
 
-    private Mono<PaymentDto> addCardToCustomer(UserRequestDto userRequestDto, String customerId) {
+    private Mono<PaymentDto> addCardToCustomer(CardSetupCommand command, String customerId) {
         return sendRequestToPaymentService(
                 paymentProps.card().post(),
                 CardDto.builder()
                         .customerId(customerId)
-                        .cardNumber(userRequestDto.cardNumber())
-                        .cardExpMonth(userRequestDto.cardExpMonth())
-                        .cardExpYear(userRequestDto.cardExpYear())
-                        .cardCvc(userRequestDto.cardCvc())
+                        .cardNumber(command.cardNumber())
+                        .cardExpMonth(command.cardExpMonth())
+                        .cardExpYear(command.cardExpYear())
+                        .cardCvc(command.cardCvc())
                         .build()
         );
     }
@@ -304,9 +210,9 @@ public class ProfileServiceImpl implements ProfileService {
                 });
     }
 
-    private Mono<Void> deletePaymentCustomer(String username) {
+    private Mono<Void> deletePaymentCustomer(String userId) {
         return webClient.delete()
-                .uri(paymentProps.customer().delete() + username)
+                .uri(paymentProps.customer().delete() + userId)
                 .retrieve()
                 .bodyToMono(String.class)
                 .transform(it -> circuitBreaker.run(it, throwable -> {
@@ -325,10 +231,7 @@ public class ProfileServiceImpl implements ProfileService {
 
     private UserDto getUserDto(Profile profile, String cardId) {
         return UserDto.builder()
-                .id(profile.getId())
-                .username(profile.getUsername())
-                .password("")
-                .grantedAuthorities(profile.getGrantedAuthorities())
+                .userId(profile.getUserId())
                 .firstName(profile.getFirstName())
                 .lastName(profile.getLastName())
                 .phoneNumber(profile.getPhoneNumber())
