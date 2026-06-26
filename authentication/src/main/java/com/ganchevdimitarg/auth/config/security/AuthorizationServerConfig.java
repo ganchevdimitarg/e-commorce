@@ -74,13 +74,16 @@ public class AuthorizationServerConfig {
     @Bean
     OAuth2TokenCustomizer<JwtEncodingContext> jwtCustomizer() {
         return context -> {
-            // Customizes JWT with user's authorities when access token is issued
+            // Customizes JWT with user's authorities and email when access token is issued
             if (context.getTokenType() == OAuth2TokenType.ACCESS_TOKEN) {
                 Authentication principal = context.getPrincipal();
                 Set<String> authorities = principal.getAuthorities().stream()
                         .map(GrantedAuthority::getAuthority)
                         .collect(Collectors.toSet());
                 context.getClaims().claim("scope", authorities);
+                if (principal.getPrincipal() instanceof com.ganchevdimitarg.auth.service.CredentialUserDetails cud) {
+                    context.getClaims().claim("email", cud.email());
+                }
             }
         };
     }
