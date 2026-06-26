@@ -18,12 +18,24 @@ public class UserEventPublisher {
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
     public void publishRegistered(UserRegisteredEvent event) {
-        kafkaTemplate.send(REGISTERED_TOPIC, event.userId(), event);
-        log.info("Published UserRegisteredEvent for userId {}", event.userId());
+        kafkaTemplate.send(REGISTERED_TOPIC, event.userId(), event)
+                .whenComplete((result, ex) -> {
+                    if (ex != null) {
+                        log.error("Failed to publish UserRegisteredEvent for userId {}", event.userId(), ex);
+                    } else {
+                        log.info("Published UserRegisteredEvent for userId {}", event.userId());
+                    }
+                });
     }
 
     public void publishDeleted(UserDeletedEvent event) {
-        kafkaTemplate.send(DELETED_TOPIC, event.userId(), event);
-        log.info("Published UserDeletedEvent for userId {}", event.userId());
+        kafkaTemplate.send(DELETED_TOPIC, event.userId(), event)
+                .whenComplete((result, ex) -> {
+                    if (ex != null) {
+                        log.error("Failed to publish UserDeletedEvent for userId {}", event.userId(), ex);
+                    } else {
+                        log.info("Published UserDeletedEvent for userId {}", event.userId());
+                    }
+                });
     }
 }

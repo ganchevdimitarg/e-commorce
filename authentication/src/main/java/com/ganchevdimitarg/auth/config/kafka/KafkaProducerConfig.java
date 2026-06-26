@@ -23,12 +23,11 @@ public class KafkaProducerConfig {
 
     @Bean
     public ProducerFactory<String, Object> producerFactory() {
-        try (JacksonJsonSerializer<Object> serializer = new JacksonJsonSerializer<>()) {
-            return new DefaultKafkaProducerFactory<>(
-                    Map.of(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers),
-                    new StringSerializer(),
-                    serializer.noTypeInfo());
-        }
+        var serializer = new JacksonJsonSerializer<>().noTypeInfo();
+        return new DefaultKafkaProducerFactory<>(
+                Map.of(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers),
+                new StringSerializer(),
+                serializer);
     }
 
     @Bean
