@@ -1,22 +1,20 @@
 package com.ganchevdimitarg.auth.service;
 
-import com.ganchevdimitarg.auth.dao.AuthUserDao;
-import com.ganchevdimitarg.auth.domain.AuthUser;
+import com.ganchevdimitarg.auth.dao.UserCredentialRepository;
+import com.ganchevdimitarg.auth.domain.UserCredential;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -25,70 +23,71 @@ import static org.mockito.Mockito.when;
 class UserServiceTest {
 
     @Mock
-    private AuthUserDao authUserDao;
+    private UserCredentialRepository repository;
 
     @InjectMocks
     private UserService userService;
 
     @Test
-    void should_returnUserDetails_when_userExists() {
-        AuthUser authUser = AuthUser.builder()
-                .username("user@test.io")
-                .password("encodedPassword")
-                .authorities(Set.of("ROLE_USER", "ROLE_ADMIN"))
-                .build();
-        when(authUserDao.findByUsername("user@test.io")).thenReturn(Optional.of(authUser));
+    void should_returnCredentialUserDetails_when_userExists() {
+        UUID id = UUID.randomUUID();
+        UserCredential credential = new UserCredential();
+        credential.setId(id);
+        credential.setEmail("user@test.io");
+        credential.setPasswordHash("encodedPassword");
+        credential.setRoles(Set.of("ROLE_USER", "ROLE_ADMIN"));
+        credential.setEnabled(true);
+        when(repository.findByEmailAndDeletedAtIsNull("user@test.io")).thenReturn(Optional.of(credential));
 
-        UserDetails result = userService.loadUserByUsername("user@test.io");
+        CredentialUserDetails result =
+                (CredentialUserDetails) userService.loadUserByUsername("user@test.io");
 
-        assertNotNull(result);
-        assertEquals("user@test.io", result.getUsername());
-        assertEquals("encodedPassword", result.getPassword());
-        assertEquals(2, result.getAuthorities().size());
-        assertTrue(result.getAuthorities().stream()
-                .map(Object::toString)
-                .toList()
-                .containsAll(Set.of("ROLE_USER", "ROLE_ADMIN")));
-        verify(authUserDao, times(1)).findByUsername("user@test.io");
+        assertThat(result.getUsername()).isEqualTo(id.toString());
+        assertThat(result.email()).isEqualTo("user@test.io");
+        assertThat(result.getPassword()).isEqualTo("encodedPassword");
+        assertThat(result.getAuthorities()).hasSize(2);
+        assertThat(result.getAuthorities()).extracting("authority")
+                .containsExactlyInAnyOrder("ROLE_USER", "ROLE_ADMIN");
+        verify(repository, times(1)).findByEmailAndDeletedAtIsNull("user@test.io");
     }
 
     @Test
     void should_throwUsernameNotFound_when_userMissing() {
-        when(authUserDao.findByUsername("nonexistent")).thenReturn(Optional.empty());
+        when(repository.findByEmailAndDeletedAtIsNull("nonexistent")).thenReturn(Optional.empty());
 
-        UsernameNotFoundException exception = assertThrows(
-                UsernameNotFoundException.class,
-                () -> userService.loadUserByUsername("nonexistent"));
+        assertThatThrownBy(() -> userService.loadUserByUsername("nonexistent"))
+                .isInstanceOf(UsernameNotFoundException.class)
+                .hasMessage("No such user");
 
-        assertEquals("No such user", exception.getMessage());
-        verify(authUserDao, times(1)).findByUsername("nonexistent");
+        verify(repository, times(1)).findByEmailAndDeletedAtIsNull("nonexistent");
     }
 
     @Test
     void should_returnNoAuthorities_when_userHasNoRoles() {
-        AuthUser authUser = AuthUser.builder()
-                .username("noroles@test.io")
-                .password("password")
-                .authorities(Set.of())
-                .build();
-        when(authUserDao.findByUsername("noroles@test.io")).thenReturn(Optional.of(authUser));
+        UUID id = UUID.randomUUID();
+        UserCredential credential = new UserCredential();
+        credential.setId(id);
+        credential.setEmail("noroles@test.io");
+        credential.setPasswordHash("password");
+        credential.setRoles(Set.of());
+        credential.setEnabled(true);
+        when(repository.findByEmailAndDeletedAtIsNull("noroles@test.io")).thenReturn(Optional.of(credential));
 
-        UserDetails result = userService.loadUserByUsername("noroles@test.io");
+        CredentialUserDetails result =
+                (CredentialUserDetails) userService.loadUserByUsername("noroles@test.io");
 
-        assertNotNull(result);
-        assertEquals("noroles@test.io", result.getUsername());
-        assertTrue(result.getAuthorities().isEmpty());
-        verify(authUserDao, times(1)).findByUsername("noroles@test.io");
+        assertThat(result.getUsername()).isEqualTo(id.toString());
+        assertThat(result.getAuthorities()).isEmpty();
+        verify(repository, times(1)).findByEmailAndDeletedAtIsNull("noroles@test.io");
     }
 
     @Test
-    void should_delegateToDao_when_usernameNull() {
-        when(authUserDao.findByUsername(null)).thenReturn(Optional.empty());
+    void should_delegateToRepository_when_usernameNull() {
+        when(repository.findByEmailAndDeletedAtIsNull(null)).thenReturn(Optional.empty());
 
-        assertThrows(
-                UsernameNotFoundException.class,
-                () -> userService.loadUserByUsername(null));
+        assertThatThrownBy(() -> userService.loadUserByUsername(null))
+                .isInstanceOf(UsernameNotFoundException.class);
 
-        verify(authUserDao, times(1)).findByUsername(null);
+        verify(repository, times(1)).findByEmailAndDeletedAtIsNull(null);
     }
 }
