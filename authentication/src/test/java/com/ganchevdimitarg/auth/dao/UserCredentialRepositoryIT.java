@@ -5,6 +5,7 @@ import com.ganchevdimitarg.auth.domain.UserCredential;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.time.Instant;
 import java.util.Set;
 import java.util.UUID;
 
@@ -26,7 +27,7 @@ class UserCredentialRepositoryIT extends AbstractIntegrationTest {
     @Test
     void should_notFindByEmail_when_softDeleted() {
         UserCredential c = newCredential("bob@test.io");
-        c.setDeletedAt(java.time.Instant.now());
+        c.setDeletedAt(Instant.now());
         repository.save(c);
 
         assertThat(repository.findByEmailAndDeletedAtIsNull("bob@test.io")).isEmpty();

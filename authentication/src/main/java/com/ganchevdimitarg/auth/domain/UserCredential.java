@@ -45,7 +45,7 @@ public class UserCredential {
     @Column(name = "created_at", updatable = false, insertable = false)
     private Instant createdAt;
 
-    @Column(name = "updated_at", insertable = false)
+    @Column(name = "updated_at", insertable = false, updatable = false)
     private Instant updatedAt;
 
     @Column(name = "deleted_at")
