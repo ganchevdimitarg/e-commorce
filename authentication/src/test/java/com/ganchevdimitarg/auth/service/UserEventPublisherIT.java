@@ -12,6 +12,8 @@ import org.springframework.kafka.test.utils.KafkaTestUtils;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -40,10 +42,16 @@ class UserEventPublisherIT extends AbstractIntegrationTest {
                 userId, "e@test.io", Set.of("ROLE_USER"),
                 "Anna", "Smith", "0888123456", "Sofia", "Main", "1000", Instant.now()));
 
-        ConsumerRecord<String, String> record =
-                KafkaTestUtils.getSingleRecord(consumer, UserEventPublisher.REGISTERED_TOPIC, Duration.ofSeconds(10));
-        assertThat(record.key()).isEqualTo(userId);
-        assertThat(record.value()).contains(userId).contains("e@test.io");
+        // Use getRecords + filter by key to tolerate records from other ITs sharing this topic
+        var records = KafkaTestUtils.getRecords(consumer, Duration.ofSeconds(10));
+        List<ConsumerRecord<String, String>> matching = new ArrayList<>();
+        records.records(UserEventPublisher.REGISTERED_TOPIC).forEach(r -> {
+            if (userId.equals(r.key())) {
+                matching.add(r);
+            }
+        });
+        assertThat(matching).hasSize(1);
+        assertThat(matching.get(0).value()).contains(userId).contains("e@test.io");
     }
 
     @Test
