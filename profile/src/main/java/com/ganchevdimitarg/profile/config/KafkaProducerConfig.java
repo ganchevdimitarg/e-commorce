@@ -1,6 +1,5 @@
 package com.ganchevdimitarg.profile.config;
 
-import com.ganchevdimitarg.profile.dto.NotificationDto;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.annotation.Value;
@@ -9,10 +8,16 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
-import org.springframework.kafka.support.serializer.JacksonJsonSerializer;
 
 import java.util.Map;
 
+/**
+ * Generic JSON/string producer used by the dead-letter recoverer.
+ *
+ * <p>The dead-letter recoverer republishes the original (already-serialised)
+ * record value — a plain JSON string deserialised by the consumer — so a
+ * {@link StringSerializer} round-trips it faithfully to {@code <topic>.DLT}.
+ */
 @Configuration
 public class KafkaProducerConfig {
 
@@ -24,19 +29,16 @@ public class KafkaProducerConfig {
     }
 
     @Bean
-    public ProducerFactory<String, NotificationDto> producerFactory() {
-        try (JacksonJsonSerializer<NotificationDto> notificationDtoJacksonJsonSerializer = new JacksonJsonSerializer<>()){
-            return new DefaultKafkaProducerFactory<>(
-                    Map.of(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers),
-                    new StringSerializer(),
-                    notificationDtoJacksonJsonSerializer.noTypeInfo()
-            );
-        }
+    public ProducerFactory<String, Object> producerFactory() {
+        return new DefaultKafkaProducerFactory<>(Map.of(
+                ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers,
+                ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class,
+                ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class));
     }
 
     @Bean
-    public KafkaTemplate<String, NotificationDto> kafkaTemplate(
-            ProducerFactory<String, NotificationDto> producerFactory) {
+    public KafkaTemplate<String, Object> kafkaTemplate(
+            ProducerFactory<String, Object> producerFactory) {
         return new KafkaTemplate<>(producerFactory);
     }
 }

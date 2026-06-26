@@ -35,7 +35,7 @@ spring:
 
   #Kafka
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
 
 
 kafka-settings:
