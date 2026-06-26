@@ -34,6 +34,7 @@ public class AccountController {
         return ResponseEntity.noContent().build();
     }
 
+    // [security] permitAll + email-only: ungated account takeover until POST /password-reset token gate exists — must not ship to prod without it.
     @PatchMapping("/set-new-password")
     public ResponseEntity<Void> setNewPassword(
             @Valid @RequestBody final SetNewPasswordCommand cmd) {
