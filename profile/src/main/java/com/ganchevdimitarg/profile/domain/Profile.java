@@ -1,4 +1,4 @@
-package com.concordeu.profile.domain;
+package com.ganchevdimitarg.profile.domain;
 
 import lombok.Builder;
 import lombok.Data;
