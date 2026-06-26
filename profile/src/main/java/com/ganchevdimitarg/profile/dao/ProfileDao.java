@@ -6,5 +6,5 @@ import reactor.core.publisher.Mono;
 
 public interface ProfileDao extends ReactiveMongoRepository<Profile, String> {
 
-    Mono<Profile> findByUsername(String username);
+    Mono<Profile> findByUserIdAndDeletedAtIsNull(String userId);
 }
