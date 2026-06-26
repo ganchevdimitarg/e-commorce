@@ -32,7 +32,7 @@ bounded contexts.
 | Registration flow | **Auth front door + Kafka choreography** |
 | Auth credential store | **Postgres** (`user_credentials`, Flyway) |
 | Existing data | **Clean cutover** — no backfill |
-| Account deletion | **Deferred** to a fast-follow (out of scope here) |
+| Account deletion | **In scope** — auth front-door delete + `UserDeletedEvent` choreography |
 
 ---
 
@@ -95,9 +95,29 @@ authorities — it reads `email`/`roles` from the JWT, never from a DB. Nothing 
 
 - **Password reset / set-new-password** move from profile (currently dead/commented) to
   **auth**, which owns credentials.
-- **Account deletion** — *deferred to a fast-follow.* Target shape: auth front-door delete
-  emits `UserDeletedEvent` → profile soft-deletes its record and runs payment cleanup. Not
-  implemented in this work.
+
+### Account deletion (auth front door + choreography)
+
+Deletion mirrors registration: auth owns the lifecycle decision, profile and payment react.
+
+1. `DELETE /api/v1/auth/account` — authenticated; `userId` resolved from the JWT `sub`
+   (no path/query param, so a user can only delete their own account; an admin variant can
+   accept a `userId` and be gated by `@PreAuthorize("hasRole('ADMIN')")`).
+2. Auth **soft-deletes** the credential row: `deleted_at = now()`, `enabled = false`
+   (never a hard `DELETE`, per repo convention), then emits
+   **`UserDeletedEvent(userId, occurredAt)`** to topic `auth.user.deleted`. Returns `204`.
+3. Profile consumes `auth.user.deleted` (group `profile-group`, **idempotent on `userId`**,
+   DLT `auth.user.deleted.DLT` on failure):
+   - soft-deletes the `profiles` record (`deletedAt = now()`);
+   - runs the existing payment-customer cleanup saga (the current
+     `deletePaymentCustomer(username)` logic, re-keyed by `userId`).
+4. The existing `DELETE /api/v1/profile/delete-user` endpoint and `ProfileService.deleteUser`
+   are removed — deletion is no longer initiated from profile. Profile only reacts to the
+   event.
+
+Ordering note: auth soft-deletes its own credential synchronously before publishing, so a
+revoked account cannot re-authenticate even if the profile/payment cleanup lags. Profile and
+payment cleanup are eventually consistent via the event.
 
 ## 6. Cutover (clean — no backfill)
 
@@ -112,6 +132,12 @@ authorities — it reads `email`/`roles` from the JWT, never from a DB. Nothing 
   + `UserRegisteredEvent` emitted; login (`loadUserByUsername`) reads from Postgres.
 - **Profile IT** (Testcontainers Mongo + Kafka): consumes `UserRegisteredEvent` → profile
   shell created; idempotent on redelivery; malformed event routed to DLT.
+- **Auth deletion IT** (Testcontainers Postgres + Kafka): `DELETE /account` → credential
+  soft-deleted (`deleted_at` set, `enabled = false`, not hard-deleted) + `UserDeletedEvent`
+  emitted; a soft-deleted credential can no longer authenticate.
+- **Profile deletion IT** (Testcontainers Mongo + Kafka): consumes `UserDeletedEvent` →
+  profile record soft-deleted and payment cleanup invoked; idempotent on redelivery;
+  malformed event routed to DLT.
 - Coverage gate: 80% line / 100% on domain model (per repo convention).
 
 ## Out of scope (flagged, not changed here)
@@ -120,4 +146,3 @@ authorities — it reads `email`/`roles` from the JWT, never from a DB. Nothing 
   business services; converting the stack is **not** part of this work.
 - `[legacy]` Stray `com.concordeu.profile` package alongside `com.ganchevdimitarg.profile`
   — left as-is.
-- Account deletion / `UserDeletedEvent` — fast-follow.
