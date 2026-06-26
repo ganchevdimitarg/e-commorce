@@ -85,6 +85,14 @@ public class ProfileServiceImpl implements ProfileService {
         return profileDao.findByUserIdAndDeletedAtIsNull(userId)
                 .switchIfEmpty(Mono.error(new InvalidRequestDataException(PROFILE_DOES_NOT_EXIST)))
                 .flatMap(profile -> deletePaymentCustomer(userId)
+                        // Auth has deleted the user upstream — the local soft-delete is
+                        // authoritative and must not be blocked by payment-service outages.
+                        // Payment teardown is best-effort; failures are logged for follow-up.
+                        .onErrorResume(ex -> {
+                            log.warn("Payment customer cleanup failed for userId {}; "
+                                    + "proceeding with soft-delete", userId, ex);
+                            return Mono.empty();
+                        })
                         .then(Mono.defer(() -> {
                             profile.setDeletedAt(Instant.now());
                             return profileDao.save(profile);

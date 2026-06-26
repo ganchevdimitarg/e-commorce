@@ -1,9 +1,12 @@
 package com.ganchevdimitarg.profile.listener;
 
 import com.ganchevdimitarg.profile.config.BaseTest;
+import com.ganchevdimitarg.profile.config.TestSecurityConfig;
 import com.ganchevdimitarg.profile.dao.ProfileDao;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.kafka.core.KafkaTemplate;
 
 import java.util.UUID;
@@ -12,6 +15,8 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+@SpringBootTest
+@Import(TestSecurityConfig.class)
 class UserRegisteredListenerIT extends BaseTest {
 
     @Autowired private KafkaTemplate<String, Object> kafkaTemplate;
