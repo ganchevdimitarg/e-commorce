@@ -12,6 +12,9 @@ spring:
 eureka:
   client:
     enabled: false
+outbox:
+  relay:
+    delay-ms: 500              # publish PENDING rows quickly so ITs observe events without long waits
 auth:
   issuer-uri: http://localhost:8082
   jwk:

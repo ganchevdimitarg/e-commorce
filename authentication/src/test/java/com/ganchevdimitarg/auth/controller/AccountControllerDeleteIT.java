@@ -4,20 +4,24 @@ import com.ganchevdimitarg.auth.AbstractIntegrationTest;
 import com.ganchevdimitarg.auth.dao.UserCredentialRepository;
 import com.ganchevdimitarg.auth.domain.UserCredential;
 import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
-import org.springframework.kafka.test.utils.KafkaTestUtils;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -65,9 +69,18 @@ class AccountControllerDeleteIT extends AbstractIntegrationTest {
                     assertThat(row.getDeletedAt()).isNotNull();
                     assertThat(row.isEnabled()).isFalse();
                 });
-        var records = KafkaTestUtils.getRecords(consumer, Duration.ofSeconds(10));
-        assertThat(records.records("auth.user.deleted"))
-                .anyMatch(r -> r.value().contains(id.toString()));
+
+        // The transactional-outbox relay publishes asynchronously; poll until the event arrives.
+        List<String> matching = new ArrayList<>();
+        await().atMost(20, SECONDS).pollInterval(Duration.ofMillis(500)).untilAsserted(() -> {
+            ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(500));
+            records.records("auth.user.deleted").forEach(r -> {
+                if (r.value() != null && r.value().contains(id.toString())) {
+                    matching.add(r.value());
+                }
+            });
+            assertThat(matching).isNotEmpty();
+        });
     }
 
     @Test
