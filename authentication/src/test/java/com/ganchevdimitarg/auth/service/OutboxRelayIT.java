@@ -92,6 +92,52 @@ class OutboxRelayIT extends AbstractIntegrationTest {
                         .satisfies(r -> {
                             assertThat(r.getStatus()).isEqualTo("PUBLISHED");
                             assertThat(r.getPublishedAt()).isNotNull();
+                            // Non-sensitive topic: the persisted payload is kept intact for debuggability.
+                            assertThat(r.getPayload()).contains(userId).contains("relay@test.io");
+                        }));
+    }
+
+    @Test
+    void should_redactPersistedPayload_when_topicIsPasswordResetRequested() throws Exception {
+        String userId = UUID.randomUUID().toString();
+        String rawToken = "raw-token-" + UUID.randomUUID();
+
+        consumer = newConsumer(AuthTopics.PASSWORD_RESET_REQUESTED);
+
+        OutboxEvent row = new OutboxEvent();
+        UUID rowId = UUID.randomUUID();
+        row.setId(rowId);
+        row.setAggregateType("user");
+        row.setAggregateId(userId);
+        row.setTopic(AuthTopics.PASSWORD_RESET_REQUESTED);
+        row.setMessageKey(userId);
+        row.setPayload("{\"userId\":\"" + userId + "\",\"email\":\"reset@test.io\",\"rawToken\":\""
+                + rawToken + "\",\"expiresAt\":\"2030-01-01T00:00:00Z\",\"occurredAt\":\"2026-01-01T00:00:00Z\"}");
+        row.setStatus("PENDING");
+        repository.save(row);
+
+        List<ConsumerRecord<String, String>> matching = new ArrayList<>();
+        await().atMost(30, SECONDS).pollInterval(Duration.ofMillis(500)).untilAsserted(() -> {
+            ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(500));
+            records.records(AuthTopics.PASSWORD_RESET_REQUESTED).forEach(r -> {
+                if (userId.equals(r.key())) {
+                    matching.add(r);
+                }
+            });
+            assertThat(matching).isNotEmpty();
+        });
+
+        // The message actually SENT to Kafka must still carry the real raw token.
+        assertThat(matching.get(0).value()).contains(rawToken);
+
+        await().atMost(10, SECONDS).untilAsserted(() ->
+                assertThat(repository.findById(rowId))
+                        .get()
+                        .satisfies(r -> {
+                            assertThat(r.getStatus()).isEqualTo("PUBLISHED");
+                            // Sensitive topic: the persisted PUBLISHED row must no longer hold the raw token.
+                            assertThat(r.getPayload()).doesNotContain(rawToken);
+                            assertThat(r.getPayload()).contains("redacted");
                         }));
     }
 

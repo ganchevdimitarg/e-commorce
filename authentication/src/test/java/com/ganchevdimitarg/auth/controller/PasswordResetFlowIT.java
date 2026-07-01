@@ -95,6 +95,20 @@ class PasswordResetFlowIT extends AbstractIntegrationTest {
     }
 
     @Test
+    void should_return204_when_setNewPasswordWithValidTokenViaHttp() throws Exception {
+        String email = "http-reset@test.io";
+        UUID userId = seedUser(email, "OldAa1@aaaa");
+
+        passwordResetService.requestReset(email);
+        String rawToken = rawTokenFromOutbox(userId);
+
+        mvc.perform(patch("/api/v1/auth/set-new-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"token\":\"" + rawToken + "\",\"password\":\"NewAa1@aaaa\"}"))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
     void should_return400_when_setNewPasswordWithInvalidToken() throws Exception {
         // Account-takeover path is closed: without a valid token the reset is rejected (400),
         // never applied to any account.
