@@ -1,15 +1,20 @@
 package com.ganchevdimitarg.profile.dao;
 
 import com.ganchevdimitarg.profile.config.BaseTest;
+import com.ganchevdimitarg.profile.config.TestSecurityConfig;
 import com.ganchevdimitarg.profile.domain.Address;
 import com.ganchevdimitarg.profile.domain.Profile;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import reactor.test.StepVerifier;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+@SpringBootTest
+@Import(TestSecurityConfig.class)
 class ProfileDaoIT extends BaseTest {
 
     @Autowired private ProfileDao profileDao;
