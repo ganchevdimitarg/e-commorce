@@ -15,6 +15,9 @@ spring:
       authentication-database: admin
       port: 27017
       host: localhost
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
 
   datasource:
     username: ${POSTGRES_USER}

@@ -9,10 +9,12 @@ import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.kafka.KafkaContainer;
+import org.testcontainers.utility.DockerImageName;
 
 import java.util.List;
 import java.util.Map;
@@ -36,20 +38,27 @@ public abstract class AbstractIntegrationTest {
 
     static final KafkaContainer KAFKA = new KafkaContainer("apache/kafka:3.8.1");
 
+    static final GenericContainer<?> REDIS =
+            new GenericContainer<>(DockerImageName.parse("redis:7")).withExposedPorts(6379);
+
     static {
         POSTGRES.start();
         MONGO.start();
         KAFKA.start();
+        REDIS.start();
     }
 
     /**
-     * Wire Kafka bootstrap-servers via DynamicPropertySource.
-     * {@code @ServiceConnection} for {@link KafkaContainer} (native Apache Kafka) may not be
-     * auto-registered in Spring Boot 4.1, so we use DynamicPropertySource to be safe.
+     * Wire Kafka bootstrap-servers and Redis host/port via DynamicPropertySource.
+     * {@code @ServiceConnection} for {@link KafkaContainer} (native Apache Kafka) and
+     * {@link GenericContainer} (Redis) may not be auto-registered in Spring Boot 4.1,
+     * so we use DynamicPropertySource to be safe.
      */
     @DynamicPropertySource
     static void kafkaProperties(DynamicPropertyRegistry registry) {
         registry.add("spring.kafka.bootstrap-servers", KAFKA::getBootstrapServers);
+        registry.add("spring.data.redis.host", REDIS::getHost);
+        registry.add("spring.data.redis.port", () -> REDIS.getMappedPort(6379));
     }
 
     /**

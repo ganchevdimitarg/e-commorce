@@ -48,6 +48,12 @@
             <artifactId>spring-boot-starter-data-mongodb</artifactId>
         </dependency>
 
+        <!-- Spring Data Redis Starter for caching / idempotency guards -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+
         <!-- Spring Cloud Bootstrap Starter for initializing Spring Boot applications -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
