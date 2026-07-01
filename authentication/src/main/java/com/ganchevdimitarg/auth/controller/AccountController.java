@@ -2,8 +2,10 @@ package com.ganchevdimitarg.auth.controller;
 
 import com.ganchevdimitarg.auth.dto.RegisterUserCommand;
 import com.ganchevdimitarg.auth.dto.RegisterUserResponse;
+import com.ganchevdimitarg.auth.dto.RequestPasswordResetCommand;
 import com.ganchevdimitarg.auth.dto.SetNewPasswordCommand;
 import com.ganchevdimitarg.auth.service.AccountService;
+import com.ganchevdimitarg.auth.service.PasswordResetService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -22,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AccountController {
 
     private final AccountService accountService;
+    private final PasswordResetService passwordResetService;
 
     @PostMapping("/register")
     public ResponseEntity<RegisterUserResponse> register(@Valid @RequestBody RegisterUserCommand cmd) {
@@ -34,14 +37,17 @@ public class AccountController {
         return ResponseEntity.noContent().build();
     }
 
-    // [security] permitAll + email-only: ungated account takeover until POST /password-reset token gate exists — must not ship to prod without it.
+    @PostMapping("/password-reset")
+    public ResponseEntity<Void> requestPasswordReset(
+            @Valid @RequestBody final RequestPasswordResetCommand cmd) {
+        passwordResetService.requestReset(cmd.email());
+        return ResponseEntity.accepted().build();
+    }
+
     @PatchMapping("/set-new-password")
     public ResponseEntity<Void> setNewPassword(
             @Valid @RequestBody final SetNewPasswordCommand cmd) {
-        accountService.setNewPassword(cmd);
+        passwordResetService.confirmReset(cmd.token(), cmd.password());
         return ResponseEntity.noContent().build();
     }
-
-    // [ticket] POST /api/v1/auth/password-reset — reset-token email
-    // delivered by notification service until a follow-up adds a mail producer.
 }

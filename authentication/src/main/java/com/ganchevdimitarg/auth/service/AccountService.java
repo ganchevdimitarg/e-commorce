@@ -4,7 +4,6 @@ import com.ganchevdimitarg.auth.dao.UserCredentialRepository;
 import com.ganchevdimitarg.auth.domain.UserCredential;
 import com.ganchevdimitarg.auth.dto.RegisterUserCommand;
 import com.ganchevdimitarg.auth.dto.RegisterUserResponse;
-import com.ganchevdimitarg.auth.dto.SetNewPasswordCommand;
 import com.ganchevdimitarg.auth.event.UserDeletedEvent;
 import com.ganchevdimitarg.auth.event.UserRegisteredEvent;
 import com.ganchevdimitarg.auth.exception.ConflictException;
@@ -62,14 +61,5 @@ public class AccountService {
         outboxWriter.write(AuthTopics.USER_DELETED, userId,
                 new UserDeletedEvent(userId, Instant.now()), "user", userId);
         log.info("Soft-deleted account {}", userId);
-    }
-
-    @Transactional
-    public void setNewPassword(SetNewPasswordCommand cmd) {
-        UserCredential c = repository.findByEmailAndDeletedAtIsNull(cmd.email())
-                .orElseThrow(() -> new NotFoundException("user", cmd.email()));
-        c.setPasswordHash(passwordEncoder.encode(cmd.password()));
-        repository.save(c);
-        log.info("Password changed for {}", cmd.email());
     }
 }
