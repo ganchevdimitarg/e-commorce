@@ -30,6 +30,9 @@ public class OutboxRelay {
     private static final String STATUS_PUBLISHED = "PUBLISHED";
     private static final String HEADER_TRACE_ID = "traceId";
     private static final String HEADER_CORRELATION_ID = "correlationId";
+    // security: the raw reset token must never persist in a PUBLISHED row, since those rows
+    // are never purged; the real payload is still what gets sent to Kafka.
+    private static final String REDACTED_PAYLOAD = "{\"redacted\":true}";
 
     private final OutboxEventRepository repository;
     private final KafkaTemplate<String, Object> kafkaTemplate;
@@ -60,6 +63,7 @@ public class OutboxRelay {
 
             event.setStatus(STATUS_PUBLISHED);
             event.setPublishedAt(Instant.now());
+            redactSensitivePayload(event);
             repository.save(event);
             log.info("Published outbox event {} to topic {}", event.getId(), event.getTopic());
         } catch (InterruptedException ex) {
@@ -67,6 +71,15 @@ public class OutboxRelay {
             log.error("Interrupted publishing outbox event {}; leaving PENDING", event.getId(), ex);
         } catch (Exception ex) {
             log.error("Failed to publish outbox event {}; leaving PENDING for retry", event.getId(), ex);
+        }
+    }
+
+    // security: the reset-request payload carries the raw token; once published, overwrite the
+    // persisted row so the raw token no longer sits readable in the database indefinitely. Only
+    // this topic is sensitive — register/delete payloads are kept intact for debuggability.
+    private void redactSensitivePayload(OutboxEvent event) {
+        if (AuthTopics.PASSWORD_RESET_REQUESTED.equals(event.getTopic())) {
+            event.setPayload(REDACTED_PAYLOAD);
         }
     }
 
