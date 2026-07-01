@@ -4,6 +4,10 @@ spring:
     log-startup-info: false
     web-application-type: reactive
 
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: false
+
   security:
     oauth2:
       resourceserver:
@@ -17,6 +21,8 @@ spring:
             token-uri: "http://localhost/oauth2/token"
 
   cloud:
+    compatibility-verifier:
+      enabled: false           # monorepo runs Boot 4.1.0 ahead of the Spring Cloud train
     config:
       enabled: false
       import-check:
@@ -61,8 +67,12 @@ payment:
       post:
         uri: http://localhost/payment/charge
     customer:
-      get:
-        uri: http://localhost/payment/customer
+      post: http://localhost/payment/customer/create-customer
+      get: http://localhost/payment/customer/get-customer?username=
+      delete: http://localhost/payment/customer/delete-customer?username=
+    card:
+      post: http://localhost/payment/card/add-card?username=
+      get: http://localhost/payment/card/get-cards?username=
 
 profile:
   service:
