@@ -25,7 +25,7 @@ public class AccountService {
 
     private final UserCredentialRepository repository;
     private final PasswordEncoder passwordEncoder;
-    private final UserEventPublisher publisher;
+    private final OutboxWriter outboxWriter;
 
     @Transactional
     public RegisterUserResponse register(RegisterUserCommand cmd) {
@@ -42,10 +42,11 @@ public class AccountService {
         credential.setEnabled(true);
         repository.save(credential);
 
-        publisher.publishRegistered(new UserRegisteredEvent(
+        UserRegisteredEvent event = new UserRegisteredEvent(
                 id.toString(), cmd.email(), cmd.role().authorities(),
                 cmd.firstName(), cmd.lastName(), cmd.phoneNumber(),
-                cmd.city(), cmd.street(), cmd.postCode(), Instant.now()));
+                cmd.city(), cmd.street(), cmd.postCode(), Instant.now());
+        outboxWriter.write(AuthTopics.USER_REGISTERED, id.toString(), event, "user", id.toString());
 
         log.info("Registered user {} with role {}", cmd.email(), cmd.role());
         return new RegisterUserResponse(id.toString());
@@ -58,7 +59,8 @@ public class AccountService {
         c.setDeletedAt(Instant.now());
         c.setEnabled(false);
         repository.save(c);
-        publisher.publishDeleted(new UserDeletedEvent(userId, Instant.now()));
+        outboxWriter.write(AuthTopics.USER_DELETED, userId,
+                new UserDeletedEvent(userId, Instant.now()), "user", userId);
         log.info("Soft-deleted account {}", userId);
     }
 
