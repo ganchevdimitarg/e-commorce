@@ -1,5 +1,7 @@
 package com.ganchevdimitarg.auth.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ganchevdimitarg.auth.AbstractIntegrationTest;
 import com.ganchevdimitarg.auth.dao.OutboxEventRepository;
 import com.ganchevdimitarg.auth.domain.OutboxEvent;
@@ -26,6 +28,9 @@ class OutboxRelayIT extends AbstractIntegrationTest {
     @Autowired
     private OutboxEventRepository repository;
 
+    @Autowired
+    private ObjectMapper objectMapper;
+
     private Consumer<String, String> consumer;
 
     @AfterEach
@@ -37,7 +42,7 @@ class OutboxRelayIT extends AbstractIntegrationTest {
     }
 
     @Test
-    void should_publishPendingRowWithTraceHeaders_andFlipToPublished() {
+    void should_publishPendingRowWithTraceHeaders_andFlipToPublished() throws Exception {
         String userId = UUID.randomUUID().toString();
         String traceId = "trace-" + UUID.randomUUID();
         String correlationId = "corr-" + UUID.randomUUID();
@@ -70,6 +75,14 @@ class OutboxRelayIT extends AbstractIntegrationTest {
 
         ConsumerRecord<String, String> published = matching.get(0);
         assertThat(published.value()).contains(userId).contains("relay@test.io");
+
+        JsonNode payload = objectMapper.readTree(published.value());
+        assertThat(payload.isObject())
+                .as("payload must be a JSON object, not a double-encoded JSON string: %s", published.value())
+                .isTrue();
+        assertThat(payload.get("userId").asText()).isEqualTo(userId);
+        assertThat(payload.get("email").asText()).isEqualTo("relay@test.io");
+
         assertThat(headerValue(published, "traceId")).isEqualTo(traceId);
         assertThat(headerValue(published, "correlationId")).isEqualTo(correlationId);
 
