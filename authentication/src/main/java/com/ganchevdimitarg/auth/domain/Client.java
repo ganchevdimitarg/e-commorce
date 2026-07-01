@@ -10,7 +10,6 @@ import java.util.UUID;
 @Entity(name = "Clients")
 @Table(name = "clients")
 @NoArgsConstructor
-@AllArgsConstructor
 @SuperBuilder
 @Setter
 @Getter
