@@ -2,12 +2,10 @@ server:
   port: 8084
 
 spring:
-  #Data Source Properties
-  #Data Source Properties
+  #Data Source Properties — credentials shared by the routed writer/reader pools
   datasource:
     username: ${POSTGRES_USER}
     password: ${POSTGRES_PASSWORD}
-    url: jdbc:postgresql://localhost:5432/catalog
 
   #JPA Properties
   jpa:
@@ -32,9 +30,38 @@ spring:
     pathmatch:
       matching-strategy: ant_path_matcher
 
-  #Zipkin
-  zipkin:
-    base-url: http://localhost:9411
+  #Redis
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+  #Spring Cloud — Spring Cloud 2025.1 only certifies Boot 4.0.x; suppress the verifier on Boot 4.1.x
+  cloud:
+    compatibility-verifier:
+      enabled: false
+
+  #Cache
+  cache:
+    type: redis
+
+  #Kafka
+  kafka:
+    bootstrap-servers: localhost:9092
+
+  #Docker Compose Support
+  docker:
+    compose:
+      enabled: true
+      file: compose.yaml
+      lifecycle-management: start_and_stop
+      skip:
+        in-tests: true
+
+  #Virtual Threads
+  threads:
+    virtual:
+      enabled: true
 
 #Show SQL executed with parameter bindings
 #Logging Levels
@@ -63,23 +90,36 @@ eureka:
 #Prometheus (and other data loggers)
 management:
   endpoint:
-    metrics:
-      enabled: true
-    prometheus:
-      enabled: true
     health:
-      show-details: always
+      show-details: when-authorized
   endpoints:
     web:
       exposure:
-        include: "*"
-  metrics:
-    export:
-      prometheus:
+        include: health,info,prometheus
+  prometheus:
+    metrics:
+      export:
         enabled: true
   health:
     circuitbreakers:
       enabled: true
+  tracing:
+    sampling:
+      probability: 0.1
+  otlp:
+    tracing:
+      endpoint: http://localhost:4318/v1/traces
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      introspection:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        slowCallDurationThreshold: 2s
+        waitDurationInOpenState: 30s
+        permittedNumberOfCallsInHalfOpenState: 5
+        registerHealthIndicator: true
 
 #Spring Doc
 springdoc:
@@ -99,3 +139,15 @@ springdoc:
   oAuthFlow:
     authorizationUrl: http://localhost:8082/oauth2/authorize
     tokenUrl: http://localhost:8082/oauth2/token
+
+#Kafka custom
+kafka:
+  bootstrapAddress: localhost:9092
+
+#Routing datasource — writes + Flyway to the primary, read-only tx to the replica
+catalog:
+  datasource:
+    writer:
+      url: jdbc:postgresql://localhost:5432/catalog
+    reader:
+      url: jdbc:postgresql://localhost:5433/catalog

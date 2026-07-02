@@ -1,13 +1,13 @@
-package com.concordeu.catalog.service.comment;
+package com.ganchevdimitarg.catalog.service.comment;
 
-import com.concordeu.catalog.repository.CommentRepository;
-import com.concordeu.catalog.repository.ProductRepository;
-import com.concordeu.catalog.domain.Comment;
-import com.concordeu.catalog.domain.Product;
-import com.concordeu.catalog.dto.comment.CommentResponseDto;
-import com.concordeu.catalog.dto.comment.CreateCommentCommand;
-import com.concordeu.catalog.exception.NotFoundException;
-import com.concordeu.catalog.mapper.MapStructMapper;
+import com.ganchevdimitarg.catalog.repository.CommentRepository;
+import com.ganchevdimitarg.catalog.repository.ProductRepository;
+import com.ganchevdimitarg.catalog.domain.Comment;
+import com.ganchevdimitarg.catalog.domain.Product;
+import com.ganchevdimitarg.catalog.dto.comment.CommentResponseDto;
+import com.ganchevdimitarg.catalog.dto.comment.CreateCommentCommand;
+import com.ganchevdimitarg.catalog.exception.NotFoundException;
+import com.ganchevdimitarg.catalog.mapper.MapStructMapper;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

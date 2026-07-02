@@ -1,9 +1,9 @@
-package com.concordeu.catalog.service.product;
+package com.ganchevdimitarg.catalog.service.product;
 
-import com.concordeu.catalog.dto.product.CreateProductCommand;
-import com.concordeu.catalog.dto.product.ItemRequestDto;
-import com.concordeu.catalog.dto.product.ProductResponseDto;
-import com.concordeu.catalog.dto.product.UpdateProductCommand;
+import com.ganchevdimitarg.catalog.dto.product.CreateProductCommand;
+import com.ganchevdimitarg.catalog.dto.product.ItemRequestDto;
+import com.ganchevdimitarg.catalog.dto.product.ProductResponseDto;
+import com.ganchevdimitarg.catalog.dto.product.UpdateProductCommand;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
