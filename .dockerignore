@@ -1,0 +1,9 @@
+**/target/
+.git/
+.idea/
+**/*.iml
+**/*.stackdump
+.claude/
+**/.claude/
+docs/
+**/docs/

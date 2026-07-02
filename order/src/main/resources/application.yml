@@ -1,0 +1,22 @@
+# Profile-independent defaults for the order service.
+#
+# Environment-specific configuration lives in application-<env>.yml. The `dev` profile is
+# auto-included at startup via bootstrap.yml (`spring.profiles.include: dev`); add
+# application-<env>.yml files and activate with `--spring.profiles.active=<env>` for other
+# environments.
+spring:
+  application:
+    name: order-service
+
+# Actuator: health is open so container/orchestrator probes (see Dockerfile HEALTHCHECK)
+# can reach it; details are shown only to authorised callers.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true

@@ -3,6 +3,8 @@ package com.ganchevdimitarg.order.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -14,12 +16,14 @@ import java.util.List;
                 @UniqueConstraint(name = "order_number", columnNames = "order_number")
         },
         indexes = @Index(name = "order_number_index",columnList = "order_number"))
+@SQLDelete(sql = "UPDATE orders SET deleted_at = now() WHERE order_id = ?")
+@SQLRestriction("deleted_at IS NULL")
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 @Setter
 @Getter
-public class Order {
+public class Order extends Auditable {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "order_id", unique = true, nullable = false, updatable = false)
