@@ -1,10 +1,9 @@
 package com.ganchevdimitarg.auth.service;
 
-import com.ganchevdimitarg.auth.dao.AuthUserDao;
-import com.ganchevdimitarg.auth.domain.AuthUser;
+import com.ganchevdimitarg.auth.dao.UserCredentialRepository;
+import com.ganchevdimitarg.auth.domain.UserCredential;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -15,15 +14,14 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class UserService implements UserDetailsService {
 
-    private final AuthUserDao authUserDao;
+    private final UserCredentialRepository repository;
 
-    /**
-     * Loads user details or throws exception if not found
-     */
     @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        AuthUser user = authUserDao.findByUsername(username)
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        UserCredential c = repository.findByEmailAndDeletedAtIsNull(email)
                 .orElseThrow(() -> new UsernameNotFoundException("No such user"));
-        return new User(user.getUsername(), user.getPassword(), user.getGrantedAuthorities());
+        return new CredentialUserDetails(
+                c.getId().toString(), c.getEmail(), c.getPasswordHash(),
+                c.isEnabled(), c.getRoles());
     }
 }

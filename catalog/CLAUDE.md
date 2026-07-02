@@ -51,6 +51,15 @@ platform services (Vault `:8200`, Eureka `:8761`, auth `:8082`, OTLP `:4318`) co
 root `docker-compose`. Env: `POSTGRES_USER`, `POSTGRES_PASSWORD`, `VAULT_DEV_ROOT_TOKEN_ID`.
 
 ## Known migration gaps
-- Source migrated to Boot 4.1.0 / Java 25 — build green (the reference module).
-- Legacy remnant: 2 files still under `com.concordeu.catalog` alongside the primary
-  `com.ganchevdimitarg.catalog` (24 files). Remove the `com.concordeu.*` package when touched.
+- Source fully migrated to Boot 4.1.0 / Java 25 on the single `com.ganchevdimitarg.catalog`
+  package — no `com.concordeu` remnant. `clean verify` is green (136 tests, JaCoCo 85%
+  bundle / 100% `service.*`). The reference module.
+- Build catalog **standalone** — the root reactor is unparseable (`gateway/pom.xml` lacks a
+  dependency version): `../mvnw -f catalog/pom.xml clean verify`. catalog depends on the
+  `client` module, so install it once first: `../mvnw -f client/pom.xml install -DskipTests`
+  (uses the root pom only as a parent, sidestepping the broken gateway module).
+- Follow-ups (not blocking, human decision): no checkstyle plugin/config yet (stated PR
+  gate); integration tests run under surefire (failsafe unbound); the catalog Docker build
+  uses `-pl catalog -am` and so also trips the broken root reactor; no `application-prod.yml`
+  (the `dev` profile is already actuator-hardened: exposure `health,info,prometheus`,
+  `show-details: when-authorized`, OTLP tracing).

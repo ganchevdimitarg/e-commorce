@@ -73,12 +73,8 @@ public class ResourceServerConfig {
                                 "/actuator/info"
                         ).permitAll()
                         .pathMatchers("/actuator/**").hasRole("ADMIN")
-                        .pathMatchers(
-                                "/api/v1/profile/register-admin",
-                                "/api/v1/profile/register-worker",
-                                "/api/v1/profile/register-user",
-                                "/api/v1/profile/password-reset"
-                        ).permitAll()
+                        // /me and /payment-setup require authentication (the JWT subject
+                        // is the userId); registration/deletion are owned by auth.
                         .anyExchange().authenticated()
                 )
                 .logout(logout -> logout

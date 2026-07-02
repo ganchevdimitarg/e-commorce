@@ -2,6 +2,11 @@ spring:
   main:
     web-application-type: reactive
 
+  #Jackson — tolerant inbound event deserialisation
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: false
+
   #Security
   security:
     oauth2:
@@ -23,10 +28,9 @@ spring:
             authorization-uri: http://localhost:8082/oauth2/authorize
             token-uri: http://localhost:8082/oauth2/token
 
-  #Data Source Properties
+  #Data Source Properties (Spring Boot 4.x: spring.mongodb.* — not spring.data.mongodb.*)
   mongodb:
     uri: mongodb://${MONGO_DB_USERNAME}:${MONGO_DB_PASSWORD}@localhost:27017/${MONGO_DB_DATABASE}
-#  mongodb:
 #    username:
 #    password:
 #    database:
@@ -35,7 +39,7 @@ spring:
 
   #Kafka
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
 
 
 kafka-settings:
@@ -140,17 +144,12 @@ payment:
     uri: http://127.0.0.1:8087/api/v1
   service:
     customer:
-      post:
-        uri: ${payment.base.uri}/payment/customer/create-customer
-      get:
-        uri: ${payment.base.uri}/payment/customer/get-customer?username=
-      delete:
-        uri: ${payment.base.uri}/payment/customer/delete-customer?username=
+      post: ${payment.base.uri}/payment/customer/create-customer
+      get: ${payment.base.uri}/payment/customer/get-customer?username=
+      delete: ${payment.base.uri}/payment/customer/delete-customer?username=
     card:
-      post:
-        uri: ${payment.base.uri}/payment/card/create-card
-      get:
-        uri: ${payment.base.uri}/payment/card/get-customer-cards?username=
+      post: ${payment.base.uri}/payment/card/create-card
+      get: ${payment.base.uri}/payment/card/get-customer-cards?username=
 
 webClient:
   oauth2Client:

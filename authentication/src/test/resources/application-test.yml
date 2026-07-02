@@ -1,0 +1,24 @@
+spring:
+  config:
+    import: []                 # no Vault/.env in tests
+  cloud:
+    compatibility-verifier:
+      enabled: false           # monorepo runs Boot 4.1.0 ahead of the Spring Cloud train
+    vault:
+      enabled: false
+  jpa:
+    hibernate:
+      ddl-auto: validate
+eureka:
+  client:
+    enabled: false
+outbox:
+  relay:
+    delay-ms: 500              # publish PENDING rows quickly so ITs observe events without long waits
+auth:
+  issuer-uri: http://localhost:8082
+  jwk:
+    location: target/test-keys      # generated on first test run; under target/, never committed
+management:
+  tracing:
+    enabled: false

@@ -3,13 +3,21 @@ spring:
     virtual:
       enabled: true
 
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+
   #Data Source Properties
-  mongodb:
-    username: ${MONGO_DB_USERNAME}
-    password: ${MONGO_DB_PASSWORD}
-    database: ${MONGO_DB_DATABASE}
-    port: 27017
-    host: localhost
+  data:
+    mongodb:
+      username: ${MONGO_DB_USERNAME}
+      password: ${MONGO_DB_PASSWORD}
+      database: ${MONGO_DB_DATABASE}
+      authentication-database: admin
+      port: 27017
+      host: localhost
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
 
   datasource:
     username: ${POSTGRES_USER}
@@ -45,6 +53,11 @@ logging:
   pattern:
     level: "%5p [${spring.application.name},%X{traceId},%X{spanId}]"
 
+auth:
+  issuer-uri: ${AUTH_ISSUER_URI:http://localhost:8082}
+  jwk:
+    location: ${AUTH_JWK_DIR:./.localkeys}
+
 #Eureka
 eureka:
   client:
@@ -53,6 +66,13 @@ eureka:
 
 
 management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
   tracing:
     sampling:
       probability: 1.0  # 100% for development

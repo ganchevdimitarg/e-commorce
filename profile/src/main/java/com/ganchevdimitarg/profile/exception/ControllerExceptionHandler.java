@@ -3,6 +3,7 @@ package com.ganchevdimitarg.profile.exception;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.bind.support.WebExchangeBindException;
@@ -53,6 +54,18 @@ public class ControllerExceptionHandler {
                 exchange.getRequest().getPath().value());
 
         return new ResponseEntity<>(message, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorMessage> handleAccessDenied(
+            AccessDeniedException ex, ServerWebExchange exchange) {
+        ErrorMessage message = new ErrorMessage(
+                HttpStatus.FORBIDDEN.value(),
+                LocalDateTime.now(),
+                ex.getMessage(),
+                exchange.getRequest().getPath().value());
+
+        return new ResponseEntity<>(message, HttpStatus.FORBIDDEN);
     }
 
     @ExceptionHandler(Exception.class)

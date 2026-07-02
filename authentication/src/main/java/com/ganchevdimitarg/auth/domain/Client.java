@@ -2,6 +2,7 @@ package com.ganchevdimitarg.auth.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 import java.util.Set;
 import java.util.UUID;
@@ -9,11 +10,10 @@ import java.util.UUID;
 @Entity(name = "Clients")
 @Table(name = "clients")
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@SuperBuilder
 @Setter
 @Getter
-public class Client {
+public class Client extends Auditable {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "client_id", unique = true, nullable = false, updatable = false)

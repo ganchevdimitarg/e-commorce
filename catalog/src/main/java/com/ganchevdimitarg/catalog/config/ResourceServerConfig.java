@@ -1,7 +1,12 @@
 package com.ganchevdimitarg.catalog.config;
 
+import com.ganchevdimitarg.catalog.exception.ProblemAccessDeniedHandler;
+import com.ganchevdimitarg.catalog.exception.ProblemAuthenticationEntryPoint;
 import com.ganchevdimitarg.client.introspector.CustomOpaqueTokenIntrospector;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import jakarta.servlet.http.HttpServletRequest;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
@@ -9,10 +14,11 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationManagerResolver;
 import org.springframework.security.authentication.ProviderManager;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.oauth2.jwt.BadJwtException;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationProvider;
 import org.springframework.security.oauth2.server.resource.authentication.OpaqueTokenAuthenticationProvider;
@@ -21,48 +27,65 @@ import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity(prePostEnabled = true)
 @RequiredArgsConstructor
 @Slf4j
 public class ResourceServerConfig {
     private final JwtDecoder jwtDecoder;
+    private final ProblemAuthenticationEntryPoint authenticationEntryPoint;
+    private final ProblemAccessDeniedHandler accessDeniedHandler;
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http) {
-        http
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(authorize -> authorize
+    SecurityFilterChain securityFilterChain(HttpSecurity http,
+                                            AuthenticationManagerResolver<HttpServletRequest> resolver) throws Exception {
+        return http
+                .csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                        .requestMatchers("/api/v1/catalog/product/get-products/**").permitAll()
-                        .requestMatchers("/api/v1/catalog/product/get-category-products/**").permitAll()
-                        .requestMatchers("/api/v1/catalog/product/get-product/**").permitAll()
-                        .requestMatchers("/actuator/**").permitAll()
+                        .requestMatchers("/actuator/health", "/actuator/info", "/actuator/prometheus").permitAll()
                         .anyRequest().authenticated())
-                .oauth2ResourceServer(oauth -> oauth.authenticationManagerResolver(this.tokenAuthenticationManagerResolver()));
-        return http.build();
+                .oauth2ResourceServer(oauth2 -> oauth2
+                        .authenticationManagerResolver(resolver)
+                        .authenticationEntryPoint(authenticationEntryPoint))
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint(authenticationEntryPoint)
+                        .accessDeniedHandler(accessDeniedHandler))
+                .build();
     }
 
     @Bean
-    public OpaqueTokenIntrospector opaqueTokenIntrospector() {
-        return new CustomOpaqueTokenIntrospector();
+    public OpaqueTokenIntrospector opaqueTokenIntrospector(CircuitBreakerRegistry registry) {
+        return new ResilientOpaqueTokenIntrospector(new CustomOpaqueTokenIntrospector(), registry);
     }
 
     @Bean
-    AuthenticationManagerResolver<HttpServletRequest> tokenAuthenticationManagerResolver() {
+    AuthenticationManagerResolver<HttpServletRequest> tokenAuthenticationManagerResolver(
+            OpaqueTokenIntrospector introspector) {
         AuthenticationManager jwt = new ProviderManager(new JwtAuthenticationProvider(jwtDecoder));
         AuthenticationManager opaqueToken = new ProviderManager(
-                new OpaqueTokenAuthenticationProvider(opaqueTokenIntrospector()));
+                new OpaqueTokenAuthenticationProvider(introspector));
         return (request) -> isJwt(request) ? jwt : opaqueToken;
     }
 
-    private boolean isJwt(HttpServletRequest request) {
+    boolean isJwt(HttpServletRequest request) {
+        String authorization = request.getHeader("Authorization");
+        if (authorization == null || authorization.isBlank()) {
+            return false;
+        }
+        String token = authorization.startsWith("Bearer ")
+                ? authorization.substring("Bearer ".length()).trim()
+                : authorization.trim();
+        String[] parts = token.split("\\.");
+        if (parts.length != 3) {
+            return false;   // opaque
+        }
         try {
-            jwtDecoder.decode(request
-                    .getHeader("Authorization")
-                    .replace("Bearer ", "")
-            );
-            return true;
-        } catch (BadJwtException e) {
-            log.debug(e.getMessage());
+            String header = new String(Base64.getUrlDecoder().decode(parts[0]), StandardCharsets.UTF_8);
+            return header.startsWith("{") && header.contains("alg");
+        } catch (IllegalArgumentException e) {
+            log.debug("Authorization token is not a JOSE header: {}", e.getMessage());
             return false;
         }
     }

@@ -1,10 +1,9 @@
 package com.ganchevdimitarg.profile.controller;
 
-import com.ganchevdimitarg.profile.dto.SetNewPasswordRequestDto;
+import com.ganchevdimitarg.profile.dto.CardSetupCommand;
+import com.ganchevdimitarg.profile.dto.UpdateProfileCommand;
 import com.ganchevdimitarg.profile.dto.UserDto;
-import com.ganchevdimitarg.profile.dto.UserRequestDto;
 import com.ganchevdimitarg.profile.exception.InvalidRequestDataException;
-import com.ganchevdimitarg.profile.service.MailService;
 import com.ganchevdimitarg.profile.service.ProfileService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -18,10 +17,20 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
 
+/**
+ * Customer-profile endpoints keyed by the JWT subject ({@code userId}).
+ *
+ * <p>Registration and account deletion are owned by the auth service and
+ * arrive here as Kafka events — they are not exposed as HTTP endpoints.
+ */
 @RestController
 @RequestMapping("/api/v1/profile")
 @RequiredArgsConstructor
@@ -29,107 +38,37 @@ import reactor.core.publisher.Mono;
 public class ProfileController {
 
     private final ProfileService profileService;
-    private final MailService mailService;
 
     /**
-     * Creates a new admin user profile with full system permissions
-     * and sends a welcome email notification via Kafka.
+     * Returns the authenticated user's own profile. Identity is the JWT
+     * subject — no path or query identifier is accepted.
      *
-     * @param requestDto the request payload containing admin profile details
-     * @return a {@link Mono} emitting {@link ResponseEntity} with status 201 and the created {@link UserDto}
-     * @throws InvalidRequestDataException if a profile with the same username already exists
+     * @param authentication the current authentication; {@code getName()} is the userId
+     * @return a {@link Mono} emitting 200 with the {@link UserDto}
+     * @throws InvalidRequestDataException if no active profile exists
      */
-    @Operation(summary = "Register Admin", description = "Register admin in the database",
-            security = @SecurityRequirement(name = "security_auth"))
-    @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "Created", content = {@Content(mediaType = "application/json")}),
-            @ApiResponse(responseCode = "400", description = "Bad Request"),
-            @ApiResponse(responseCode = "500", description = "Server Error")
-    })
-    @PostMapping("/register-admin")
-    public Mono<ResponseEntity<UserDto>> createAdmin(@Valid @RequestBody UserRequestDto requestDto) {
-        return profileService.createAdmin(requestDto)
-                .flatMap(user -> mailService.sendUserWelcomeMail(user.username())
-                        .thenReturn(ResponseEntity.status(HttpStatus.CREATED).body(user)));
-    }
-
-    /**
-     * Creates a new worker user profile with read-only permissions
-     * and sends a welcome email notification via Kafka.
-     *
-     * @param requestDto the request payload containing worker profile details
-     * @return a {@link Mono} emitting {@link ResponseEntity} with status 201 and the created {@link UserDto}
-     * @throws InvalidRequestDataException if a profile with the same username already exists
-     */
-    @Operation(summary = "Register Worker", description = "Register worker in the database",
-            security = @SecurityRequirement(name = "security_auth"))
-    @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "Created", content = {@Content(mediaType = "application/json")}),
-            @ApiResponse(responseCode = "400", description = "Bad Request"),
-            @ApiResponse(responseCode = "500", description = "Server Error")
-    })
-    @PostMapping("/register-worker")
-    public Mono<ResponseEntity<UserDto>> createWorker(@Valid @RequestBody UserRequestDto requestDto) {
-        return profileService.createWorker(requestDto)
-                .flatMap(user -> mailService.sendUserWelcomeMail(user.username())
-                        .thenReturn(ResponseEntity.status(HttpStatus.CREATED).body(user)));
-    }
-
-    /**
-     * Creates a new regular user profile, sets up their payment customer
-     * and card, and sends a welcome email notification via Kafka.
-     *
-     * @param requestDto the request payload containing user profile and card details
-     * @return a {@link Mono} emitting {@link ResponseEntity} with status 201 and the created {@link UserDto}
-     * @throws InvalidRequestDataException if a profile already exists or payment service is unavailable
-     */
-    @Operation(summary = "Register User", description = "Register user in the database",
-            security = @SecurityRequirement(name = "security_auth"))
-    @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "Created", content = {@Content(mediaType = "application/json")}),
-            @ApiResponse(responseCode = "400", description = "Bad Request"),
-            @ApiResponse(responseCode = "500", description = "Server Error")
-    })
-    @PostMapping("/register-user")
-    public Mono<ResponseEntity<UserDto>> createUser(@Valid @RequestBody UserRequestDto requestDto) {
-        return profileService.createUser(requestDto)
-                .flatMap(user -> mailService.sendUserWelcomeMail(user.username())
-                        .thenReturn(ResponseEntity.status(HttpStatus.CREATED).body(user)));
-    }
-
-    /**
-     * Retrieves a user profile by username. Access is restricted to the profile
-     * owner, admins, and gateway clients via {@code @PreAuthorize}.
-     *
-     * @param username the username query parameter identifying the profile
-     * @return a {@link Mono} emitting {@link ResponseEntity} with status 200 and the {@link UserDto}
-     * @throws UsernameNotFoundException if no profile exists for the given username
-     */
-    @Operation(summary = "Get Profile By Username", description = "Get user by username from the database",
+    @Operation(summary = "Get My Profile", description = "Get the authenticated user's profile",
             security = @SecurityRequirement(name = "security_auth"))
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
             @ApiResponse(responseCode = "401", description = "Unauthenticated"),
-            @ApiResponse(responseCode = "403", description = "Unauthorized"),
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
-    @GetMapping("/get-by-username")
-    @PreAuthorize("authentication.name == #username or hasAnyRole('ADMIN', 'GATEWAY')")
-    public Mono<ResponseEntity<UserDto>> getUserByUsername(@RequestParam String username) {
-        return profileService.getUserByUsername(username.trim())
+    @GetMapping("/me")
+    public Mono<ResponseEntity<UserDto>> getMe(Authentication authentication) {
+        return profileService.getByUserId(authentication.getName())
                 .map(ResponseEntity::ok);
     }
 
     /**
-     * Updates an existing user profile with the provided request payload.
-     * Requires {@code SCOPE_profile.write} or {@code ROLE_USER} authority.
+     * Updates the authenticated user's own profile display fields.
      *
-     * @param requestDto the request payload containing updated profile fields
-     * @param username   the username query parameter identifying the profile to update
-     * @return a {@link Mono} emitting {@link ResponseEntity} with status 204 No Content
-     * @throws UsernameNotFoundException if no profile exists for the given username
+     * @param authentication the current authentication; {@code getName()} is the userId
+     * @param command        the new display values
+     * @return a {@link Mono} emitting 204 No Content
+     * @throws InvalidRequestDataException if no active profile exists
      */
-    @Operation(summary = "Update Profile", description = "Update user in the database",
+    @Operation(summary = "Update My Profile", description = "Update the authenticated user's profile",
             security = @SecurityRequirement(name = "security_auth"))
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "No Content"),
@@ -138,95 +77,36 @@ public class ProfileController {
             @ApiResponse(responseCode = "403", description = "Unauthorized"),
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
-    @PutMapping("/update-user")
+    @PutMapping("/me")
     @PreAuthorize("hasAnyAuthority('SCOPE_profile.write', 'ROLE_USER')")
-    public Mono<ResponseEntity<Void>> updateUser(@Valid @RequestBody UserRequestDto requestDto,
-                                                 @RequestParam String username) {
-        return profileService.updateUser(username.trim(), requestDto)
+    public Mono<ResponseEntity<Void>> updateMe(Authentication authentication,
+                                               @Valid @RequestBody UpdateProfileCommand command) {
+        return profileService.updateProfile(authentication.getName(), command)
                 .thenReturn(ResponseEntity.<Void>noContent().build());
     }
+
     /**
-     * Deletes the authenticated user's profile and their associated
-     * payment customer record. Requires {@code SCOPE_profile.write} authority.
+     * Sets up a payment customer and attaches a card for the authenticated user.
      *
-     * @param authentication the current authentication used to resolve the username
-     * @return a {@link Mono} emitting {@link ResponseEntity} with status 204 No Content
-     * @throws UsernameNotFoundException   if no profile exists for the authenticated user
-     * @throws InvalidRequestDataException if the payment service is unavailable
+     * @param authentication the current authentication; {@code getName()} is the userId
+     * @param command        the card details
+     * @return a {@link Mono} emitting 201 with the {@link UserDto} carrying the card ID
+     * @throws InvalidRequestDataException if no active profile exists or payment is down
      */
-    @Operation(summary = "Delete Profile", description = "Delete user in the database",
+    @Operation(summary = "Set Up Payment", description = "Create a payment customer and attach a card",
             security = @SecurityRequirement(name = "security_auth"))
     @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "No Content"),
+            @ApiResponse(responseCode = "201", description = "Created", content = {@Content(mediaType = "application/json")}),
+            @ApiResponse(responseCode = "400", description = "Bad Request"),
             @ApiResponse(responseCode = "401", description = "Unauthenticated"),
             @ApiResponse(responseCode = "403", description = "Unauthorized"),
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
-    @DeleteMapping("/delete-user")
-    @PreAuthorize("hasAuthority('SCOPE_profile.write')")
-    public Mono<ResponseEntity<Void>> deleteUser(Authentication authentication) {
-        return profileService.deleteUser(authentication.getName().trim())
-                .thenReturn(ResponseEntity.<Void>noContent().build());
-    }
-
-    /**
-     * Initiates a password reset flow for the given username.
-     * Generates a JWT token and delivers it exclusively via email — never in the response.
-     *
-     * @param username the username of the user requesting a password reset
-     * @return a {@link Mono} emitting {@link ResponseEntity} with status 204 No Content
-     * @throws InvalidRequestDataException if no profile exists for the given username
-     */
-    @Operation(summary = "Password Reset", description = "Generates a reset token and sends it to the user via email",
-            security = @SecurityRequirement(name = "security_auth"))
-    @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "No Content"),
-            @ApiResponse(responseCode = "404", description = "User Not Found"),
-            @ApiResponse(responseCode = "500", description = "Server Error")
-    })
-    @PostMapping("/password-reset")
-    public Mono<ResponseEntity<Void>> passwordReset(@RequestParam String username) {
-        return profileService.passwordReset(username.trim())
-                .thenReturn(ResponseEntity.<Void>noContent().build());
-    }
-
-    /**
-     * Validates whether the provided password reset token is still valid.
-     *
-     * @param token the JWT password reset token to validate
-     * @return a {@link Mono} emitting {@link ResponseEntity} with status 200 and a boolean result
-     */
-    @Operation(summary = "Validate Password Reset Token", description = "Checks if the password reset token is valid",
-            security = @SecurityRequirement(name = "security_auth"))
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
-            @ApiResponse(responseCode = "400", description = "Invalid Token"),
-            @ApiResponse(responseCode = "500", description = "Server Error")
-    })
-    @GetMapping("/password-reset-token")
-    public Mono<ResponseEntity<Boolean>> isValidPasswordReset(@RequestParam String token) {
-        return profileService.isPasswordResetTokenValid(token.trim())
-                .map(ResponseEntity::ok);
-    }
-
-    /**
-     * Sets a new password for the specified user after validating the request body.
-     *
-     * @param request the request body containing the username and new password
-     * @return a {@link Mono} emitting {@link ResponseEntity} with status 204 No Content
-     * @throws InvalidRequestDataException if no profile exists for the given username
-     */
-    @Operation(summary = "Set New Password", description = "Sets a new password for the user",
-            security = @SecurityRequirement(name = "security_auth"))
-    @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "No Content"),
-            @ApiResponse(responseCode = "400", description = "Bad Request"),
-            @ApiResponse(responseCode = "401", description = "Unauthenticated"),
-            @ApiResponse(responseCode = "500", description = "Server Error")
-    })
-    @PatchMapping("/set-new-password")
-    public Mono<ResponseEntity<Void>> setNewPassword(@Valid @RequestBody SetNewPasswordRequestDto request) {
-        return profileService.setNewPassword(request.username().trim(), request.password().trim())
-                .thenReturn(ResponseEntity.<Void>noContent().build());
+    @PostMapping("/payment-setup")
+    @PreAuthorize("hasAnyAuthority('SCOPE_profile.write', 'ROLE_USER')")
+    public Mono<ResponseEntity<UserDto>> setupPayment(Authentication authentication,
+                                                      @Valid @RequestBody CardSetupCommand command) {
+        return profileService.setupPayment(authentication.getName(), command)
+                .map(user -> ResponseEntity.status(HttpStatus.CREATED).body(user));
     }
 }

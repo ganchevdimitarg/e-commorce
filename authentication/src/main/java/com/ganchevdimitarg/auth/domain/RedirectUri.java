@@ -2,6 +2,7 @@ package com.ganchevdimitarg.auth.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 import java.util.UUID;
 
@@ -9,10 +10,10 @@ import java.util.UUID;
 @Table(name = "redirect_uris")
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@SuperBuilder
 @Setter
 @Getter
-public class RedirectUri {
+public class RedirectUri extends Auditable {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "redirect_uri_id", unique = true, nullable = false, updatable = false)

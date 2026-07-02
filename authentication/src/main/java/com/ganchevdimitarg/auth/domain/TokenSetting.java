@@ -2,6 +2,7 @@ package com.ganchevdimitarg.auth.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 import java.util.Set;
 import java.util.UUID;
@@ -10,10 +11,10 @@ import java.util.UUID;
 @Table(name = "token_settings")
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@SuperBuilder
 @Setter
 @Getter
-public class TokenSetting {
+public class TokenSetting extends Auditable {
     @Id
 @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "token_setting_id", unique = true, nullable = false, updatable = false)

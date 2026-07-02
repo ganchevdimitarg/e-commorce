@@ -1,7 +1,7 @@
-package com.concordeu.catalog.service.comment;
+package com.ganchevdimitarg.catalog.service.comment;
 
-import com.concordeu.catalog.dto.comment.CommentResponseDto;
-import com.concordeu.catalog.dto.comment.CreateCommentCommand;
+import com.ganchevdimitarg.catalog.dto.comment.CommentResponseDto;
+import com.ganchevdimitarg.catalog.dto.comment.CreateCommentCommand;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 

@@ -1,10 +1,10 @@
-package com.concordeu.catalog.controller;
+package com.ganchevdimitarg.catalog.controller;
 
-import com.concordeu.catalog.dto.PageResponse;
-import com.concordeu.catalog.dto.comment.CommentRequestDto;
-import com.concordeu.catalog.dto.comment.CommentResponseDto;
-import com.concordeu.catalog.dto.comment.CreateCommentCommand;
-import com.concordeu.catalog.service.comment.CommentService;
+import com.ganchevdimitarg.catalog.dto.PageResponse;
+import com.ganchevdimitarg.catalog.dto.comment.CommentRequestDto;
+import com.ganchevdimitarg.catalog.dto.comment.CommentResponseDto;
+import com.ganchevdimitarg.catalog.dto.comment.CreateCommentCommand;
+import com.ganchevdimitarg.catalog.service.comment.CommentService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import io.swagger.v3.oas.annotations.Operation;

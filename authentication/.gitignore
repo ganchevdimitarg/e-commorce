@@ -1,0 +1,5 @@
+# Generated JWT signing keys — never commit
+/.localkeys/
+# Local secret/env files
+.env
+.env.properties

@@ -1,63 +1,39 @@
 package com.ganchevdimitarg.auth.config.security;
 
-import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.jwk.RSAKey;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.MockedStatic;
+import org.junit.jupiter.api.io.TempDir;
 
-import java.security.KeyPairGenerator;
-import java.security.interfaces.RSAPublicKey;
+import java.nio.file.Path;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.mockStatic;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class KeyManagerTest {
 
+    @TempDir
+    Path keyDir;
 
-    private static KeyManager keyManager;
+    private KeyManager keyManager;
 
-    @BeforeAll
-    static void setup() {
-        keyManager = new KeyManager();
-    }
-
-    /**
-     * Generates RSA key; asserts non-null keys and valid ID
-     */
-    @Test
-    void generateRsaKey_returnsKeyWithPublicAndPrivateKey_andNonEmptyKeyId() throws JOSEException {
-        RSAKey rsaKey = keyManager.generateRsaKey();
-
-        assertNotNull(rsaKey, "RSAKey should not be null");
-        assertNotNull(rsaKey.toRSAPublicKey(), "Public key should be present");
-        assertNotNull(rsaKey.toRSAPrivateKey(), "Private key should be present");
-        assertNotNull(rsaKey.getKeyID(), "keyID should be present");
-        assertFalse(rsaKey.getKeyID().isBlank(), "keyID should not be blank");
-
-        RSAPublicKey publicKey = rsaKey.toRSAPublicKey();
-        assertTrue(publicKey.getModulus().bitLength() >= 2048,
-                "Expected RSA modulus bit length to be at least 2048");
+    @BeforeEach
+    void setUp() {
+        keyManager = new KeyManager(new JwkProperties(keyDir.toString()));
     }
 
     @Test
-    void generateRsaKey_generatesDifferentKeyIdsAcrossCalls() {
-        RSAKey first = keyManager.generateRsaKey();
-        RSAKey second = keyManager.generateRsaKey();
+    void should_generatePersistAndReloadKeyWithStableId_when_directoryEmpty() throws Exception {
+        RSAKey generated = keyManager.loadRsaKey();          // first call generates + persists
+        RSAKey reloaded = new KeyManager(new JwkProperties(keyDir.toString())).loadRsaKey(); // reads from disk
 
-        assertNotEquals(first.getKeyID(), second.getKeyID(), "Each call should generate a new keyID");
-    }
-
-    @Test
-    void generateRsaKey_wrapsFailuresInIllegalStateException() {
-        // Handles RSA key generation failures; wraps exceptions with cause
-        try (MockedStatic<KeyPairGenerator> mocked = mockStatic(KeyPairGenerator.class)) {
-            mocked.when(() -> KeyPairGenerator.getInstance("RSA"))
-                    .thenThrow(new RuntimeException("boom"));
-
-            IllegalStateException ex = assertThrows(IllegalStateException.class, keyManager::generateRsaKey);
-            assertNotNull(ex.getCause(), "IllegalStateException should wrap the original cause");
-            assertEquals("boom", ex.getCause().getMessage());
-        }
+        assertThat(generated.toRSAPublicKey()).isNotNull();
+        assertThat(generated.toRSAPrivateKey()).isNotNull();
+        assertThat(generated.toRSAPublicKey().getModulus().bitLength()).isGreaterThanOrEqualTo(2048);
+        assertThat(generated.getKeyID()).isNotBlank();
+        assertThat(reloaded.getKeyID())
+                .as("keyID must be stable across restarts (same persisted key)")
+                .isEqualTo(generated.getKeyID());
+        assertThat(reloaded.toRSAPublicKey().getModulus())
+                .isEqualTo(generated.toRSAPublicKey().getModulus());
     }
 }

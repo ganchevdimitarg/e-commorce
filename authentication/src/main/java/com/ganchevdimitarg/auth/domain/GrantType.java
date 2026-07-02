@@ -2,6 +2,7 @@ package com.ganchevdimitarg.auth.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 import java.util.Set;
 import java.util.UUID;
@@ -10,10 +11,10 @@ import java.util.UUID;
 @Table(name = "grant_types")
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@SuperBuilder
 @Setter
 @Getter
-public class GrantType {
+public class GrantType extends Auditable {
     @Id
 @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "grant_type_id", unique = true, nullable = false, updatable = false)

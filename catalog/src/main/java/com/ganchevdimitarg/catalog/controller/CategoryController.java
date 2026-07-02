@@ -1,11 +1,11 @@
-package com.concordeu.catalog.controller;
+package com.ganchevdimitarg.catalog.controller;
 
-import com.concordeu.catalog.dto.PageResponse;
-import com.concordeu.catalog.dto.category.CategoryRequestDto;
-import com.concordeu.catalog.dto.category.CategoryResponseDto;
-import com.concordeu.catalog.dto.category.CreateCategoryCommand;
-import com.concordeu.catalog.dto.category.MoveProductCommand;
-import com.concordeu.catalog.service.category.CategoryService;
+import com.ganchevdimitarg.catalog.dto.PageResponse;
+import com.ganchevdimitarg.catalog.dto.category.CategoryRequestDto;
+import com.ganchevdimitarg.catalog.dto.category.CategoryResponseDto;
+import com.ganchevdimitarg.catalog.dto.category.CreateCategoryCommand;
+import com.ganchevdimitarg.catalog.dto.category.MoveProductCommand;
+import com.ganchevdimitarg.catalog.service.category.CategoryService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import io.swagger.v3.oas.annotations.Operation;
