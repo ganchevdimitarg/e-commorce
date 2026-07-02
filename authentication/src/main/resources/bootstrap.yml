@@ -18,6 +18,8 @@ spring:
       port: 35730
 
   cloud:
+    compatibility-verifier:
+      enabled: false   # monorepo runs Boot 4.1.0 ahead of the Spring Cloud release train
     vault:
       uri: http://localhost:8200
       authentication: TOKEN

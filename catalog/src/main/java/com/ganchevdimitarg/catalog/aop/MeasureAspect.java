@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class MeasureAspect {
 
-    @Pointcut("execution(* com.concordeu.catalog.controller.*.*(..))")
+    @Pointcut("execution(* com.ganchevdimitarg.catalog.controller.*.*(..))")
     private void trackAllControllers() {}
 
     @Around("trackAllControllers()")

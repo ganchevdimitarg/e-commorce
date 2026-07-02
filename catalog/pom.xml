@@ -185,6 +185,7 @@
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
@@ -194,6 +195,7 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-junit-jupiter</artifactId>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.springframework.security</groupId>
@@ -258,7 +260,7 @@
                 <configuration>
                     <!-- Exclude MapStruct-generated mapper implementations from coverage -->
                     <excludes>
-                        <exclude>com/concordeu/catalog/mapper/*Impl.class</exclude>
+                        <exclude>com/ganchevdimitarg/catalog/mapper/*Impl.class</exclude>
                     </excludes>
                 </configuration>
                 <executions>
@@ -290,7 +292,7 @@
                                 <rule>
                                     <element>PACKAGE</element>
                                     <includes>
-                                        <include>com.concordeu.catalog.service.*</include>
+                                        <include>com.ganchevdimitarg.catalog.service.*</include>
                                     </includes>
                                     <limits>
                                         <limit>
