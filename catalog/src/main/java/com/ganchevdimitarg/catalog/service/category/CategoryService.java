@@ -1,13 +1,16 @@
-package com.concordeu.catalog.service.category;
+package com.ganchevdimitarg.catalog.service.category;
 
-import com.concordeu.catalog.dto.category.CategoryResponseDto;
+import com.ganchevdimitarg.catalog.dto.category.CategoryResponseDto;
+import com.ganchevdimitarg.catalog.dto.category.CreateCategoryCommand;
+import com.ganchevdimitarg.catalog.dto.category.MoveProductCommand;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface CategoryService {
-    CategoryResponseDto createCategory(CategoryResponseDto categoryResponseDto);
-    CategoryResponseDto getCategory(String categoryFrom);
+    CategoryResponseDto createCategory(CreateCategoryCommand command);
+    CategoryResponseDto getCategory(String categoryName);
     void deleteCategory(String categoryName);
-    void moveOneProduct(String categoryNameFrom, String categoryNameTo, String productName);
+    void moveOneProduct(MoveProductCommand command);
     void moveAllProducts(String categoryNameFrom, String categoryNameTo);
-    Page<CategoryResponseDto> getCategoriesByPage(int page, int size);
+    Page<CategoryResponseDto> getCategoriesByPage(Pageable pageable);
 }
