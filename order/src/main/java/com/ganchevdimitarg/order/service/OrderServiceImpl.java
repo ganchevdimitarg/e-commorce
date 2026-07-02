@@ -10,12 +10,11 @@ import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cloud.client.circuitbreaker.ReactiveCircuitBreakerFactory;
+import org.springframework.cloud.client.circuitbreaker.CircuitBreakerFactory;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
+import org.springframework.web.client.RestClient;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -28,8 +27,8 @@ import java.util.Optional;
 public class OrderServiceImpl implements OrderService {
     private final OrderDao orderDao;
     private final ItemDao itemDao;
-    private final WebClient webClient;
-    private final ReactiveCircuitBreakerFactory reactiveCircuitBreakerFactory;
+    private final RestClient restClient;
+    private final CircuitBreakerFactory circuitBreakerFactory;
     private final ChargeService chargeService;
 
     private long orderCounter;
@@ -101,7 +100,9 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public void deleteOrder(long orderNumber) {
-        orderDao.deleteByOrderNumber(orderNumber);
+        // load-then-delete so @SQLDelete soft-deletes (a derived deleteBy… bulk query
+        // would bypass it and hard-delete)
+        orderDao.findByOrderNumber(orderNumber).ifPresent(orderDao::delete);
         log.info("Order was successfully delete");
     }
 
@@ -143,23 +144,20 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private List<ProductResponseDto> getRequestToCategoryServiceProductInfo(ItemRequestDto request) {
-        List<ProductResponseDto> responseDtoList = webClient
-                .post()
-                .uri(catalogServiceGetProductsByIdsUri)
-                .contentType(MediaType.APPLICATION_JSON)
-                .accept(MediaType.APPLICATION_JSON)
-                .bodyValue(request)
-                .retrieve()
-                .bodyToMono(new ParameterizedTypeReference<List<ProductResponseDto>>() {
-                })
-                .transform(it ->
-                        reactiveCircuitBreakerFactory.create("orderService")
-                                .run(it, throwable -> {
-                                    log.warn("Catalog Server is down", throwable);
-                                    return Mono.just(List.of(ProductResponseDto.builder().name("").build()));
-                                })
-                )
-                .block();
+        List<ProductResponseDto> responseDtoList = circuitBreakerFactory.create("orderService").run(
+                () -> restClient
+                        .post()
+                        .uri(catalogServiceGetProductsByIdsUri)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON)
+                        .body(request)
+                        .retrieve()
+                        .body(new ParameterizedTypeReference<List<ProductResponseDto>>() {
+                        }),
+                throwable -> {
+                    log.warn("Catalog Server is down", throwable);
+                    return List.of(ProductResponseDto.builder().name("").build());
+                });
 
         assert responseDtoList != null;
         checkAvailabilityOfCatalogService(responseDtoList.get(0).name());
@@ -176,21 +174,17 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private UserDto getRequestToProfileServiceUserInfo(String username) {
-        return webClient
-                .get()
-                .uri(profileServiceGetProfileByUsernameUri + username)
-                .accept(MediaType.APPLICATION_JSON)
-                .retrieve()
-                .bodyToMono(UserDto.class)
-                .transform(it ->
-                        reactiveCircuitBreakerFactory.create("orderService")
-                                .run(it, throwable -> {
-                                    log.warn("Profile Server is down", throwable);
-                                    return Mono.just(UserDto.builder().username("").build());
-                                })
-                )
-                .block();
-
+        return circuitBreakerFactory.create("orderService").run(
+                () -> restClient
+                        .get()
+                        .uri(profileServiceGetProfileByUsernameUri + username)
+                        .accept(MediaType.APPLICATION_JSON)
+                        .retrieve()
+                        .body(UserDto.class),
+                throwable -> {
+                    log.warn("Profile Server is down", throwable);
+                    return UserDto.builder().username("").build();
+                });
     }
 
     private UserDto createProfileUser(OrderDto orderDto) {
@@ -209,21 +203,18 @@ public class OrderServiceImpl implements OrderService {
                 .cardCvc(orderDto.cardCvc())
                 .build();
 
-        return webClient
-                .post()
-                .uri(profileServiceCreateUserUri)
-                .contentType(MediaType.APPLICATION_JSON)
-                .accept(MediaType.APPLICATION_JSON)
-                .bodyValue(profileRequest)
-                .retrieve()
-                .bodyToMono(UserDto.class)
-                .transform(it ->
-                        reactiveCircuitBreakerFactory.create("orderService")
-                                .run(it, throwable -> {
-                                    log.warn("Profile Server is down", throwable);
-                                    return Mono.just(UserDto.builder().username("").build());
-                                })
-                )
-                .block();
+        return circuitBreakerFactory.create("orderService").run(
+                () -> restClient
+                        .post()
+                        .uri(profileServiceCreateUserUri)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON)
+                        .body(profileRequest)
+                        .retrieve()
+                        .body(UserDto.class),
+                throwable -> {
+                    log.warn("Profile Server is down", throwable);
+                    return UserDto.builder().username("").build();
+                });
     }
 }
