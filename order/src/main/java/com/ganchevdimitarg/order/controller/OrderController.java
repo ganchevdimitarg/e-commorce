@@ -1,6 +1,5 @@
 package com.ganchevdimitarg.order.controller;
 
-import com.ganchevdimitarg.order.annotation.ValidationRequest;
 import com.ganchevdimitarg.order.domain.OrderStatus;
 import com.ganchevdimitarg.order.dto.CancelOrderRequest;
 import com.ganchevdimitarg.order.dto.OrderDto;
@@ -45,9 +44,9 @@ public class OrderController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @PostMapping("/create-order")
-    @ValidationRequest
     @PreAuthorize("hasAuthority('SCOPE_order.write')")
-    public void createOrder(@RequestBody OrderDto orderDto, Authentication authentication) {
+    public void createOrder(@RequestBody @jakarta.validation.Valid OrderDto orderDto,
+                            Authentication authentication) {
         orderService.createOrder(orderDto, authentication.getName());
         mailService.sendUserOrderMail(orderDto.username());
     }
