@@ -109,8 +109,8 @@ class OrderServiceImplTest {
         when(orderDao.findByOrderNumber(5)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> orderService.getOrder(5, "john"))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("No such order");
+                .isInstanceOf(com.ganchevdimitarg.order.excaption.NotFoundException.class)
+                .hasMessageContaining("Order not found");
     }
 
     @Test
@@ -119,8 +119,7 @@ class OrderServiceImplTest {
         when(orderDao.findByOrderNumber(5)).thenReturn(Optional.of(order));
 
         assertThatThrownBy(() -> orderService.getOrder(5, "mallory"))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("You cannot access this information!");
+                .isInstanceOf(com.ganchevdimitarg.order.excaption.NotFoundException.class);
     }
 
     @Test
@@ -128,7 +127,7 @@ class OrderServiceImplTest {
         OrderDto dto = OrderDto.builder().username("john").items(List.of()).build();
 
         assertThatThrownBy(() -> orderService.createOrder(dto, "mallory"))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(com.ganchevdimitarg.order.excaption.NotFoundException.class);
     }
 
     @Test

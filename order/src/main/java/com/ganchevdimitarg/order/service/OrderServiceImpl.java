@@ -56,7 +56,7 @@ public class OrderServiceImpl implements OrderService {
         String username = orderDto.username();
         if (!username.equals(authenticationName)) {
             logMessage(authenticationName, username);
-            throw new IllegalArgumentException("You cannot access this information!");
+            throw new NotFoundException("Order not found for user " + authenticationName);
         }
 
         UserDto userInfo = getRequestToProfileServiceUserInfo(authenticationName);
@@ -133,13 +133,13 @@ public class OrderServiceImpl implements OrderService {
         Optional<Order> order = orderDao.findByOrderNumber(orderNumber);
         if (order.isEmpty()) {
             log.warn("No such order");
-            throw new IllegalArgumentException("No such order");
+            throw new NotFoundException("Order not found: " + orderNumber);
         }
 
         String username = order.get().getUsername();
         if (!username.equals(authenticationName)) {
             logMessage(authenticationName, username);
-            throw new IllegalArgumentException("You cannot access this information!");
+            throw new NotFoundException("Order not found: " + orderNumber);
         }
 
         UserDto userInfo = getRequestToProfileServiceUserInfo(authenticationName);
