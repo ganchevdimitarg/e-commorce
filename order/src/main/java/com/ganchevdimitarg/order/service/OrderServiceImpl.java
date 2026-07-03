@@ -2,9 +2,13 @@ package com.ganchevdimitarg.order.service;
 
 import com.ganchevdimitarg.order.dao.ItemDao;
 import com.ganchevdimitarg.order.dao.OrderDao;
+import com.ganchevdimitarg.order.dao.OrderStatusHistoryDao;
 import com.ganchevdimitarg.order.domain.Item;
 import com.ganchevdimitarg.order.domain.Order;
+import com.ganchevdimitarg.order.domain.OrderStatus;
+import com.ganchevdimitarg.order.domain.OrderStatusHistory;
 import com.ganchevdimitarg.order.dto.*;
+import com.ganchevdimitarg.order.excaption.ConflictException;
 import com.ganchevdimitarg.order.excaption.InvalidRequestDataException;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +18,7 @@ import org.springframework.cloud.client.circuitbreaker.CircuitBreakerFactory;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestClient;
 
 import java.math.BigDecimal;
@@ -30,6 +35,7 @@ public class OrderServiceImpl implements OrderService {
     private final RestClient restClient;
     private final CircuitBreakerFactory circuitBreakerFactory;
     private final ChargeService chargeService;
+    private final OrderStatusHistoryDao statusHistoryDao;
 
     private long orderCounter;
 
@@ -46,6 +52,7 @@ public class OrderServiceImpl implements OrderService {
     private String profileServiceCreateUserUri;
 
     @Override
+    @Transactional
     public void createOrder(OrderDto orderDto, String authenticationName) {
         String username = orderDto.username();
         if (!username.equals(authenticationName)) {
@@ -81,9 +88,11 @@ public class OrderServiceImpl implements OrderService {
                 .username(orderDto.username())
                 .deliveryComment(orderDto.deliveryComment())
                 .orderNumber(++orderCounter)
+                .status(OrderStatus.PLACED)
                 .createdOn(LocalDateTime.now())
                 .build();
         Order orderSave = orderDao.saveAndFlush(order);
+        recordHistory(orderSave, null, OrderStatus.PLACED, authenticationName, "order placed");
         log.info("Order was successfully created");
 
         List<Item> items = orderDto.items();
@@ -91,7 +100,8 @@ public class OrderServiceImpl implements OrderService {
         itemDao.saveAllAndFlush(items);
         log.info("Items was successfully created");
 
-        chargeService.saveCharge(order, payment);
+        chargeService.saveCharge(orderSave, payment);
+        applyTransition(orderSave, OrderStatus.PAID, authenticationName, "payment succeeded");
     }
 
     private static void logMessage(String authenticationName, String username) {
@@ -216,5 +226,27 @@ public class OrderServiceImpl implements OrderService {
                     log.warn("Profile Server is down", throwable);
                     return UserDto.builder().username("").build();
                 });
+    }
+
+    private void applyTransition(Order order, OrderStatus target, String changedBy, String reason) {
+        OrderStatus from = order.getStatus();
+        if (from != null && !from.canTransitionTo(target)) {
+            throw new ConflictException(
+                    "Cannot move order %d from %s to %s".formatted(order.getOrderNumber(), from, target));
+        }
+        order.setStatus(target);
+        orderDao.saveAndFlush(order);
+        recordHistory(order, from, target, changedBy, reason);
+    }
+
+    private void recordHistory(Order order, OrderStatus from, OrderStatus to,
+                               String changedBy, String reason) {
+        statusHistoryDao.save(OrderStatusHistory.builder()
+                .order(order)
+                .fromStatus(from)
+                .toStatus(to)
+                .changedBy(changedBy)
+                .reason(reason)
+                .build());
     }
 }

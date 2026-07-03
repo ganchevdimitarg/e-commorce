@@ -55,6 +55,8 @@ class OrderServiceImplTest {
     private CircuitBreaker circuitBreaker;
     @Mock
     private ChargeService chargeService;
+    @Mock
+    private com.ganchevdimitarg.order.dao.OrderStatusHistoryDao statusHistoryDao;
 
     private OrderServiceImpl orderService;
     private MockRestServiceServer server;
@@ -64,7 +66,7 @@ class OrderServiceImplTest {
         RestClient.Builder builder = RestClient.builder();
         server = MockRestServiceServer.bindTo(builder).build();
         orderService = new OrderServiceImpl(orderDao, itemDao, builder.build(),
-                circuitBreakerFactory, chargeService);
+                circuitBreakerFactory, chargeService, statusHistoryDao);
         ReflectionTestUtils.setField(orderService,
                 "catalogServiceGetProductsByIdsUri", "http://catalog/products");
         ReflectionTestUtils.setField(orderService,
@@ -154,9 +156,42 @@ class OrderServiceImplTest {
 
         orderService.createOrder(dto, "john");
 
-        verify(orderDao).saveAndFlush(any(Order.class));
+        verify(orderDao, org.mockito.Mockito.atLeastOnce()).saveAndFlush(any(Order.class));
         verify(itemDao).saveAllAndFlush(any());
         verify(chargeService).saveCharge(any(Order.class), any(PaymentDto.class));
         server.verify();
+    }
+
+    @Test
+    void should_setStatusPaidAndRecordHistory_when_createOrderSucceeds() throws Exception {
+        runSupplier();
+        UserDto profile = UserDto.builder().username("john").cardId("card_1").build();
+        ProductResponseDto product = ProductResponseDto.builder()
+                .name("Widget").price(new java.math.BigDecimal("10.00")).build();
+        PaymentDto payment = PaymentDto.builder().chargeId("ch_1").chargeStatus("succeeded").build();
+
+        server.expect(requestTo("http://profile/get?username=john"))
+                .andExpect(method(GET))
+                .andRespond(withSuccess(json.writeValueAsString(profile), MediaType.APPLICATION_JSON));
+        server.expect(requestTo("http://catalog/products"))
+                .andExpect(method(POST))
+                .andRespond(withSuccess(json.writeValueAsString(List.of(product)), MediaType.APPLICATION_JSON));
+
+        when(chargeService.makePayment(anyString(), anyString(), anyLong())).thenReturn(payment);
+        when(orderDao.saveAndFlush(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Item item = Item.builder().productId("p_1").quantity(1).build();
+        OrderDto dto = OrderDto.builder()
+                .username("john").deliveryComment("leave at door").items(List.of(item)).build();
+
+        orderService.createOrder(dto, "john");
+
+        org.mockito.ArgumentCaptor<Order> captor = org.mockito.ArgumentCaptor.forClass(Order.class);
+        verify(orderDao, org.mockito.Mockito.atLeastOnce()).saveAndFlush(captor.capture());
+        assertThat(captor.getValue().getStatus())
+                .isEqualTo(com.ganchevdimitarg.order.domain.OrderStatus.PAID);
+        // one history row for null->PLACED, one for PLACED->PAID
+        verify(statusHistoryDao, org.mockito.Mockito.times(2))
+                .save(any(com.ganchevdimitarg.order.domain.OrderStatusHistory.class));
     }
 }
