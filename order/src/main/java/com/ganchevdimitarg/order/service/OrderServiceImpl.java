@@ -29,7 +29,6 @@ import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -129,14 +128,12 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public OrderResponseDto getOrder(long orderNumber, String authenticationName) {
-        Optional<Order> order = orderDao.findByOrderNumber(orderNumber);
-        if (order.isEmpty()) {
-            log.warn("No such order");
-            throw new NotFoundException("Order not found: " + orderNumber);
-        }
+        Order order = orderDao.findByOrderNumber(orderNumber)
+                .orElseThrow(() -> new NotFoundException("Order not found: " + orderNumber));
 
-        String username = order.get().getUsername();
+        String username = order.getUsername();
         if (!username.equals(authenticationName)) {
             logMessage(authenticationName, username);
             throw new NotFoundException("Order not found: " + orderNumber);
@@ -148,8 +145,7 @@ public class OrderServiceImpl implements OrderService {
 
         List<ProductResponseDto> productInfo = getRequestToCategoryServiceProductInfo(
                 ItemRequestDto.builder()
-                        .items(order.get()
-                                .getItems()
+                        .items(order.getItems()
                                 .stream()
                                 .map(Item::getProductId)
                                 .toList())
@@ -159,9 +155,9 @@ public class OrderServiceImpl implements OrderService {
         return OrderResponseDto.builder()
                 .userInfo(userInfo)
                 .productInfo(productInfo)
-                .orderNumber(order.get().getOrderNumber())
-                .deliveryComment(order.get().getDeliveryComment())
-                .createdOn(order.get().getCreatedOn())
+                .orderNumber(order.getOrderNumber())
+                .deliveryComment(order.getDeliveryComment())
+                .createdOn(order.getCreatedOn())
                 .build();
     }
 
