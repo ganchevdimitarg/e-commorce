@@ -11,6 +11,7 @@ import com.ganchevdimitarg.order.dto.*;
 import com.ganchevdimitarg.order.excaption.ConflictException;
 import com.ganchevdimitarg.order.excaption.InvalidRequestDataException;
 import com.ganchevdimitarg.order.excaption.NotFoundException;
+import com.ganchevdimitarg.order.excaption.ValidationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -107,7 +108,7 @@ public class OrderServiceImpl implements OrderService {
         for (Item item : items) {
             BigDecimal price = priceById.get(item.getProductId());
             if (price == null) {
-                throw new InvalidRequestDataException(
+                throw new ValidationException(
                         "No price for product " + item.getProductId());
             }
             total = total.add(price.multiply(BigDecimal.valueOf(item.getQuantity())));
