@@ -295,6 +295,11 @@ public class OrderServiceImpl implements OrderService {
     public void advanceStatus(long orderNumber, OrderStatus target, String changedBy, String reason) {
         Order order = orderDao.findByOrderNumber(orderNumber)
                 .orElseThrow(() -> new NotFoundException("Order not found: " + orderNumber));
+        if (target == OrderStatus.CANCELLED) {
+            throw new ConflictException(
+                    "Use the cancel endpoint to cancel order %d; status advance cannot cancel"
+                            .formatted(orderNumber));
+        }
         applyTransition(order, target, changedBy, reason);
     }
 

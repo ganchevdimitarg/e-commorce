@@ -341,4 +341,19 @@ class OrderServiceImplTest {
                 com.ganchevdimitarg.order.domain.OrderStatus.SHIPPED, "ops", null))
                 .isInstanceOf(com.ganchevdimitarg.order.excaption.NotFoundException.class);
     }
+
+    @Test
+    void should_rejectAdvanceToCancelled_when_usingAdminAdvance() {
+        Order order = Order.builder().orderNumber(22).username("john")
+                .status(com.ganchevdimitarg.order.domain.OrderStatus.PAID).build();
+        when(orderDao.findByOrderNumber(22)).thenReturn(Optional.of(order));
+
+        assertThatThrownBy(() -> orderService.advanceStatus(22,
+                com.ganchevdimitarg.order.domain.OrderStatus.CANCELLED, "ops", null))
+                .isInstanceOf(com.ganchevdimitarg.order.excaption.ConflictException.class);
+
+        verify(statusHistoryDao, never()).save(any());
+        assertThat(order.getStatus())
+                .isEqualTo(com.ganchevdimitarg.order.domain.OrderStatus.PAID);
+    }
 }
