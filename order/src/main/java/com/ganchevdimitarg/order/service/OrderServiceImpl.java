@@ -16,6 +16,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.client.circuitbreaker.CircuitBreakerFactory;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -226,6 +228,17 @@ public class OrderServiceImpl implements OrderService {
                     log.warn("Profile Server is down", throwable);
                     return UserDto.builder().username("").build();
                 });
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<OrderSummaryResponse> listMyOrders(String username, OrderStatus status,
+                                                            Pageable pageable) {
+        Page<Order> page = (status == null)
+                ? orderDao.findByUsername(username, pageable)
+                : orderDao.findByUsernameAndStatus(username, status, pageable);
+        return PageResponse.of(page.map(o -> new OrderSummaryResponse(
+                o.getOrderNumber(), o.getStatus(), o.getDeliveryComment(), o.getCreatedOn())));
     }
 
     private void applyTransition(Order order, OrderStatus target, String changedBy, String reason) {
