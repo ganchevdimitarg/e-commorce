@@ -21,7 +21,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -44,7 +43,6 @@ public class OrderController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @PostMapping("/create-order")
-    @PreAuthorize("hasAuthority('SCOPE_order.write')")
     public void createOrder(@RequestBody @jakarta.validation.Valid OrderDto orderDto,
                             Authentication authentication) {
         orderService.createOrder(orderDto, authentication.getName());
@@ -60,7 +58,6 @@ public class OrderController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @DeleteMapping("/delete-order")
-    @PreAuthorize("hasAuthority('SCOPE_order.write')")
     public void deleteOrder(@RequestParam long orderNumber) {
         orderService.deleteOrder(orderNumber);
     }
@@ -74,7 +71,6 @@ public class OrderController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @GetMapping("/get-order")
-    @PreAuthorize("hasAuthority('SCOPE_order.read')")
     public OrderResponseDto getOrder(@RequestParam long orderNumber, Authentication authentication) {
         return orderService.getOrder(orderNumber, authentication.getName());
     }
@@ -82,7 +78,6 @@ public class OrderController {
     @Operation(summary = "List my orders", description = "Paginated list of the caller's orders",
             security = @SecurityRequirement(name = "security_auth"))
     @GetMapping
-    @PreAuthorize("hasAuthority('SCOPE_order.read')")
     public PageResponse<OrderSummaryResponse> listMyOrders(
             @RequestParam(required = false) OrderStatus status,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
@@ -98,7 +93,6 @@ public class OrderController {
     @Operation(summary = "Track order", description = "Current status and full status history",
             security = @SecurityRequirement(name = "security_auth"))
     @GetMapping("/{orderNumber}/tracking")
-    @PreAuthorize("hasAuthority('SCOPE_order.read')")
     public OrderTrackingResponse trackOrder(@PathVariable long orderNumber,
                                             Authentication authentication) {
         return orderService.getTracking(orderNumber, authentication.getName());
@@ -107,7 +101,6 @@ public class OrderController {
     @Operation(summary = "Cancel order", description = "Cancel an order and refund if already paid",
             security = @SecurityRequirement(name = "security_auth"))
     @PostMapping("/{orderNumber}/cancel")
-    @PreAuthorize("hasAuthority('SCOPE_order.write')")
     public void cancelOrder(@PathVariable long orderNumber,
                             @RequestBody(required = false) CancelOrderRequest request,
                             Authentication authentication) {
@@ -118,7 +111,6 @@ public class OrderController {
     @Operation(summary = "Advance order status", description = "Ops-only status transition",
             security = @SecurityRequirement(name = "security_auth"))
     @PatchMapping("/{orderNumber}/status")
-    @PreAuthorize("hasAuthority('SCOPE_order.admin')")
     public void advanceStatus(@PathVariable long orderNumber,
                               @RequestBody @jakarta.validation.Valid UpdateOrderStatusRequest request,
                               Authentication authentication) {
