@@ -30,6 +30,9 @@ public class Order extends Auditable {
     private String id;
     @Column(name = "order_number", unique = true, nullable = false)
     private long orderNumber;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private OrderStatus status;
     @Column(name = "username", nullable = false)
     private String username;
     @Column(name = "created_on")
