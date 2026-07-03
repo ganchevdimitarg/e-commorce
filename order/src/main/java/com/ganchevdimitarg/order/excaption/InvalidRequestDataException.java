@@ -1,8 +1,10 @@
 package com.ganchevdimitarg.order.excaption;
 
-public class InvalidRequestDataException extends RuntimeException {
+import org.springframework.http.HttpStatus;
+
+public class InvalidRequestDataException extends BusinessException {
 
     public InvalidRequestDataException(String message) {
-        super(message);
+        super(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", message);
     }
 }
