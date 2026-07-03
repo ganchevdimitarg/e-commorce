@@ -12,6 +12,7 @@ import com.ganchevdimitarg.order.excaption.ConflictException;
 import com.ganchevdimitarg.order.excaption.InvalidRequestDataException;
 import com.ganchevdimitarg.order.excaption.NotFoundException;
 import com.ganchevdimitarg.order.excaption.ValidationException;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -41,6 +42,7 @@ public class OrderServiceImpl implements OrderService {
     private final CircuitBreakerFactory circuitBreakerFactory;
     private final ChargeService chargeService;
     private final OrderStatusHistoryDao statusHistoryDao;
+    private final MeterRegistry meterRegistry;
 
     @Value("${catalog.service.products.get.uri}")
     private String catalogServiceGetProductsByIdsUri;
@@ -81,6 +83,7 @@ public class OrderServiceImpl implements OrderService {
                 .build();
         Order orderSave = orderDao.saveAndFlush(order);
         recordHistory(orderSave, null, OrderStatus.PLACED, authenticationName, "order placed");
+        meterRegistry.counter("order.order.created").increment();
         log.info("Order was successfully created");
 
         List<Item> items = orderDto.items();

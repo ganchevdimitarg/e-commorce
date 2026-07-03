@@ -10,6 +10,7 @@ import com.ganchevdimitarg.order.dto.OrderDto;
 import com.ganchevdimitarg.order.dto.PaymentDto;
 import com.ganchevdimitarg.order.dto.ProductResponseDto;
 import com.ganchevdimitarg.order.dto.UserDto;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -68,7 +69,7 @@ class OrderServiceImplTest {
         RestClient.Builder builder = RestClient.builder();
         server = MockRestServiceServer.bindTo(builder).build();
         orderService = new OrderServiceImpl(orderDao, itemDao, builder.build(),
-                circuitBreakerFactory, chargeService, statusHistoryDao);
+                circuitBreakerFactory, chargeService, statusHistoryDao, new SimpleMeterRegistry());
         ReflectionTestUtils.setField(orderService,
                 "catalogServiceGetProductsByIdsUri", "http://catalog/products");
         ReflectionTestUtils.setField(orderService,
