@@ -136,7 +136,7 @@ class OrderServiceImplTest {
         runSupplier();
         UserDto profile = UserDto.builder().username("john").cardId("card_1").build();
         ProductResponseDto product = ProductResponseDto.builder()
-                .name("Widget").price(new BigDecimal("10.00")).build();
+                .id("p_1").name("Widget").price(new BigDecimal("10.00")).build();
         PaymentDto payment = PaymentDto.builder().chargeId("ch_1").chargeStatus("succeeded").build();
 
         server.expect(requestTo("http://profile/get?username=john"))
@@ -169,7 +169,7 @@ class OrderServiceImplTest {
         runSupplier();
         UserDto profile = UserDto.builder().username("john").cardId("card_1").build();
         ProductResponseDto product = ProductResponseDto.builder()
-                .name("Widget").price(new java.math.BigDecimal("10.00")).build();
+                .id("p_1").name("Widget").price(new java.math.BigDecimal("10.00")).build();
         PaymentDto payment = PaymentDto.builder().chargeId("ch_1").chargeStatus("succeeded").build();
 
         server.expect(requestTo("http://profile/get?username=john"))
@@ -195,6 +195,33 @@ class OrderServiceImplTest {
         // one history row for null->PLACED, one for PLACED->PAID
         verify(statusHistoryDao, org.mockito.Mockito.times(2))
                 .save(any(com.ganchevdimitarg.order.domain.OrderStatusHistory.class));
+    }
+
+    @Test
+    void should_chargePricePerQuantityInCents_when_createOrderHasMultipleUnits() throws Exception {
+        runSupplier();
+        UserDto profile = UserDto.builder().username("john").cardId("card_1").build();
+        ProductResponseDto product = ProductResponseDto.builder()
+                .id("p_1").name("Widget").price(new BigDecimal("10.50")).build();
+        PaymentDto payment = PaymentDto.builder().chargeId("ch_1").chargeStatus("succeeded").build();
+
+        server.expect(requestTo("http://profile/get?username=john"))
+                .andExpect(method(GET))
+                .andRespond(withSuccess(json.writeValueAsString(profile), MediaType.APPLICATION_JSON));
+        server.expect(requestTo("http://catalog/products"))
+                .andExpect(method(POST))
+                .andRespond(withSuccess(json.writeValueAsString(List.of(product)), MediaType.APPLICATION_JSON));
+
+        when(chargeService.makePayment(anyString(), anyString(), anyLong())).thenReturn(payment);
+        when(orderDao.saveAndFlush(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Item item = Item.builder().productId("p_1").quantity(3).build();
+        OrderDto dto = OrderDto.builder().username("john").items(List.of(item)).build();
+
+        orderService.createOrder(dto, "john");
+
+        // 10.50 * 3 = 31.50 -> 3150 cents
+        verify(chargeService).makePayment(eq("card_1"), eq("john"), eq(3150L));
     }
 
     @Test
