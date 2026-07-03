@@ -5,6 +5,7 @@ import com.ganchevdimitarg.order.domain.OrderStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
 import java.util.Optional;
 
@@ -14,4 +15,7 @@ public interface OrderDao extends JpaRepository<Order, String> {
     Page<Order> findByUsername(String username, Pageable pageable);
 
     Page<Order> findByUsernameAndStatus(String username, OrderStatus status, Pageable pageable);
+
+    @Query(value = "SELECT nextval('order_number_seq')", nativeQuery = true)
+    long nextOrderNumber();
 }
