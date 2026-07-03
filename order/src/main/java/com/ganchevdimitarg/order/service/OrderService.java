@@ -18,4 +18,6 @@ public interface OrderService {
     PageResponse<OrderSummaryResponse> listMyOrders(String username, OrderStatus status, Pageable pageable);
 
     OrderTrackingResponse getTracking(long orderNumber, String username);
+
+    void cancelOrder(long orderNumber, String username, String reason);
 }

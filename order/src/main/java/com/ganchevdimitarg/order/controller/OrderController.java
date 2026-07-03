@@ -2,6 +2,7 @@ package com.ganchevdimitarg.order.controller;
 
 import com.ganchevdimitarg.order.annotation.ValidationRequest;
 import com.ganchevdimitarg.order.domain.OrderStatus;
+import com.ganchevdimitarg.order.dto.CancelOrderRequest;
 import com.ganchevdimitarg.order.dto.OrderDto;
 import com.ganchevdimitarg.order.dto.OrderResponseDto;
 import com.ganchevdimitarg.order.dto.OrderSummaryResponse;
@@ -101,5 +102,16 @@ public class OrderController {
     public OrderTrackingResponse trackOrder(@PathVariable long orderNumber,
                                             Authentication authentication) {
         return orderService.getTracking(orderNumber, authentication.getName());
+    }
+
+    @Operation(summary = "Cancel order", description = "Cancel an order and refund if already paid",
+            security = @SecurityRequirement(name = "security_auth"))
+    @PostMapping("/{orderNumber}/cancel")
+    @PreAuthorize("hasAuthority('SCOPE_order.write')")
+    public void cancelOrder(@PathVariable long orderNumber,
+                            @RequestBody(required = false) CancelOrderRequest request,
+                            Authentication authentication) {
+        String reason = request == null ? null : request.reason();
+        orderService.cancelOrder(orderNumber, authentication.getName(), reason);
     }
 }

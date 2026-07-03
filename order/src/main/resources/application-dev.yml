@@ -180,6 +180,9 @@ payment:
     charge:
       post:
         uri: ${payment.base.uri}/payment/charge/create-charge
+      refund:
+        post:
+          uri: ${payment.base.uri}/payment/charge/refund-charge
 
 webClient:
   oath2Client:
