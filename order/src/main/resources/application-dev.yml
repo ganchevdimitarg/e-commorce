@@ -109,6 +109,7 @@ springdoc:
         - openid
         - order.read
         - order.write
+        - order.admin
       use-pkce-with-authorization-code-grant: true
   oAuthFlow:
     authorizationUrl: http://localhost:8082/oauth2/authorize

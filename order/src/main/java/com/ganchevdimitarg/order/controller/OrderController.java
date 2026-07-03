@@ -8,6 +8,7 @@ import com.ganchevdimitarg.order.dto.OrderResponseDto;
 import com.ganchevdimitarg.order.dto.OrderSummaryResponse;
 import com.ganchevdimitarg.order.dto.OrderTrackingResponse;
 import com.ganchevdimitarg.order.dto.PageResponse;
+import com.ganchevdimitarg.order.dto.UpdateOrderStatusRequest;
 import com.ganchevdimitarg.order.service.MailService;
 import com.ganchevdimitarg.order.service.OrderService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -113,5 +114,16 @@ public class OrderController {
                             Authentication authentication) {
         String reason = request == null ? null : request.reason();
         orderService.cancelOrder(orderNumber, authentication.getName(), reason);
+    }
+
+    @Operation(summary = "Advance order status", description = "Ops-only status transition",
+            security = @SecurityRequirement(name = "security_auth"))
+    @PatchMapping("/{orderNumber}/status")
+    @PreAuthorize("hasAuthority('SCOPE_order.admin')")
+    public void advanceStatus(@PathVariable long orderNumber,
+                              @RequestBody @jakarta.validation.Valid UpdateOrderStatusRequest request,
+                              Authentication authentication) {
+        orderService.advanceStatus(orderNumber, request.status(),
+                authentication.getName(), request.reason());
     }
 }
