@@ -3,6 +3,7 @@ package com.ganchevdimitarg.order.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ganchevdimitarg.order.dao.ItemDao;
 import com.ganchevdimitarg.order.dao.OrderDao;
+import com.ganchevdimitarg.order.domain.Charge;
 import com.ganchevdimitarg.order.domain.Item;
 import com.ganchevdimitarg.order.domain.Order;
 import com.ganchevdimitarg.order.dto.OrderDto;
@@ -31,6 +32,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -261,5 +263,47 @@ class OrderServiceImplTest {
 
         assertThatThrownBy(() -> orderService.getTracking(3, "mallory"))
                 .isInstanceOf(com.ganchevdimitarg.order.excaption.NotFoundException.class);
+    }
+
+    @Test
+    void should_refundAndCancel_when_cancellingPaidOrder() {
+        Charge charge = Charge.builder().chargeId("ch_stp_1")
+                .status("succeeded").build();
+        Order order = Order.builder().orderNumber(9).username("john")
+                .status(com.ganchevdimitarg.order.domain.OrderStatus.PAID)
+                .charge(charge).build();
+        when(orderDao.findByOrderNumber(9)).thenReturn(Optional.of(order));
+        when(orderDao.saveAndFlush(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        orderService.cancelOrder(9, "john", "changed my mind");
+
+        verify(chargeService).refund(eq("ch_stp_1"), anyLong(), eq("john"));
+        assertThat(order.getStatus())
+                .isEqualTo(com.ganchevdimitarg.order.domain.OrderStatus.CANCELLED);
+    }
+
+    @Test
+    void should_cancelWithoutRefund_when_orderNotYetPaid() {
+        Order order = Order.builder().orderNumber(10).username("john")
+                .status(com.ganchevdimitarg.order.domain.OrderStatus.PLACED).build();
+        when(orderDao.findByOrderNumber(10)).thenReturn(Optional.of(order));
+        when(orderDao.saveAndFlush(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        orderService.cancelOrder(10, "john", null);
+
+        verify(chargeService, never()).refund(anyString(), anyLong(), anyString());
+        assertThat(order.getStatus())
+                .isEqualTo(com.ganchevdimitarg.order.domain.OrderStatus.CANCELLED);
+    }
+
+    @Test
+    void should_rejectCancel_when_orderAlreadyShipped() {
+        Order order = Order.builder().orderNumber(11).username("john")
+                .status(com.ganchevdimitarg.order.domain.OrderStatus.SHIPPED).build();
+        when(orderDao.findByOrderNumber(11)).thenReturn(Optional.of(order));
+
+        assertThatThrownBy(() -> orderService.cancelOrder(11, "john", null))
+                .isInstanceOf(com.ganchevdimitarg.order.excaption.ConflictException.class);
+        verify(chargeService, never()).refund(anyString(), anyLong(), anyString());
     }
 }

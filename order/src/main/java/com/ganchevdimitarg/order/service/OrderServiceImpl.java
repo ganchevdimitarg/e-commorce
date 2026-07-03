@@ -270,6 +270,26 @@ public class OrderServiceImpl implements OrderService {
         return new OrderTrackingResponse(order.getOrderNumber(), order.getStatus(), history);
     }
 
+    @Override
+    @Transactional
+    public void cancelOrder(long orderNumber, String username, String reason) {
+        Order order = orderDao.findByOrderNumber(orderNumber)
+                .orElseThrow(() -> new NotFoundException("Order not found: " + orderNumber));
+        if (!order.getUsername().equals(username)) {
+            logMessage(username, order.getUsername());
+            throw new NotFoundException("Order not found: " + orderNumber);
+        }
+        if (!order.getStatus().canTransitionTo(OrderStatus.CANCELLED)) {
+            throw new ConflictException(
+                    "Order %d cannot be cancelled from status %s"
+                            .formatted(orderNumber, order.getStatus()));
+        }
+        if (order.getStatus() == OrderStatus.PAID && order.getCharge() != null) {
+            chargeService.refund(order.getCharge().getChargeId(), 0L, username);
+        }
+        applyTransition(order, OrderStatus.CANCELLED, username, reason);
+    }
+
     private void recordHistory(Order order, OrderStatus from, OrderStatus to,
                                String changedBy, String reason) {
         statusHistoryDao.save(OrderStatusHistory.builder()
