@@ -1,6 +1,8 @@
 package com.ganchevdimitarg.order.config;
 
 import com.ganchevdimitarg.client.introspector.CustomOpaqueTokenIntrospector;
+import com.ganchevdimitarg.order.excaption.ProblemAccessDeniedHandler;
+import com.ganchevdimitarg.order.excaption.ProblemAuthenticationEntryPoint;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +28,8 @@ import org.springframework.security.web.SecurityFilterChain;
 @Slf4j
 public class ResourceServerConfig {
     private final JwtDecoder jwtDecoder;
+    private final ProblemAuthenticationEntryPoint authenticationEntryPoint;
+    private final ProblemAccessDeniedHandler accessDeniedHandler;
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) {
@@ -35,7 +39,10 @@ public class ResourceServerConfig {
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/actuator/**").permitAll()
                         .anyRequest().authenticated())
-                .oauth2ResourceServer(oauth -> oauth.authenticationManagerResolver(this.tokenAuthenticationManagerResolver()));
+                .oauth2ResourceServer(oauth -> oauth.authenticationManagerResolver(this.tokenAuthenticationManagerResolver()))
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint(authenticationEntryPoint)
+                        .accessDeniedHandler(accessDeniedHandler));
         return http.build();
     }
 
