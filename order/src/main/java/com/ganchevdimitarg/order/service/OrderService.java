@@ -20,4 +20,6 @@ public interface OrderService {
     OrderTrackingResponse getTracking(long orderNumber, String username);
 
     void cancelOrder(long orderNumber, String username, String reason);
+
+    void advanceStatus(long orderNumber, OrderStatus target, String changedBy, String reason);
 }

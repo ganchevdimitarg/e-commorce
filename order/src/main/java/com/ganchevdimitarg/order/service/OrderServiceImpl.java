@@ -290,6 +290,14 @@ public class OrderServiceImpl implements OrderService {
         applyTransition(order, OrderStatus.CANCELLED, username, reason);
     }
 
+    @Override
+    @Transactional
+    public void advanceStatus(long orderNumber, OrderStatus target, String changedBy, String reason) {
+        Order order = orderDao.findByOrderNumber(orderNumber)
+                .orElseThrow(() -> new NotFoundException("Order not found: " + orderNumber));
+        applyTransition(order, target, changedBy, reason);
+    }
+
     private void recordHistory(Order order, OrderStatus from, OrderStatus to,
                                String changedBy, String reason) {
         statusHistoryDao.save(OrderStatusHistory.builder()

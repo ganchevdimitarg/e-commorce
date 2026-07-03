@@ -306,4 +306,39 @@ class OrderServiceImplTest {
                 .isInstanceOf(com.ganchevdimitarg.order.excaption.ConflictException.class);
         verify(chargeService, never()).refund(anyString(), anyLong(), anyString());
     }
+
+    @Test
+    void should_advanceStatus_when_transitionLegal() {
+        Order order = Order.builder().orderNumber(20).username("john")
+                .status(com.ganchevdimitarg.order.domain.OrderStatus.PAID).build();
+        when(orderDao.findByOrderNumber(20)).thenReturn(Optional.of(order));
+        when(orderDao.saveAndFlush(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        orderService.advanceStatus(20,
+                com.ganchevdimitarg.order.domain.OrderStatus.SHIPPED, "ops", "left warehouse");
+
+        assertThat(order.getStatus())
+                .isEqualTo(com.ganchevdimitarg.order.domain.OrderStatus.SHIPPED);
+        verify(statusHistoryDao).save(any(com.ganchevdimitarg.order.domain.OrderStatusHistory.class));
+    }
+
+    @Test
+    void should_rejectAdvance_when_transitionIllegal() {
+        Order order = Order.builder().orderNumber(21).username("john")
+                .status(com.ganchevdimitarg.order.domain.OrderStatus.PAID).build();
+        when(orderDao.findByOrderNumber(21)).thenReturn(Optional.of(order));
+
+        assertThatThrownBy(() -> orderService.advanceStatus(21,
+                com.ganchevdimitarg.order.domain.OrderStatus.DELIVERED, "ops", null))
+                .isInstanceOf(com.ganchevdimitarg.order.excaption.ConflictException.class);
+    }
+
+    @Test
+    void should_throwNotFound_when_advancingMissingOrder() {
+        when(orderDao.findByOrderNumber(99)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> orderService.advanceStatus(99,
+                com.ganchevdimitarg.order.domain.OrderStatus.SHIPPED, "ops", null))
+                .isInstanceOf(com.ganchevdimitarg.order.excaption.NotFoundException.class);
+    }
 }
