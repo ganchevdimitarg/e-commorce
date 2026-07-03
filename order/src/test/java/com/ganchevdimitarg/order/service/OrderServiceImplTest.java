@@ -194,4 +194,42 @@ class OrderServiceImplTest {
         verify(statusHistoryDao, org.mockito.Mockito.times(2))
                 .save(any(com.ganchevdimitarg.order.domain.OrderStatusHistory.class));
     }
+
+    @Test
+    void should_returnPagedSummaries_when_listingMyOrders() {
+        Order order = Order.builder()
+                .orderNumber(1).username("john")
+                .status(com.ganchevdimitarg.order.domain.OrderStatus.PAID)
+                .deliveryComment("door").createdOn(java.time.LocalDateTime.now())
+                .build();
+        org.springframework.data.domain.Pageable pageable =
+                org.springframework.data.domain.PageRequest.of(0, 20);
+        when(orderDao.findByUsername("john", pageable))
+                .thenReturn(new org.springframework.data.domain.PageImpl<>(List.of(order), pageable, 1));
+
+        var result = orderService.listMyOrders("john", null, pageable);
+
+        assertThat(result.totalElements()).isEqualTo(1);
+        assertThat(result.content()).singleElement()
+                .satisfies(s -> {
+                    assertThat(s.orderNumber()).isEqualTo(1);
+                    assertThat(s.status()).isEqualTo(com.ganchevdimitarg.order.domain.OrderStatus.PAID);
+                });
+    }
+
+    @Test
+    void should_filterByStatus_when_statusProvided() {
+        org.springframework.data.domain.Pageable pageable =
+                org.springframework.data.domain.PageRequest.of(0, 20);
+        when(orderDao.findByUsernameAndStatus("john",
+                com.ganchevdimitarg.order.domain.OrderStatus.CANCELLED, pageable))
+                .thenReturn(new org.springframework.data.domain.PageImpl<>(List.of(), pageable, 0));
+
+        var result = orderService.listMyOrders("john",
+                com.ganchevdimitarg.order.domain.OrderStatus.CANCELLED, pageable);
+
+        assertThat(result.totalElements()).isZero();
+        verify(orderDao).findByUsernameAndStatus("john",
+                com.ganchevdimitarg.order.domain.OrderStatus.CANCELLED, pageable);
+    }
 }
