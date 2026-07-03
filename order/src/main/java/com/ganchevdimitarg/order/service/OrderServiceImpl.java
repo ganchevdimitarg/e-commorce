@@ -25,9 +25,12 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestClient;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -70,20 +73,10 @@ public class OrderServiceImpl implements OrderService {
 
         List<ProductResponseDto> products = getRequestToCategoryServiceProductInfo(
                 ItemRequestDto.builder()
-                        .items(orderDto.items()
-                                .stream()
-                                .map(Item::getProductId)
-                                .toList())
-                        .build()
-        );
+                        .items(orderDto.items().stream().map(Item::getProductId).toList())
+                        .build());
 
-        long amount = Long.parseLong(
-                products.stream()
-                        .map(ProductResponseDto::price)
-                        .reduce(BigDecimal.ZERO, BigDecimal::add)
-                        .toString()
-                        .replace(".", "")
-        );
+        long amount = computeAmountInCents(orderDto.items(), products);
 
         PaymentDto payment = chargeService.makePayment(userInfo.cardId(), authenticationName, amount);
 
@@ -105,6 +98,29 @@ public class OrderServiceImpl implements OrderService {
 
         chargeService.saveCharge(orderSave, payment);
         applyTransition(orderSave, OrderStatus.PAID, authenticationName, "payment succeeded");
+    }
+
+    /**
+     * Sum of {@code price × quantity} across the order's line items, expressed in integer
+     * cents for the payment API. Prices are matched to line items by product id; a line with
+     * no matching product price is a bad request.
+     */
+    private static long computeAmountInCents(List<Item> items, List<ProductResponseDto> products) {
+        Map<String, BigDecimal> priceById = products.stream()
+                .filter(p -> p.id() != null && p.price() != null)
+                .collect(Collectors.toMap(ProductResponseDto::id, ProductResponseDto::price,
+                        (a, b) -> a));
+
+        BigDecimal total = BigDecimal.ZERO;
+        for (Item item : items) {
+            BigDecimal price = priceById.get(item.getProductId());
+            if (price == null) {
+                throw new InvalidRequestDataException(
+                        "No price for product " + item.getProductId());
+            }
+            total = total.add(price.multiply(BigDecimal.valueOf(item.getQuantity())));
+        }
+        return total.movePointRight(2).setScale(0, RoundingMode.HALF_UP).longValueExact();
     }
 
     private static void logMessage(String authenticationName, String username) {
