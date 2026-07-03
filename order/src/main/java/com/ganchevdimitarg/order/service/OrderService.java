@@ -4,6 +4,7 @@ import com.ganchevdimitarg.order.domain.OrderStatus;
 import com.ganchevdimitarg.order.dto.OrderDto;
 import com.ganchevdimitarg.order.dto.OrderResponseDto;
 import com.ganchevdimitarg.order.dto.OrderSummaryResponse;
+import com.ganchevdimitarg.order.dto.OrderTrackingResponse;
 import com.ganchevdimitarg.order.dto.PageResponse;
 import org.springframework.data.domain.Pageable;
 
@@ -15,4 +16,6 @@ public interface OrderService {
     OrderResponseDto getOrder(long orderNumber, String authenticationName);
 
     PageResponse<OrderSummaryResponse> listMyOrders(String username, OrderStatus status, Pageable pageable);
+
+    OrderTrackingResponse getTracking(long orderNumber, String username);
 }

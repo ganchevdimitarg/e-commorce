@@ -10,6 +10,7 @@ import com.ganchevdimitarg.order.domain.OrderStatusHistory;
 import com.ganchevdimitarg.order.dto.*;
 import com.ganchevdimitarg.order.excaption.ConflictException;
 import com.ganchevdimitarg.order.excaption.InvalidRequestDataException;
+import com.ganchevdimitarg.order.excaption.NotFoundException;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -250,6 +251,23 @@ public class OrderServiceImpl implements OrderService {
         order.setStatus(target);
         orderDao.saveAndFlush(order);
         recordHistory(order, from, target, changedBy, reason);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public OrderTrackingResponse getTracking(long orderNumber, String username) {
+        Order order = orderDao.findByOrderNumber(orderNumber)
+                .orElseThrow(() -> new NotFoundException("Order not found: " + orderNumber));
+        if (!order.getUsername().equals(username)) {
+            logMessage(username, order.getUsername());
+            throw new NotFoundException("Order not found: " + orderNumber);
+        }
+        List<StatusHistoryEntry> history = statusHistoryDao.findByOrderOrderByCreatedAtAsc(order)
+                .stream()
+                .map(h -> new StatusHistoryEntry(h.getFromStatus(), h.getToStatus(),
+                        h.getChangedBy(), h.getReason(), h.getCreatedAt()))
+                .toList();
+        return new OrderTrackingResponse(order.getOrderNumber(), order.getStatus(), history);
     }
 
     private void recordHistory(Order order, OrderStatus from, OrderStatus to,

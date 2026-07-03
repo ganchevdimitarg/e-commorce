@@ -232,4 +232,34 @@ class OrderServiceImplTest {
         verify(orderDao).findByUsernameAndStatus("john",
                 com.ganchevdimitarg.order.domain.OrderStatus.CANCELLED, pageable);
     }
+
+    @Test
+    void should_returnTrackingTimeline_when_ownerRequests() {
+        Order order = Order.builder().orderNumber(3).username("john")
+                .status(com.ganchevdimitarg.order.domain.OrderStatus.SHIPPED).build();
+        when(orderDao.findByOrderNumber(3)).thenReturn(Optional.of(order));
+        var h1 = com.ganchevdimitarg.order.domain.OrderStatusHistory.builder()
+                .order(order).fromStatus(null)
+                .toStatus(com.ganchevdimitarg.order.domain.OrderStatus.PLACED)
+                .changedBy("john").reason("order placed").build();
+        when(statusHistoryDao.findByOrderOrderByCreatedAtAsc(order)).thenReturn(List.of(h1));
+
+        var result = orderService.getTracking(3, "john");
+
+        assertThat(result.orderNumber()).isEqualTo(3);
+        assertThat(result.currentStatus())
+                .isEqualTo(com.ganchevdimitarg.order.domain.OrderStatus.SHIPPED);
+        assertThat(result.history()).singleElement()
+                .satisfies(e -> assertThat(e.toStatus())
+                        .isEqualTo(com.ganchevdimitarg.order.domain.OrderStatus.PLACED));
+    }
+
+    @Test
+    void should_throwNotFound_when_trackingRequestedByNonOwner() {
+        Order order = Order.builder().orderNumber(3).username("john").build();
+        when(orderDao.findByOrderNumber(3)).thenReturn(Optional.of(order));
+
+        assertThatThrownBy(() -> orderService.getTracking(3, "mallory"))
+                .isInstanceOf(com.ganchevdimitarg.order.excaption.NotFoundException.class);
+    }
 }
