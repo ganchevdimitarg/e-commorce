@@ -5,6 +5,7 @@ import com.ganchevdimitarg.order.domain.OrderStatus;
 import com.ganchevdimitarg.order.dto.OrderDto;
 import com.ganchevdimitarg.order.dto.OrderResponseDto;
 import com.ganchevdimitarg.order.dto.OrderSummaryResponse;
+import com.ganchevdimitarg.order.dto.OrderTrackingResponse;
 import com.ganchevdimitarg.order.dto.PageResponse;
 import com.ganchevdimitarg.order.service.MailService;
 import com.ganchevdimitarg.order.service.OrderService;
@@ -91,5 +92,14 @@ public class OrderController {
             pageable = PageRequest.of(pageable.getPageNumber(), 100, pageable.getSort());
         }
         return orderService.listMyOrders(authentication.getName(), status, pageable);
+    }
+
+    @Operation(summary = "Track order", description = "Current status and full status history",
+            security = @SecurityRequirement(name = "security_auth"))
+    @GetMapping("/{orderNumber}/tracking")
+    @PreAuthorize("hasAuthority('SCOPE_order.read')")
+    public OrderTrackingResponse trackOrder(@PathVariable long orderNumber,
+                                            Authentication authentication) {
+        return orderService.getTracking(orderNumber, authentication.getName());
     }
 }
