@@ -11,7 +11,6 @@ import com.ganchevdimitarg.order.dto.*;
 import com.ganchevdimitarg.order.excaption.ConflictException;
 import com.ganchevdimitarg.order.excaption.InvalidRequestDataException;
 import com.ganchevdimitarg.order.excaption.NotFoundException;
-import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -42,13 +41,6 @@ public class OrderServiceImpl implements OrderService {
     private final CircuitBreakerFactory circuitBreakerFactory;
     private final ChargeService chargeService;
     private final OrderStatusHistoryDao statusHistoryDao;
-
-    private long orderCounter;
-
-    @PostConstruct
-    public void init() {
-        orderCounter = orderDao.count();
-    }
 
     @Value("${catalog.service.products.get.uri}")
     private String catalogServiceGetProductsByIdsUri;
@@ -83,7 +75,7 @@ public class OrderServiceImpl implements OrderService {
         Order order = Order.builder()
                 .username(orderDto.username())
                 .deliveryComment(orderDto.deliveryComment())
-                .orderNumber(++orderCounter)
+                .orderNumber(orderDao.nextOrderNumber())
                 .status(OrderStatus.PLACED)
                 .createdOn(LocalDateTime.now())
                 .build();
