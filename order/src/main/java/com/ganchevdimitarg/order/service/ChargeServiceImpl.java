@@ -25,6 +25,8 @@ public class ChargeServiceImpl implements ChargeService {
     private String paymentServiceGetCustomerByUsernameUri;
     @Value("${payment.service.charge.post.uri}")
     private String paymentServiceChargeCustomerUri;
+    @Value("${payment.service.charge.refund.post.uri}")
+    private String paymentServiceRefundChargeUri;
 
     @Override
     public PaymentDto makePayment(String cardId, String authenticationName, long amount) {
@@ -47,6 +49,20 @@ public class ChargeServiceImpl implements ChargeService {
 
         chargeDao.save(charge);
         log.info("Charge was successfully created");
+    }
+
+    @Override
+    public PaymentDto refund(String stripeChargeId, long amount, String username) {
+        PaymentDto refundRequest = PaymentDto.builder()
+                .chargeId(stripeChargeId)
+                .amount(amount)
+                .currency("usd")
+                .username(username)
+                .build();
+
+        PaymentDto refunded = sendRequestToPaymentService(paymentServiceRefundChargeUri, refundRequest);
+        log.info("Refund went through successfully: {}", refunded.chargeId());
+        return refunded;
     }
 
     private PaymentDto chargeCustomer(long amount, PaymentDto paymentCustomer, String cardId) {
