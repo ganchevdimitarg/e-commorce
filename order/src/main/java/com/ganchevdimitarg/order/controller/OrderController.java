@@ -58,8 +58,8 @@ public class OrderController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @DeleteMapping("/delete-order")
-    public void deleteOrder(@RequestParam long orderNumber) {
-        orderService.deleteOrder(orderNumber);
+    public void deleteOrder(@RequestParam long orderNumber, Authentication authentication) {
+        orderService.deleteOrder(orderNumber, authentication.getName());
     }
 
     @Operation(summary = "Get Order", description = "Get order by order cardNumber",

@@ -14,7 +14,7 @@ public interface OrderService {
     void createOrder(OrderDto orderDao, String authenticationName);
 
     @PreAuthorize("hasAuthority('SCOPE_order.write')")
-    void deleteOrder(long orderNumber);
+    void deleteOrder(long orderNumber, String username);
 
     @PreAuthorize("hasAuthority('SCOPE_order.read')")
     OrderResponseDto getOrder(long orderNumber, String authenticationName);
