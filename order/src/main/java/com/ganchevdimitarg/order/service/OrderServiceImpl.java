@@ -123,11 +123,18 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public void deleteOrder(long orderNumber) {
+    @Transactional
+    public void deleteOrder(long orderNumber, String username) {
         // load-then-delete so @SQLDelete soft-deletes (a derived deleteBy… bulk query
         // would bypass it and hard-delete)
-        orderDao.findByOrderNumber(orderNumber).ifPresent(orderDao::delete);
-        log.info("Order was successfully delete");
+        Order order = orderDao.findByOrderNumber(orderNumber)
+                .orElseThrow(() -> new NotFoundException("Order not found: " + orderNumber));
+        if (!order.getUsername().equals(username)) {
+            logMessage(username, order.getUsername());
+            throw new NotFoundException("Order not found: " + orderNumber);
+        }
+        orderDao.delete(order);
+        log.info("Order was successfully deleted");
     }
 
     @Override
