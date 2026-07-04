@@ -1,6 +1,5 @@
 package com.ganchevdimitarg.order.dto;
 
-import com.ganchevdimitarg.order.domain.Item;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
@@ -21,7 +20,7 @@ class OrderDtoValidationTest {
     @Test
     void should_reportViolation_when_usernameBlank() {
         OrderDto dto = OrderDto.builder().username(" ")
-                .items(List.of(Item.builder().productId("p_1").quantity(1).build())).build();
+                .items(List.of(new OrderLineDto("p_1", 1))).build();
         assertThat(validator().validate(dto)).anyMatch(v -> v.getPropertyPath().toString().equals("username"));
     }
 
@@ -32,9 +31,16 @@ class OrderDtoValidationTest {
     }
 
     @Test
+    void should_rejectOrder_when_lineQuantityNotPositive() {
+        OrderDto dto = OrderDto.builder().username("john")
+                .items(List.of(new OrderLineDto("p_1", 0))).build();
+        assertThat(validator().validate(dto)).isNotEmpty();
+    }
+
+    @Test
     void should_pass_when_valid() {
         OrderDto dto = OrderDto.builder().username("john")
-                .items(List.of(Item.builder().productId("p_1").quantity(1).build())).build();
+                .items(List.of(new OrderLineDto("p_1", 1))).build();
         assertThat(validator().validate(dto)).isEmpty();
     }
 }
