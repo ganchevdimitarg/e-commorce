@@ -4,9 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ganchevdimitarg.order.dao.ItemDao;
 import com.ganchevdimitarg.order.dao.OrderDao;
 import com.ganchevdimitarg.order.domain.Charge;
-import com.ganchevdimitarg.order.domain.Item;
 import com.ganchevdimitarg.order.domain.Order;
 import com.ganchevdimitarg.order.dto.OrderDto;
+import com.ganchevdimitarg.order.dto.OrderLineDto;
 import com.ganchevdimitarg.order.dto.PaymentDto;
 import com.ganchevdimitarg.order.dto.ProductResponseDto;
 import com.ganchevdimitarg.order.dto.UserDto;
@@ -161,7 +161,7 @@ class OrderServiceImplTest {
         when(orderDao.saveAndFlush(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
         when(orderDao.nextOrderNumber()).thenReturn(1L);
 
-        Item item = Item.builder().productId("p_1").quantity(1).build();
+        OrderLineDto item = new OrderLineDto("p_1", 1);
         OrderDto dto = OrderDto.builder()
                 .username("john")
                 .deliveryComment("leave at door")
@@ -196,7 +196,7 @@ class OrderServiceImplTest {
         when(orderDao.saveAndFlush(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
         when(orderDao.nextOrderNumber()).thenReturn(1L);
 
-        Item item = Item.builder().productId("p_1").quantity(1).build();
+        OrderLineDto item = new OrderLineDto("p_1", 1);
         OrderDto dto = OrderDto.builder()
                 .username("john").deliveryComment("leave at door").items(List.of(item)).build();
 
@@ -227,7 +227,7 @@ class OrderServiceImplTest {
         when(orderDao.saveAndFlush(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
         when(orderDao.nextOrderNumber()).thenReturn(42L);
 
-        Item item = Item.builder().productId("p_1").quantity(1).build();
+        OrderLineDto item = new OrderLineDto("p_1", 1);
         orderService.createOrder(OrderDto.builder().username("john").items(List.of(item)).build(), "john");
 
         org.mockito.ArgumentCaptor<Order> captor = org.mockito.ArgumentCaptor.forClass(Order.class);
@@ -253,7 +253,7 @@ class OrderServiceImplTest {
         when(chargeService.makePayment(anyString(), anyString(), anyLong())).thenReturn(payment);
         when(orderDao.saveAndFlush(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        Item item = Item.builder().productId("p_1").quantity(3).build();
+        OrderLineDto item = new OrderLineDto("p_1", 3);
         OrderDto dto = OrderDto.builder().username("john").items(List.of(item)).build();
 
         orderService.createOrder(dto, "john");

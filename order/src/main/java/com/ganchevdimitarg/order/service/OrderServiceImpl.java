@@ -67,7 +67,7 @@ public class OrderServiceImpl implements OrderService {
 
         List<ProductResponseDto> products = getRequestToCategoryServiceProductInfo(
                 ItemRequestDto.builder()
-                        .items(orderDto.items().stream().map(Item::getProductId).toList())
+                        .items(orderDto.items().stream().map(OrderLineDto::productId).toList())
                         .build());
 
         long amount = computeAmountInCents(orderDto.items(), products);
@@ -86,8 +86,13 @@ public class OrderServiceImpl implements OrderService {
         meterRegistry.counter("order.order.created").increment();
         log.info("Order was successfully created");
 
-        List<Item> items = orderDto.items();
-        items.forEach(item -> item.setOrder(orderSave));
+        List<Item> items = orderDto.items().stream()
+                .map(line -> Item.builder()
+                        .productId(line.productId())
+                        .quantity(line.quantity())
+                        .order(orderSave)
+                        .build())
+                .toList();
         itemDao.saveAllAndFlush(items);
         log.info("Items was successfully created");
 
@@ -101,20 +106,20 @@ public class OrderServiceImpl implements OrderService {
      * cents for the payment API. Prices are matched to line items by product id; a line with
      * no matching product price is a bad request.
      */
-    private static long computeAmountInCents(List<Item> items, List<ProductResponseDto> products) {
+    private static long computeAmountInCents(List<OrderLineDto> lines, List<ProductResponseDto> products) {
         Map<String, BigDecimal> priceById = products.stream()
                 .filter(p -> p.id() != null && p.price() != null)
                 .collect(Collectors.toMap(ProductResponseDto::id, ProductResponseDto::price,
                         (a, b) -> a));
 
         BigDecimal total = BigDecimal.ZERO;
-        for (Item item : items) {
-            BigDecimal price = priceById.get(item.getProductId());
+        for (OrderLineDto line : lines) {
+            BigDecimal price = priceById.get(line.productId());
             if (price == null) {
                 throw new ValidationException(
-                        "No price for product " + item.getProductId());
+                        "No price for product " + line.productId());
             }
-            total = total.add(price.multiply(BigDecimal.valueOf(item.getQuantity())));
+            total = total.add(price.multiply(BigDecimal.valueOf(line.quantity())));
         }
         return total.movePointRight(2).setScale(0, RoundingMode.HALF_UP).longValueExact();
     }
