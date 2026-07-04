@@ -168,8 +168,9 @@ class OrderServiceImplTest {
                 .items(List.of(item))
                 .build();
 
-        orderService.createOrder(dto, "john");
+        com.ganchevdimitarg.order.dto.OrderCreatedResponse response = orderService.createOrder(dto, "john");
 
+        assertThat(response.orderNumber()).isEqualTo(1L);
         verify(orderDao, org.mockito.Mockito.atLeastOnce()).saveAndFlush(any(Order.class));
         verify(itemDao).saveAllAndFlush(any());
         verify(chargeService).saveCharge(any(Order.class), any(PaymentDto.class));
@@ -199,8 +200,9 @@ class OrderServiceImplTest {
         OrderDto dto = OrderDto.builder()
                 .username("john").deliveryComment("leave at door").items(List.of(item)).build();
 
-        orderService.createOrder(dto, "john");
+        com.ganchevdimitarg.order.dto.OrderCreatedResponse response = orderService.createOrder(dto, "john");
 
+        assertThat(response.orderNumber()).isEqualTo(1L);
         org.mockito.ArgumentCaptor<Order> captor = org.mockito.ArgumentCaptor.forClass(Order.class);
         verify(orderDao, org.mockito.Mockito.atLeastOnce()).saveAndFlush(captor.capture());
         assertThat(captor.getValue().getStatus())
