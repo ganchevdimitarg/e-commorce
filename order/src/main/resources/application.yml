@@ -8,9 +8,9 @@ spring:
   application:
     name: order-service
   jackson:
+    # Jackson 3 (Boot 4) writes dates as ISO-8601 by default; the former
+    # serialization.write-dates-as-timestamps toggle was removed in Jackson 3.
     default-property-inclusion: non_null
-    serialization:
-      write-dates-as-timestamps: false
 
 # Actuator: health is open so container/orchestrator probes (see Dockerfile HEALTHCHECK)
 # can reach it; details are shown only to authorised callers.
