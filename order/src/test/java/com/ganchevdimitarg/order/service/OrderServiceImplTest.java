@@ -91,17 +91,28 @@ class OrderServiceImplTest {
         Order order = Order.builder().orderNumber(7).username("john").build();
         when(orderDao.findByOrderNumber(7)).thenReturn(Optional.of(order));
 
-        orderService.deleteOrder(7);
+        orderService.deleteOrder(7, "john");
 
         verify(orderDao).delete(order);
     }
 
     @Test
-    void should_notDelete_when_orderMissing() {
+    void should_throw_when_orderMissingOnDelete() {
         when(orderDao.findByOrderNumber(99)).thenReturn(Optional.empty());
 
-        orderService.deleteOrder(99);
+        assertThatThrownBy(() -> orderService.deleteOrder(99, "john"))
+                .isInstanceOf(com.ganchevdimitarg.order.exception.NotFoundException.class);
 
+        verify(orderDao, never()).delete(any());
+    }
+
+    @Test
+    void should_throw_when_deleteRequestedByAnotherUser() {
+        Order order = Order.builder().orderNumber(7).username("alice").build();
+        when(orderDao.findByOrderNumber(7)).thenReturn(Optional.of(order));
+
+        assertThatThrownBy(() -> orderService.deleteOrder(7, "mallory"))
+                .isInstanceOf(com.ganchevdimitarg.order.exception.NotFoundException.class);
         verify(orderDao, never()).delete(any());
     }
 
