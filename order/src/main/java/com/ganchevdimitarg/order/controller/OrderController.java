@@ -2,12 +2,14 @@ package com.ganchevdimitarg.order.controller;
 
 import com.ganchevdimitarg.order.domain.OrderStatus;
 import com.ganchevdimitarg.order.dto.CancelOrderRequest;
+import com.ganchevdimitarg.order.dto.OrderCreatedResponse;
 import com.ganchevdimitarg.order.dto.OrderDto;
 import com.ganchevdimitarg.order.dto.OrderResponseDto;
 import com.ganchevdimitarg.order.dto.OrderSummaryResponse;
 import com.ganchevdimitarg.order.dto.OrderTrackingResponse;
 import com.ganchevdimitarg.order.dto.PageResponse;
 import com.ganchevdimitarg.order.dto.UpdateOrderStatusRequest;
+import com.ganchevdimitarg.order.service.IdempotencyService;
 import com.ganchevdimitarg.order.service.MailService;
 import com.ganchevdimitarg.order.service.OrderService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -21,6 +23,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -33,6 +36,7 @@ import org.springframework.web.bind.annotation.*;
 public class OrderController {
     private final OrderService orderService;
     private final MailService mailService;
+    private final IdempotencyService idempotencyService;
 
     @Operation(summary = "Create Order", description = "Create order in the database",
             security = @SecurityRequirement(name = "security_auth"))
@@ -43,10 +47,16 @@ public class OrderController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @PostMapping("/create-order")
-    public void createOrder(@RequestBody @jakarta.validation.Valid OrderDto orderDto,
-                            Authentication authentication) {
-        orderService.createOrder(orderDto, authentication.getName());
-        mailService.sendUserOrderMail(orderDto.username());
+    @ResponseStatus(HttpStatus.CREATED)
+    public OrderCreatedResponse createOrder(
+            @RequestBody @jakarta.validation.Valid OrderDto orderDto,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
+            Authentication authentication) {
+        return idempotencyService.execute(idempotencyKey, OrderCreatedResponse.class, () -> {
+            OrderCreatedResponse response = orderService.createOrder(orderDto, authentication.getName());
+            mailService.sendUserOrderMail(orderDto.username());
+            return response;
+        });
     }
 
     @Operation(summary = "Delete Order", description = "Delete order by order cardNumber",
@@ -103,9 +113,13 @@ public class OrderController {
     @PostMapping("/{orderNumber}/cancel")
     public void cancelOrder(@PathVariable long orderNumber,
                             @RequestBody(required = false) CancelOrderRequest request,
+                            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
                             Authentication authentication) {
         String reason = request == null ? null : request.reason();
-        orderService.cancelOrder(orderNumber, authentication.getName(), reason);
+        idempotencyService.execute(idempotencyKey, String.class, () -> {
+            orderService.cancelOrder(orderNumber, authentication.getName(), reason);
+            return "cancelled";
+        });
     }
 
     @Operation(summary = "Advance order status", description = "Ops-only status transition",
@@ -113,8 +127,12 @@ public class OrderController {
     @PatchMapping("/{orderNumber}/status")
     public void advanceStatus(@PathVariable long orderNumber,
                               @RequestBody @jakarta.validation.Valid UpdateOrderStatusRequest request,
+                              @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
                               Authentication authentication) {
-        orderService.advanceStatus(orderNumber, request.status(),
-                authentication.getName(), request.reason());
+        idempotencyService.execute(idempotencyKey, String.class, () -> {
+            orderService.advanceStatus(orderNumber, request.status(),
+                    authentication.getName(), request.reason());
+            return "advanced";
+        });
     }
 }
