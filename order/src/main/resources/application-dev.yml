@@ -29,6 +29,12 @@ spring:
     password: ${POSTGRES_PASSWORD}
     url: jdbc:postgresql://localhost:5432/orders
 
+  #Redis (idempotency guard)
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
   #JPA Properties
   jpa:
     hibernate:
