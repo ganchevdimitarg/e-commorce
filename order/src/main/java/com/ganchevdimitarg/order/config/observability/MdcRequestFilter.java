@@ -11,9 +11,11 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 
 /**
- * Populates the MDC with {@code traceId} / {@code userId} / {@code serviceId} from the
- * gateway-injected headers so every log line is correlatable, then clears it on exit.
- * Header-based (not Tracer-based) to avoid pulling a tracing bridge into this service.
+ * Populates the MDC with {@code traceId} / {@code spanId} / {@code userId} / {@code serviceId}
+ * from the gateway-injected headers so every log line is correlatable, then clears it on exit.
+ * {@code traceId} and {@code spanId} are parsed out of the W3C {@code traceparent}
+ * ({@code version-traceid-spanid-flags}). Header-based (not Tracer-based) to avoid pulling a
+ * tracing bridge into this service.
  */
 @Component
 public class MdcRequestFilter extends OncePerRequestFilter {
@@ -24,7 +26,9 @@ public class MdcRequestFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
         try {
-            MDC.put("traceId", headerOrEmpty(request, "traceparent"));
+            String[] parts = headerOrEmpty(request, "traceparent").split("-");
+            MDC.put("traceId", parts.length >= 3 ? parts[1] : "");
+            MDC.put("spanId", parts.length >= 3 ? parts[2] : "");
             MDC.put("userId", headerOrEmpty(request, "X-User-Id"));
             MDC.put("serviceId", SERVICE_ID);
             filterChain.doFilter(request, response);
