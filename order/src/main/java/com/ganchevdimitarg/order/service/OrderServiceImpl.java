@@ -157,8 +157,6 @@ public class OrderServiceImpl implements OrderService {
 
         UserDto userInfo = getRequestToProfileServiceUserInfo(authenticationName);
 
-        checkAvailabilityOfCatalogService(userInfo.username());
-
         List<ProductResponseDto> productInfo = getRequestToCategoryServiceProductInfo(
                 ItemRequestDto.builder()
                         .items(order.getItems()
@@ -178,7 +176,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private List<ProductResponseDto> getRequestToCategoryServiceProductInfo(ItemRequestDto request) {
-        List<ProductResponseDto> responseDtoList = circuitBreakerFactory.create("orderService").run(
+        List<ProductResponseDto> products = circuitBreakerFactory.create("orderService").run(
                 () -> restClient
                         .post()
                         .uri(catalogServiceGetProductsByIdsUri)
@@ -190,21 +188,16 @@ public class OrderServiceImpl implements OrderService {
                         }),
                 throwable -> {
                     log.warn("Catalog Server is down", throwable);
-                    return List.of(ProductResponseDto.builder().name("").build());
+                    return List.of();
                 });
 
-        assert responseDtoList != null;
-        checkAvailabilityOfCatalogService(responseDtoList.get(0).name());
-        return responseDtoList;
-    }
-
-    private void checkAvailabilityOfCatalogService(String token) {
-        if (token.isEmpty()) {
+        if (products == null || products.isEmpty()) {
             throw new InvalidRequestDataException("""
                     Something happened with the order service.
                     Please check the request details again
                     """);
         }
+        return products;
     }
 
     private UserDto getRequestToProfileServiceUserInfo(String username) {

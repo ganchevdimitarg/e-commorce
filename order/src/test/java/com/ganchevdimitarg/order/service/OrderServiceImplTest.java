@@ -143,6 +143,23 @@ class OrderServiceImplTest {
     }
 
     @Test
+    void should_throw_when_catalogReturnsNoProducts() throws Exception {
+        runSupplier();
+        UserDto profile = UserDto.builder().username("john").cardId("card_1").build();
+        server.expect(requestTo("http://profile/get?username=john")).andExpect(method(GET))
+                .andRespond(withSuccess(json.writeValueAsString(profile), MediaType.APPLICATION_JSON));
+        server.expect(requestTo("http://catalog/products")).andExpect(method(POST))
+                .andRespond(withSuccess("[]", MediaType.APPLICATION_JSON));
+
+        OrderDto dto = OrderDto.builder().username("john")
+                .items(List.of(new OrderLineDto("p_1", 1))).build();
+
+        assertThatThrownBy(() -> orderService.createOrder(dto, "john"))
+                .isInstanceOf(com.ganchevdimitarg.order.exception.InvalidRequestDataException.class);
+        verify(orderDao, never()).saveAndFlush(any(Order.class));
+    }
+
+    @Test
     void should_persistOrderAndCharge_when_createOrderSucceeds() throws Exception {
         runSupplier();
         UserDto profile = UserDto.builder().username("john").cardId("card_1").build();
