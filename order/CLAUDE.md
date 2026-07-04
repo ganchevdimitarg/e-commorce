@@ -21,28 +21,24 @@ to this module — read the root file first.
   `bootstrap.yml` (`spring.profiles.include: dev`). Add `application-<env>.yml` and run with
   `--spring.profiles.active=<env>` for other environments.
 - `bootstrap.yml` also wires Vault config — a full `@SpringBootTest` therefore needs
-  Vault/config-server/eureka reachable; service logic is covered by context-free unit tests
-  (see `src/test`), a full Testcontainers IT is not yet wired.
+  Vault/config-server/eureka reachable; a Testcontainers IT (`OrderPersistenceIT`) now runs
+  the full context in a `test` profile that disables Vault/config/eureka.
 
-## Known gaps (verified 2026-07-02)
-The Java source **already compiles on Boot 4.1.0** — `./mvnw -f order/pom.xml clean compile`
-is green. The earlier `javax.*` / `@EnableEurekaClient` / pre-lambda-Security /
-`getStatusCodeValue()` claims were stale: source is already `jakarta.*` with a lambda
-`SecurityFilterChain`. Real remaining gaps, in priority order:
+## Migration status (verified 2026-07-04)
+The Boot-4 migration and grade-A remediation are **complete** — `./mvnw -f order/pom.xml
+clean verify` is green (40 unit tests) and `OrderPersistenceIT` passes against a real
+Postgres. Resolved since the earlier audit: OpenAPI on `springdoc-openapi-starter-webmvc-ui`
+3.x; reactive stack replaced by `RestClient` (`WebClientConfig` gone); `gson`/devtools
+removed; audit columns added (`V2`); unit + integration tests present; Dockerfile present;
+`excaption` package renamed to `exception`. Three Boot-4 autoconfig gaps surfaced by the IT
+were also closed: `spring-boot-starter-flyway` (migrations now run), `spring-boot-starter-oauth2-client`
+(`ClientRegistrationRepository` now built), and dropping the Jackson-3-invalid
+`write-dates-as-timestamps` property. See `decisions.md` (2026-07-04).
 
-- **Runtime OpenAPI dep** — `pom.xml` pulls `springdoc-openapi-ui 1.6.13` (the Boot-2 line),
-  a context-startup risk on Boot 4. The code uses only `io.swagger.v3.oas.annotations.*`
-  (version-agnostic), so swap the dep for `springdoc-openapi-starter-webmvc-ui` (2.x). The
-  springfox `<properties>` in the pom are dead — remove them.
-- **Reactive stack in a WebMVC service** — `WebClientConfig`, `OrderServiceImpl`,
-  `ChargeServiceImpl` use `WebClient`/`Mono` (pulls `spring-boot-starter-webflux`). Convention
-  is WebMVC-only outside `gateway`: migrate to `RestClient` and drop the webflux deps.
-- **Stray deps** — `gson` (project standard is Jackson) and `spring-boot-devtools` should go.
-- **No tests** — `src/test` does not exist; the Stop `verify-gate` hook + 80% coverage gate
-  currently cannot pass.
-- **No audit columns** — `V1` uses `created_on TIMESTAMP`; missing `created_at`/`updated_at`/
-  `deleted_at TIMESTAMPTZ`. Add a `V2` migration (never edit `V1`).
-- **No Dockerfile** — required by root conventions (multi-stage, non-root, HEALTHCHECK).
+Deferred follow-ups (breaking, tracked separately): the `OrderDto.items : List<Item>`
+entity leak → introduce `OrderLineDto(String productId, long quantity)` and map in the
+service; the physical Kafka topic rename `"sentMail"` → `order.notification.requested`
+(needs a coordinated change with the notification service).
 
 Migrate toward root conventions when you touch this code; never copy the legacy pattern
 forward. Build standalone: `./mvnw -f order/pom.xml ...` (root reactor is blocked).
