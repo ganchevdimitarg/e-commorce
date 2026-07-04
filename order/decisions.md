@@ -33,3 +33,17 @@ Reference with `@docs/decisions.md` in prompts when Claude re-raises settled que
 - `excaption` package renamed to `exception`.
 - Boot-4 autoconfig gaps closed (surfaced by the new Testcontainers IT): `flyway-core` → `spring-boot-starter-flyway` (+`flyway-database-postgresql`) so migrations actually run; `spring-security-oauth2-client` → `spring-boot-starter-oauth2-client` so a `ClientRegistrationRepository` is built; dropped `spring.jackson.serialization.write-dates-as-timestamps` (the enum constant was removed in Jackson 3). Without these the application context could not start on Boot 4.
 - Testcontainers `OrderPersistenceIT` (singleton Postgres, `@ServiceConnection`) verifies the sequence and soft-delete round-trip; the `test` profile disables Vault/config/eureka and uses an explicit OAuth2 `token-uri` (no eager OIDC discovery). Note: `checkstyle`/`flyway:validate`/JaCoCo are not wired for this module (catalog carries those); the IT's live V1–V5 migration run is the migration check.
+
+## 2026-07-04 — Deferred, cross-service (tracked)
+
+1. **Kafka topic rename** `sentMail` → `order.notification.requested`
+   (`KafkaTopics.SENT_MAIL`). Requires the notification service to consume the new
+   topic first (dual-listen window), then order flips the producer, then the old topic
+   is retired. Owner: order + notification. Convention ref: `<domain>.<entity>.<event>`.
+
+2. **Card-PII relocation out of `OrderDto`** (`cardNumber`, `cardCvc`, `cardExp*`).
+   Target: clients pre-register a card with the profile/payment service and pass only a
+   `cardId`; order stops receiving raw PAN/CVC. Interim mitigation already shipped:
+   `OrderDto.toString()` redacts card fields so they cannot leak via logs. Requires a
+   gateway/client contract change + profile "register card" endpoint. Owner: order +
+   profile + gateway.
