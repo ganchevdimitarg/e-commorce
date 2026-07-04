@@ -53,7 +53,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional
-    public void createOrder(OrderDto orderDto, String authenticationName) {
+    public OrderCreatedResponse createOrder(OrderDto orderDto, String authenticationName) {
         String username = orderDto.username();
         if (!username.equals(authenticationName)) {
             logMessage(authenticationName, username);
@@ -93,6 +93,7 @@ public class OrderServiceImpl implements OrderService {
 
         chargeService.saveCharge(orderSave, payment);
         applyTransition(orderSave, OrderStatus.PAID, authenticationName, "payment succeeded");
+        return new OrderCreatedResponse(orderSave.getOrderNumber());
     }
 
     /**
