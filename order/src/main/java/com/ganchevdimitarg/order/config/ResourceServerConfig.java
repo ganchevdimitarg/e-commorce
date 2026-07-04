@@ -1,8 +1,8 @@
 package com.ganchevdimitarg.order.config;
 
 import com.ganchevdimitarg.client.introspector.CustomOpaqueTokenIntrospector;
-import com.ganchevdimitarg.order.excaption.ProblemAccessDeniedHandler;
-import com.ganchevdimitarg.order.excaption.ProblemAuthenticationEntryPoint;
+import com.ganchevdimitarg.order.exception.ProblemAccessDeniedHandler;
+import com.ganchevdimitarg.order.exception.ProblemAuthenticationEntryPoint;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

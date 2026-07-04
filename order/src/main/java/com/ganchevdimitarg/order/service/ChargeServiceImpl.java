@@ -4,7 +4,7 @@ import com.ganchevdimitarg.order.dao.ChargeDao;
 import com.ganchevdimitarg.order.domain.Charge;
 import com.ganchevdimitarg.order.domain.Order;
 import com.ganchevdimitarg.order.dto.PaymentDto;
-import com.ganchevdimitarg.order.excaption.InvalidRequestDataException;
+import com.ganchevdimitarg.order.exception.InvalidRequestDataException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

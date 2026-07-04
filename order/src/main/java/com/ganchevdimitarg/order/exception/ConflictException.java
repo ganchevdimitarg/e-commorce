@@ -1,4 +1,4 @@
-package com.ganchevdimitarg.order.excaption;
+package com.ganchevdimitarg.order.exception;
 
 import org.springframework.http.HttpStatus;
 
