@@ -1,6 +1,7 @@
 package com.ganchevdimitarg.order.service;
 
 import com.ganchevdimitarg.order.domain.OrderStatus;
+import com.ganchevdimitarg.order.dto.OrderCreatedResponse;
 import com.ganchevdimitarg.order.dto.OrderDto;
 import com.ganchevdimitarg.order.dto.OrderResponseDto;
 import com.ganchevdimitarg.order.dto.OrderSummaryResponse;
@@ -11,7 +12,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 
 public interface OrderService {
     @PreAuthorize("hasAuthority('SCOPE_order.write')")
-    void createOrder(OrderDto orderDao, String authenticationName);
+    OrderCreatedResponse createOrder(OrderDto orderDao, String authenticationName);
 
     @PreAuthorize("hasAuthority('SCOPE_order.write')")
     void deleteOrder(long orderNumber, String username);
