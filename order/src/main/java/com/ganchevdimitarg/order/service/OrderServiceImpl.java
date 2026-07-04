@@ -7,7 +7,18 @@ import com.ganchevdimitarg.order.domain.Item;
 import com.ganchevdimitarg.order.domain.Order;
 import com.ganchevdimitarg.order.domain.OrderStatus;
 import com.ganchevdimitarg.order.domain.OrderStatusHistory;
-import com.ganchevdimitarg.order.dto.*;
+import com.ganchevdimitarg.order.dto.ItemRequestDto;
+import com.ganchevdimitarg.order.dto.OrderCreatedResponse;
+import com.ganchevdimitarg.order.dto.OrderDto;
+import com.ganchevdimitarg.order.dto.OrderLineDto;
+import com.ganchevdimitarg.order.dto.OrderResponseDto;
+import com.ganchevdimitarg.order.dto.OrderSummaryResponse;
+import com.ganchevdimitarg.order.dto.OrderTrackingResponse;
+import com.ganchevdimitarg.order.dto.PageResponse;
+import com.ganchevdimitarg.order.dto.PaymentDto;
+import com.ganchevdimitarg.order.dto.ProductResponseDto;
+import com.ganchevdimitarg.order.dto.StatusHistoryEntry;
+import com.ganchevdimitarg.order.dto.UserDto;
 import com.ganchevdimitarg.order.exception.ConflictException;
 import com.ganchevdimitarg.order.exception.InvalidRequestDataException;
 import com.ganchevdimitarg.order.exception.NotFoundException;
@@ -74,17 +85,7 @@ public class OrderServiceImpl implements OrderService {
 
         PaymentDto payment = chargeService.makePayment(userInfo.cardId(), authenticationName, amount);
 
-        Order order = Order.builder()
-                .username(orderDto.username())
-                .deliveryComment(orderDto.deliveryComment())
-                .orderNumber(orderDao.nextOrderNumber())
-                .status(OrderStatus.PLACED)
-                .createdOn(LocalDateTime.now())
-                .build();
-        Order orderSave = orderDao.saveAndFlush(order);
-        recordHistory(orderSave, null, OrderStatus.PLACED, authenticationName, "order placed");
-        meterRegistry.counter("order.order.created").increment();
-        log.info("Order was successfully created");
+        Order orderSave = persistNewOrder(orderDto, authenticationName);
 
         List<Item> items = orderDto.items().stream()
                 .map(line -> Item.builder()
@@ -122,6 +123,21 @@ public class OrderServiceImpl implements OrderService {
             total = total.add(price.multiply(BigDecimal.valueOf(line.quantity())));
         }
         return total.movePointRight(2).setScale(0, RoundingMode.HALF_UP).longValueExact();
+    }
+
+    private Order persistNewOrder(OrderDto orderDto, String authenticationName) {
+        Order order = Order.builder()
+                .username(orderDto.username())
+                .deliveryComment(orderDto.deliveryComment())
+                .orderNumber(orderDao.nextOrderNumber())
+                .status(OrderStatus.PLACED)
+                .createdOn(LocalDateTime.now())
+                .build();
+        Order saved = orderDao.saveAndFlush(order);
+        recordHistory(saved, null, OrderStatus.PLACED, authenticationName, "order placed");
+        meterRegistry.counter("order.order.created").increment();
+        log.info("Order was successfully created");
+        return saved;
     }
 
     private static void logMessage(String authenticationName, String username) {
