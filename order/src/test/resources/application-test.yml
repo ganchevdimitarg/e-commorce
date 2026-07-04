@@ -1,0 +1,82 @@
+# Integration-test profile: disables cloud infra (Vault/config/eureka) and points every
+# outbound URI at a loopback stub. Flyway stays enabled so V1–V5 run against the Postgres
+# Testcontainer; the datasource is supplied by @ServiceConnection.
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  flyway:
+    enabled: true
+  cloud:
+    vault:
+      enabled: false
+    compatibility-verifier:
+      enabled: false
+  config:
+    import: "optional:configserver:"
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: http://localhost:8082/oauth2/jwks
+      client:
+        # Explicit token-uri (never issuer-uri) so no eager OIDC discovery happens at
+        # startup — the client-credentials token is fetched lazily on first outbound call,
+        # which these persistence tests never trigger.
+        registration:
+          gateway-client-oidc:
+            provider: spring
+            client-id: test-client
+            client-secret: test-secret
+            authorization-grant-type: client_credentials
+        provider:
+          spring:
+            token-uri: http://localhost:8082/oauth2/token
+  docker:
+    compose:
+      enabled: false
+
+kafka:
+  bootstrapAddress: localhost:9092
+
+eureka:
+  client:
+    enabled: false
+    fetch-registry: false
+    register-with-eureka: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+webClient:
+  oath2Client:
+    defaultClientRegistrationId: "gateway-client-oidc"
+
+catalog:
+  service:
+    products:
+      get:
+        uri: http://localhost/catalog
+profile:
+  service:
+    get:
+      uri: http://localhost/profile?username=
+    post:
+      uri: http://localhost/profile
+payment:
+  service:
+    customer:
+      get:
+        uri: http://localhost/payment/customer?username=
+    charge:
+      post:
+        uri: http://localhost/payment/charge
+      refund:
+        post:
+          uri: http://localhost/payment/refund
