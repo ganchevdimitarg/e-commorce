@@ -93,7 +93,9 @@ public class ChargeServiceImpl implements ChargeService {
                     return PaymentDto.builder().chargeId("").build();
                 });
 
-        assert paymentDto != null;
+        if (paymentDto == null) {
+            throw new InvalidRequestDataException("Payment service returned no response");
+        }
         checkPaymentServiceAvailability(paymentDto.chargeId());
         return paymentDto;
     }
@@ -111,7 +113,9 @@ public class ChargeServiceImpl implements ChargeService {
                     return PaymentDto.builder().username("").build();
                 });
 
-        assert paymentDto != null;
+        if (paymentDto == null) {
+            throw new InvalidRequestDataException("Payment service returned no response");
+        }
         checkPaymentServiceAvailability(paymentDto.username());
         return paymentDto;
     }
