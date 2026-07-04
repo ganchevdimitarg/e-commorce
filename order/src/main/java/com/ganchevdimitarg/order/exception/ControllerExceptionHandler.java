@@ -1,4 +1,4 @@
-package com.ganchevdimitarg.order.excaption;
+package com.ganchevdimitarg.order.exception;
 
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;

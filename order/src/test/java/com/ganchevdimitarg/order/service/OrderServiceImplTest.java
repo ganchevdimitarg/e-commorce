@@ -110,7 +110,7 @@ class OrderServiceImplTest {
         when(orderDao.findByOrderNumber(5)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> orderService.getOrder(5, "john"))
-                .isInstanceOf(com.ganchevdimitarg.order.excaption.NotFoundException.class)
+                .isInstanceOf(com.ganchevdimitarg.order.exception.NotFoundException.class)
                 .hasMessageContaining("Order not found");
     }
 
@@ -120,7 +120,7 @@ class OrderServiceImplTest {
         when(orderDao.findByOrderNumber(5)).thenReturn(Optional.of(order));
 
         assertThatThrownBy(() -> orderService.getOrder(5, "mallory"))
-                .isInstanceOf(com.ganchevdimitarg.order.excaption.NotFoundException.class);
+                .isInstanceOf(com.ganchevdimitarg.order.exception.NotFoundException.class);
     }
 
     @Test
@@ -128,7 +128,7 @@ class OrderServiceImplTest {
         OrderDto dto = OrderDto.builder().username("john").items(List.of()).build();
 
         assertThatThrownBy(() -> orderService.createOrder(dto, "mallory"))
-                .isInstanceOf(com.ganchevdimitarg.order.excaption.NotFoundException.class);
+                .isInstanceOf(com.ganchevdimitarg.order.exception.NotFoundException.class);
     }
 
     @Test
@@ -314,7 +314,7 @@ class OrderServiceImplTest {
         when(orderDao.findByOrderNumber(3)).thenReturn(Optional.of(order));
 
         assertThatThrownBy(() -> orderService.getTracking(3, "mallory"))
-                .isInstanceOf(com.ganchevdimitarg.order.excaption.NotFoundException.class);
+                .isInstanceOf(com.ganchevdimitarg.order.exception.NotFoundException.class);
     }
 
     @Test
@@ -355,7 +355,7 @@ class OrderServiceImplTest {
         when(orderDao.findByOrderNumber(11)).thenReturn(Optional.of(order));
 
         assertThatThrownBy(() -> orderService.cancelOrder(11, "john", null))
-                .isInstanceOf(com.ganchevdimitarg.order.excaption.ConflictException.class);
+                .isInstanceOf(com.ganchevdimitarg.order.exception.ConflictException.class);
         verify(chargeService, never()).refund(anyString(), anyLong(), anyString());
     }
 
@@ -382,7 +382,7 @@ class OrderServiceImplTest {
 
         assertThatThrownBy(() -> orderService.advanceStatus(21,
                 com.ganchevdimitarg.order.domain.OrderStatus.DELIVERED, "ops", null))
-                .isInstanceOf(com.ganchevdimitarg.order.excaption.ConflictException.class);
+                .isInstanceOf(com.ganchevdimitarg.order.exception.ConflictException.class);
     }
 
     @Test
@@ -391,7 +391,7 @@ class OrderServiceImplTest {
 
         assertThatThrownBy(() -> orderService.advanceStatus(99,
                 com.ganchevdimitarg.order.domain.OrderStatus.SHIPPED, "ops", null))
-                .isInstanceOf(com.ganchevdimitarg.order.excaption.NotFoundException.class);
+                .isInstanceOf(com.ganchevdimitarg.order.exception.NotFoundException.class);
     }
 
     @Test
@@ -402,7 +402,7 @@ class OrderServiceImplTest {
 
         assertThatThrownBy(() -> orderService.advanceStatus(22,
                 com.ganchevdimitarg.order.domain.OrderStatus.CANCELLED, "ops", null))
-                .isInstanceOf(com.ganchevdimitarg.order.excaption.ConflictException.class);
+                .isInstanceOf(com.ganchevdimitarg.order.exception.ConflictException.class);
 
         verify(statusHistoryDao, never()).save(any());
         assertThat(order.getStatus())
