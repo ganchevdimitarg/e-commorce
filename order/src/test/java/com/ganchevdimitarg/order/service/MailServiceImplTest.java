@@ -25,7 +25,7 @@ class MailServiceImplTest {
                 ArgumentCaptor.forClass(ProducerRecord.class);
         verify(template).send(captor.capture());
         ProducerRecord<String, NotificationDto> record = captor.getValue();
-        assertThat(record.topic()).isEqualTo(KafkaTopics.SENT_MAIL);
+        assertThat(record.topic()).isEqualTo(KafkaTopics.ORDER_NOTIFICATION_REQUESTED);
         assertThat(record.key()).isEqualTo("john");
         assertThat(record.headers().lastHeader("correlationId")).isNotNull();
     }

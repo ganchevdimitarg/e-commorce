@@ -102,6 +102,12 @@
             <artifactId>spring-kafka</artifactId>
         </dependency>
 
+        <!--   Structured JSON logging     -->
+        <dependency>
+            <groupId>net.logstash.logback</groupId>
+            <artifactId>logstash-logback-encoder</artifactId>
+        </dependency>
+
         <!--   Database provider     -->
         <dependency>
             <groupId>org.postgresql</groupId>
