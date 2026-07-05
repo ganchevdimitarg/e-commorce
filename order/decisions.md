@@ -29,21 +29,41 @@ Reference with `@docs/decisions.md` in prompts when Claude re-raises settled que
 - Errors render as RFC 9457 problem+json via a `BusinessException` hierarchy (mirrors catalog/payment).
 - Bean Validation on `OrderDto` replaces the bespoke (and dead) `@ValidationRequest` aspect.
 - `@PreAuthorize` moved to the service layer; method security enabled.
-- Header-based `MdcRequestFilter` + Kafka trace/correlation headers; Kafka topic `"sentMail"` name retained pending a cross-service rename to `order.notification.requested`.
+- Header-based `MdcRequestFilter` + Kafka trace/correlation headers; Kafka topic renamed `"sentMail"` → `order.notification.requested` (2026-07-05, coordinated with notification).
 - `excaption` package renamed to `exception`.
 - Boot-4 autoconfig gaps closed (surfaced by the new Testcontainers IT): `flyway-core` → `spring-boot-starter-flyway` (+`flyway-database-postgresql`) so migrations actually run; `spring-security-oauth2-client` → `spring-boot-starter-oauth2-client` so a `ClientRegistrationRepository` is built; dropped `spring.jackson.serialization.write-dates-as-timestamps` (the enum constant was removed in Jackson 3). Without these the application context could not start on Boot 4.
 - Testcontainers `OrderPersistenceIT` (singleton Postgres, `@ServiceConnection`) verifies the sequence and soft-delete round-trip; the `test` profile disables Vault/config/eureka and uses an explicit OAuth2 `token-uri` (no eager OIDC discovery). Note: `checkstyle`/`flyway:validate`/JaCoCo are not wired for this module (catalog carries those); the IT's live V1–V5 migration run is the migration check.
 
-## 2026-07-04 — Deferred, cross-service (tracked)
+## 2026-07-05 — Grade-A remediation
 
-1. **Kafka topic rename** `sentMail` → `order.notification.requested`
-   (`KafkaTopics.SENT_MAIL`). Requires the notification service to consume the new
-   topic first (dual-listen window), then order flips the producer, then the old topic
-   is retired. Owner: order + notification. Convention ref: `<domain>.<entity>.<event>`.
+- **Payment consistency (was a Critical):** `createOrder` no longer wraps the external
+  charge in a DB transaction. Order + items commit first (`OrderPersistence.placeOrder`),
+  the card is charged outside any transaction, then the charge + `PAID` transition commit
+  in a second transaction (`confirmPaid`). A post-charge failure triggers a best-effort
+  compensating refund and moves the order to the new terminal `PAYMENT_FAILED` state — no
+  path can take money without a confirmed order or a refund. Alternatives rejected:
+  charge-in-transaction (strands money on rollback); full transactional-outbox + reconciler
+  (larger scope; compensation stays best-effort until then).
+- **Transaction seam:** DB writes extracted to a separate `OrderPersistence` bean so each
+  is its own boundary (self-invocation would not honour `@Transactional`); it is also the
+  single authority for guarded status transitions — create/cancel/advance delegate to it.
+- **Dependency failures:** a tripped circuit breaker / failed outbound call now surfaces as
+  `503 ServiceUnavailableException`, never a silent empty sentinel a caller could mistake
+  for a valid "not found" (which previously let a profile blip trigger spurious user creation).
+- **Structured logging:** `logback-spring.xml` + `logstash-logback-encoder` (pinned in the
+  root BOM) emit JSON with the MDC correlation fields.
+- **Security:** CSRF explicitly disabled on the stateless resource server; `isJwt` guards a
+  null `Authorization` header (was a 500).
 
-2. **Card-PII relocation out of `OrderDto`** (`cardNumber`, `cardCvc`, `cardExp*`).
-   Target: clients pre-register a card with the profile/payment service and pass only a
-   `cardId`; order stops receiving raw PAN/CVC. Interim mitigation already shipped:
-   `OrderDto.toString()` redacts card fields so they cannot leak via logs. Requires a
-   gateway/client contract change + profile "register card" endpoint. Owner: order +
-   profile + gateway.
+## 2026-07-04 — Deferred, cross-service — RESOLVED 2026-07-05
+
+1. **Kafka topic rename** `sentMail` → `order.notification.requested` — **done**.
+   `KafkaTopics.ORDER_NOTIFICATION_REQUESTED`; the notification `@KafkaListener` was updated
+   in lockstep. Profile had no producer to the old topic (a dead `kafka-settings.topics.mail`
+   yml key), so no third party was affected.
+
+2. **Card-PII relocation out of `OrderDto`** — **done**. `OrderDto` slimmed to
+   `username`/`deliveryComment`/`items`; all `cardNumber`/`cardCvc`/`cardExp*`/PII removed
+   along with the lazy `createProfileUser` path. Order now requires a pre-registered user +
+   card and returns `409` if the profile is missing — removing all PAN/CVC from the service.
+   Follow-up still open: the profile response (`UserDto`) itself still carries `cardCvc`.

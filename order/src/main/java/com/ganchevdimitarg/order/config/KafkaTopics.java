@@ -1,12 +1,12 @@
 package com.ganchevdimitarg.order.config;
 
 /**
- * Kafka topic names. NOTE: {@code SENT_MAIL} retains the physical name "sentMail" because the
- * notification service consumes it; renaming to the convention {@code order.notification.requested}
- * requires a coordinated cross-service change and is tracked separately.
+ * Kafka topic names, following the {@code <domain>.<entity>.<event>} convention. The
+ * notification service consumes {@code ORDER_NOTIFICATION_REQUESTED}; the two must be
+ * changed in lockstep.
  */
 public final class KafkaTopics {
-    public static final String SENT_MAIL = "sentMail";
+    public static final String ORDER_NOTIFICATION_REQUESTED = "order.notification.requested";
 
     private KafkaTopics() {
     }
