@@ -1,38 +1,32 @@
 package com.ganchevdimitarg.notification.aop;
 
 import lombok.extern.slf4j.Slf4j;
-import org.aspectj.lang.JoinPoint;
-import org.aspectj.lang.annotation.*;
+import org.aspectj.lang.ProceedingJoinPoint;
+import org.aspectj.lang.annotation.Around;
+import org.aspectj.lang.annotation.Aspect;
+import org.aspectj.lang.annotation.Pointcut;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StopWatch;
 
 @Component
 @Aspect
 @Slf4j
 public class MeasureAspect {
-    private final StopWatch stopWatch = new StopWatch();
 
-    @Pointcut("execution(* com.concordeu.notification.controller.*.*(..))")
+    @Pointcut("execution(* com.ganchevdimitarg.notification.controller.*.*(..))")
     private void trackAllControllers() {}
 
-    @Before("trackAllControllers()")
-    public void startMeasureTime() {
-        stopWatch.start();
+    @Around("trackAllControllers()")
+    public Object measure(ProceedingJoinPoint pjp) throws Throwable {
+        long start = System.nanoTime();
+        try {
+            Object result = pjp.proceed();
+            log.info("Method \"{}\" finished in {}ms",
+                    pjp.getSignature().getName(), (System.nanoTime() - start) / 1_000_000);
+            return result;
+        } catch (Throwable ex) {
+            log.info("Method \"{}\" failed with \"{}\" after {}ms",
+                    pjp.getSignature().getName(), ex.toString(), (System.nanoTime() - start) / 1_000_000);
+            throw ex;
+        }
     }
-
-    @AfterReturning("trackAllControllers()")
-    public void stopMeasureTimeSucceed(JoinPoint joinPoint) {
-        stopWatch.stop();
-        log.info("Method named: \"{}\" finished in {}ms.",
-                joinPoint.getSignature().getName(), stopWatch.getLastTaskTimeMillis());
-    }
-
-    @AfterThrowing(value = "trackAllControllers()", throwing = "ex")
-    public void stopMeasureTimeException(JoinPoint joinPoint, Throwable ex) {
-        stopWatch.stop();
-        log.info("Method named: \"{}\" finished with exception: \"{}\" in {} milliseconds.",
-                joinPoint.getSignature().getName(), ex.toString(), stopWatch.getLastTaskTimeMillis());
-    }
-
-
 }
