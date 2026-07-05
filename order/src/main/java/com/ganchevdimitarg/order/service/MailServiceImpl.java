@@ -25,7 +25,7 @@ public class MailServiceImpl implements MailService {
         NotificationDto payload = new NotificationDto(
                 username, "Order", "You have successfully created an order.");
         ProducerRecord<String, NotificationDto> record =
-                new ProducerRecord<>(KafkaTopics.SENT_MAIL, username, payload);
+                new ProducerRecord<>(KafkaTopics.ORDER_NOTIFICATION_REQUESTED, username, payload);
         record.headers().add(header("traceId", MDC.get("traceId")));
         record.headers().add(header("correlationId", UUID.randomUUID().toString()));
         kafkaTemplate.send(record);

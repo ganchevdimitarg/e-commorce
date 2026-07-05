@@ -14,7 +14,7 @@ public class KafkaListenerService {
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private final EmailService emailService;
 
-    @KafkaListener(topics = "sentMail", groupId = "notification", containerFactory = "messageListener")
+    @KafkaListener(topics = "order.notification.requested", groupId = "notification", containerFactory = "messageListener")
     public void listenToMessage(String message) throws JsonProcessingException {
         NotificationDto notificationDto = MAPPER.readValue(message, NotificationDto.class);
         emailService.sendSimpleMail(notificationDto);
