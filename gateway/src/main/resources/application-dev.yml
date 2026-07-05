@@ -2,6 +2,12 @@ spring:
   application:
     name: gateway
 
+  # Redis — backing store for the gateway RequestRateLimiter token buckets
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
   # OAuth2 Security Configuration
   security:
     oauth2:
@@ -37,6 +43,12 @@ spring:
                 backoff:
                   firstBackoff: 50ms
                   maxBackoff: 500ms
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 20
+                redis-rate-limiter.burstCapacity: 40
+                redis-rate-limiter.requestedTokens: 1
+                key-resolver: "#{@userKeyResolver}"
           routes:
             - id: catalog-service
               uri: lb://catalog-service
@@ -156,7 +168,7 @@ management:
         include: health, info, metrics, prometheus, circuitbreakers
   endpoint:
     health:
-      show-details: always
+      show-details: when-authorized
   tracing:
     sampling:
       probability: 1.0  # 100% for development

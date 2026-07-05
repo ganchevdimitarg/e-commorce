@@ -37,6 +37,12 @@ build/
 ### ENV ###
 .env
 
+### Secrets / keystores — never commit key material ###
+*.p12
+*.jks
+*.pem
+*.key
+
 ### Claude Code ###
 # Match .claude/ at repo root and in any module (e.g. catalog/.claude/)
 **/.claude/audit.log
