@@ -1,4 +1,4 @@
-package com.ganchevdimitarg.notification.excaption;
+package com.ganchevdimitarg.notification.exception;
 
 public class InvalidRequestDataException extends RuntimeException {
 

@@ -1,4 +1,4 @@
-package com.ganchevdimitarg.notification.excaption;
+package com.ganchevdimitarg.notification.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
