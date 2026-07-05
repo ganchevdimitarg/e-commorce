@@ -1,6 +1,5 @@
 package com.ganchevdimitarg.notification.controller;
 
-import com.ganchevdimitarg.notification.annotation.ValidationRequest;
 import com.ganchevdimitarg.notification.dto.NotificationDto;
 import com.ganchevdimitarg.notification.dto.NotificationResponse;
 import com.ganchevdimitarg.notification.service.EmailService;
@@ -9,6 +8,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -33,9 +33,8 @@ public class NotificationController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @PostMapping("/send-email")
-    @ValidationRequest
     @PreAuthorize("hasAuthority('SCOPE_notification.write')")
-    public NotificationResponse sendMail(@RequestBody NotificationDto notificationDto) {
+    public NotificationResponse sendMail(@RequestBody @Valid NotificationDto notificationDto) {
         return emailService.sendSimpleMail(notificationDto);
     }
 }
