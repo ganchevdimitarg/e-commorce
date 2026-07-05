@@ -7,27 +7,15 @@ import lombok.Builder;
 
 import java.util.List;
 
+/**
+ * Order creation payload. Deliberately carries <strong>no</strong> card or personal data:
+ * the customer and their payment card must be registered with the profile/payment services
+ * before ordering, and the charge uses the {@code cardId} resolved from the profile lookup.
+ * Keeping PAN/CVC out of this service keeps it out of PCI scope.
+ */
 @Builder
 public record OrderDto(
         @NotBlank String username,
-        String firstName,
-        String lastName,
-        String phoneNumber,
-        String city,
-        String street,
-        String postCode,
-        String cardNumber,
-        long cardExpMonth,
-        long cardExpYear,
-        String cardCvc,
         String deliveryComment,
         @NotEmpty List<@Valid OrderLineDto> items) {
-
-    // Redacts card data so the DTO can never leak PAN/CVC through logs or error output.
-    // Full relocation of card fields out of this DTO is tracked as a coordinated follow-up.
-    @Override
-    public String toString() {
-        return "OrderDto[username=%s, items=%s, deliveryComment=%s]"
-                .formatted(username, items, deliveryComment);
-    }
 }
