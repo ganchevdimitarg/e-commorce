@@ -13,10 +13,17 @@ to this module — read the root file first.
 - Datastore: PostgreSQL (own schema, Flyway-managed). No cross-service joins.
 - Web stack: WebMVC for business endpoints.
 
-## Known migration gaps
-- **Pre-Boot-4 — does NOT compile yet** (~42 migration hits as of 2026-06-23):
-  `javax.*` → `jakarta.*`, `@EnableEurekaClient` removal, pre-lambda Security DSL →
-  lambda + `@EnableMethodSecurity`, `ResponseEntity.getStatusCodeValue()` →
-  `getStatusCode().value()`. Migrate toward root conventions when you touch this code;
-  never copy the legacy pattern forward. Build standalone with
-  `./mvnw -f notification/pom.xml ...`.
+## Migration status
+- **Boot-4 / Java-25 migrated (2026-07-06)** — builds green standalone
+  (`./mvnw -f notification/pom.xml clean test -Dtest='*Test,*IT'`, 15 tests). Email dispatch,
+  problem+json errors, Bean Validation, method security, audit columns/soft-delete, typed Kafka
+  consumer with DLT, and Redis idempotency are all in place with Testcontainers coverage.
+- Legacy bootstrap.yml was replaced by `spring.config.import` (Vault import lives in
+  `application-dev.yml`; the test profile never contacts Vault). Kafka needs `@EnableKafka` and
+  `spring-boot-starter-flyway` (not bare `flyway-core`) under Boot 4.
+
+## Open follow-ups
+- Inbound topic renamed `sentMail` → `notification.email.requested` (convention): **producers
+  must publish to the new topic** — coordinate with the sending service(s).
+- Idempotency guard suppresses duplicate sends but a failed first attempt releases the key; a
+  send that fails *after* Redis write but the JVM dies would not re-send. Acceptable per repo norms.
