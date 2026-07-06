@@ -1,19 +1,7 @@
 spring:
   application:
     name: notification-service
-  # Boot 4 / Spring Cloud: legacy bootstrap.yml removed — import Vault config here (optional
-  # so the app still starts when Vault is unavailable, e.g. tests set vault.enabled=false).
-  config:
-    import: optional:vault://
-  cloud:
-    vault:
-      uri: http://localhost:8200
-      authentication: TOKEN
-      token: ${VAULT_DEV_ROOT_TOKEN_ID:}
-      generic:
-        enable: true
-        backend: auth-service
-        default-context: credentials
   # Default to the dev profile for local runs; tests override via @ActiveProfiles("test").
+  # Vault import + connection live in application-dev.yml so the test profile never contacts Vault.
   profiles:
     active: dev
