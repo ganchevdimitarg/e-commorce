@@ -35,7 +35,7 @@ public abstract class AbstractIntegrationTest {
     static final KafkaContainer KAFKA = new KafkaContainer("apache/kafka:3.8.1");
 
     @RegisterExtension
-    static final GreenMailExtension GREEN_MAIL = new GreenMailExtension(ServerSetupTest.SMTP);
+    protected static final GreenMailExtension GREEN_MAIL = new GreenMailExtension(ServerSetupTest.SMTP);
 
     static {
         POSTGRES.start();
