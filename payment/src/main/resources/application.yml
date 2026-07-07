@@ -35,15 +35,16 @@ spring:
     pathmatch:
       matching-strategy: ant_path_matcher
 
-  #Zipkin
-  zipkin:
-    base-url: http://localhost:9411
+  #Redis
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
 
 #Logging Levels
 #Disable the default loggers
 logging:
   level:
-    blog: WARN
     root: INFO
     org:
       springframework:
