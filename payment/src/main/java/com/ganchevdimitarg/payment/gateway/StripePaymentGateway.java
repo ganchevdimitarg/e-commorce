@@ -8,6 +8,7 @@ import com.stripe.model.Charge;
 import com.stripe.model.Customer;
 import com.stripe.model.HasId;
 import com.stripe.model.PaymentSourceCollection;
+import com.stripe.model.Refund;
 import com.stripe.model.Token;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
@@ -116,6 +117,17 @@ public class StripePaymentGateway implements PaymentGateway {
             log.info("Stripe createCharge successful: {}", charge.getId());
             return new GatewayCharge(charge.getId(), charge.getAmount(), charge.getCurrency(),
                     charge.getCustomer(), charge.getReceiptEmail(), charge.getStatus());
+        });
+    }
+
+    @Override
+    public GatewayRefund refundCharge(String chargeId) {
+        return call(() -> {
+            // No amount => Stripe refunds the charge in full, which is what a
+            // compensating refund requires.
+            Refund refund = Refund.create(Map.of("charge", chargeId));
+            log.info("Stripe refundCharge successful: {}", refund.getId());
+            return new GatewayRefund(refund.getId(), refund.getCharge(), refund.getStatus());
         });
     }
 

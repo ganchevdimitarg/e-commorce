@@ -3,6 +3,7 @@ package com.ganchevdimitarg.payment.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ganchevdimitarg.payment.dto.ChargeResponse;
 import com.ganchevdimitarg.payment.dto.CreateChargeCommand;
+import com.ganchevdimitarg.payment.dto.RefundChargeCommand;
 import com.ganchevdimitarg.payment.exception.ControllerExceptionHandler;
 import com.ganchevdimitarg.payment.service.ChargeService;
 import org.junit.jupiter.api.BeforeEach;
@@ -55,6 +56,25 @@ class ChargeControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new CreateChargeCommand(
                                 "john@doe.com", "cus_1", "card_1", 0L, "usd", "john@doe.com"))))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void should_return200AndCharge_when_refundValid() throws Exception {
+        when(chargeService.refund(any())).thenReturn(new ChargeResponse("ch_1", "succeeded"));
+
+        mockMvc.perform(post("/api/v1/payment/charge/refund-charge")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new RefundChargeCommand("ch_1"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.chargeId").value("ch_1"));
+    }
+
+    @Test
+    void should_return400_when_refundChargeIdBlank() throws Exception {
+        mockMvc.perform(post("/api/v1/payment/charge/refund-charge")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new RefundChargeCommand(""))))
                 .andExpect(status().isBadRequest());
     }
 }

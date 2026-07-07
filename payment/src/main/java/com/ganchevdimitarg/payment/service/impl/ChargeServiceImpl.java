@@ -6,9 +6,11 @@ import com.ganchevdimitarg.payment.domain.AppCharge;
 import com.ganchevdimitarg.payment.domain.AppCustomer;
 import com.ganchevdimitarg.payment.dto.ChargeResponse;
 import com.ganchevdimitarg.payment.dto.CreateChargeCommand;
+import com.ganchevdimitarg.payment.dto.RefundChargeCommand;
 import com.ganchevdimitarg.payment.exception.NotFoundException;
 import com.ganchevdimitarg.payment.gateway.ChargeRequest;
 import com.ganchevdimitarg.payment.gateway.GatewayCharge;
+import com.ganchevdimitarg.payment.gateway.GatewayRefund;
 import com.ganchevdimitarg.payment.gateway.PaymentGateway;
 import com.ganchevdimitarg.payment.service.ChargeService;
 import lombok.RequiredArgsConstructor;
@@ -61,5 +63,21 @@ public class ChargeServiceImpl implements ChargeService {
 
         log.info("Method createCharge: Create successful charge: {}", charge.id());
         return new ChargeResponse(charge.id(), charge.status());
+    }
+
+    @Override
+    @Transactional
+    @PreAuthorize("hasAuthority('SCOPE_payment.write')")
+    public ChargeResponse refund(RefundChargeCommand command) {
+        AppCharge charge = chargeDao.findByChargeId(command.chargeId())
+                .orElseThrow(() -> {
+                    log.warn("Charge {} does not exist in db charges", command.chargeId());
+                    return new NotFoundException("Charge", command.chargeId());
+                });
+
+        GatewayRefund refund = paymentGateway.refundCharge(charge.getChargeId());
+
+        log.info("Method refund: refunded charge {} with status {}", command.chargeId(), refund.status());
+        return new ChargeResponse(command.chargeId(), refund.status());
     }
 }

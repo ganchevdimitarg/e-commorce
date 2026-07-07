@@ -22,4 +22,6 @@ public interface PaymentGateway {
     Set<String> listCardIds(String customerId);
 
     GatewayCharge createCharge(ChargeRequest request);
+
+    GatewayRefund refundCharge(String chargeId);
 }
