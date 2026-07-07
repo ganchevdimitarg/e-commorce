@@ -97,6 +97,23 @@ class ChargeServiceImplTest {
     }
 
     @Test
+    void should_returnRefund_when_paymentServiceRefundsInFull() throws Exception {
+        runSupplier();
+        ReflectionTestUtils.setField(chargeService,
+                "paymentServiceRefundChargeUri", "http://payment/refund");
+        PaymentDto refunded = PaymentDto.builder().chargeId("ch_1").chargeStatus("refunded").build();
+
+        server.expect(requestTo("http://payment/refund"))
+                .andExpect(method(POST))
+                .andRespond(withSuccess(json.writeValueAsString(refunded), MediaType.APPLICATION_JSON));
+
+        PaymentDto result = chargeService.refund("ch_1", "john");
+
+        assertThat(result.chargeId()).isEqualTo("ch_1");
+        server.verify();
+    }
+
+    @Test
     void should_throwInvalidRequest_when_paymentServiceUnavailable() {
         when(circuitBreakerFactory.create(anyString())).thenReturn(circuitBreaker);
         when(circuitBreaker.run(any(), any())).thenAnswer(inv -> {
