@@ -10,6 +10,7 @@ import com.stripe.model.HasId;
 import com.stripe.model.PaymentSourceCollection;
 import com.stripe.model.Refund;
 import com.stripe.model.Token;
+import com.stripe.net.RequestOptions;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -105,7 +106,7 @@ public class StripePaymentGateway implements PaymentGateway {
     }
 
     @Override
-    public GatewayCharge createCharge(ChargeRequest request) {
+    public GatewayCharge createCharge(ChargeRequest request, String idempotencyKey) {
         return call(() -> {
             Map<String, Object> params = new HashMap<>();
             params.put("amount", request.amount());
@@ -113,7 +114,10 @@ public class StripePaymentGateway implements PaymentGateway {
             params.put("receipt_email", request.receiptEmail());
             params.put("customer", request.customerId());
             params.put("source", request.source());
-            Charge charge = Charge.create(params);
+            RequestOptions options = RequestOptions.builder()
+                    .setIdempotencyKey(idempotencyKey)
+                    .build();
+            Charge charge = Charge.create(params, options);
             log.info("Stripe createCharge successful: {}", charge.getId());
             return new GatewayCharge(charge.getId(), charge.getAmount(), charge.getCurrency(),
                     charge.getCustomer(), charge.getReceiptEmail(), charge.getStatus());

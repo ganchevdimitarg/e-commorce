@@ -14,7 +14,6 @@ import com.ganchevdimitarg.payment.gateway.GatewayRefund;
 import com.ganchevdimitarg.payment.gateway.PaymentGateway;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -24,6 +23,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -37,6 +37,8 @@ class ChargeServiceImplTest {
     private CustomerDao customerDao;
     @Mock
     private PaymentGateway paymentGateway;
+    @Mock
+    private ChargePersistence chargePersistence;
     @InjectMocks
     private ChargeServiceImpl chargeService;
 
@@ -45,27 +47,27 @@ class ChargeServiceImplTest {
     }
 
     @Test
-    void should_chargeGatewayAndPersist_when_customerExists() {
+    void should_chargeWithIdempotencyKeyAndPersist_when_customerExists() {
         AppCustomer customer = AppCustomer.builder().customerId("cus_1").username("john@doe.com").build();
         when(customerDao.findByUsername("john@doe.com")).thenReturn(Optional.of(customer));
-        when(paymentGateway.createCharge(any(ChargeRequest.class)))
-                .thenReturn(new GatewayCharge("ch_1", 500L, "usd", "cus_1", "john@doe.com", "succeeded"));
+        GatewayCharge gatewayCharge = new GatewayCharge("ch_1", 500L, "usd", "cus_1", "john@doe.com", "succeeded");
+        when(paymentGateway.createCharge(any(ChargeRequest.class), eq("idem-123"))).thenReturn(gatewayCharge);
 
-        ChargeResponse response = chargeService.createCharge(command());
+        ChargeResponse response = chargeService.createCharge(command(), "idem-123");
 
         assertThat(response).isEqualTo(new ChargeResponse("ch_1", "succeeded"));
-        ArgumentCaptor<AppCharge> captor = ArgumentCaptor.forClass(AppCharge.class);
-        verify(chargeDao).saveAndFlush(captor.capture());
-        assertThat(captor.getValue().getChargeId()).isEqualTo("ch_1");
-        assertThat(captor.getValue().getAmount()).isEqualTo(500L);
+        verify(paymentGateway).createCharge(any(ChargeRequest.class), eq("idem-123"));
+        verify(chargePersistence).persistCharge(gatewayCharge, customer);
     }
 
     @Test
-    void should_throwNotFound_when_customerMissing() {
+    void should_notCallGateway_when_customerMissing() {
         when(customerDao.findByUsername("john@doe.com")).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> chargeService.createCharge(command()))
+        assertThatThrownBy(() -> chargeService.createCharge(command(), "idem-123"))
                 .isInstanceOf(NotFoundException.class);
+        verify(paymentGateway, never()).createCharge(any(), any());
+        verify(chargePersistence, never()).persistCharge(any(), any());
     }
 
     @Test

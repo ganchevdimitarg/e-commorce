@@ -31,35 +31,36 @@ public class ChargeServiceImpl implements ChargeService {
     private final ChargeDao chargeDao;
     private final CustomerDao customerDao;
     private final PaymentGateway paymentGateway;
+    private final ChargePersistence chargePersistence;
 
     /**
      * Charges the given customer's card through the payment provider and records
-     * the charge locally.
+     * the charge locally. The provider call is deliberately outside any DB
+     * transaction: it is enrolled with an idempotency key so a client retry cannot
+     * double-charge, and persistence is delegated to {@link ChargePersistence} so a
+     * DB-commit failure after a successful charge cannot orphan the provider charge
+     * silently — the charge already exists at the provider under a stable key.
      *
-     * @param command charge information
+     * @param command        charge information
+     * @param idempotencyKey key passed through to the payment provider so retries dedupe
      * @return charge id and status
      */
     @Override
-    @Transactional
     @PreAuthorize("hasAuthority('SCOPE_payment.write')")
-    public ChargeResponse createCharge(CreateChargeCommand command) {
+    public ChargeResponse createCharge(CreateChargeCommand command, String idempotencyKey) {
         AppCustomer appCustomer = customerDao.findByUsername(command.username()).orElseThrow(() -> {
             log.warn("Customer with username {} does not exist in db customers", command.username());
             return new NotFoundException("Customer", command.username());
         });
 
-        GatewayCharge charge = paymentGateway.createCharge(new ChargeRequest(
-                command.amount(), command.currency(), command.receiptEmail(),
-                command.customerId(), command.cardId()));
+        // Provider call is OUTSIDE any DB transaction; Stripe dedupes on the idempotency key so
+        // a client retry cannot double-charge. The local row is written afterwards.
+        GatewayCharge charge = paymentGateway.createCharge(
+                new ChargeRequest(command.amount(), command.currency(), command.receiptEmail(),
+                        command.customerId(), command.cardId()),
+                idempotencyKey);
 
-        chargeDao.saveAndFlush(AppCharge.builder()
-                .chargeId(charge.id())
-                .amount(charge.amount())
-                .currency(charge.currency())
-                .customerId(charge.customerId())
-                .receiptEmail(charge.receiptEmail())
-                .customer(appCustomer)
-                .build());
+        chargePersistence.persistCharge(charge, appCustomer);
 
         log.info("Method createCharge: Create successful charge: {}", charge.id());
         return new ChargeResponse(charge.id(), charge.status());

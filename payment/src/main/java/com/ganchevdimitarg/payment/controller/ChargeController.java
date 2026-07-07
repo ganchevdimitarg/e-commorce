@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -20,8 +21,10 @@ public class ChargeController {
     private final ChargeService chargeService;
 
     @PostMapping("/create-charge")
-    public ChargeResponse createCharge(@RequestBody @Valid CreateChargeCommand command) {
-        return chargeService.createCharge(command);
+    public ChargeResponse createCharge(
+            @RequestBody @Valid CreateChargeCommand command,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
+        return chargeService.createCharge(command, idempotencyKey);
     }
 
     @PostMapping("/refund-charge")
