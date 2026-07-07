@@ -104,6 +104,26 @@ public class OrderPersistence {
         recordHistory(order, from, target, changedBy, reason);
     }
 
+    /**
+     * Load an order the caller owns, with its charge initialised, in a read-only transaction.
+     * Returns a detached order whose {@code getCharge()} is safe to read after the transaction
+     * closes, so callers can perform an external refund before transitioning the order. A
+     * foreign order is masked as a 404, exactly like the read paths.
+     */
+    @Transactional(readOnly = true)
+    public Order loadOwnedWithCharge(long orderNumber, String username) {
+        Order order = loadForUpdate(orderNumber);
+        if (!order.getUsername().equals(username)) {
+            log.debug("User '{}' tried to cancel order {} owned by '{}'",
+                    username, orderNumber, order.getUsername());
+            throw new NotFoundException("Order not found: " + orderNumber);
+        }
+        if (order.getCharge() != null) {
+            order.getCharge().getChargeId(); // force lazy initialisation before the tx closes
+        }
+        return order;
+    }
+
     private Order loadForUpdate(long orderNumber) {
         return orderDao.findByOrderNumber(orderNumber)
                 .orElseThrow(() -> new NotFoundException("Order not found: " + orderNumber));

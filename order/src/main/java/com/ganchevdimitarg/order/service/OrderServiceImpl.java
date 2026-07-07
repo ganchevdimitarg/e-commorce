@@ -120,7 +120,7 @@ public class OrderServiceImpl implements OrderService {
      */
     private void safeRefund(PaymentDto payment, String username) {
         try {
-            chargeService.refund(payment.chargeId(), 0L, username);
+            chargeService.refund(payment.chargeId(), username);
         } catch (RuntimeException e) {
             log.error("COMPENSATION FAILED: could not refund charge {} for {}",
                     payment.chargeId(), username, e);
@@ -200,16 +200,22 @@ public class OrderServiceImpl implements OrderService {
         return new OrderTrackingResponse(order.getOrderNumber(), order.getStatus(), history);
     }
 
+    /**
+     * Cancel an order, refunding first if it was already paid. The refund is a network call to
+     * the payment service and is deliberately made <em>outside</em> any transaction — the order
+     * (with its charge) is loaded in a read-only transaction, the refund runs with no
+     * transaction open, then the {@code CANCELLED} transition commits in a fresh one. This
+     * avoids holding a DB row lock across the payment round-trip.
+     */
     @Override
-    @Transactional
     public void cancelOrder(long orderNumber, String username, String reason) {
-        Order order = loadOwnedOrder(orderNumber, username);
+        Order order = orderPersistence.loadOwnedWithCharge(orderNumber, username);
         if (!order.getStatus().canTransitionTo(OrderStatus.CANCELLED)) {
             throw new ConflictException("Order %d cannot be cancelled from status %s"
                     .formatted(orderNumber, order.getStatus()));
         }
         if (order.getStatus() == OrderStatus.PAID && order.getCharge() != null) {
-            chargeService.refund(order.getCharge().getChargeId(), 0L, username);
+            chargeService.refund(order.getCharge().getChargeId(), username);
         }
         orderPersistence.transition(order, OrderStatus.CANCELLED, username, reason);
     }

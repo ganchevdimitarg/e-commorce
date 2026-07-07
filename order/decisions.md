@@ -34,6 +34,38 @@ Reference with `@docs/decisions.md` in prompts when Claude re-raises settled que
 - Boot-4 autoconfig gaps closed (surfaced by the new Testcontainers IT): `flyway-core` → `spring-boot-starter-flyway` (+`flyway-database-postgresql`) so migrations actually run; `spring-security-oauth2-client` → `spring-boot-starter-oauth2-client` so a `ClientRegistrationRepository` is built; dropped `spring.jackson.serialization.write-dates-as-timestamps` (the enum constant was removed in Jackson 3). Without these the application context could not start on Boot 4.
 - Testcontainers `OrderPersistenceIT` (singleton Postgres, `@ServiceConnection`) verifies the sequence and soft-delete round-trip; the `test` profile disables Vault/config/eureka and uses an explicit OAuth2 `token-uri` (no eager OIDC discovery). Note: `checkstyle`/`flyway:validate`/JaCoCo are not wired for this module (catalog carries those); the IT's live V1–V5 migration run is the migration check.
 
+## 2026-07-06 — Final-review remediation
+
+Fixes from the gating whole-branch review before merge.
+
+- **Compensating refund now hits a real endpoint (was a Critical):** the payment service
+  gained `POST /api/v1/payment/charge/refund-charge` (`PaymentGateway.refundCharge` →
+  Stripe full refund; unknown charge id → `404`). Previously `createOrder`/`cancelOrder`
+  called a non-existent endpoint, so a charged customer was never actually refunded.
+- **Refund is a full refund:** dropped the hard-coded `0L` amount from
+  `ChargeService.refund`. Compensation always returns the entire captured charge, so no
+  amount is sent and Stripe refunds in full.
+- **`cancelOrder` refund moved outside the transaction:** the order (with its charge) is
+  loaded read-only via `OrderPersistence.loadOwnedWithCharge`, the refund runs with no
+  transaction open, then the `CANCELLED` transition commits in a fresh one — no DB row lock
+  is held across the payment round-trip (mirrors the `createOrder` seam).
+- **Order-confirmation email moved out of the idempotency guard:** the guarded unit is now
+  just the charge+confirm, so a mail failure can no longer prevent caching and cause a
+  duplicate charge on retry (`OrderController.createOrder`).
+- **Actuator lockdown:** only `/actuator/health/**` is public; every other actuator endpoint
+  requires authentication.
+- **Bean-validation errors render as problem+json:** `handleMethodArgumentNotValid` now emits
+  the same `code`/`timestamp` shape as every other error.
+
+Deferred (blocked, tracked here):
+
+- **Notification DLT / `@RetryableTopic`:** the consumer group was renamed
+  `notification` → `notification-group`, but the dead-letter topic + retry backoff are
+  deferred to the notification Boot-4 migration. That module's pre-Boot-4 spring-kafka has
+  no `RetryableTopic` and no `spring-retry` on the classpath, so wiring the DLT now would
+  introduce a non-compiling pattern into an already-lagging module. Land it with the
+  notification `javax→jakarta` / Boot-4 upgrade.
+
 ## 2026-07-05 — Grade-A remediation
 
 - **Payment consistency (was a Critical):** `createOrder` no longer wraps the external

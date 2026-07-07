@@ -51,12 +51,14 @@ public class ChargeServiceImpl implements ChargeService {
         log.info("Charge was successfully created");
     }
 
+    /**
+     * Refund a charge in full. Compensation always returns the entire captured amount, so no
+     * amount is sent — the payment service refunds the charge in full.
+     */
     @Override
-    public PaymentDto refund(String stripeChargeId, long amount, String username) {
+    public PaymentDto refund(String stripeChargeId, String username) {
         PaymentDto refundRequest = PaymentDto.builder()
                 .chargeId(stripeChargeId)
-                .amount(amount)
-                .currency("usd")
                 .username(username)
                 .build();
 
