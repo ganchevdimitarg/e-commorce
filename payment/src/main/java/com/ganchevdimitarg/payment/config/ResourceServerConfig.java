@@ -1,9 +1,9 @@
-package com.concordeu.catalog.config;
+package com.ganchevdimitarg.payment.config;
 
-import com.concordeu.catalog.exception.ProblemAccessDeniedHandler;
-import com.concordeu.catalog.exception.ProblemAuthenticationEntryPoint;
-import com.concordeu.client.introspector.CustomOpaqueTokenIntrospector;
+import com.ganchevdimitarg.payment.exception.ProblemAccessDeniedHandler;
+import com.ganchevdimitarg.payment.exception.ProblemAuthenticationEntryPoint;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import org.springframework.beans.factory.annotation.Value;
 import jakarta.servlet.http.HttpServletRequest;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -23,6 +23,7 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationProvider;
 import org.springframework.security.oauth2.server.resource.authentication.OpaqueTokenAuthenticationProvider;
 import org.springframework.security.oauth2.server.resource.introspection.OpaqueTokenIntrospector;
+import org.springframework.security.oauth2.server.resource.introspection.SpringOpaqueTokenIntrospector;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
@@ -34,6 +35,13 @@ public class ResourceServerConfig {
     private final JwtDecoder jwtDecoder;
     private final ProblemAuthenticationEntryPoint authenticationEntryPoint;
     private final ProblemAccessDeniedHandler accessDeniedHandler;
+
+    @Value("${spring.security.oauth2.resourceserver.opaquetoken.introspection-uri}")
+    private String introspectionUri;
+    @Value("${spring.security.oauth2.resourceserver.opaquetoken.client-id}")
+    private String introspectionClientId;
+    @Value("${spring.security.oauth2.resourceserver.opaquetoken.client-secret}")
+    private String introspectionClientSecret;
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http,
@@ -57,7 +65,9 @@ public class ResourceServerConfig {
 
     @Bean
     public OpaqueTokenIntrospector opaqueTokenIntrospector(CircuitBreakerRegistry registry) {
-        return new ResilientOpaqueTokenIntrospector(new CustomOpaqueTokenIntrospector(), registry);
+        OpaqueTokenIntrospector delegate =
+                new SpringOpaqueTokenIntrospector(introspectionUri, introspectionClientId, introspectionClientSecret);
+        return new ResilientOpaqueTokenIntrospector(delegate, registry);
     }
 
     @Bean

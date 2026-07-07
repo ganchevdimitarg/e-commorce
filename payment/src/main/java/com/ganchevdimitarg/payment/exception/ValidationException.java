@@ -1,4 +1,4 @@
-package com.concordeu.catalog.exception;
+package com.ganchevdimitarg.payment.exception;
 
 import org.springframework.http.HttpStatus;
 

@@ -1,4 +1,4 @@
-package com.concordeu.catalog.config;
+package com.ganchevdimitarg.payment.config;
 
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
@@ -20,7 +20,7 @@ public class RedisCacheConfig {
     public RedisCacheManager cacheManager(RedisConnectionFactory connectionFactory) {
         RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
                 .entryTtl(Duration.ofMinutes(10))
-                .prefixCacheNameWith("catalog:")
+                .prefixCacheNameWith("payment:")
                 // Uses @class type info — renaming DTOs invalidates cache entries
                 .serializeValuesWith(RedisSerializationContext.SerializationPair
                         .fromSerializer(new GenericJackson2JsonRedisSerializer()));

@@ -1,38 +1,37 @@
 package com.ganchevdimitarg.payment.aop;
 
 import lombok.extern.slf4j.Slf4j;
-import org.aspectj.lang.JoinPoint;
-import org.aspectj.lang.annotation.*;
+import org.aspectj.lang.ProceedingJoinPoint;
+import org.aspectj.lang.annotation.Around;
+import org.aspectj.lang.annotation.Aspect;
+import org.aspectj.lang.annotation.Pointcut;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StopWatch;
 
 @Component
 @Aspect
 @Slf4j
 public class MeasureAspect {
-    private final StopWatch stopWatch = new StopWatch();
 
-    @Pointcut("execution(* com.concordeu.payment.controller.*.*(..))")
-    private void trackAllControllers() {}
-
-    @Before("trackAllControllers()")
-    public void startMeasureTime() {
-        stopWatch.start();
+    @Pointcut("execution(* com.ganchevdimitarg.payment.controller.*.*(..))")
+    private void trackAllControllers() {
     }
 
-    @AfterReturning("trackAllControllers()")
-    public void stopMeasureTimeSucceed(JoinPoint joinPoint) {
-        stopWatch.stop();
-        log.info("Method named: \"{}\" finished in {}ms.",
-                joinPoint.getSignature().getName(), stopWatch.getLastTaskTimeMillis());
+    @Around("trackAllControllers()")
+    public Object measure(ProceedingJoinPoint joinPoint) throws Throwable {
+        String method = joinPoint.getSignature().getName();
+        long start = System.nanoTime();
+        try {
+            Object result = joinPoint.proceed();
+            log.info("Method named: \"{}\" finished in {}ms.", method, elapsedMillis(start));
+            return result;
+        } catch (Throwable ex) {
+            log.info("Method named: \"{}\" finished with exception: \"{}\" in {}ms.",
+                    method, ex.toString(), elapsedMillis(start));
+            throw ex;
+        }
     }
 
-    @AfterThrowing(value = "trackAllControllers()", throwing = "ex")
-    public void stopMeasureTimeException(JoinPoint joinPoint, Throwable ex) {
-        stopWatch.stop();
-        log.info("Method named: \"{}\" finished with exception: \"{}\" in {} milliseconds.",
-                joinPoint.getSignature().getName(), ex.toString(), stopWatch.getLastTaskTimeMillis());
+    private static long elapsedMillis(long startNanos) {
+        return (System.nanoTime() - startNanos) / 1_000_000;
     }
-
-
 }

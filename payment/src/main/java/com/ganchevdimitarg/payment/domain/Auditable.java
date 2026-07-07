@@ -1,4 +1,4 @@
-package com.concordeu.catalog.domain;
+package com.ganchevdimitarg.payment.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.MappedSuperclass;

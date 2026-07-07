@@ -1,7 +1,9 @@
 package com.ganchevdimitarg.payment.controller;
 
-import com.ganchevdimitarg.payment.dto.PaymentDto;
+import com.ganchevdimitarg.payment.dto.ChargeResponse;
+import com.ganchevdimitarg.payment.dto.CreateChargeCommand;
 import com.ganchevdimitarg.payment.service.ChargeService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -17,7 +19,7 @@ public class ChargeController {
     private final ChargeService chargeService;
 
     @PostMapping("/create-charge")
-    public PaymentDto createCharge(@RequestBody PaymentDto paymentDto) {
-        return chargeService.createCharge(paymentDto);
+    public ChargeResponse createCharge(@RequestBody @Valid CreateChargeCommand command) {
+        return chargeService.createCharge(command);
     }
 }

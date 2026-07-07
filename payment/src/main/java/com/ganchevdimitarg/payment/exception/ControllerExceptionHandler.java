@@ -1,4 +1,4 @@
-package com.concordeu.catalog.exception;
+package com.ganchevdimitarg.payment.exception;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;

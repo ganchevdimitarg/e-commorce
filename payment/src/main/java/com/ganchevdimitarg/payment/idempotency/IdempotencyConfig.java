@@ -1,4 +1,4 @@
-package com.concordeu.catalog.idempotency;
+package com.ganchevdimitarg.payment.idempotency;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
@@ -15,6 +15,6 @@ public class IdempotencyConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(new IdempotencyInterceptor(redis))
-                .addPathPatterns("/api/v1/catalog/**");
+                .addPathPatterns("/api/v1/payment/**");
     }
 }

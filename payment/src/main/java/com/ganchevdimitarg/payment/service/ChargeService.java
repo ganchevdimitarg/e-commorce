@@ -1,7 +1,8 @@
 package com.ganchevdimitarg.payment.service;
 
-import com.ganchevdimitarg.payment.dto.PaymentDto;
+import com.ganchevdimitarg.payment.dto.ChargeResponse;
+import com.ganchevdimitarg.payment.dto.CreateChargeCommand;
 
 public interface ChargeService {
-    PaymentDto createCharge(PaymentDto chargeDto);
+    ChargeResponse createCharge(CreateChargeCommand command);
 }

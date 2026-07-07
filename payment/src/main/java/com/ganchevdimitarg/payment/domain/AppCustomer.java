@@ -17,7 +17,7 @@ import java.util.List;
 @Builder
 @Setter
 @Getter
-public class AppCustomer {
+public class AppCustomer extends Auditable {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "customer_id", unique = true, nullable = false, updatable = false)
