@@ -4,6 +4,7 @@ import com.ganchevdimitarg.order.dto.OrderCreatedResponse;
 import com.ganchevdimitarg.order.dto.OrderDto;
 import com.ganchevdimitarg.order.dto.OrderSummaryResponse;
 import com.ganchevdimitarg.order.dto.PageResponse;
+import com.ganchevdimitarg.order.exception.ControllerExceptionHandler;
 import com.ganchevdimitarg.order.service.IdempotencyService;
 import com.ganchevdimitarg.order.service.MailService;
 import com.ganchevdimitarg.order.service.OrderService;
@@ -15,7 +16,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.List;
 import java.util.function.Supplier;
@@ -26,6 +30,10 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ExtendWith(MockitoExtension.class)
 class OrderControllerTest {
@@ -64,6 +72,22 @@ class OrderControllerTest {
         assertThat(response).isEqualTo(created);
         verify(orderService).createOrder(orderDto, "john");
         verify(mailService).sendUserOrderMail("john");
+    }
+
+    @Test
+    void should_return400ProblemJson_when_createBodyInvalid() throws Exception {
+        // Blank username violates @NotBlank; the @Valid failure must render as problem+json
+        // through ControllerExceptionHandler, not the framework default.
+        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(controller)
+                .setControllerAdvice(new ControllerExceptionHandler())
+                .build();
+
+        mockMvc.perform(post("/api/v1/order/create-order")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"\",\"items\":[{\"productId\":\"p_1\",\"quantity\":1}]}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
     }
 
     @Test
