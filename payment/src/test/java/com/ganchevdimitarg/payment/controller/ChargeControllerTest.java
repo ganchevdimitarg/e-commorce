@@ -16,6 +16,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -49,6 +51,8 @@ class ChargeControllerTest {
                                 "john@doe.com", "cus_1", "card_1", 500L, "usd", "john@doe.com"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.chargeId").value("ch_1"));
+
+        verify(chargeService).createCharge(any(), eq("idem-1"));
     }
 
     @Test
