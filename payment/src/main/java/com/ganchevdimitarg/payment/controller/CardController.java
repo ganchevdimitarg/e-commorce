@@ -18,8 +18,10 @@ public class CardController {
     private final CardService cardService;
 
     @PostMapping("/create-card")
-    public CardResponse createCard(@RequestBody @Valid CreateCardCommand command) {
-        return cardService.createCard(command);
+    public CardResponse createCard(
+            @RequestBody @Valid CreateCardCommand command,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
+        return cardService.createCard(command, idempotencyKey);
     }
 
     @GetMapping("/get-cards")

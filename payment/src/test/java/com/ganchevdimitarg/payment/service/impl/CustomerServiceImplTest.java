@@ -9,7 +9,6 @@ import com.ganchevdimitarg.payment.gateway.GatewayCustomer;
 import com.ganchevdimitarg.payment.gateway.PaymentGateway;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -28,22 +27,25 @@ class CustomerServiceImplTest {
     private CustomerDao customerDao;
     @Mock
     private PaymentGateway paymentGateway;
+    @Mock
+    private CustomerPersistence customerPersistence;
     @InjectMocks
     private CustomerServiceImpl customerService;
 
     @Test
-    void should_persistCustomerFromGateway_when_createCustomer() {
+    void should_createCustomerWithIdempotencyKeyAndPersist_when_createCustomer() {
         CreateCustomerCommand command = new CreateCustomerCommand("john@doe.com");
-        when(paymentGateway.createCustomer("john@doe.com", "john@doe.com"))
-                .thenReturn(new GatewayCustomer("cus_1", "john@doe.com", "john@doe.com"));
+        GatewayCustomer gatewayCustomer = new GatewayCustomer("cus_1", "john@doe.com", "john@doe.com");
+        when(paymentGateway.createCustomer("john@doe.com", "john@doe.com", "idem-123"))
+                .thenReturn(gatewayCustomer);
+        CustomerResponse persisted = new CustomerResponse("cus_1", "john@doe.com", "john@doe.com");
+        when(customerPersistence.persistCustomer(gatewayCustomer)).thenReturn(persisted);
 
-        CustomerResponse response = customerService.createCustomer(command);
+        CustomerResponse response = customerService.createCustomer(command, "idem-123");
 
-        assertThat(response.customerId()).isEqualTo("cus_1");
-        ArgumentCaptor<AppCustomer> captor = ArgumentCaptor.forClass(AppCustomer.class);
-        verify(customerDao).save(captor.capture());
-        assertThat(captor.getValue().getCustomerId()).isEqualTo("cus_1");
-        assertThat(captor.getValue().getUsername()).isEqualTo("john@doe.com");
+        assertThat(response).isEqualTo(persisted);
+        verify(paymentGateway).createCustomer("john@doe.com", "john@doe.com", "idem-123");
+        verify(customerPersistence).persistCustomer(gatewayCustomer);
     }
 
     @Test

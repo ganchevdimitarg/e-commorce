@@ -11,13 +11,13 @@ import java.util.Set;
  */
 public interface PaymentGateway {
 
-    GatewayCustomer createCustomer(String email, String name);
+    GatewayCustomer createCustomer(String email, String name, String idempotencyKey);
 
     GatewayCustomer retrieveCustomer(String customerId);
 
     void deleteCustomer(String customerId);
 
-    GatewayCard createCard(String customerId, CardDetails card);
+    GatewayCard createCard(String customerId, CardDetails card, String idempotencyKey);
 
     Set<String> listCardIds(String customerId);
 

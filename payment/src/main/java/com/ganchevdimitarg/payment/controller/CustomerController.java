@@ -16,8 +16,10 @@ public class CustomerController {
     private final CustomerService customerService;
 
     @PostMapping("/create-customer")
-    public CustomerResponse createCustomer(@RequestBody @Valid CreateCustomerCommand command) {
-        return customerService.createCustomer(command);
+    public CustomerResponse createCustomer(
+            @RequestBody @Valid CreateCustomerCommand command,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
+        return customerService.createCustomer(command, idempotencyKey);
     }
 
     @GetMapping("/get-customer")

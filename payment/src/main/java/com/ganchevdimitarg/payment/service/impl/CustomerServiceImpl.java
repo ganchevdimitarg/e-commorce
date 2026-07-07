@@ -28,21 +28,30 @@ import java.time.Instant;
 public class CustomerServiceImpl implements CustomerService {
     private final CustomerDao customerDao;
     private final PaymentGateway paymentGateway;
+    private final CustomerPersistence customerPersistence;
 
+    /**
+     * Creates the customer at the payment provider and records it locally. The provider
+     * call is deliberately outside any DB transaction: it is enrolled with an idempotency
+     * key so a client retry cannot create a duplicate provider customer, and persistence is
+     * delegated to {@link CustomerPersistence} so a DB-commit failure after a successful
+     * creation cannot orphan the provider customer silently — it already exists at the
+     * provider under a stable key.
+     *
+     * @param command        customer information
+     * @param idempotencyKey key passed through to the payment provider so retries dedupe
+     * @return the persisted customer view
+     */
     @Override
-    @Transactional
     @PreAuthorize("hasAuthority('SCOPE_payment.write')")
-    public CustomerResponse createCustomer(CreateCustomerCommand command) {
-        GatewayCustomer customer = paymentGateway.createCustomer(command.username(), command.username());
+    public CustomerResponse createCustomer(CreateCustomerCommand command, String idempotencyKey) {
+        // Provider call is OUTSIDE any DB transaction; Stripe dedupes on the idempotency key so
+        // a client retry cannot create a duplicate provider customer. The local row is written
+        // afterwards.
+        GatewayCustomer customer = paymentGateway.createCustomer(
+                command.username(), command.username(), idempotencyKey);
 
-        customerDao.save(AppCustomer.builder()
-                .customerId(customer.id())
-                .username(customer.email())
-                .customerName(customer.name())
-                .build());
-        log.info("Created customer in payment service db");
-
-        return new CustomerResponse(customer.id(), customer.email(), customer.name());
+        return customerPersistence.persistCustomer(customer);
     }
 
     /**
