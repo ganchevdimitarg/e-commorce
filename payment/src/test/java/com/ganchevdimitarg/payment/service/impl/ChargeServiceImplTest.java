@@ -6,9 +6,11 @@ import com.ganchevdimitarg.payment.domain.AppCharge;
 import com.ganchevdimitarg.payment.domain.AppCustomer;
 import com.ganchevdimitarg.payment.dto.ChargeResponse;
 import com.ganchevdimitarg.payment.dto.CreateChargeCommand;
+import com.ganchevdimitarg.payment.dto.RefundChargeCommand;
 import com.ganchevdimitarg.payment.exception.NotFoundException;
 import com.ganchevdimitarg.payment.gateway.ChargeRequest;
 import com.ganchevdimitarg.payment.gateway.GatewayCharge;
+import com.ganchevdimitarg.payment.gateway.GatewayRefund;
 import com.ganchevdimitarg.payment.gateway.PaymentGateway;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,6 +24,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -63,5 +66,26 @@ class ChargeServiceImplTest {
 
         assertThatThrownBy(() -> chargeService.createCharge(command()))
                 .isInstanceOf(NotFoundException.class);
+    }
+
+    @Test
+    void should_refundKnownCharge_when_chargeExists() {
+        AppCharge charge = AppCharge.builder().chargeId("ch_1").amount(500L).build();
+        when(chargeDao.findByChargeId("ch_1")).thenReturn(Optional.of(charge));
+        when(paymentGateway.refundCharge("ch_1"))
+                .thenReturn(new GatewayRefund("re_1", "ch_1", "succeeded"));
+
+        ChargeResponse response = chargeService.refund(new RefundChargeCommand("ch_1"));
+
+        assertThat(response).isEqualTo(new ChargeResponse("ch_1", "succeeded"));
+    }
+
+    @Test
+    void should_throwNotFound_when_refundingUnknownCharge() {
+        when(chargeDao.findByChargeId("ch_missing")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> chargeService.refund(new RefundChargeCommand("ch_missing")))
+                .isInstanceOf(NotFoundException.class);
+        verify(paymentGateway, never()).refundCharge(any());
     }
 }
