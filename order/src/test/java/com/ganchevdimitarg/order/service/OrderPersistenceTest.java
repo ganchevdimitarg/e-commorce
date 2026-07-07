@@ -3,6 +3,7 @@ package com.ganchevdimitarg.order.service;
 import com.ganchevdimitarg.order.dao.ItemDao;
 import com.ganchevdimitarg.order.dao.OrderDao;
 import com.ganchevdimitarg.order.dao.OrderStatusHistoryDao;
+import com.ganchevdimitarg.order.domain.Charge;
 import com.ganchevdimitarg.order.domain.Order;
 import com.ganchevdimitarg.order.domain.OrderStatus;
 import com.ganchevdimitarg.order.domain.OrderStatusHistory;
@@ -101,6 +102,27 @@ class OrderPersistenceTest {
         assertThatThrownBy(() -> persistence.confirmPaid(9, PaymentDto.builder().build(), "john"))
                 .isInstanceOf(NotFoundException.class);
         verify(chargeService, never()).saveCharge(any(), any());
+    }
+
+    @Test
+    void should_returnOwnedOrderWithCharge_when_loadingForCancel() {
+        Charge charge = Charge.builder().chargeId("ch_1").status("succeeded").build();
+        Order order = Order.builder().orderNumber(5).username("john")
+                .status(OrderStatus.PAID).charge(charge).build();
+        when(orderDao.findByOrderNumber(5)).thenReturn(Optional.of(order));
+
+        Order result = persistence.loadOwnedWithCharge(5, "john");
+
+        assertThat(result.getCharge().getChargeId()).isEqualTo("ch_1");
+    }
+
+    @Test
+    void should_maskForeignOrderAs404_when_loadingForCancel() {
+        Order order = Order.builder().orderNumber(6).username("alice").status(OrderStatus.PAID).build();
+        when(orderDao.findByOrderNumber(6)).thenReturn(Optional.of(order));
+
+        assertThatThrownBy(() -> persistence.loadOwnedWithCharge(6, "mallory"))
+                .isInstanceOf(NotFoundException.class);
     }
 
     @Test

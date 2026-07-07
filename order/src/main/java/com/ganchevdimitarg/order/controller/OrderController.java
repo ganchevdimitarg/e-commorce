@@ -52,11 +52,15 @@ public class OrderController {
             @RequestBody @jakarta.validation.Valid OrderDto orderDto,
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
             Authentication authentication) {
-        return idempotencyService.execute(idempotencyKey, OrderCreatedResponse.class, () -> {
-            OrderCreatedResponse response = orderService.createOrder(orderDto, authentication.getName());
-            mailService.sendUserOrderMail(orderDto.username());
-            return response;
-        });
+        // The charge + confirm is the idempotent unit: it must be cached the moment it
+        // succeeds. The order-confirmation email is a non-critical side-effect kept OUT of the
+        // guarded action, so a mail failure can never prevent caching and trigger a duplicate
+        // charge on retry.
+        OrderCreatedResponse response = idempotencyService.execute(idempotencyKey,
+                OrderCreatedResponse.class,
+                () -> orderService.createOrder(orderDto, authentication.getName()));
+        mailService.sendUserOrderMail(orderDto.username());
+        return response;
     }
 
     @Operation(summary = "Delete Order", description = "Delete order by order cardNumber",

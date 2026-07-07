@@ -212,7 +212,7 @@ class OrderServiceImplTest {
 
         verify(orderPersistence).markPaymentFailed(eq(7L), eq("john"), anyString());
         verify(orderPersistence, never()).confirmPaid(anyLong(), any(), anyString());
-        verify(chargeService, never()).refund(anyString(), anyLong(), anyString());
+        verify(chargeService, never()).refund(anyString(), anyString());
     }
 
     @Test
@@ -231,7 +231,7 @@ class OrderServiceImplTest {
         assertThatThrownBy(() -> orderService.createOrder(orderFor("john", new OrderLineDto("p_1", 1)), "john"))
                 .isInstanceOf(IllegalStateException.class);
 
-        verify(chargeService).refund("ch_1", 0L, "john");
+        verify(chargeService).refund("ch_1", "john");
         verify(orderPersistence).markPaymentFailed(eq(8L), eq("john"), anyString());
     }
 
@@ -347,11 +347,11 @@ class OrderServiceImplTest {
         Charge charge = Charge.builder().chargeId("ch_stp_1").status("succeeded").build();
         Order order = Order.builder().orderNumber(9).username("john")
                 .status(OrderStatus.PAID).charge(charge).build();
-        when(orderDao.findByOrderNumber(9)).thenReturn(Optional.of(order));
+        when(orderPersistence.loadOwnedWithCharge(9, "john")).thenReturn(order);
 
         orderService.cancelOrder(9, "john", "changed my mind");
 
-        verify(chargeService).refund("ch_stp_1", 0L, "john");
+        verify(chargeService).refund("ch_stp_1", "john");
         verify(orderPersistence).transition(order, OrderStatus.CANCELLED, "john", "changed my mind");
     }
 
@@ -359,11 +359,11 @@ class OrderServiceImplTest {
     void should_cancelWithoutRefund_when_orderNotYetPaid() {
         Order order = Order.builder().orderNumber(10).username("john")
                 .status(OrderStatus.PLACED).build();
-        when(orderDao.findByOrderNumber(10)).thenReturn(Optional.of(order));
+        when(orderPersistence.loadOwnedWithCharge(10, "john")).thenReturn(order);
 
         orderService.cancelOrder(10, "john", null);
 
-        verify(chargeService, never()).refund(anyString(), anyLong(), anyString());
+        verify(chargeService, never()).refund(anyString(), anyString());
         verify(orderPersistence).transition(order, OrderStatus.CANCELLED, "john", null);
     }
 
@@ -371,11 +371,11 @@ class OrderServiceImplTest {
     void should_rejectCancel_when_orderAlreadyShipped() {
         Order order = Order.builder().orderNumber(11).username("john")
                 .status(OrderStatus.SHIPPED).build();
-        when(orderDao.findByOrderNumber(11)).thenReturn(Optional.of(order));
+        when(orderPersistence.loadOwnedWithCharge(11, "john")).thenReturn(order);
 
         assertThatThrownBy(() -> orderService.cancelOrder(11, "john", null))
                 .isInstanceOf(ConflictException.class);
-        verify(chargeService, never()).refund(anyString(), anyLong(), anyString());
+        verify(chargeService, never()).refund(anyString(), anyString());
         verify(orderPersistence, never()).transition(any(), any(), anyString(), any());
     }
 
