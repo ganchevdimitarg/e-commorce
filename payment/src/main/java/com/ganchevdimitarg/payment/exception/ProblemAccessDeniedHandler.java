@@ -1,4 +1,4 @@
-package com.concordeu.catalog.exception;
+package com.ganchevdimitarg.payment.exception;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;

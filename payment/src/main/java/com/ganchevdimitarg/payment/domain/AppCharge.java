@@ -15,7 +15,7 @@ import lombok.*;
 @Builder
 @Setter
 @Getter
-public class AppCharge {
+public class AppCharge extends Auditable {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "charge_id", unique = true, nullable = false, updatable = false)

@@ -1,4 +1,4 @@
-package com.concordeu.catalog.dto;
+package com.ganchevdimitarg.payment.dto;
 
 import org.springframework.data.domain.Page;
 

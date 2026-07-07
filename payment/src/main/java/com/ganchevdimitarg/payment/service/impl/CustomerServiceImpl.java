@@ -2,19 +2,19 @@ package com.ganchevdimitarg.payment.service.impl;
 
 import com.ganchevdimitarg.payment.dao.CustomerDao;
 import com.ganchevdimitarg.payment.domain.AppCustomer;
-import com.ganchevdimitarg.payment.dto.PaymentDto;
-import com.ganchevdimitarg.payment.excaption.InvalidPaymentRequestException;
+import com.ganchevdimitarg.payment.dto.CreateCustomerCommand;
+import com.ganchevdimitarg.payment.dto.CustomerResponse;
+import com.ganchevdimitarg.payment.exception.NotFoundException;
+import com.ganchevdimitarg.payment.gateway.GatewayCustomer;
+import com.ganchevdimitarg.payment.gateway.PaymentGateway;
 import com.ganchevdimitarg.payment.service.CustomerService;
-import com.stripe.Stripe;
-import com.stripe.exception.StripeException;
-import com.stripe.model.Customer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.time.Instant;
 
 /**
  * Customers
@@ -27,58 +27,39 @@ import java.util.Map;
 @Slf4j
 public class CustomerServiceImpl implements CustomerService {
     private final CustomerDao customerDao;
-    @Value("${stripe.secret.key}")
-    private String secretKey;
+    private final PaymentGateway paymentGateway;
 
     @Override
-    public PaymentDto createCustomer(PaymentDto paymentDto) {
-        Stripe.apiKey = secretKey;
+    @Transactional
+    @PreAuthorize("hasAuthority('SCOPE_payment.write')")
+    public CustomerResponse createCustomer(CreateCustomerCommand command) {
+        GatewayCustomer customer = paymentGateway.createCustomer(command.username(), command.username());
 
-        Map<String, Object> params = new HashMap<>();
-        params.put("email", paymentDto.username());
-        params.put("name", paymentDto.username());
+        customerDao.save(AppCustomer.builder()
+                .customerId(customer.id())
+                .username(customer.email())
+                .customerName(customer.name())
+                .build());
+        log.info("Created customer in payment service db");
 
-        try {
-            Customer customer = Customer.create(params);
-            log.info("Method createCustomer: Create customer successful: {}", customer.getEmail());
-
-            customerDao.save(AppCustomer.builder()
-                    .customerId(customer.getId())
-                    .username(customer.getEmail())
-                    .customerName(customer.getName())
-                    .build());
-            log.info("Created customer in payment service db");
-
-            return PaymentDto.builder()
-                    .customerId(customer.getId())
-                    .build();
-
-        } catch (StripeException e) {
-            log.warn(e.getMessage());
-            throw new InvalidPaymentRequestException(e.getMessage());
-        }
+        return new CustomerResponse(customer.id(), customer.email(), customer.name());
     }
 
     /**
      * Retrieves a Customer object.
      *
      * @param username customer username
-     * @return Returns the Customer object for a valid identifier.
-     * If it’s for a deleted Customer, a subset of the customer’s information is returned,
-     * including a deleted property that’s set to true.
+     * @return the persisted customer view
      */
     @Override
-    public PaymentDto getCustomerByUsername(String username) {
+    @PreAuthorize("hasAuthority('SCOPE_payment.read')")
+    public CustomerResponse getCustomerByUsername(String username) {
         AppCustomer appCustomer = customerDao.findByUsername(username).orElseThrow(() -> {
             logMessage(username);
-            return new InvalidPaymentRequestException("Customer with username " + username + " does not exist");
+            return new NotFoundException("Customer", username);
         });
-        return PaymentDto.builder()
-                .username(appCustomer.getUsername())
-                .customerName(appCustomer.getCustomerName())
-                .customerId(appCustomer.getCustomerId())
-                .build();
-
+        return new CustomerResponse(appCustomer.getCustomerId(), appCustomer.getUsername(),
+                appCustomer.getCustomerName());
     }
 
     private static void logMessage(String username) {
@@ -86,42 +67,23 @@ public class CustomerServiceImpl implements CustomerService {
     }
 
     /**
-     * Permanently deletes a customer.
-     * It cannot be undone.
-     * Also, immediately cancels any active subscriptions on the customer.
+     * Deletes a customer at the provider and soft-deletes the local record.
      *
      * @param username customer username
+     * @return the provider customer id that was deleted
      */
     @Override
+    @Transactional
+    @PreAuthorize("hasAuthority('SCOPE_payment.write')")
     public String deleteCustomer(String username) {
-        Stripe.apiKey = secretKey;
-
-        try {
-            Customer customerByEmail = getCustomerByStripeId(getCustomerByUsername(username).customerId());
-            Customer.retrieve(customerByEmail.getId()).delete();
-            AppCustomer customer = customerDao.findByUsername(username).orElseThrow(() -> {
-                logMessage(username);
-                return new InvalidPaymentRequestException("Customer with username " + username + " does not exist");
-            });
-            customerDao.delete(customer);
-            log.info("Delete customer successful: {}", customerByEmail.getEmail());
-            return customerByEmail.getId();
-        } catch (StripeException e) {
-            log.warn(e.getMessage());
-            throw new InvalidPaymentRequestException(e.getMessage());
-        }
-    }
-
-    @Override
-    public Customer getCustomerByStripeId(String customerId) {
-        Stripe.apiKey = secretKey;
-        try {
-            Customer customer = Customer.retrieve(customerId);
-            log.info("Get customer successful: {}", customer.getEmail());
-            return customer;
-        } catch (StripeException e) {
-            log.warn(e.getMessage());
-            throw new InvalidPaymentRequestException(e.getMessage());
-        }
+        AppCustomer customer = customerDao.findByUsername(username).orElseThrow(() -> {
+            logMessage(username);
+            return new NotFoundException("Customer", username);
+        });
+        paymentGateway.deleteCustomer(customer.getCustomerId());
+        customer.setDeletedAt(Instant.now());
+        customerDao.save(customer);
+        log.info("Delete customer successful: {}", customer.getUsername());
+        return customer.getCustomerId();
     }
 }

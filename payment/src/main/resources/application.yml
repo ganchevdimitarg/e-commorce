@@ -25,6 +25,10 @@ spring:
         jwt:
           issuer-uri: http://localhost:8082
           jwk-set-uri: http://localhost:8082/oauth2/jwks
+        opaquetoken:
+          introspection-uri: http://localhost:8082/oauth2/introspect
+          client-id: ${OAUTH2_INTROSPECTION_CLIENT_ID:gateway}
+          client-secret: ${OAUTH2_INTROSPECTION_CLIENT_SECRET:secret}
 
   #Pagination
   mvc:
