@@ -1,8 +1,9 @@
 package com.ganchevdimitarg.payment.controller;
 
-import com.ganchevdimitarg.payment.dto.PaymentDto;
+import com.ganchevdimitarg.payment.dto.CardResponse;
+import com.ganchevdimitarg.payment.dto.CreateCardCommand;
 import com.ganchevdimitarg.payment.service.CardService;
-import com.stripe.exception.StripeException;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -17,14 +18,15 @@ public class CardController {
     private final CardService cardService;
 
     @PostMapping("/create-card")
-    public PaymentDto createCard(@RequestBody PaymentDto paymentDto) throws StripeException {
-        return cardService.createCard(paymentDto);
+    public CardResponse createCard(@RequestBody @Valid CreateCardCommand command) {
+        return cardService.createCard(command);
     }
 
     @GetMapping("/get-cards")
     public Set<String> getCards(@RequestParam String username) {
         return cardService.getCards(username);
     }
+
     @GetMapping("/get-customer-cards")
     public Set<String> getCustomerCards(@RequestParam String username) {
         return cardService.getCustomerCards(username);

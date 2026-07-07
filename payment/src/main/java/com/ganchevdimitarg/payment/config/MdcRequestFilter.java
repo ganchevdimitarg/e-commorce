@@ -1,4 +1,4 @@
-package com.concordeu.catalog.config;
+package com.ganchevdimitarg.payment.config;
 
 import io.micrometer.tracing.Span;
 import io.micrometer.tracing.Tracer;
@@ -17,7 +17,7 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class MdcRequestFilter extends OncePerRequestFilter {
 
-    private static final String SERVICE_ID = "catalog-service";
+    private static final String SERVICE_ID = "payment-service";
 
     private final Tracer tracer;
 

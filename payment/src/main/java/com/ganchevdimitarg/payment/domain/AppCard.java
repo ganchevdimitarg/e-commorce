@@ -15,7 +15,7 @@ import lombok.*;
 @Builder
 @Setter
 @Getter
-public class AppCard {
+public class AppCard extends Auditable {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "card_id", unique = true, nullable = false, updatable = false)
