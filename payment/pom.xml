@@ -13,7 +13,6 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <h2.version>2.1.212</h2.version>
         <springdoc.version>2.8.9</springdoc.version>
         <stripe-java.version>21.15.0</stripe-java.version>
         <logstash-logback-encoder.version>8.0</logstash-logback-encoder.version>
@@ -107,7 +106,7 @@
         </dependency>
         <dependency>
             <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-starter-circuitbreaker-reactor-resilience4j</artifactId>
+            <artifactId>spring-cloud-starter-circuitbreaker-resilience4j</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.cloud</groupId>
@@ -124,13 +123,6 @@
             <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
         </dependency>
-        <dependency>
-            <groupId>com.h2database</groupId>
-            <artifactId>h2</artifactId>
-            <version>${h2.version}</version>
-            <scope>test</scope>
-        </dependency>
-
         <!--        -->
         <dependency>
             <groupId>jakarta.validation</groupId>
