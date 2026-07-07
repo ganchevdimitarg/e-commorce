@@ -15,6 +15,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -39,14 +41,17 @@ class CustomerControllerTest {
 
     @Test
     void should_return200AndCustomer_when_createValid() throws Exception {
-        when(customerService.createCustomer(any()))
+        when(customerService.createCustomer(any(), any()))
                 .thenReturn(new CustomerResponse("cus_1", "john@doe.com", "John"));
 
         mockMvc.perform(post("/api/v1/payment/customer/create-customer")
                         .contentType(MediaType.APPLICATION_JSON)
+                        .header("Idempotency-Key", "idem-1")
                         .content(objectMapper.writeValueAsString(new CreateCustomerCommand("john@doe.com"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.customerId").value("cus_1"));
+
+        verify(customerService).createCustomer(any(), eq("idem-1"));
     }
 
     @Test

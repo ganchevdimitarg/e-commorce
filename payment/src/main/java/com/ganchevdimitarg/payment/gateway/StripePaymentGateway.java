@@ -44,12 +44,15 @@ public class StripePaymentGateway implements PaymentGateway {
     }
 
     @Override
-    public GatewayCustomer createCustomer(String email, String name) {
+    public GatewayCustomer createCustomer(String email, String name, String idempotencyKey) {
         return call(() -> {
             Map<String, Object> params = new HashMap<>();
             params.put("email", email);
             params.put("name", name);
-            Customer customer = Customer.create(params);
+            RequestOptions options = RequestOptions.builder()
+                    .setIdempotencyKey(idempotencyKey)
+                    .build();
+            Customer customer = Customer.create(params, options);
             log.info("Stripe createCustomer successful: {}", customer.getEmail());
             return toGatewayCustomer(customer);
         });
@@ -70,7 +73,7 @@ public class StripePaymentGateway implements PaymentGateway {
     }
 
     @Override
-    public GatewayCard createCard(String customerId, CardDetails card) {
+    public GatewayCard createCard(String customerId, CardDetails card, String idempotencyKey) {
         return call(() -> {
             Map<String, Object> retrieveParams = new HashMap<>();
             retrieveParams.put("expand", List.of("sources"));
@@ -83,7 +86,10 @@ public class StripePaymentGateway implements PaymentGateway {
             cardParams.put("cvc", card.cvc());
             Token token = Token.create(Map.of("card", cardParams));
 
-            Card created = (Card) customer.getSources().create(Map.of("source", token.getId()));
+            RequestOptions options = RequestOptions.builder()
+                    .setIdempotencyKey(idempotencyKey)
+                    .build();
+            Card created = (Card) customer.getSources().create(Map.of("source", token.getId()), options);
             log.info("Stripe createCard successful: {}", created.getId());
             return new GatewayCard(created.getId(), created.getBrand(), created.getCustomer(),
                     created.getCvcCheck(), created.getExpMonth(), created.getExpYear(), created.getLast4());

@@ -25,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -37,6 +38,8 @@ class CardServiceImplTest {
     private CustomerDao customerDao;
     @Mock
     private PaymentGateway paymentGateway;
+    @Mock
+    private CardPersistence cardPersistence;
     @InjectMocks
     private CardServiceImpl cardService;
 
@@ -45,18 +48,32 @@ class CardServiceImplTest {
     }
 
     @Test
-    void should_registerCardAndLinkCustomer_when_createCard() {
+    void should_registerCardWithIdempotencyKeyAndPersist_when_createCard() {
         AppCustomer customer = AppCustomer.builder().customerId("cus_1").username("john@doe.com").build();
         when(paymentGateway.retrieveCustomer("cus_1"))
                 .thenReturn(new GatewayCustomer("cus_1", "john@doe.com", "John"));
-        when(paymentGateway.createCard(eq("cus_1"), any(CardDetails.class)))
-                .thenReturn(new GatewayCard("card_1", "visa", "cus_1", "pass", 12L, 2030L, "4242"));
         when(customerDao.findByUsername("John")).thenReturn(Optional.of(customer));
+        GatewayCard gatewayCard = new GatewayCard("card_1", "visa", "cus_1", "pass", 12L, 2030L, "4242");
+        when(paymentGateway.createCard(eq("cus_1"), any(CardDetails.class), eq("idem-123")))
+                .thenReturn(gatewayCard);
 
-        CardResponse response = cardService.createCard(command());
+        CardResponse response = cardService.createCard(command(), "idem-123");
 
         assertThat(response).isEqualTo(new CardResponse("card_1", "cus_1"));
-        verify(cardDao).saveAndFlush(any(AppCard.class));
+        verify(paymentGateway).createCard(eq("cus_1"), any(CardDetails.class), eq("idem-123"));
+        verify(cardPersistence).persistCard(gatewayCard, customer);
+    }
+
+    @Test
+    void should_notCallGateway_when_linkedCustomerMissing() {
+        when(paymentGateway.retrieveCustomer("cus_1"))
+                .thenReturn(new GatewayCustomer("cus_1", "john@doe.com", "John"));
+        when(customerDao.findByUsername("John")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> cardService.createCard(command(), "idem-123"))
+                .isInstanceOf(NotFoundException.class);
+        verify(paymentGateway, never()).createCard(any(), any(), any());
+        verify(cardPersistence, never()).persistCard(any(), any());
     }
 
     @Test

@@ -17,6 +17,8 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import java.util.Set;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -42,20 +44,24 @@ class CardControllerTest {
 
     @Test
     void should_return200AndCard_when_createValid() throws Exception {
-        when(cardService.createCard(any())).thenReturn(new CardResponse("card_1", "cus_1"));
+        when(cardService.createCard(any(), any())).thenReturn(new CardResponse("card_1", "cus_1"));
 
         mockMvc.perform(post("/api/v1/payment/card/create-card")
                         .contentType(MediaType.APPLICATION_JSON)
+                        .header("Idempotency-Key", "idem-1")
                         .content(objectMapper.writeValueAsString(
                                 new CreateCardCommand("cus_1", "4242424242424242", 12L, 2030L, "123"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.cardId").value("card_1"));
+
+        verify(cardService).createCard(any(), eq("idem-1"));
     }
 
     @Test
     void should_return400_when_cardNumberBlank() throws Exception {
         mockMvc.perform(post("/api/v1/payment/card/create-card")
                         .contentType(MediaType.APPLICATION_JSON)
+                        .header("Idempotency-Key", "idem-1")
                         .content(objectMapper.writeValueAsString(
                                 new CreateCardCommand("cus_1", "", 12L, 2030L, "123"))))
                 .andExpect(status().isBadRequest());
