@@ -40,10 +40,11 @@ class ChargeControllerTest {
 
     @Test
     void should_return200AndCharge_when_createValid() throws Exception {
-        when(chargeService.createCharge(any())).thenReturn(new ChargeResponse("ch_1", "succeeded"));
+        when(chargeService.createCharge(any(), any())).thenReturn(new ChargeResponse("ch_1", "succeeded"));
 
         mockMvc.perform(post("/api/v1/payment/charge/create-charge")
                         .contentType(MediaType.APPLICATION_JSON)
+                        .header("Idempotency-Key", "idem-1")
                         .content(objectMapper.writeValueAsString(new CreateChargeCommand(
                                 "john@doe.com", "cus_1", "card_1", 500L, "usd", "john@doe.com"))))
                 .andExpect(status().isOk())
@@ -54,6 +55,7 @@ class ChargeControllerTest {
     void should_return400_when_amountNotPositive() throws Exception {
         mockMvc.perform(post("/api/v1/payment/charge/create-charge")
                         .contentType(MediaType.APPLICATION_JSON)
+                        .header("Idempotency-Key", "idem-1")
                         .content(objectMapper.writeValueAsString(new CreateChargeCommand(
                                 "john@doe.com", "cus_1", "card_1", 0L, "usd", "john@doe.com"))))
                 .andExpect(status().isBadRequest());
