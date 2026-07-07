@@ -41,7 +41,9 @@ public class ResourceServerConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                        .requestMatchers("/actuator/**").permitAll()
+                        // Only health is public (container/orchestrator probes); every other
+                        // actuator endpoint must be authenticated so metrics/env never leak.
+                        .requestMatchers("/actuator/health/**").permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth -> oauth.authenticationManagerResolver(this.tokenAuthenticationManagerResolver()))
                 .exceptionHandling(ex -> ex
