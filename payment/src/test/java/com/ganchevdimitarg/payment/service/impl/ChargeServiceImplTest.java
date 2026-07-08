@@ -74,12 +74,13 @@ class ChargeServiceImplTest {
     void should_refundKnownCharge_when_chargeExists() {
         AppCharge charge = AppCharge.builder().chargeId("ch_1").amount(500L).build();
         when(chargeDao.findByChargeId("ch_1")).thenReturn(Optional.of(charge));
-        when(paymentGateway.refundCharge("ch_1"))
+        when(paymentGateway.refundCharge("ch_1", "refund-ch_1"))
                 .thenReturn(new GatewayRefund("re_1", "ch_1", "succeeded"));
 
         ChargeResponse response = chargeService.refund(new RefundChargeCommand("ch_1"));
 
         assertThat(response).isEqualTo(new ChargeResponse("ch_1", "succeeded"));
+        verify(paymentGateway).refundCharge("ch_1", "refund-ch_1");
     }
 
     @Test
@@ -88,6 +89,6 @@ class ChargeServiceImplTest {
 
         assertThatThrownBy(() -> chargeService.refund(new RefundChargeCommand("ch_missing")))
                 .isInstanceOf(NotFoundException.class);
-        verify(paymentGateway, never()).refundCharge(any());
+        verify(paymentGateway, never()).refundCharge(any(), any());
     }
 }

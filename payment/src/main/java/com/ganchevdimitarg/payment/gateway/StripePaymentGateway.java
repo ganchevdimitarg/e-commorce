@@ -131,11 +131,15 @@ public class StripePaymentGateway implements PaymentGateway {
     }
 
     @Override
-    public GatewayRefund refundCharge(String chargeId) {
+    public GatewayRefund refundCharge(String chargeId, String idempotencyKey) {
         return call(() -> {
             // No amount => Stripe refunds the charge in full, which is what a
-            // compensating refund requires.
-            Refund refund = Refund.create(Map.of("charge", chargeId));
+            // compensating refund requires. The idempotency key (derived from the charge id)
+            // lets an automated compensation retry dedupe without a caller-supplied header.
+            RequestOptions options = RequestOptions.builder()
+                    .setIdempotencyKey(idempotencyKey)
+                    .build();
+            Refund refund = Refund.create(Map.of("charge", chargeId), options);
             log.info("Stripe refundCharge successful: {}", refund.getId());
             return new GatewayRefund(refund.getId(), refund.getCharge(), refund.getStatus());
         });
