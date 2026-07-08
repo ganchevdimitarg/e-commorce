@@ -49,7 +49,7 @@ class ChargeControllerTest {
                         .header("X-User-Id", "john@doe.com")
                         .header("Idempotency-Key", "idem-1")
                         .content(objectMapper.writeValueAsString(new CreateChargeCommand(
-                                "card_1", 500L, "usd", "john@doe.com"))))
+                                "order-1", "card_1", 500L, "usd", "john@doe.com"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.chargeId").value("ch_1"));
 
@@ -63,7 +63,7 @@ class ChargeControllerTest {
                         .header("X-User-Id", "john@doe.com")
                         .header("Idempotency-Key", "idem-1")
                         .content(objectMapper.writeValueAsString(new CreateChargeCommand(
-                                "card_1", 0L, "usd", "john@doe.com"))))
+                                "order-1", "card_1", 0L, "usd", "john@doe.com"))))
                 .andExpect(status().isBadRequest());
     }
 
@@ -74,7 +74,7 @@ class ChargeControllerTest {
                         .header("X-User-Id", "john@doe.com")
                         .header("Idempotency-Key", "idem-1")
                         .content(objectMapper.writeValueAsString(new CreateChargeCommand(
-                                "card_1", 500L, "dollars", "john@doe.com"))))
+                                "order-1", "card_1", 500L, "dollars", "john@doe.com"))))
                 .andExpect(status().isBadRequest());
     }
 

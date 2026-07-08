@@ -24,7 +24,7 @@ class ChargeAuthorizationIT extends AbstractIntegrationTest {
     @Test
     @WithMockUser(authorities = "SCOPE_payment.read")
     void should_denyWrite_when_callerHasReadScopeOnly() {
-        CreateChargeCommand command = new CreateChargeCommand("card_1", 500L, "usd", "john@doe.com");
+        CreateChargeCommand command = new CreateChargeCommand("order-1", "card_1", 500L, "usd", "john@doe.com");
 
         assertThatThrownBy(() -> chargeService.createCharge("john@doe.com", command, "idem-1"))
                 .isInstanceOf(AccessDeniedException.class);
