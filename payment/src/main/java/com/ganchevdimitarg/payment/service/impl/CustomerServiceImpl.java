@@ -2,126 +2,99 @@ package com.ganchevdimitarg.payment.service.impl;
 
 import com.ganchevdimitarg.payment.dao.CustomerDao;
 import com.ganchevdimitarg.payment.domain.AppCustomer;
-import com.ganchevdimitarg.payment.dto.PaymentDto;
-import com.ganchevdimitarg.payment.excaption.InvalidPaymentRequestException;
+import com.ganchevdimitarg.payment.dto.CustomerResponse;
+import com.ganchevdimitarg.payment.exception.NotFoundException;
+import com.ganchevdimitarg.payment.gateway.GatewayCustomer;
+import com.ganchevdimitarg.payment.gateway.PaymentGateway;
 import com.ganchevdimitarg.payment.service.CustomerService;
-import com.stripe.Stripe;
-import com.stripe.exception.StripeException;
-import com.stripe.model.Customer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
-
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Customers
  * This object represents a customer of your business.
  * It lets you create recurring charges and track payments that belong to the same customer.
  * cardId: <a href="https://stripe.com/docs/api/customers">...</a>
+ *
+ * <p>Identity is always the gateway-authenticated {@code userId} (the {@code X-User-Id}
+ * header value) — never a caller-supplied parameter — so a caller can only ever act on
+ * their own customer record.
  */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class CustomerServiceImpl implements CustomerService {
     private final CustomerDao customerDao;
-    @Value("${stripe.secret.key}")
-    private String secretKey;
+    private final PaymentGateway paymentGateway;
+    private final CustomerPersistence customerPersistence;
 
+    /**
+     * Creates the authenticated user's customer at the payment provider and records it
+     * locally. The provider call is deliberately outside any DB transaction: it is enrolled
+     * with an idempotency key so a client retry cannot create a duplicate provider customer,
+     * and persistence is delegated to {@link CustomerPersistence} so a DB-commit failure
+     * after a successful creation cannot orphan the provider customer silently — it already
+     * exists at the provider under a stable key.
+     *
+     * @param userId         authenticated user id (doubles as the provider email)
+     * @param idempotencyKey key passed through to the payment provider so retries dedupe
+     * @return the persisted customer view
+     */
     @Override
-    public PaymentDto createCustomer(PaymentDto paymentDto) {
-        Stripe.apiKey = secretKey;
+    @PreAuthorize("hasAuthority('SCOPE_payment.write')")
+    public CustomerResponse createCustomer(String userId, String idempotencyKey) {
+        // Provider call is OUTSIDE any DB transaction; Stripe dedupes on the idempotency key so
+        // a client retry cannot create a duplicate provider customer. The local row is written
+        // afterwards.
+        GatewayCustomer customer = paymentGateway.createCustomer(userId, userId, idempotencyKey);
 
-        Map<String, Object> params = new HashMap<>();
-        params.put("email", paymentDto.username());
-        params.put("name", paymentDto.username());
-
-        try {
-            Customer customer = Customer.create(params);
-            log.info("Method createCustomer: Create customer successful: {}", customer.getEmail());
-
-            customerDao.save(AppCustomer.builder()
-                    .customerId(customer.getId())
-                    .username(customer.getEmail())
-                    .customerName(customer.getName())
-                    .build());
-            log.info("Created customer in payment service db");
-
-            return PaymentDto.builder()
-                    .customerId(customer.getId())
-                    .build();
-
-        } catch (StripeException e) {
-            log.warn(e.getMessage());
-            throw new InvalidPaymentRequestException(e.getMessage());
-        }
+        return customerPersistence.persistCustomer(customer);
     }
 
     /**
-     * Retrieves a Customer object.
+     * Retrieves the authenticated user's own customer record.
      *
-     * @param username customer username
-     * @return Returns the Customer object for a valid identifier.
-     * If it’s for a deleted Customer, a subset of the customer’s information is returned,
-     * including a deleted property that’s set to true.
+     * @param userId authenticated user id
+     * @return the persisted customer view
      */
     @Override
-    public PaymentDto getCustomerByUsername(String username) {
-        AppCustomer appCustomer = customerDao.findByUsername(username).orElseThrow(() -> {
-            logMessage(username);
-            return new InvalidPaymentRequestException("Customer with username " + username + " does not exist");
+    @PreAuthorize("hasAuthority('SCOPE_payment.read')")
+    public CustomerResponse getCurrentCustomer(String userId) {
+        AppCustomer appCustomer = customerDao.findByUsername(userId).orElseThrow(() -> {
+            logMissingCustomer();
+            return new NotFoundException("Customer", userId);
         });
-        return PaymentDto.builder()
-                .username(appCustomer.getUsername())
-                .customerName(appCustomer.getCustomerName())
-                .customerId(appCustomer.getCustomerId())
-                .build();
-
+        return new CustomerResponse(appCustomer.getCustomerId(), appCustomer.getUsername(),
+                appCustomer.getCustomerName());
     }
 
-    private static void logMessage(String username) {
-        log.warn("Customer with username {} does not exist in db customers", username);
+    private static void logMissingCustomer() {
+        log.warn("Customer for the authenticated user does not exist in db customers");
     }
 
     /**
-     * Permanently deletes a customer.
-     * It cannot be undone.
-     * Also, immediately cancels any active subscriptions on the customer.
+     * Deletes the authenticated user's customer at the provider and soft-deletes the local
+     * record. Not {@code @Transactional}: the provider call runs OUTSIDE any transaction
+     * (mirroring the create paths) so a DB transaction never wraps the network call. The
+     * soft-delete write is delegated to {@link CustomerPersistence#softDelete(AppCustomer)} —
+     * a separate bean so the transactional boundary is honoured via the Spring proxy, not
+     * bypassed by self-invocation.
      *
-     * @param username customer username
+     * @param userId authenticated user id
+     * @return the provider customer id that was deleted
      */
     @Override
-    public String deleteCustomer(String username) {
-        Stripe.apiKey = secretKey;
-
-        try {
-            Customer customerByEmail = getCustomerByStripeId(getCustomerByUsername(username).customerId());
-            Customer.retrieve(customerByEmail.getId()).delete();
-            AppCustomer customer = customerDao.findByUsername(username).orElseThrow(() -> {
-                logMessage(username);
-                return new InvalidPaymentRequestException("Customer with username " + username + " does not exist");
-            });
-            customerDao.delete(customer);
-            log.info("Delete customer successful: {}", customerByEmail.getEmail());
-            return customerByEmail.getId();
-        } catch (StripeException e) {
-            log.warn(e.getMessage());
-            throw new InvalidPaymentRequestException(e.getMessage());
-        }
-    }
-
-    @Override
-    public Customer getCustomerByStripeId(String customerId) {
-        Stripe.apiKey = secretKey;
-        try {
-            Customer customer = Customer.retrieve(customerId);
-            log.info("Get customer successful: {}", customer.getEmail());
-            return customer;
-        } catch (StripeException e) {
-            log.warn(e.getMessage());
-            throw new InvalidPaymentRequestException(e.getMessage());
-        }
+    @PreAuthorize("hasAuthority('SCOPE_payment.write')")
+    public String deleteCustomer(String userId) {
+        AppCustomer customer = customerDao.findByUsername(userId).orElseThrow(() -> {
+            logMissingCustomer();
+            return new NotFoundException("Customer", userId);
+        });
+        paymentGateway.deleteCustomer(customer.getCustomerId());
+        customerPersistence.softDelete(customer);
+        log.info("Delete customer successful");
+        return customer.getCustomerId();
     }
 }

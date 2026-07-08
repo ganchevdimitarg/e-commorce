@@ -4,30 +4,29 @@ import com.ganchevdimitarg.order.dao.ChargeDao;
 import com.ganchevdimitarg.order.domain.Charge;
 import com.ganchevdimitarg.order.domain.Order;
 import com.ganchevdimitarg.order.dto.PaymentDto;
-import com.ganchevdimitarg.order.excaption.InvalidRequestDataException;
-import com.google.gson.Gson;
+import com.ganchevdimitarg.order.exception.InvalidRequestDataException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cloud.client.circuitbreaker.ReactiveCircuitBreakerFactory;
+import org.springframework.cloud.client.circuitbreaker.CircuitBreakerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
+import org.springframework.web.client.RestClient;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class ChargeServiceImpl implements ChargeService {
     private final ChargeDao chargeDao;
-    private final Gson mapper;
-    private final WebClient webClient;
-    private final ReactiveCircuitBreakerFactory reactiveCircuitBreakerFactory;
+    private final RestClient restClient;
+    private final CircuitBreakerFactory circuitBreakerFactory;
 
     @Value("${payment.service.customer.get.uri}")
     private String paymentServiceGetCustomerByUsernameUri;
     @Value("${payment.service.charge.post.uri}")
     private String paymentServiceChargeCustomerUri;
+    @Value("${payment.service.charge.refund.post.uri}")
+    private String paymentServiceRefundChargeUri;
 
     @Override
     public PaymentDto makePayment(String cardId, String authenticationName, long amount) {
@@ -52,62 +51,73 @@ public class ChargeServiceImpl implements ChargeService {
         log.info("Charge was successfully created");
     }
 
-    private PaymentDto chargeCustomer(long amount, PaymentDto paymentCustomer, String cardId) {
-        String chargeRequestBody = mapper.toJson(
-                PaymentDto.builder()
-                        .amount(amount)
-                        .currency("usd")
-                        .receiptEmail(paymentCustomer.username())
-                        .customerId(paymentCustomer.customerId())
-                        .username(paymentCustomer.username())
-                        .cardId(cardId)
-        );
+    /**
+     * Refund a charge in full. Compensation always returns the entire captured amount, so no
+     * amount is sent — the payment service refunds the charge in full.
+     */
+    @Override
+    public PaymentDto refund(String stripeChargeId, String username) {
+        PaymentDto refundRequest = PaymentDto.builder()
+                .chargeId(stripeChargeId)
+                .username(username)
+                .build();
 
-        return sendRequestToPaymentService(
-                paymentServiceChargeCustomerUri,
-                chargeRequestBody);
+        PaymentDto refunded = sendRequestToPaymentService(paymentServiceRefundChargeUri, refundRequest);
+        log.info("Refund went through successfully: {}", refunded.chargeId());
+        return refunded;
     }
 
-    private PaymentDto sendRequestToPaymentService(String uri, String request) {
-        PaymentDto paymentDto = webClient
-                .post()
-                .uri(uri)
-                .contentType(MediaType.APPLICATION_JSON)
-                .accept(MediaType.APPLICATION_JSON)
-                .bodyValue(request)
-                .retrieve()
-                .bodyToMono(PaymentDto.class)
-                .transform(it ->
-                        reactiveCircuitBreakerFactory.create("orderService")
-                                .run(it, throwable -> {
-                                    log.warn("Payment service is down", throwable);
-                                    return Mono.just(PaymentDto.builder().chargeId("").build());
-                                })
-                )
-                .block();
+    private PaymentDto chargeCustomer(long amount, PaymentDto paymentCustomer, String cardId) {
+        PaymentDto chargeRequest = PaymentDto.builder()
+                .amount(amount)
+                .currency("usd")
+                .receiptEmail(paymentCustomer.username())
+                .customerId(paymentCustomer.customerId())
+                .username(paymentCustomer.username())
+                .cardId(cardId)
+                .build();
 
-        assert paymentDto != null;
+        return sendRequestToPaymentService(paymentServiceChargeCustomerUri, chargeRequest);
+    }
+
+    private PaymentDto sendRequestToPaymentService(String uri, PaymentDto request) {
+        PaymentDto paymentDto = circuitBreakerFactory.create("orderService").run(
+                () -> restClient
+                        .post()
+                        .uri(uri)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON)
+                        .body(request)
+                        .retrieve()
+                        .body(PaymentDto.class),
+                throwable -> {
+                    log.warn("Payment service is down", throwable);
+                    return PaymentDto.builder().chargeId("").build();
+                });
+
+        if (paymentDto == null) {
+            throw new InvalidRequestDataException("Payment service returned no response");
+        }
         checkPaymentServiceAvailability(paymentDto.chargeId());
         return paymentDto;
     }
 
     private PaymentDto getCustomerFromPaymentService(String uri) {
-        PaymentDto paymentDto = webClient
-                .get()
-                .uri(uri)
-                .accept(MediaType.APPLICATION_JSON)
-                .retrieve()
-                .bodyToMono(PaymentDto.class)
-                .transform(it ->
-                        reactiveCircuitBreakerFactory.create("orderService")
-                                .run(it, throwable -> {
-                                    log.warn("Payment service is down", throwable);
-                                    return Mono.just(PaymentDto.builder().username("").build());
-                                })
-                )
-                .block();
+        PaymentDto paymentDto = circuitBreakerFactory.create("orderService").run(
+                () -> restClient
+                        .get()
+                        .uri(uri)
+                        .accept(MediaType.APPLICATION_JSON)
+                        .retrieve()
+                        .body(PaymentDto.class),
+                throwable -> {
+                    log.warn("Payment service is down", throwable);
+                    return PaymentDto.builder().username("").build();
+                });
 
-        assert paymentDto != null;
+        if (paymentDto == null) {
+            throw new InvalidRequestDataException("Payment service returned no response");
+        }
         checkPaymentServiceAvailability(paymentDto.username());
         return paymentDto;
     }

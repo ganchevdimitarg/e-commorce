@@ -1,0 +1,17 @@
+-- Activates the Auditable mapped-superclass (audit timestamps, soft-delete, optimistic locking)
+-- across the payment tables. ddl-auto=validate requires these columns to exist.
+
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT now();
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ NULL;
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS version    BIGINT      NOT NULL DEFAULT 0;
+
+ALTER TABLE charges ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT now();
+ALTER TABLE charges ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
+ALTER TABLE charges ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ NULL;
+ALTER TABLE charges ADD COLUMN IF NOT EXISTS version    BIGINT      NOT NULL DEFAULT 0;
+
+ALTER TABLE cards ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT now();
+ALTER TABLE cards ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
+ALTER TABLE cards ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ NULL;
+ALTER TABLE cards ADD COLUMN IF NOT EXISTS version    BIGINT      NOT NULL DEFAULT 0;

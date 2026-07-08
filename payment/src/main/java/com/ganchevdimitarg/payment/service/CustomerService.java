@@ -1,12 +1,11 @@
 package com.ganchevdimitarg.payment.service;
 
-import com.ganchevdimitarg.payment.dto.PaymentDto;
-import com.stripe.exception.StripeException;
-import com.stripe.model.Customer;
+import com.ganchevdimitarg.payment.dto.CustomerResponse;
 
 public interface CustomerService {
-    PaymentDto createCustomer(PaymentDto customerDto) throws StripeException;
-    PaymentDto getCustomerByUsername(String username);
-    Customer getCustomerByStripeId(String customerId);
-    String deleteCustomer(String username);
+    CustomerResponse createCustomer(String userId, String idempotencyKey);
+
+    CustomerResponse getCurrentCustomer(String userId);
+
+    String deleteCustomer(String userId);
 }

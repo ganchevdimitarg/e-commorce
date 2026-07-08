@@ -1,0 +1,26 @@
+# Profile-independent defaults for the order service.
+#
+# Environment-specific configuration lives in application-<env>.yml. The `dev` profile is
+# auto-included at startup via bootstrap.yml (`spring.profiles.include: dev`); add
+# application-<env>.yml files and activate with `--spring.profiles.active=<env>` for other
+# environments.
+spring:
+  application:
+    name: order-service
+  jackson:
+    # Jackson 3 (Boot 4) writes dates as ISO-8601 by default; the former
+    # serialization.write-dates-as-timestamps toggle was removed in Jackson 3.
+    default-property-inclusion: non_null
+
+# Actuator: health is open so container/orchestrator probes (see Dockerfile HEALTHCHECK)
+# can reach it; details are shown only to authorised callers.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true

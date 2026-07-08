@@ -29,6 +29,12 @@ spring:
     password: ${POSTGRES_PASSWORD}
     url: jdbc:postgresql://localhost:5432/orders
 
+  #Redis (idempotency guard)
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
   #JPA Properties
   jpa:
     hibernate:
@@ -109,6 +115,7 @@ springdoc:
         - openid
         - order.read
         - order.write
+        - order.admin
       use-pkce-with-authorization-code-grant: true
   oAuthFlow:
     authorizationUrl: http://localhost:8082/oauth2/authorize
@@ -180,6 +187,9 @@ payment:
     charge:
       post:
         uri: ${payment.base.uri}/payment/charge/create-charge
+      refund:
+        post:
+          uri: ${payment.base.uri}/payment/charge/refund-charge
 
 webClient:
   oath2Client:

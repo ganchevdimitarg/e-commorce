@@ -1,38 +1,39 @@
 package com.ganchevdimitarg.order.aop;
 
 import lombok.extern.slf4j.Slf4j;
-import org.aspectj.lang.JoinPoint;
-import org.aspectj.lang.annotation.*;
+import org.aspectj.lang.ProceedingJoinPoint;
+import org.aspectj.lang.annotation.Around;
+import org.aspectj.lang.annotation.Aspect;
+import org.aspectj.lang.annotation.Pointcut;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StopWatch;
+
+import java.util.concurrent.TimeUnit;
 
 @Component
 @Aspect
 @Slf4j
 public class MeasureAspect {
-    private final StopWatch stopWatch = new StopWatch();
 
     @Pointcut("execution(* com.ganchevdimitarg.order.controller.*.*(..))")
-    private void trackAllControllers() {}
-
-    @Before("trackAllControllers()")
-    public void startMeasureTime() {
-        stopWatch.start();
+    private void trackAllControllers() {
     }
 
-    @AfterReturning("trackAllControllers()")
-    public void stopMeasureTimeSucceed(JoinPoint joinPoint) {
-        stopWatch.stop();
-        log.info("Method named: \"{}\" finished in {}ms.",
-                joinPoint.getSignature().getName(), stopWatch.getLastTaskTimeMillis());
+    @Around("trackAllControllers()")
+    public Object measure(ProceedingJoinPoint pjp) throws Throwable {
+        long startNanos = System.nanoTime();
+        String method = pjp.getSignature().getName();
+        try {
+            Object result = pjp.proceed();
+            log.info("Method named: \"{}\" finished in {}ms.", method, elapsedMillis(startNanos));
+            return result;
+        } catch (Throwable ex) {
+            log.info("Method named: \"{}\" finished with exception: \"{}\" in {}ms.",
+                    method, ex.toString(), elapsedMillis(startNanos));
+            throw ex;
+        }
     }
 
-    @AfterThrowing(value = "trackAllControllers()", throwing = "ex")
-    public void stopMeasureTimeException(JoinPoint joinPoint, Throwable ex) {
-        stopWatch.stop();
-        log.info("Method named: \"{}\" finished with exception: \"{}\" in {} milliseconds.",
-                joinPoint.getSignature().getName(), ex.toString(), stopWatch.getLastTaskTimeMillis());
+    private static long elapsedMillis(long startNanos) {
+        return TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
     }
-
-
 }

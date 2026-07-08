@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Structured JSON logging for the order service. Every line is a single JSON object with the
+  MDC correlation fields (traceId / spanId / userId / serviceId set by MdcRequestFilter)
+  included automatically, so logs are machine-parseable by the log pipeline.
+-->
+<configuration>
+    <springProperty scope="context" name="appName" source="spring.application.name"
+                    defaultValue="order-service"/>
+
+    <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <customFields>{"service":"${appName}"}</customFields>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="JSON"/>
+    </root>
+</configuration>

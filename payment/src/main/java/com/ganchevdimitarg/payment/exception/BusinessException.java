@@ -1,4 +1,4 @@
-package com.concordeu.catalog.exception;
+package com.ganchevdimitarg.payment.exception;
 
 import lombok.Getter;
 import org.springframework.http.HttpStatus;
@@ -11,6 +11,12 @@ public class BusinessException extends RuntimeException {
 
     public BusinessException(HttpStatus status, String code, String message) {
         super(message);
+        this.status = status;
+        this.code = code;
+    }
+
+    public BusinessException(HttpStatus status, String code, String message, Throwable cause) {
+        super(message, cause);
         this.status = status;
         this.code = code;
     }
