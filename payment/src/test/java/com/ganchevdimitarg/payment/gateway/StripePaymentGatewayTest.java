@@ -7,8 +7,8 @@ import com.stripe.model.Charge;
 import com.stripe.model.Customer;
 import com.stripe.model.PaymentSourceCollection;
 import com.stripe.model.Refund;
-import com.stripe.model.Token;
 import com.stripe.net.RequestOptions;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -39,7 +39,7 @@ class StripePaymentGatewayTest {
 
     @BeforeEach
     void setUp() {
-        gateway = new StripePaymentGateway("sk_test_dummy");
+        gateway = new StripePaymentGateway("sk_test_dummy", CircuitBreakerRegistry.ofDefaults());
         gateway.init();
     }
 
@@ -168,14 +168,12 @@ class StripePaymentGatewayTest {
     }
 
     @Test
-    void should_returnMappedCard_when_stripeCardCreateSucceeds() throws Exception {
+    void should_returnMappedCard_when_stripeSourceAttachSucceeds() throws Exception {
         Customer stripeCustomer = mock(Customer.class);
         PaymentSourceCollection sources = mock(PaymentSourceCollection.class);
-        Token token = mock(Token.class);
         Card createdCard = mock(Card.class);
 
         when(stripeCustomer.getSources()).thenReturn(sources);
-        when(token.getId()).thenReturn("tok_1");
         when(sources.create(anyMap(), any(RequestOptions.class))).thenReturn(createdCard);
         when(createdCard.getId()).thenReturn("card_1");
         when(createdCard.getBrand()).thenReturn("visa");
@@ -185,14 +183,10 @@ class StripePaymentGatewayTest {
         when(createdCard.getExpYear()).thenReturn(2030L);
         when(createdCard.getLast4()).thenReturn("4242");
 
-        try (MockedStatic<Customer> customerMock = mockStatic(Customer.class);
-             MockedStatic<Token> tokenMock = mockStatic(Token.class)) {
-            customerMock.when(() -> Customer.retrieve("cus_4", Map.of("expand", List.of("sources")), null))
-                    .thenReturn(stripeCustomer);
-            tokenMock.when(() -> Token.create(any(Map.class))).thenReturn(token);
+        try (MockedStatic<Customer> customerMock = mockStatic(Customer.class)) {
+            customerMock.when(() -> Customer.retrieve("cus_4")).thenReturn(stripeCustomer);
 
-            CardDetails cardDetails = new CardDetails("4242424242424242", 12L, 2030L, "123");
-            GatewayCard result = gateway.createCard("cus_4", cardDetails, "idem-1");
+            GatewayCard result = gateway.createCard("cus_4", "tok_visa", "idem-1");
 
             assertThat(result).isEqualTo(new GatewayCard("card_1", "visa", "cus_4", "pass", 12L, 2030L, "4242"));
         }
@@ -203,12 +197,9 @@ class StripePaymentGatewayTest {
         ApiException stripeFailure = new ApiException("no such customer", "req_5", "resource_missing", 404, null);
 
         try (MockedStatic<Customer> customerMock = mockStatic(Customer.class)) {
-            customerMock.when(() -> Customer.retrieve("missing", Map.of("expand", List.of("sources")), null))
-                    .thenThrow(stripeFailure);
+            customerMock.when(() -> Customer.retrieve("missing")).thenThrow(stripeFailure);
 
-            CardDetails cardDetails = new CardDetails("4242424242424242", 12L, 2030L, "123");
-
-            assertThatThrownBy(() -> gateway.createCard("missing", cardDetails, "idem-1"))
+            assertThatThrownBy(() -> gateway.createCard("missing", "tok_visa", "idem-1"))
                     .isInstanceOf(PaymentGatewayException.class)
                     .hasCauseInstanceOf(com.stripe.exception.StripeException.class);
         }

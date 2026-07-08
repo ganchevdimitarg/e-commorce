@@ -2,6 +2,7 @@ package com.ganchevdimitarg.payment.gateway;
 
 import com.ganchevdimitarg.payment.exception.PaymentGatewayException;
 import com.stripe.Stripe;
+import com.stripe.exception.CardException;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Card;
 import com.stripe.model.Charge;
@@ -9,17 +10,22 @@ import com.stripe.model.Customer;
 import com.stripe.model.HasId;
 import com.stripe.model.PaymentSourceCollection;
 import com.stripe.model.Refund;
-import com.stripe.model.Token;
 import com.stripe.net.RequestOptions;
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Semaphore;
 import java.util.stream.Collectors;
 
 /**
@@ -27,20 +33,41 @@ import java.util.stream.Collectors;
  * the {@code com.stripe.*} SDK; every provider failure is translated to
  * {@link PaymentGatewayException} so the service layer never sees a
  * {@link StripeException}.
+ *
+ * <p>Every outbound call is guarded (root CLAUDE.md mandate): a {@link CircuitBreaker}
+ * sheds load when Stripe is unavailable and a {@link Semaphore} bulkhead caps concurrent
+ * in-flight calls so a provider slowdown cannot exhaust the request pool. Card declines
+ * are normal traffic and deliberately do <em>not</em> trip the breaker.
  */
 @Component
 @Slf4j
 public class StripePaymentGateway implements PaymentGateway {
 
-    private final String secretKey;
+    private static final int BULKHEAD_MAX_CONCURRENT = 20;
+    private static final int TIMEOUT_MS = 5_000;
 
-    public StripePaymentGateway(@Value("${stripe.secret.key}") String secretKey) {
+    private final String secretKey;
+    private final CircuitBreaker circuitBreaker;
+    private final Semaphore bulkhead = new Semaphore(BULKHEAD_MAX_CONCURRENT);
+
+    public StripePaymentGateway(@Value("${stripe.secret.key}") String secretKey,
+                                CircuitBreakerRegistry registry) {
         this.secretKey = secretKey;
+        this.circuitBreaker = registry.circuitBreaker("stripe", CircuitBreakerConfig.custom()
+                .failureRateThreshold(50)
+                .slowCallRateThreshold(50)
+                .slowCallDurationThreshold(Duration.ofSeconds(2))
+                .waitDurationInOpenState(Duration.ofSeconds(30))
+                .permittedNumberOfCallsInHalfOpenState(5)
+                .recordException(StripePaymentGateway::isInfrastructureFailure)
+                .build());
     }
 
     @PostConstruct
     void init() {
         Stripe.apiKey = secretKey;
+        Stripe.setConnectTimeout(TIMEOUT_MS);
+        Stripe.setReadTimeout(TIMEOUT_MS);
     }
 
     @Override
@@ -53,7 +80,7 @@ public class StripePaymentGateway implements PaymentGateway {
                     .setIdempotencyKey(idempotencyKey)
                     .build();
             Customer customer = Customer.create(params, options);
-            log.info("Stripe createCustomer successful: {}", customer.getEmail());
+            log.info("Stripe createCustomer successful: {}", customer.getId());
             return toGatewayCustomer(customer);
         });
     }
@@ -73,23 +100,15 @@ public class StripePaymentGateway implements PaymentGateway {
     }
 
     @Override
-    public GatewayCard createCard(String customerId, CardDetails card, String idempotencyKey) {
+    public GatewayCard createCard(String customerId, String sourceToken, String idempotencyKey) {
         return call(() -> {
-            Map<String, Object> retrieveParams = new HashMap<>();
-            retrieveParams.put("expand", List.of("sources"));
-            Customer customer = Customer.retrieve(customerId, retrieveParams, null);
-
-            Map<String, Object> cardParams = new HashMap<>();
-            cardParams.put("number", card.number());
-            cardParams.put("exp_month", card.expMonth());
-            cardParams.put("exp_year", card.expYear());
-            cardParams.put("cvc", card.cvc());
-            Token token = Token.create(Map.of("card", cardParams));
-
+            // sourceToken is a client-side-tokenised Stripe token/source id (e.g. from
+            // Stripe.js/Elements). No raw PAN/CVC ever reaches this service.
+            Customer customer = Customer.retrieve(customerId);
             RequestOptions options = RequestOptions.builder()
                     .setIdempotencyKey(idempotencyKey)
                     .build();
-            Card created = (Card) customer.getSources().create(Map.of("source", token.getId()), options);
+            Card created = (Card) customer.getSources().create(Map.of("source", sourceToken), options);
             log.info("Stripe createCard successful: {}", created.getId());
             return new GatewayCard(created.getId(), created.getBrand(), created.getCustomer(),
                     created.getCvcCheck(), created.getExpMonth(), created.getExpYear(), created.getLast4());
@@ -149,12 +168,34 @@ public class StripePaymentGateway implements PaymentGateway {
         return new GatewayCustomer(customer.getId(), customer.getEmail(), customer.getName());
     }
 
+    /**
+     * Card declines and other business errors are normal traffic and must not open the
+     * breaker; only infrastructure/availability failures count towards the failure rate.
+     */
+    private static boolean isInfrastructureFailure(Throwable throwable) {
+        Throwable cause = (throwable instanceof PaymentGatewayException) ? throwable.getCause() : throwable;
+        return !(cause instanceof CardException);
+    }
+
     private <T> T call(StripeCall<T> stripeCall) {
+        if (!bulkhead.tryAcquire()) {
+            log.warn("Stripe bulkhead full ({} concurrent); shedding call", BULKHEAD_MAX_CONCURRENT);
+            throw new PaymentGatewayException("Payment provider temporarily saturated");
+        }
         try {
-            return stripeCall.get();
-        } catch (StripeException e) {
-            log.warn("Stripe call failed: {}", e.getMessage());
-            throw new PaymentGatewayException(e.getMessage(), e);
+            return circuitBreaker.executeSupplier(() -> {
+                try {
+                    return stripeCall.get();
+                } catch (StripeException e) {
+                    log.warn("Stripe call failed: {}", e.getMessage());
+                    throw new PaymentGatewayException(e.getMessage(), e);
+                }
+            });
+        } catch (CallNotPermittedException e) {
+            log.warn("Stripe circuit '{}' open: {}", circuitBreaker.getName(), e.getMessage());
+            throw new PaymentGatewayException("Payment provider temporarily unavailable", e);
+        } finally {
+            bulkhead.release();
         }
     }
 

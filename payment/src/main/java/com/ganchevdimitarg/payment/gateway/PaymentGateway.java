@@ -17,7 +17,7 @@ public interface PaymentGateway {
 
     void deleteCustomer(String customerId);
 
-    GatewayCard createCard(String customerId, CardDetails card, String idempotencyKey);
+    GatewayCard createCard(String customerId, String sourceToken, String idempotencyKey);
 
     Set<String> listCardIds(String customerId);
 
