@@ -28,7 +28,7 @@ public class AccountService {
 
     @Transactional
     public RegisterUserResponse register(RegisterUserCommand cmd) {
-        repository.findByEmailAndDeletedAtIsNull(cmd.email()).ifPresent(existing -> {
+        repository.findByEmailAndDeletedAtIsNull(cmd.email()).ifPresent(_ -> {
             throw new ConflictException("Email already registered: " + cmd.email());
         });
 
