@@ -22,13 +22,16 @@ public class ChargeController {
 
     @PostMapping("/create-charge")
     public ChargeResponse createCharge(
+            @RequestHeader("X-User-Id") String userId,
             @RequestBody @Valid CreateChargeCommand command,
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
-        return chargeService.createCharge(command, idempotencyKey);
+        return chargeService.createCharge(userId, command, idempotencyKey);
     }
 
     @PostMapping("/refund-charge")
-    public ChargeResponse refundCharge(@RequestBody @Valid RefundChargeCommand command) {
-        return chargeService.refund(command);
+    public ChargeResponse refundCharge(
+            @RequestHeader("X-User-Id") String userId,
+            @RequestBody @Valid RefundChargeCommand command) {
+        return chargeService.refund(userId, command);
     }
 }

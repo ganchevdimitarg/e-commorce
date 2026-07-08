@@ -19,18 +19,19 @@ public class CardController {
 
     @PostMapping("/create-card")
     public CardResponse createCard(
+            @RequestHeader("X-User-Id") String userId,
             @RequestBody @Valid CreateCardCommand command,
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
-        return cardService.createCard(command, idempotencyKey);
+        return cardService.createCard(userId, command, idempotencyKey);
     }
 
     @GetMapping("/get-cards")
-    public Set<String> getCards(@RequestParam String username) {
-        return cardService.getCards(username);
+    public Set<String> getCards(@RequestHeader("X-User-Id") String userId) {
+        return cardService.getCards(userId);
     }
 
     @GetMapping("/get-customer-cards")
-    public Set<String> getCustomerCards(@RequestParam String username) {
-        return cardService.getCustomerCards(username);
+    public Set<String> getCustomerCards(@RequestHeader("X-User-Id") String userId) {
+        return cardService.getCustomerCards(userId);
     }
 }

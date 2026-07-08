@@ -31,6 +31,8 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class ChargeServiceImplTest {
 
+    private static final String USER = "john@doe.com";
+
     @Mock
     private ChargeDao chargeDao;
     @Mock
@@ -43,51 +45,67 @@ class ChargeServiceImplTest {
     private ChargeServiceImpl chargeService;
 
     private CreateChargeCommand command() {
-        return new CreateChargeCommand("john@doe.com", "cus_1", "card_1", 500L, "usd", "john@doe.com");
+        return new CreateChargeCommand("card_1", 500L, "usd", "john@doe.com");
+    }
+
+    private AppCustomer customer() {
+        return AppCustomer.builder().customerId("cus_1").username(USER).build();
     }
 
     @Test
-    void should_chargeWithIdempotencyKeyAndPersist_when_customerExists() {
-        AppCustomer customer = AppCustomer.builder().customerId("cus_1").username("john@doe.com").build();
-        when(customerDao.findByUsername("john@doe.com")).thenReturn(Optional.of(customer));
+    void should_chargeAuthenticatedCustomerAndPersist_when_customerExists() {
+        when(customerDao.findByUsername(USER)).thenReturn(Optional.of(customer()));
         GatewayCharge gatewayCharge = new GatewayCharge("ch_1", 500L, "usd", "cus_1", "john@doe.com", "succeeded");
         when(paymentGateway.createCharge(any(ChargeRequest.class), eq("idem-123"))).thenReturn(gatewayCharge);
 
-        ChargeResponse response = chargeService.createCharge(command(), "idem-123");
+        ChargeResponse response = chargeService.createCharge(USER, command(), "idem-123");
 
         assertThat(response).isEqualTo(new ChargeResponse("ch_1", "succeeded"));
         verify(paymentGateway).createCharge(any(ChargeRequest.class), eq("idem-123"));
-        verify(chargePersistence).persistCharge(gatewayCharge, customer);
+        verify(chargePersistence).persistCharge(eq(gatewayCharge), any(AppCustomer.class));
     }
 
     @Test
     void should_notCallGateway_when_customerMissing() {
-        when(customerDao.findByUsername("john@doe.com")).thenReturn(Optional.empty());
+        when(customerDao.findByUsername(USER)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> chargeService.createCharge(command(), "idem-123"))
+        assertThatThrownBy(() -> chargeService.createCharge(USER, command(), "idem-123"))
                 .isInstanceOf(NotFoundException.class);
         verify(paymentGateway, never()).createCharge(any(), any());
         verify(chargePersistence, never()).persistCharge(any(), any());
     }
 
     @Test
-    void should_refundKnownCharge_when_chargeExists() {
-        AppCharge charge = AppCharge.builder().chargeId("ch_1").amount(500L).build();
+    void should_refundOwnCharge_when_chargeBelongsToCaller() {
+        when(customerDao.findByUsername(USER)).thenReturn(Optional.of(customer()));
+        AppCharge charge = AppCharge.builder().chargeId("ch_1").customerId("cus_1").amount(500L).build();
         when(chargeDao.findByChargeId("ch_1")).thenReturn(Optional.of(charge));
         when(paymentGateway.refundCharge("ch_1", "refund-ch_1"))
                 .thenReturn(new GatewayRefund("re_1", "ch_1", "succeeded"));
 
-        ChargeResponse response = chargeService.refund(new RefundChargeCommand("ch_1"));
+        ChargeResponse response = chargeService.refund(USER, new RefundChargeCommand("ch_1"));
 
         assertThat(response).isEqualTo(new ChargeResponse("ch_1", "succeeded"));
         verify(paymentGateway).refundCharge("ch_1", "refund-ch_1");
     }
 
     @Test
+    void should_throwNotFoundAndNotRefund_when_chargeBelongsToAnotherCustomer() {
+        when(customerDao.findByUsername(USER)).thenReturn(Optional.of(customer()));
+        AppCharge othersCharge = AppCharge.builder().chargeId("ch_1").customerId("cus_OTHER").amount(500L).build();
+        when(chargeDao.findByChargeId("ch_1")).thenReturn(Optional.of(othersCharge));
+
+        assertThatThrownBy(() -> chargeService.refund(USER, new RefundChargeCommand("ch_1")))
+                .isInstanceOf(NotFoundException.class);
+        verify(paymentGateway, never()).refundCharge(any(), any());
+    }
+
+    @Test
     void should_throwNotFound_when_refundingUnknownCharge() {
+        when(customerDao.findByUsername(USER)).thenReturn(Optional.of(customer()));
         when(chargeDao.findByChargeId("ch_missing")).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> chargeService.refund(new RefundChargeCommand("ch_missing")))
+        assertThatThrownBy(() -> chargeService.refund(USER, new RefundChargeCommand("ch_missing")))
                 .isInstanceOf(NotFoundException.class);
         verify(paymentGateway, never()).refundCharge(any(), any());
     }
