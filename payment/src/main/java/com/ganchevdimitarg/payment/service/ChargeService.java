@@ -1,7 +1,11 @@
 package com.ganchevdimitarg.payment.service;
 
-import com.ganchevdimitarg.payment.dto.PaymentDto;
+import com.ganchevdimitarg.payment.dto.ChargeResponse;
+import com.ganchevdimitarg.payment.dto.CreateChargeCommand;
+import com.ganchevdimitarg.payment.dto.RefundChargeCommand;
 
 public interface ChargeService {
-    PaymentDto createCharge(PaymentDto chargeDto);
+    ChargeResponse createCharge(String userId, CreateChargeCommand command, String idempotencyKey);
+
+    ChargeResponse refund(String userId, RefundChargeCommand command);
 }
