@@ -16,7 +16,7 @@ import java.util.UUID;
 @Getter
 public class TokenSetting extends Auditable {
     @Id
-@GeneratedValue(strategy = GenerationType.UUID)
+    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "token_setting_id", unique = true, nullable = false, updatable = false)
     private UUID id;
     @Column(name = "access_token_time_to_live", nullable = false)
