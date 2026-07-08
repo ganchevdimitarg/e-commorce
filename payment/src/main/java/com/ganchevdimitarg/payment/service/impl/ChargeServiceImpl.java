@@ -7,6 +7,8 @@ import com.ganchevdimitarg.payment.domain.AppCustomer;
 import com.ganchevdimitarg.payment.dto.ChargeResponse;
 import com.ganchevdimitarg.payment.dto.CreateChargeCommand;
 import com.ganchevdimitarg.payment.dto.RefundChargeCommand;
+import com.ganchevdimitarg.payment.event.PaymentCompletedEvent;
+import com.ganchevdimitarg.payment.event.PaymentEventPublisher;
 import com.ganchevdimitarg.payment.exception.NotFoundException;
 import com.ganchevdimitarg.payment.gateway.ChargeRequest;
 import com.ganchevdimitarg.payment.gateway.GatewayCharge;
@@ -17,6 +19,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
+
+import java.time.Instant;
+import java.util.UUID;
 
 /**
  * Charges
@@ -35,6 +40,7 @@ public class ChargeServiceImpl implements ChargeService {
     private final CustomerDao customerDao;
     private final PaymentGateway paymentGateway;
     private final ChargePersistence chargePersistence;
+    private final PaymentEventPublisher paymentEventPublisher;
 
     /**
      * Charges the authenticated user's card through the payment provider and records the
@@ -65,7 +71,13 @@ public class ChargeServiceImpl implements ChargeService {
                         appCustomer.getCustomerId(), command.cardId()),
                 idempotencyKey);
 
-        chargePersistence.persistCharge(charge, appCustomer);
+        chargePersistence.persistCharge(charge, appCustomer, command.orderId());
+
+        // Fire-and-forget AFTER the local row is committed, so a published event always
+        // reflects durable state; a broker failure is logged/metered, never fails the charge.
+        paymentEventPublisher.publishCompleted(new PaymentCompletedEvent(
+                UUID.randomUUID().toString(), command.orderId(), charge.id(), charge.customerId(),
+                charge.amount(), charge.currency(), charge.status(), Instant.now()));
 
         log.info("Method createCharge: Create successful charge: {}", charge.id());
         return new ChargeResponse(charge.id(), charge.status());
