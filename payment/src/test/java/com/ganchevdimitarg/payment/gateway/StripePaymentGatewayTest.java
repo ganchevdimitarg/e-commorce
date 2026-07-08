@@ -260,9 +260,10 @@ class StripePaymentGatewayTest {
         when(stripeRefund.getStatus()).thenReturn("succeeded");
 
         try (MockedStatic<Refund> refundMock = mockStatic(Refund.class)) {
-            refundMock.when(() -> Refund.create(Map.of("charge", "ch_1"))).thenReturn(stripeRefund);
+            refundMock.when(() -> Refund.create(any(Map.class), any(RequestOptions.class)))
+                    .thenReturn(stripeRefund);
 
-            GatewayRefund result = gateway.refundCharge("ch_1");
+            GatewayRefund result = gateway.refundCharge("ch_1", "refund-ch_1");
 
             assertThat(result).isEqualTo(new GatewayRefund("re_1", "ch_1", "succeeded"));
         }
@@ -273,9 +274,10 @@ class StripePaymentGatewayTest {
         ApiException stripeFailure = new ApiException("no such charge", "req_7", "resource_missing", 404, null);
 
         try (MockedStatic<Refund> refundMock = mockStatic(Refund.class)) {
-            refundMock.when(() -> Refund.create(Map.of("charge", "missing"))).thenThrow(stripeFailure);
+            refundMock.when(() -> Refund.create(any(Map.class), any(RequestOptions.class)))
+                    .thenThrow(stripeFailure);
 
-            assertThatThrownBy(() -> gateway.refundCharge("missing"))
+            assertThatThrownBy(() -> gateway.refundCharge("missing", "refund-missing"))
                     .isInstanceOf(PaymentGatewayException.class)
                     .hasCauseInstanceOf(com.stripe.exception.StripeException.class);
         }

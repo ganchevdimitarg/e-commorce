@@ -17,7 +17,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Charges
@@ -66,8 +65,14 @@ public class ChargeServiceImpl implements ChargeService {
         return new ChargeResponse(charge.id(), charge.status());
     }
 
+    /**
+     * Refunds a charge through the payment provider. Not {@code @Transactional}: it performs
+     * no DB write — only a read then an outbound provider call — so a transaction would wrap a
+     * network call for no benefit. The refund carries an idempotency key derived from the
+     * charge id (a full refund is naturally idempotent per charge), so an automated
+     * compensation retry dedupes without needing a caller-supplied header.
+     */
     @Override
-    @Transactional
     @PreAuthorize("hasAuthority('SCOPE_payment.write')")
     public ChargeResponse refund(RefundChargeCommand command) {
         AppCharge charge = chargeDao.findByChargeId(command.chargeId())
@@ -76,7 +81,8 @@ public class ChargeServiceImpl implements ChargeService {
                     return new NotFoundException("Charge", command.chargeId());
                 });
 
-        GatewayRefund refund = paymentGateway.refundCharge(charge.getChargeId());
+        GatewayRefund refund = paymentGateway.refundCharge(
+                charge.getChargeId(), "refund-" + charge.getChargeId());
 
         log.info("Method refund: refunded charge {} with status {}", command.chargeId(), refund.status());
         return new ChargeResponse(command.chargeId(), refund.status());

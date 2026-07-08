@@ -23,5 +23,5 @@ public interface PaymentGateway {
 
     GatewayCharge createCharge(ChargeRequest request, String idempotencyKey);
 
-    GatewayRefund refundCharge(String chargeId);
+    GatewayRefund refundCharge(String chargeId, String idempotencyKey);
 }

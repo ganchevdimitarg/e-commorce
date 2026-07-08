@@ -36,4 +36,16 @@ class CustomerPersistenceTest {
         assertThat(persisted.getCustomerName()).isEqualTo("John");
         assertThat(response).isEqualTo(new CustomerResponse("cus_1", "john@doe.com", "John"));
     }
+
+    @Test
+    void should_stampDeletedAtAndSave_when_softDelete() {
+        AppCustomer customer = AppCustomer.builder()
+                .customerId("cus_1").username("john@doe.com").customerName("John").build();
+        assertThat(customer.getDeletedAt()).isNull();
+
+        customerPersistence.softDelete(customer);
+
+        assertThat(customer.getDeletedAt()).isNotNull();
+        verify(customerDao).save(customer);
+    }
 }

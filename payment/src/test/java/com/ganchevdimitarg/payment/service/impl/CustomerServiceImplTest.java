@@ -11,12 +11,16 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.InOrder;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -68,7 +72,7 @@ class CustomerServiceImplTest {
     }
 
     @Test
-    void should_softDeleteAndCallGateway_when_deleteCustomer() {
+    void should_deleteAtProviderThenDelegateSoftDelete_when_deleteCustomer() {
         AppCustomer customer = AppCustomer.builder()
                 .customerId("cus_1").username("john@doe.com").customerName("John").build();
         when(customerDao.findByUsername("john@doe.com")).thenReturn(Optional.of(customer));
@@ -76,9 +80,11 @@ class CustomerServiceImplTest {
         String deletedId = customerService.deleteCustomer("john@doe.com");
 
         assertThat(deletedId).isEqualTo("cus_1");
-        assertThat(customer.getDeletedAt()).isNotNull();
-        verify(paymentGateway).deleteCustomer("cus_1");
-        verify(customerDao).save(customer);
+        // Provider delete happens before the local soft-delete persistence, and the
+        // soft-delete is delegated to the transactional collaborator (not an in-bean write).
+        InOrder inOrder = inOrder(paymentGateway, customerPersistence);
+        inOrder.verify(paymentGateway).deleteCustomer("cus_1");
+        inOrder.verify(customerPersistence).softDelete(customer);
     }
 
     @Test
@@ -87,5 +93,7 @@ class CustomerServiceImplTest {
 
         assertThatThrownBy(() -> customerService.deleteCustomer("missing"))
                 .isInstanceOf(NotFoundException.class);
+        verify(paymentGateway, never()).deleteCustomer("missing");
+        verify(customerPersistence, never()).softDelete(any());
     }
 }

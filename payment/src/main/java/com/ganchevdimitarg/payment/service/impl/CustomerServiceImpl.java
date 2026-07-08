@@ -12,9 +12,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.time.Instant;
 
 /**
  * Customers
@@ -76,13 +73,16 @@ public class CustomerServiceImpl implements CustomerService {
     }
 
     /**
-     * Deletes a customer at the provider and soft-deletes the local record.
+     * Deletes a customer at the provider and soft-deletes the local record. Not
+     * {@code @Transactional}: the provider call runs OUTSIDE any transaction (mirroring the
+     * create paths) so a DB transaction never wraps the network call. The soft-delete write is
+     * delegated to {@link CustomerPersistence#softDelete(AppCustomer)} — a separate bean so the
+     * transactional boundary is honoured via the Spring proxy, not bypassed by self-invocation.
      *
      * @param username customer username
      * @return the provider customer id that was deleted
      */
     @Override
-    @Transactional
     @PreAuthorize("hasAuthority('SCOPE_payment.write')")
     public String deleteCustomer(String username) {
         AppCustomer customer = customerDao.findByUsername(username).orElseThrow(() -> {
@@ -90,8 +90,7 @@ public class CustomerServiceImpl implements CustomerService {
             return new NotFoundException("Customer", username);
         });
         paymentGateway.deleteCustomer(customer.getCustomerId());
-        customer.setDeletedAt(Instant.now());
-        customerDao.save(customer);
+        customerPersistence.softDelete(customer);
         log.info("Delete customer successful: {}", customer.getUsername());
         return customer.getCustomerId();
     }

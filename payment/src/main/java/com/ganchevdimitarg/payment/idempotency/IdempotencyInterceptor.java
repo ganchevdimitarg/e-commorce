@@ -1,7 +1,6 @@
 package com.ganchevdimitarg.payment.idempotency;
 
 import com.ganchevdimitarg.payment.exception.ConflictException;
-import com.ganchevdimitarg.payment.exception.ValidationException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -28,7 +27,9 @@ public class IdempotencyInterceptor implements HandlerInterceptor {
         }
         String key = request.getHeader("Idempotency-Key");
         if (key == null || key.isBlank()) {
-            throw new ValidationException("Idempotency-Key header is required for write requests");
+            // Optional-but-honored: an absent key proceeds. Callers that do not send one
+            // (e.g. order) rely on downstream provider-level idempotency instead.
+            return true;
         }
         Boolean firstSeen = redis.opsForValue()
                 .setIfAbsent("payment:idempotency:" + key, "1", TTL);

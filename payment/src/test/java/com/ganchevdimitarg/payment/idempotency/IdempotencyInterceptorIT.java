@@ -48,12 +48,15 @@ class IdempotencyInterceptorIT extends AbstractIntegrationTest {
     private PaymentGateway paymentGateway;
 
     @Test
-    void should_return400_when_writeHasNoIdempotencyKey() throws Exception {
+    void should_proceedPastInterceptor_when_writeHasNoIdempotencyKey() throws Exception {
+        // Optional-but-honored: no Idempotency-Key means the interceptor does NOT reject the
+        // request. It clears preHandle and reaches ChargeServiceImpl#createCharge, which 404s
+        // on the unseeded customer lookup — proving the interceptor neither 400'd nor 409'd.
         mockMvc.perform(post(CREATE_CHARGE_URL)
                         .with(jwt().authorities(new SimpleGrantedAuthority("SCOPE_payment.write")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validChargeCommand())))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isNotFound());
     }
 
     @Test
