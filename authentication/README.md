@@ -8,7 +8,7 @@ This service provides centralized authentication and authorization using OAuth 2
 
 ## Tech Stack
 
-- **Java 21** with Lombok
+- **Java 25** with Lombok
 - **Spring Boot 4.x** (Spring Security, OAuth2 Authorization Server)
 - **Spring Data JPA** (PostgreSQL for client data)
 - **Spring Data MongoDB** (User data)
@@ -42,7 +42,7 @@ This service provides centralized authentication and authorization using OAuth 2
 
 ### Prerequisites
 
-- Java 21+
+- Java 25+
 - Maven 3.8+
 - PostgreSQL 13+
 - MongoDB 5.0+

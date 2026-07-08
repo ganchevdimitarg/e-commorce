@@ -76,7 +76,7 @@ class IdempotencyFilterIT extends AbstractIntegrationTest {
                 .header("X-User-Id", user)
                 .header(KEY_HEADER, key)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(new CreateChargeCommand("card_1", 500L, "usd", "john@doe.com")));
+                .content(objectMapper.writeValueAsString(new CreateChargeCommand("order-1", "card_1", 500L, "usd", "john@doe.com")));
     }
 
     @Test
@@ -132,7 +132,7 @@ class IdempotencyFilterIT extends AbstractIntegrationTest {
                         .header("X-User-Id", user)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                new CreateChargeCommand("card_1", 500L, "usd", "john@doe.com"))))
+                                new CreateChargeCommand("order-1", "card_1", 500L, "usd", "john@doe.com"))))
                 .andExpect(status().isOk());
     }
 }

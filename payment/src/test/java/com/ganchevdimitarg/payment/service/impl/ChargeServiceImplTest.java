@@ -7,6 +7,8 @@ import com.ganchevdimitarg.payment.domain.AppCustomer;
 import com.ganchevdimitarg.payment.dto.ChargeResponse;
 import com.ganchevdimitarg.payment.dto.CreateChargeCommand;
 import com.ganchevdimitarg.payment.dto.RefundChargeCommand;
+import com.ganchevdimitarg.payment.event.PaymentCompletedEvent;
+import com.ganchevdimitarg.payment.event.PaymentEventPublisher;
 import com.ganchevdimitarg.payment.exception.NotFoundException;
 import com.ganchevdimitarg.payment.gateway.ChargeRequest;
 import com.ganchevdimitarg.payment.gateway.GatewayCharge;
@@ -14,6 +16,7 @@ import com.ganchevdimitarg.payment.gateway.GatewayRefund;
 import com.ganchevdimitarg.payment.gateway.PaymentGateway;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -41,11 +44,13 @@ class ChargeServiceImplTest {
     private PaymentGateway paymentGateway;
     @Mock
     private ChargePersistence chargePersistence;
+    @Mock
+    private PaymentEventPublisher paymentEventPublisher;
     @InjectMocks
     private ChargeServiceImpl chargeService;
 
     private CreateChargeCommand command() {
-        return new CreateChargeCommand("card_1", 500L, "usd", "john@doe.com");
+        return new CreateChargeCommand("order-1", "card_1", 500L, "usd", "john@doe.com");
     }
 
     private AppCustomer customer() {
@@ -62,17 +67,25 @@ class ChargeServiceImplTest {
 
         assertThat(response).isEqualTo(new ChargeResponse("ch_1", "succeeded"));
         verify(paymentGateway).createCharge(any(ChargeRequest.class), eq("idem-123"));
-        verify(chargePersistence).persistCharge(eq(gatewayCharge), any(AppCustomer.class));
+        verify(chargePersistence).persistCharge(eq(gatewayCharge), any(AppCustomer.class), eq("order-1"));
+
+        // The completed event carries the order and the settled provider charge.
+        ArgumentCaptor<PaymentCompletedEvent> event = ArgumentCaptor.forClass(PaymentCompletedEvent.class);
+        verify(paymentEventPublisher).publishCompleted(event.capture());
+        assertThat(event.getValue().orderId()).isEqualTo("order-1");
+        assertThat(event.getValue().chargeId()).isEqualTo("ch_1");
+        assertThat(event.getValue().status()).isEqualTo("succeeded");
     }
 
     @Test
-    void should_notCallGateway_when_customerMissing() {
+    void should_notCallGatewayOrPublish_when_customerMissing() {
         when(customerDao.findByUsername(USER)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> chargeService.createCharge(USER, command(), "idem-123"))
                 .isInstanceOf(NotFoundException.class);
         verify(paymentGateway, never()).createCharge(any(), any());
-        verify(chargePersistence, never()).persistCharge(any(), any());
+        verify(chargePersistence, never()).persistCharge(any(), any(), any());
+        verify(paymentEventPublisher, never()).publishCompleted(any());
     }
 
     @Test

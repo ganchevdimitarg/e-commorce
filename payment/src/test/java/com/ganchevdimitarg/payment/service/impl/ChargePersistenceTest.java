@@ -27,7 +27,7 @@ class ChargePersistenceTest {
         GatewayCharge gatewayCharge = new GatewayCharge("ch_1", 500L, "usd", "cus_1", "john@doe.com", "succeeded");
         AppCustomer customer = AppCustomer.builder().customerId("cus_1").username("john@doe.com").build();
 
-        chargePersistence.persistCharge(gatewayCharge, customer);
+        chargePersistence.persistCharge(gatewayCharge, customer, "order-1");
 
         ArgumentCaptor<AppCharge> captor = ArgumentCaptor.forClass(AppCharge.class);
         verify(chargeDao).saveAndFlush(captor.capture());
@@ -37,6 +37,7 @@ class ChargePersistenceTest {
         assertThat(persisted.getCurrency()).isEqualTo("usd");
         assertThat(persisted.getCustomerId()).isEqualTo("cus_1");
         assertThat(persisted.getReceiptEmail()).isEqualTo("john@doe.com");
+        assertThat(persisted.getOrderId()).isEqualTo("order-1");
         assertThat(persisted.getCustomer()).isEqualTo(customer);
     }
 }

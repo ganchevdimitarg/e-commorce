@@ -12,6 +12,7 @@ import jakarta.validation.constraints.Positive;
  * in the service layer — so this body only carries the card and the amount.
  */
 public record CreateChargeCommand(
+        @NotBlank String orderId,
         @NotBlank String cardId,
         @Positive @Max(value = 99_999_999, message = "amount exceeds the per-charge limit") long amount,
         @NotBlank @Pattern(regexp = "[A-Za-z]{3}", message = "currency must be a 3-letter ISO-4217 code") String currency,

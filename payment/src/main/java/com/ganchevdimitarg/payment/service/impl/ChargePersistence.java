@@ -22,13 +22,14 @@ public class ChargePersistence {
     private final ChargeDao chargeDao;
 
     @Transactional
-    public void persistCharge(GatewayCharge charge, AppCustomer customer) {
+    public void persistCharge(GatewayCharge charge, AppCustomer customer, String orderId) {
         chargeDao.saveAndFlush(AppCharge.builder()
                 .chargeId(charge.id())
                 .amount(charge.amount())
                 .currency(charge.currency())
                 .customerId(charge.customerId())
                 .receiptEmail(charge.receiptEmail())
+                .orderId(orderId)
                 .customer(customer)
                 .build());
         log.info("Persisted charge: {}", charge.id());

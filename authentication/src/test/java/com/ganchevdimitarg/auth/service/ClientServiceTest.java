@@ -1,6 +1,6 @@
 package com.ganchevdimitarg.auth.service;
 
-import com.ganchevdimitarg.auth.dao.ClientDao;
+import com.ganchevdimitarg.auth.dao.ClientRepository;
 import com.ganchevdimitarg.auth.domain.*;
 import com.ganchevdimitarg.auth.exception.ClientConfigurationException;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,7 +30,7 @@ import static org.mockito.Mockito.*;
 class ClientServiceTest {
 
     @Mock
-    private ClientDao clientDao;
+    private ClientRepository clientRepository;
 
     @InjectMocks
     private ClientService clientService;
@@ -89,20 +89,20 @@ class ClientServiceTest {
     @DisplayName("save() should convert and save RegisteredClient successfully")
     void should_convertAndSave_when_registeredClientGiven() {
         // Arrange
-        when(clientDao.save(any(Client.class))).thenReturn(mockClient);
+        when(clientRepository.save(any(Client.class))).thenReturn(mockClient);
 
         // Act
         clientService.save(mockRegisteredClient);
 
         // Assert
-        verify(clientDao, times(1)).save(any(Client.class));
+        verify(clientRepository, times(1)).save(any(Client.class));
     }
 
     @Test
     @DisplayName("findById() should return RegisteredClient when client exists")
     void should_returnRegisteredClient_when_findByIdExists() {
         // Arrange
-        when(clientDao.findById(any(UUID.class))).thenReturn(Optional.of(mockClient));
+        when(clientRepository.findById(any(UUID.class))).thenReturn(Optional.of(mockClient));
 
         // Act
         RegisteredClient result = clientService.findById(clientUuid.toString());
@@ -116,13 +116,13 @@ class ClientServiceTest {
         assertTrue(result.getRedirectUris().contains("http://localhost:8080/callback"));
         assertEquals(Duration.ofSeconds(3600), result.getTokenSettings().getAccessTokenTimeToLive());
         assertEquals(Duration.ofSeconds(86400), result.getTokenSettings().getRefreshTokenTimeToLive());
-        verify(clientDao, times(1)).findById(clientUuid);
+        verify(clientRepository, times(1)).findById(clientUuid);
     }
 
     @Test
     @DisplayName("findById() returns null when client not found (repository contract)")
     void should_returnNull_when_findByIdMisses() {
-        when(clientDao.findById(any(UUID.class))).thenReturn(Optional.empty());
+        when(clientRepository.findById(any(UUID.class))).thenReturn(Optional.empty());
 
         assertNull(clientService.findById(clientUuid.toString()));
     }
@@ -131,7 +131,7 @@ class ClientServiceTest {
     @DisplayName("findByClientId() should return RegisteredClient when client exists")
     void should_returnRegisteredClient_when_findByClientIdExists() {
         // Arrange
-        when(clientDao.findByClientId(anyString())).thenReturn(Optional.of(mockClient));
+        when(clientRepository.findByClientId(anyString())).thenReturn(Optional.of(mockClient));
 
         // Act
         RegisteredClient result = clientService.findByClientId("test-client");
@@ -143,13 +143,13 @@ class ClientServiceTest {
         assertEquals(clientUuid.toString(), result.getId());
         assertTrue(result.getAuthorizationGrantTypes().contains(AuthorizationGrantType.AUTHORIZATION_CODE));
         assertTrue(result.getClientAuthenticationMethods().contains(ClientAuthenticationMethod.CLIENT_SECRET_BASIC));
-        verify(clientDao, times(1)).findByClientId("test-client");
+        verify(clientRepository, times(1)).findByClientId("test-client");
     }
 
     @Test
     @DisplayName("findByClientId() returns null when client not found (repository contract)")
     void should_returnNull_when_findByClientIdMisses() {
-        when(clientDao.findByClientId(anyString())).thenReturn(Optional.empty());
+        when(clientRepository.findByClientId(anyString())).thenReturn(Optional.empty());
 
         assertNull(clientService.findByClientId("non-existent-client"));
     }
@@ -158,7 +158,7 @@ class ClientServiceTest {
     @DisplayName("findById() throws ClientConfigurationException when token settings missing")
     void should_throwClientConfiguration_when_tokenSettingsMissing() {
         mockClient.setTokenSettings(Set.of());
-        when(clientDao.findById(any(UUID.class))).thenReturn(Optional.of(mockClient));
+        when(clientRepository.findById(any(UUID.class))).thenReturn(Optional.of(mockClient));
 
         assertThrows(ClientConfigurationException.class,
                 () -> clientService.findById(clientUuid.toString()));
@@ -173,7 +173,7 @@ class ClientServiceTest {
     @DisplayName("findById() returns null when id is malformed (repository contract)")
     void should_returnNull_when_idMalformed() {
         assertNull(clientService.findById("not-a-uuid"));
-        verifyNoInteractions(clientDao);
+        verifyNoInteractions(clientRepository);
     }
 
     @Test
@@ -185,7 +185,7 @@ class ClientServiceTest {
         mockClient.setScope(Set.of(scope1, scope2));
         Client clientWithMultipleScopes = mockClient;
 
-        when(clientDao.findById(any(UUID.class))).thenReturn(Optional.of(clientWithMultipleScopes));
+        when(clientRepository.findById(any(UUID.class))).thenReturn(Optional.of(clientWithMultipleScopes));
 
         // Act
         RegisteredClient result = clientService.findById(clientUuid.toString());
@@ -206,7 +206,7 @@ class ClientServiceTest {
         mockClient.setGrantType(Set.of(grantType1, grantType2));
         Client clientWithMultipleGrants = mockClient;
 
-        when(clientDao.findById(any(UUID.class))).thenReturn(Optional.of(clientWithMultipleGrants));
+        when(clientRepository.findById(any(UUID.class))).thenReturn(Optional.of(clientWithMultipleGrants));
 
         // Act
         RegisteredClient result = clientService.findById(clientUuid.toString());
@@ -227,7 +227,7 @@ class ClientServiceTest {
         mockClient.setRedirectUri(Set.of(uri1, uri2));
         Client clientWithMultipleUris = mockClient;
 
-        when(clientDao.findById(any(UUID.class))).thenReturn(Optional.of(clientWithMultipleUris));
+        when(clientRepository.findById(any(UUID.class))).thenReturn(Optional.of(clientWithMultipleUris));
 
         // Act
         RegisteredClient result = clientService.findById(clientUuid.toString());
@@ -257,13 +257,13 @@ class ClientServiceTest {
                         .build())
                 .build();
 
-        when(clientDao.save(any(Client.class))).thenReturn(mockClient);
+        when(clientRepository.save(any(Client.class))).thenReturn(mockClient);
 
         // Act
         clientService.save(clientWithMultipleAuthMethods);
 
         // Assert
-        verify(clientDao, times(1)).save(any(Client.class));
+        verify(clientRepository, times(1)).save(any(Client.class));
     }
 }
 

@@ -16,7 +16,7 @@ import java.util.UUID;
 @Getter
 public class GrantType extends Auditable {
     @Id
-@GeneratedValue(strategy = GenerationType.UUID)
+    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "grant_type_id", unique = true, nullable = false, updatable = false)
     private UUID id;
     @Column(name = "grant_type", nullable = false)
