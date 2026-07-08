@@ -16,7 +16,10 @@ to this module — read the root file first.
   classpath, but reactive types stay out of business logic per root rules).
 
 ## Known migration gaps
-- Migrated to Boot 4.1.0 / Java 25 (build green as of 2026-06-23).
-- **Duplicate application class**: a legacy `com.concordeu.profile.ProfileApplication`
-  still exists alongside `com.ganchevdimitarg.profile.ProfileApplication`. Remove the
-  `com.concordeu.*` package when next touching this module.
+- Migrated to Boot 4.1.0 / Java 25 (build green as of 2026-06-23). The legacy
+  `com.concordeu.profile` duplicate application class has been removed (stale note
+  cleared 2026-07-08).
+- **Reactive stack deviation**: despite the WebMVC statement above, the service is
+  currently reactive end-to-end (`Mono` in `ProfileController`, `ProfileServiceImpl`,
+  `ProfileDao`, DLT-enabled Kafka consumer). Align with the root WebMVC rule when the
+  module is next reworked — do not extend the reactive surface in the meantime.

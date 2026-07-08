@@ -14,9 +14,9 @@ to this module — read the root file first.
 - Web stack: WebMVC for business endpoints.
 
 ## Known migration gaps
-- **Pre-Boot-4 — does NOT compile yet** (~42 migration hits as of 2026-06-23):
-  `javax.*` → `jakarta.*`, `@EnableEurekaClient` removal, pre-lambda Security DSL →
-  lambda + `@EnableMethodSecurity`, `ResponseEntity.getStatusCodeValue()` →
-  `getStatusCode().value()`. Migrate toward root conventions when you touch this code;
-  never copy the legacy pattern forward. Build standalone with
-  `./mvnw -f notification/pom.xml ...`.
+- Compiles on Boot 4.1.0 / Java 25 (verified 2026-07-08); full remediation is in
+  progress on `feat/notification-boot4-migration`. Still open on `main`: no tests, no
+  audit columns, no MDC filter, no `@RetryableTopic`/DLT on the Kafka listener (deferred
+  to that branch — see the note in `KafkaListenerService`), `excaption` package typo.
+  Migrate toward root conventions when you touch this code; never copy the legacy
+  pattern forward. Build standalone with `./mvnw -f notification/pom.xml ...`.
