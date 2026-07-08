@@ -90,7 +90,7 @@ springdoc:
     oauth2RedirectUrl: http://127.0.0.1:8081/login/oauth2/code/gateway-client-oidc
     oauth:
       client-id: gateway
-      client-secret: secret
+      client-secret: ${GATEWAY_CLIENT_SECRET}
       scopes:
         - openid
         - profile.read
