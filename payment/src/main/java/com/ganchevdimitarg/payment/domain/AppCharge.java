@@ -45,6 +45,8 @@ public class AppCharge extends Auditable {
     private String customerId;
     @Column(name = "receipt_email")
     private String receiptEmail;
+    @Column(name = "order_id")
+    private String orderId;
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "customer_id", referencedColumnName = "customer_id", nullable = false)
     private AppCustomer customer;

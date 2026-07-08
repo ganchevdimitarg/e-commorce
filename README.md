@@ -1,50 +1,58 @@
 # E-Commerce Microservices Platform
 
-A cloud-native e-commerce application built with a microservices architecture using Spring Boot, Spring Cloud, and containerization technologies.
+A cloud-native e-commerce application built with a microservices architecture on
+**Java 25** and **Spring Boot 4.1.0** / **Spring Cloud 2025.1.1**. Services are
+independently deployable, own their data, and communicate through synchronous REST
+(via the API Gateway) and asynchronous Kafka events.
 
 ## Architecture Overview
 
-This project implements a distributed microservices architecture for an e-commerce platform, featuring independent, scalable services that communicate through well-defined APIs and message-driven communication.
+The platform is a Maven multi-module monorepo. The `gateway` is a reactive **WebFlux**
+edge that owns authentication and rate limiting; downstream business services are
+**WebMVC** and trust the `X-User-Id` / `X-User-Roles` headers propagated by the gateway.
+Each service owns its own schema — there are no cross-service database joins and no
+shared datasources.
 
-### Microservices
+### Business Services
 
-- **Authentication Service** - Handles user authentication and authorization
-- **Catalog Service** - Manages product catalog, inventory, and product information
-- **Order Service** - Processes and manages customer orders
-- **Payment Service** - Handles payment processing and transactions
-- **Profile Service** - Manages user profiles and account information
-- **Notification Service** - Sends notifications to users (email, SMS, etc.)
+- **authentication** – User authentication and authorization (OAuth2 / JWT, password reset)
+- **catalog** – Product catalog, inventory, and product information
+- **order** – Customer order processing and management
+- **payment** – Payment processing and transactions (Stripe)
+- **profile** – User profiles and account information (MongoDB)
+- **notification** – User notifications (email, etc.)
 
 ### Infrastructure Services
 
-- **Config Server** - Centralized configuration management for all microservices
-- **Eureka Server** - Service discovery and registration
-- **Gateway** - API Gateway for routing and load balancing
-- **Client** - Frontend application/client interface
-
-### Monitoring & Observability
-
-- **Prometheus** - Metrics collection and monitoring
-- **Grafana** - Metrics visualization and dashboards
+- **config-server** – Centralized Spring Cloud configuration for all services
+- **eureka-server** – Service discovery and registration (Netflix Eureka)
+- **gateway** – Spring Cloud Gateway (WebFlux) — routing, auth, rate limiting
+- **client** – Frontend / client interface
 
 ## Technology Stack
 
-- **Framework**: Spring Boot, Spring Cloud
+- **Language**: Java 25 (virtual threads, `ScopedValue`, `SequencedCollection`, records)
+- **Framework**: Spring Boot 4.1.0, Spring Cloud 2025.1.1
+- **Web**: Spring WebMVC (business services) · Spring WebFlux (`gateway`)
 - **Service Discovery**: Netflix Eureka
 - **API Gateway**: Spring Cloud Gateway
 - **Configuration**: Spring Cloud Config
+- **Relational DB**: PostgreSQL (per-service schemas) with Flyway migrations
+- **Document DB**: MongoDB (`profile` service)
+- **Cache / Locks**: Redis (Lettuce, Jackson JSON serialization, Redisson locks)
+- **Messaging**: Apache Kafka (Zookeeper-based)
+- **Resilience**: Resilience4j (circuit breaker, bulkhead, time limiter)
+- **Secrets**: HashiCorp Vault
+- **Tracing**: Zipkin
+- **Errors**: RFC 9457 `application/problem+json`
+- **Build Tool**: Maven (wrapper included)
 - **Containerization**: Docker, Docker Compose
-- **Database Migration**: Flyway
-- **Security**: HashiCorp Vault (for secrets management)
-- **Monitoring**: Prometheus, Grafana
-- **Build Tool**: Maven
 
 ## Prerequisites
 
-- Java 17 or higher
-- Maven 3.6+
+- JDK 25 or higher
 - Docker and Docker Compose
-- HashiCorp Vault (optional, for secrets management)
+- Maven is not required — use the bundled wrapper (`./mvnw` / `mvnw.cmd`)
 
 ## Getting Started
 
@@ -55,130 +63,140 @@ git clone https://github.com/ganchevdimitarg/e-commorce.git
 cd e-commorce
 ```
 
-### 2. Start Vault (Optional)
+### 2. Configure Environment
 
-If using HashiCorp Vault for secrets management:
+`docker-compose.yml` reads configuration from environment variables (database
+credentials, Vault tokens, OAuth2 client IDs/secrets, mail and Stripe keys, etc.).
+Provide these via a `.env` file in the project root before starting the stack.
+
+### 3. Start Vault
+
+Vault is used for secrets management and is started together with the infrastructure
+stack. A helper script is also available:
 
 ```bash
 ./startVault.sh
 ```
 
-### 3. Build the Project
+### 4. Start the Infrastructure
 
-```bash
-./mvnw clean install
-```
-
-### 4. Start Services with Docker Compose
+`docker-compose.yml` provisions the backing infrastructure (not the microservices
+themselves):
 
 ```bash
 docker-compose up -d
 ```
 
-This will start all microservices along with their dependencies (databases, message brokers, etc.).
+This starts:
 
-### 5. Access the Services
+| Service     | Port(s)        | Purpose                                  |
+|-------------|----------------|------------------------------------------|
+| PostgreSQL  | 5432           | Relational store (per-service databases) |
+| MongoDB     | 27017          | Document store for `profile`             |
+| Redis       | 6379           | Cache and distributed locks              |
+| Kafka       | 9092           | Event streaming                          |
+| Zookeeper   | (internal)     | Kafka coordination                        |
+| Zipkin      | 9411           | Distributed tracing                      |
+| Vault       | 8200           | Secrets management                       |
+
+### 5. Run the Services
+
+> **Note:** the root Maven reactor cannot build the whole project at once while some
+> modules are still being migrated to Boot 4. Build and run each module standalone.
+
+Build a single module:
+
+```bash
+./mvnw -f <module>/pom.xml clean verify
+```
+
+Run a single module:
+
+```bash
+./mvnw -f <module>/pom.xml spring-boot:run
+```
+
+Start `config-server` and `eureka-server` first, then the `gateway`, then the business
+services.
+
+### 6. Access the Services
 
 - **Eureka Dashboard**: http://localhost:8761
 - **API Gateway**: http://localhost:8080
-- **Grafana Dashboard**: http://localhost:3000
-- **Prometheus**: http://localhost:9090
+- **Zipkin**: http://localhost:9411
+- **Vault UI**: http://localhost:8200
 
-## Service Architecture
+## Key Conventions
 
-### Service Communication
+- **API versioning**: paths are `/api/v{n}/`, maintaining `n-1` compatibility.
+- **Data ownership**: each service owns its schema; cross-service writes are propagated
+  via Kafka events (topic naming `<domain>.<entity>.<event>`).
+- **Migrations**: all schema changes are versioned Flyway migrations under
+  `src/main/resources/db/migration/`; `ddl-auto` is `validate` only.
+- **Resilience**: every outbound HTTP call is wrapped with Resilience4j circuit breaker,
+  bulkhead, and time limiter.
+- **Idempotency**: mutating cross-service endpoints support the `Idempotency-Key` header
+  backed by Redis.
+- **Errors**: all failures are returned as RFC 9457 `application/problem+json`.
 
-Services communicate through:
-- **Synchronous**: REST APIs via the API Gateway
-- **Asynchronous**: Message-driven communication (event bus)
+## Database Migrations
 
-### Configuration Management
-
-All service configurations are centralized in the Config Server, allowing for:
-- Environment-specific configurations
-- Dynamic configuration updates
-- Secure credential management
-
-### Service Discovery
-
-Services register themselves with Eureka Server on startup, enabling:
-- Dynamic service location
-- Load balancing
-- Health monitoring
-
-## Database Management
-
-### Flyway Migrations
-
-Database migrations are managed using Flyway. Configuration is available in `flyway.conf`.
-
-To run migrations manually:
+Flyway owns all schema changes. Root Flyway configuration lives in `flyway.conf`.
 
 ```bash
-mvn flyway:migrate
+./mvnw -f <module>/pom.xml flyway:validate   # check for migration drift
+./mvnw -f <module>/pom.xml flyway:migrate     # apply migrations
 ```
 
-## Monitoring
+## Testing
 
-### Prometheus
+- **Unit**: JUnit 5 + AssertJ
+- **Integration**: Testcontainers (real PostgreSQL / MongoDB / Redis / Kafka — never
+  H2 or embedded Mongo)
+- **Naming**: `should_<expectedBehavior>_when_<condition>`
+- **Coverage gate**: 80% line, 100% on the domain model
 
-Metrics are collected from all microservices and exposed for Prometheus scraping.
-
-### Grafana
-
-Pre-configured dashboards are available for monitoring:
-- Service health
-- Request rates
-- Response times
-- Error rates
-- Resource utilization
-
-## Development
-
-### Running Individual Services
-
-Each microservice can be run independently:
+Run tests for a module:
 
 ```bash
-cd <service-name>
-mvn spring-boot:run
+./mvnw -f <module>/pom.xml clean verify
 ```
-
-### Adding a New Service
-
-1. Create a new module in the parent POM
-2. Add service discovery configuration
-3. Register with Config Server
-4. Add to docker-compose.yaml
-5. Configure monitoring endpoints
 
 ## Project Structure
 
 ```
 e-commorce/
-├── authentication/       # Authentication & authorization service
-├── catalog/             # Product catalog service
-├── order/               # Order management service
-├── payment/             # Payment processing service
-├── profile/             # User profile service
-├── notification/        # Notification service
-├── config-server/       # Centralized configuration
-├── eureka-server/       # Service discovery
-├── gateway/             # API Gateway
-├── client/              # Frontend client
-├── prometheus/          # Prometheus configuration
-├── grafana/             # Grafana dashboards
-├── docker-compose.yaml  # Docker orchestration
-├── flyway.conf          # Database migration config
-└── pom.xml              # Parent POM
+├── authentication/     # Authentication & authorization service
+├── catalog/            # Product catalog service
+├── order/              # Order management service
+├── payment/            # Payment processing service
+├── profile/            # User profile service (MongoDB)
+├── notification/       # Notification service
+├── config-server/      # Centralized Spring Cloud configuration
+├── eureka-server/      # Service discovery
+├── gateway/            # API Gateway (WebFlux)
+├── client/             # Frontend client
+├── vault/              # Vault config and init scripts
+├── mongo-init/         # MongoDB init scripts
+├── postgresql-init/    # PostgreSQL init scripts
+├── docs/               # Architecture and pattern documentation
+├── docker-compose.yml  # Infrastructure orchestration
+├── flyway.conf         # Flyway configuration
+└── pom.xml             # Parent (aggregator) POM
 ```
 
 ## Security
 
-- Authentication is handled by the dedicated Authentication service
-- Secrets are managed through HashiCorp Vault
-- API Gateway handles request validation and routing
-- Service-to-service communication can be secured with mutual TLS
+- Stateless JWT validation happens at the `gateway`; downstream services read the
+  `X-User-Id` / `X-User-Roles` headers.
+- Each service declares its own `SecurityFilterChain` bean.
+- Secrets are stored in HashiCorp Vault and injected via environment variables — never
+  committed to code or configuration files.
+
+## Documentation
+
+Additional architecture and pattern documentation lives under `docs/` (see
+`docs/context/`), and repository-wide conventions are captured in `CLAUDE.md`.
 
 ## Contributing
 
@@ -188,35 +206,26 @@ e-commorce/
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## Best Practices Implemented
-
-- **Single Responsibility**: Each service handles a specific business capability
-- **Decentralized Data**: Each service manages its own database
-- **Independent Deployment**: Services can be deployed independently
-- **Fault Tolerance**: Circuit breakers and fallback mechanisms
-- **Observability**: Comprehensive logging, metrics, and tracing
-- **Configuration Management**: Externalized configuration
-- **API Gateway Pattern**: Centralized entry point for all clients
-
 ## Troubleshooting
 
 ### Services Not Registering with Eureka
 
-- Check if Eureka Server is running
+- Ensure `eureka-server` and `config-server` are running first
 - Verify network connectivity between services
-- Check service configuration in Config Server
+- Check the service configuration served by the Config Server
 
 ### Database Migration Failures
 
-- Verify database connectivity
-- Check Flyway configuration in `flyway.conf`
-- Ensure migrations are in the correct order
+- Verify database connectivity and credentials
+- Check the Flyway configuration in `flyway.conf`
+- Never edit a committed migration — add a new versioned migration
 
 ### Docker Compose Issues
 
-- Ensure Docker daemon is running
-- Check port conflicts with `docker ps`
+- Ensure the Docker daemon is running
+- Check for port conflicts with `docker ps`
 - Review logs with `docker-compose logs <service-name>`
+- Confirm required environment variables are set (see `.env`)
 
 ## License
 
@@ -228,4 +237,5 @@ For questions or support, please open an issue in the GitHub repository.
 
 ---
 
-**Note**: This is a demonstration project showcasing microservices architecture patterns and best practices for building scalable, cloud-native e-commerce applications.
+**Note**: This is a demonstration project showcasing microservices architecture patterns
+and best practices for building scalable, cloud-native e-commerce applications.

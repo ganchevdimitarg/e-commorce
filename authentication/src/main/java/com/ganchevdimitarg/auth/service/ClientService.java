@@ -1,10 +1,11 @@
 package com.ganchevdimitarg.auth.service;
 
-import com.ganchevdimitarg.auth.dao.ClientDao;
+import com.ganchevdimitarg.auth.dao.ClientRepository;
 import com.ganchevdimitarg.auth.domain.*;
 import com.ganchevdimitarg.auth.exception.ClientConfigurationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.NonNull;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
@@ -25,20 +26,20 @@ import java.util.stream.Collectors;
 @Transactional
 public class ClientService implements RegisteredClientRepository {
 
-    private final ClientDao clientDao;
+    private final ClientRepository clientRepository;
 
     @Override
-    public void save(RegisteredClient registeredClient) {
-        clientDao.save(getClient(registeredClient));
+    public void save(@NonNull RegisteredClient registeredClient) {
+        clientRepository.save(getClient(registeredClient));
     }
 
     @Override
-    public RegisteredClient findById(String id) {
+    public RegisteredClient findById(@NonNull String id) {
         UUID clientId = parseUuidOrNull(id);
         if (clientId == null) {
             return null;
         }
-        return clientDao.findById(clientId)
+        return clientRepository.findById(clientId)
                 .map(this::getRegisteredClient)
                 .orElse(null);
     }
@@ -56,8 +57,8 @@ public class ClientService implements RegisteredClientRepository {
     }
 
     @Override
-    public RegisteredClient findByClientId(String clientId) {
-        return clientDao.findByClientId(clientId)
+    public RegisteredClient findByClientId(@NonNull String clientId) {
+        return clientRepository.findByClientId(clientId)
                 .map(this::getRegisteredClient)
                 .orElse(null);
     }
@@ -70,7 +71,8 @@ public class ClientService implements RegisteredClientRepository {
                 .forEach(grantType -> authGrantType.add(new AuthorizationGrantType(grantType.getGrantType())));
         Consumer<Set<String>> scopesConsumer = scope -> client.getScope()
                 .forEach(s -> scope.add(s.getScopeName()));
-        Consumer<Set<String>> redirectUrisConsumer = redirectUri -> client.getRedirectUri().forEach(r -> redirectUri.add(r.getRedirectUri()));
+        Consumer<Set<String>> redirectUrisConsumer = redirectUri -> client.getRedirectUri()
+                .forEach(r -> redirectUri.add(r.getRedirectUri()));
         TokenSetting tokenSettings = client.getTokenSettings().stream()
                 .findFirst()
                 .orElseThrow(() -> new ClientConfigurationException(
