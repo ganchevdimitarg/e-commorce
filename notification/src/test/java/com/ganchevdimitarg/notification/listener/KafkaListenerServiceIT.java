@@ -23,7 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 /**
- * End-to-end: publishes a {@code notification.email.requested} event and asserts the email is
+ * End-to-end: publishes an {@code order.notification.requested} event and asserts the email is
  * sent (GreenMail) and persisted, and that a redelivery with the same key is deduped.
  */
 class KafkaListenerServiceIT extends AbstractIntegrationTest {
@@ -43,7 +43,7 @@ class KafkaListenerServiceIT extends AbstractIntegrationTest {
                 ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         try (KafkaProducer<String, String> producer = new KafkaProducer<>(props)) {
             producer.send(new ProducerRecord<>(
-                    KafkaTopics.NOTIFICATION_EMAIL_REQUESTED, key, MAPPER.writeValueAsString(dto))).get();
+                    KafkaTopics.ORDER_NOTIFICATION_REQUESTED, key, MAPPER.writeValueAsString(dto))).get();
         }
     }
 

@@ -20,7 +20,7 @@ public class KafkaListenerService {
     private final EmailService emailService;
     private final IdempotencyService idempotencyService;
 
-    @KafkaListener(topics = KafkaTopics.NOTIFICATION_EMAIL_REQUESTED,
+    @KafkaListener(topics = KafkaTopics.ORDER_NOTIFICATION_REQUESTED,
             groupId = KafkaTopics.GROUP, containerFactory = "messageListener")
     public void onEmailRequested(@Payload NotificationDto dto,
                                  @Header(name = KafkaHeaders.RECEIVED_KEY, required = false) String key) {

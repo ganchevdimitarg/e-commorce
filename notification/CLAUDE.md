@@ -23,7 +23,7 @@ to this module — read the root file first.
   `spring-boot-starter-flyway` (not bare `flyway-core`) under Boot 4.
 
 ## Open follow-ups
-- Inbound topic renamed `sentMail` → `notification.email.requested` (convention): **producers
-  must publish to the new topic** — coordinate with the sending service(s).
+- Inbound topic is `order.notification.requested` (renamed from `sentMail`), matching the
+  producer constant in order's `KafkaTopics.ORDER_NOTIFICATION_REQUESTED` on `main`.
 - Idempotency guard suppresses duplicate sends but a failed first attempt releases the key; a
   send that fails *after* Redis write but the JVM dies would not re-send. Acceptable per repo norms.
