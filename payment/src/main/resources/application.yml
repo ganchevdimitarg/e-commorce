@@ -41,7 +41,7 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
 
-#Kafka
+#Kafka — producer for payment.charge.completed (consumed by the order saga)
 kafka:
   bootstrapAddress: ${KAFKA_BOOTSTRAP:localhost:9092}
 
