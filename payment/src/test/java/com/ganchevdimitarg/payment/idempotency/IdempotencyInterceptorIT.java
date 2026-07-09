@@ -34,6 +34,8 @@ class IdempotencyInterceptorIT extends AbstractIntegrationTest {
 
     private static final String CREATE_CHARGE_URL = "/api/v1/payment/charge/create-charge";
     private static final String IDEMPOTENCY_KEY_HEADER = "Idempotency-Key";
+    private static final String USER_ID_HEADER = "X-User-Id";
+    private static final String UNSEEDED_USER = "nonexistent-user";
 
     @Autowired
     private MockMvc mockMvc;
@@ -54,6 +56,7 @@ class IdempotencyInterceptorIT extends AbstractIntegrationTest {
         // on the unseeded customer lookup — proving the interceptor neither 400'd nor 409'd.
         mockMvc.perform(post(CREATE_CHARGE_URL)
                         .with(jwt().authorities(new SimpleGrantedAuthority("SCOPE_payment.write")))
+                        .header(USER_ID_HEADER, UNSEEDED_USER)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validChargeCommand())))
                 .andExpect(status().isNotFound());
@@ -68,12 +71,14 @@ class IdempotencyInterceptorIT extends AbstractIntegrationTest {
         // unseeded customer lookup, well before any gateway call — its status is not asserted.
         mockMvc.perform(post(CREATE_CHARGE_URL)
                 .with(jwt().authorities(new SimpleGrantedAuthority("SCOPE_payment.write")))
+                .header(USER_ID_HEADER, UNSEEDED_USER)
                 .contentType(MediaType.APPLICATION_JSON)
                 .header(IDEMPOTENCY_KEY_HEADER, key)
                 .content(body));
 
         mockMvc.perform(post(CREATE_CHARGE_URL)
                         .with(jwt().authorities(new SimpleGrantedAuthority("SCOPE_payment.write")))
+                        .header(USER_ID_HEADER, UNSEEDED_USER)
                         .contentType(MediaType.APPLICATION_JSON)
                         .header(IDEMPOTENCY_KEY_HEADER, key)
                         .content(body))
@@ -86,6 +91,7 @@ class IdempotencyInterceptorIT extends AbstractIntegrationTest {
 
         mockMvc.perform(post(CREATE_CHARGE_URL)
                 .with(jwt().authorities(new SimpleGrantedAuthority("SCOPE_payment.write")))
+                .header(USER_ID_HEADER, UNSEEDED_USER)
                 .contentType(MediaType.APPLICATION_JSON)
                 .header(IDEMPOTENCY_KEY_HEADER, key)
                 .content(objectMapper.writeValueAsString(validChargeCommand())));
@@ -94,6 +100,6 @@ class IdempotencyInterceptorIT extends AbstractIntegrationTest {
     }
 
     private static CreateChargeCommand validChargeCommand() {
-        return new CreateChargeCommand("nonexistent@doe.com", "cus_1", "card_1", 500L, "usd", "nonexistent@doe.com");
+        return new CreateChargeCommand("order-1", "card_1", 500L, "usd", "nonexistent@doe.com");
     }
 }

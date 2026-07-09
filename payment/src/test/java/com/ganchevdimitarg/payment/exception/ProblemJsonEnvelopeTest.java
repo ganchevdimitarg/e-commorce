@@ -45,14 +45,15 @@ class ProblemJsonEnvelopeTest {
 
     @Test
     void should_renderProblemJsonWithCodeAndTimestamp_when_notFoundExceptionThrown() throws Exception {
-        when(chargeService.createCharge(any(), any()))
+        when(chargeService.createCharge(any(), any(), any()))
                 .thenThrow(new NotFoundException("Customer", "john.doe"));
 
         mockMvc.perform(post("/api/v1/payment/charge/create-charge")
                         .contentType(MediaType.APPLICATION_JSON)
+                        .header("X-User-Id", "john.doe")
                         .header("Idempotency-Key", "idem-1")
                         .content(objectMapper.writeValueAsString(new CreateChargeCommand(
-                                "john.doe", "cus_1", "card_1", 500L, "usd", "john@doe.com"))))
+                                "order-1", "card_1", 500L, "usd", "john@doe.com"))))
                 .andExpect(status().isNotFound())
                 .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.code").value("NOT_FOUND"))

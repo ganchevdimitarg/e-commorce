@@ -42,35 +42,49 @@ class ChargeControllerTest {
 
     @Test
     void should_return200AndCharge_when_createValid() throws Exception {
-        when(chargeService.createCharge(any(), any())).thenReturn(new ChargeResponse("ch_1", "succeeded"));
+        when(chargeService.createCharge(any(), any(), any())).thenReturn(new ChargeResponse("ch_1", "succeeded"));
 
         mockMvc.perform(post("/api/v1/payment/charge/create-charge")
                         .contentType(MediaType.APPLICATION_JSON)
+                        .header("X-User-Id", "john@doe.com")
                         .header("Idempotency-Key", "idem-1")
                         .content(objectMapper.writeValueAsString(new CreateChargeCommand(
-                                "john@doe.com", "cus_1", "card_1", 500L, "usd", "john@doe.com"))))
+                                "order-1", "card_1", 500L, "usd", "john@doe.com"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.chargeId").value("ch_1"));
 
-        verify(chargeService).createCharge(any(), eq("idem-1"));
+        verify(chargeService).createCharge(eq("john@doe.com"), any(), eq("idem-1"));
     }
 
     @Test
     void should_return400_when_amountNotPositive() throws Exception {
         mockMvc.perform(post("/api/v1/payment/charge/create-charge")
                         .contentType(MediaType.APPLICATION_JSON)
+                        .header("X-User-Id", "john@doe.com")
                         .header("Idempotency-Key", "idem-1")
                         .content(objectMapper.writeValueAsString(new CreateChargeCommand(
-                                "john@doe.com", "cus_1", "card_1", 0L, "usd", "john@doe.com"))))
+                                "order-1", "card_1", 0L, "usd", "john@doe.com"))))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void should_return400_when_currencyNotIso4217() throws Exception {
+        mockMvc.perform(post("/api/v1/payment/charge/create-charge")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("X-User-Id", "john@doe.com")
+                        .header("Idempotency-Key", "idem-1")
+                        .content(objectMapper.writeValueAsString(new CreateChargeCommand(
+                                "order-1", "card_1", 500L, "dollars", "john@doe.com"))))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
     void should_return200AndCharge_when_refundValid() throws Exception {
-        when(chargeService.refund(any())).thenReturn(new ChargeResponse("ch_1", "succeeded"));
+        when(chargeService.refund(any(), any())).thenReturn(new ChargeResponse("ch_1", "succeeded"));
 
         mockMvc.perform(post("/api/v1/payment/charge/refund-charge")
                         .contentType(MediaType.APPLICATION_JSON)
+                        .header("X-User-Id", "john@doe.com")
                         .content(objectMapper.writeValueAsString(new RefundChargeCommand("ch_1"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.chargeId").value("ch_1"));
@@ -80,6 +94,7 @@ class ChargeControllerTest {
     void should_return400_when_refundChargeIdBlank() throws Exception {
         mockMvc.perform(post("/api/v1/payment/charge/refund-charge")
                         .contentType(MediaType.APPLICATION_JSON)
+                        .header("X-User-Id", "john@doe.com")
                         .content(objectMapper.writeValueAsString(new RefundChargeCommand(""))))
                 .andExpect(status().isBadRequest());
     }
