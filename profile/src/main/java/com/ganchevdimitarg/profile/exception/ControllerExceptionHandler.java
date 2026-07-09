@@ -56,6 +56,18 @@ public class ControllerExceptionHandler {
         return new ResponseEntity<>(message, HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(ServiceUnavailableException.class)
+    public ResponseEntity<ErrorMessage> handleServiceUnavailable(
+            ServiceUnavailableException ex, ServerWebExchange exchange) {
+        ErrorMessage message = new ErrorMessage(
+                HttpStatus.SERVICE_UNAVAILABLE.value(),
+                LocalDateTime.now(),
+                ex.getMessage(),
+                exchange.getRequest().getPath().value());
+
+        return new ResponseEntity<>(message, HttpStatus.SERVICE_UNAVAILABLE);
+    }
+
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ErrorMessage> handleAccessDenied(
             AccessDeniedException ex, ServerWebExchange exchange) {

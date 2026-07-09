@@ -10,6 +10,7 @@ import com.ganchevdimitarg.profile.dto.UpdateProfileCommand;
 import com.ganchevdimitarg.profile.dto.UserDto;
 import com.ganchevdimitarg.profile.event.UserRegisteredEvent;
 import com.ganchevdimitarg.profile.exception.InvalidRequestDataException;
+import com.ganchevdimitarg.profile.exception.ServiceUnavailableException;
 import com.ganchevdimitarg.profile.property.PaymentServiceProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.client.circuitbreaker.ReactiveCircuitBreaker;
@@ -157,7 +158,8 @@ public class ProfileServiceImpl implements ProfileService {
      * @param userId  the shared user identifier
      * @param command the card details
      * @return a {@link Mono} emitting the {@link UserDto} with the card ID
-     * @throws InvalidRequestDataException if no active profile exists or payment is down
+     * @throws InvalidRequestDataException if no active profile exists
+     * @throws ServiceUnavailableException if the payment service is down
      */
     @Override
     public Mono<UserDto> setupPayment(String userId, CardSetupCommand command) {
@@ -195,6 +197,10 @@ public class ProfileServiceImpl implements ProfileService {
         );
     }
 
+    /**
+     * A tripped breaker or a failed call surfaces as a 503 {@link ServiceUnavailableException}
+     * — never a silent empty sentinel that callers would mistake for a valid response.
+     */
     private Mono<PaymentDto> sendRequestToPaymentService(String uri, Object body) {
         return webClient.post()
                 .uri(uri)
@@ -205,17 +211,11 @@ public class ProfileServiceImpl implements ProfileService {
                 .bodyToMono(PaymentDto.class)
                 .transform(it -> circuitBreaker.run(it, throwable -> {
                     log.warn(PAYMENT_SERVICE_IS_DOWN, throwable);
-                    return Mono.just(PaymentDto.builder().customerId("").build());
+                    return Mono.error(new ServiceUnavailableException(
+                            "Payment service is unavailable"));
                 }))
                 .switchIfEmpty(Mono.error(
-                        new InvalidRequestDataException("Payment service returned empty response")))
-                .flatMap(dto -> {
-                    if (dto.customerId() == null || dto.customerId().isEmpty()) {
-                        return Mono.error(new InvalidRequestDataException(
-                                "Payment service unavailable. Please check request details."));
-                    }
-                    return Mono.just(dto);
-                });
+                        new InvalidRequestDataException("Payment service returned empty response")));
     }
 
     private Mono<Void> deletePaymentCustomer(String userId) {
@@ -225,15 +225,9 @@ public class ProfileServiceImpl implements ProfileService {
                 .bodyToMono(String.class)
                 .transform(it -> circuitBreaker.run(it, throwable -> {
                     log.warn(PAYMENT_SERVICE_IS_DOWN, throwable);
-                    return Mono.just("");
+                    return Mono.error(new ServiceUnavailableException(
+                            "Payment service is unavailable"));
                 }))
-                .flatMap(result -> {
-                    if (result.isEmpty()) {
-                        return Mono.error(new InvalidRequestDataException(
-                                "Payment service unavailable. Please check request details."));
-                    }
-                    return Mono.just(result);
-                })
                 .then();
     }
 

@@ -8,6 +8,7 @@ import com.ganchevdimitarg.profile.dto.PaymentDto;
 import com.ganchevdimitarg.profile.dto.UpdateProfileCommand;
 import com.ganchevdimitarg.profile.event.UserRegisteredEvent;
 import com.ganchevdimitarg.profile.exception.InvalidRequestDataException;
+import com.ganchevdimitarg.profile.exception.ServiceUnavailableException;
 import com.ganchevdimitarg.profile.property.PaymentServiceProperties;
 import com.ganchevdimitarg.profile.service.ProfileServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
@@ -118,10 +119,10 @@ class ProfileServiceTest {
     void should_stillSoftDelete_when_paymentCleanupFails() {
         when(profileDao.findByUserIdAndDeletedAtIsNull(USER_ID)).thenReturn(Mono.just(profile(USER_ID)));
         when(profileDao.save(any(Profile.class))).thenAnswer(inv -> Mono.just(inv.getArgument(0)));
-        // circuit breaker fallback yields an empty body → deletePaymentCustomer errors,
+        // circuit breaker fallback errors → deletePaymentCustomer fails,
         // but soft-delete is authoritative and must still proceed.
         when(circuitBreaker.run(ArgumentMatchers.<Mono<String>>any(), any()))
-                .thenReturn(Mono.just(""));
+                .thenReturn(Mono.error(new ServiceUnavailableException("Payment service is unavailable")));
 
         StepVerifier.create(profileService.softDeleteProfile(USER_ID)).verifyComplete();
 
@@ -228,11 +229,11 @@ class ProfileServiceTest {
 
         when(profileDao.findByUserIdAndDeletedAtIsNull(USER_ID)).thenReturn(Mono.just(profile(USER_ID)));
         when(circuitBreaker.run(ArgumentMatchers.<Mono<Object>>any(), any()))
-                .thenReturn(Mono.just(PaymentDto.builder().customerId("").build()));
+                .thenReturn(Mono.error(new ServiceUnavailableException("Payment service is unavailable")));
 
         StepVerifier.create(profileService.setupPayment(USER_ID, cmd))
-                .expectErrorMatches(ex -> ex instanceof InvalidRequestDataException
-                        && ex.getMessage().contains("Payment service unavailable"))
+                .expectErrorMatches(ex -> ex instanceof ServiceUnavailableException
+                        && ex.getMessage().contains("Payment service is unavailable"))
                 .verify(Duration.ofSeconds(5));
     }
 

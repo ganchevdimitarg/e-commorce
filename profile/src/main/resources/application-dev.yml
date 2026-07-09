@@ -141,7 +141,7 @@ jwt:
 
 payment:
   base:
-    uri: http://127.0.0.1:8087/api/v1
+    uri: ${PAYMENT_SERVICE_BASE_URI:http://127.0.0.1:8087/api/v1}
   service:
     customer:
       post: ${payment.base.uri}/payment/customer/create-customer
