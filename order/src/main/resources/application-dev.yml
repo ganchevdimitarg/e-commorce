@@ -141,7 +141,11 @@ resilience4j.circuitbreaker:
         - java.util.concurrent.TimeoutException
         - java.io.IOException
   instances:
-    orderService:
+    order-profile:
+      baseConfig: default
+    order-catalog:
+      baseConfig: default
+    order-payment:
       baseConfig: default
 
 resilience4j.timelimiter:
@@ -150,12 +154,16 @@ resilience4j.timelimiter:
       timeoutDuration: 5s
       cancelRunningFuture: true
   instances:
-    orderService:
+    order-profile:
+      baseConfig: default
+    order-catalog:
+      baseConfig: default
+    order-payment:
       baseConfig: default
 
 catalog:
   base:
-    uri: http://127.0.0.1:8084/api/v1
+    uri: ${CATALOG_SERVICE_BASE_URI:http://127.0.0.1:8084/api/v1}
   service:
     products:
       get:
@@ -163,7 +171,7 @@ catalog:
 
 profile:
   base:
-    uri: http://127.0.0.1:8083/api/v1
+    uri: ${PROFILE_SERVICE_BASE_URI:http://127.0.0.1:8083/api/v1}
   service:
     get:
       uri: ${profile.base.uri}/profile/get-by-username?username=
@@ -172,7 +180,7 @@ profile:
 
 payment:
   base:
-    uri: http://127.0.0.1:8087/api/v1
+    uri: ${PAYMENT_SERVICE_BASE_URI:http://127.0.0.1:8087/api/v1}
   service:
     customer:
       post:

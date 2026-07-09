@@ -9,8 +9,12 @@ import org.springframework.security.oauth2.client.OAuth2AuthorizedClientProvider
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientProviderBuilder;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.security.oauth2.client.web.client.OAuth2ClientHttpRequestInterceptor;
 import org.springframework.web.client.RestClient;
+
+import java.net.http.HttpClient;
+import java.time.Duration;
 
 /**
  * WebMVC outbound HTTP: blocking {@link RestClient} carrying an OAuth2 client-credentials
@@ -47,7 +51,16 @@ public class RestClientConfig {
                 new OAuth2ClientHttpRequestInterceptor(authorizedClientManager);
         requestInterceptor.setClientRegistrationIdResolver(request -> defaultClientRegistrationId);
 
+        // Explicit timeouts so a slow downstream cannot pin the calling thread — the
+        // circuit breaker records the timeout instead of waiting indefinitely.
+        JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(
+                HttpClient.newBuilder()
+                        .connectTimeout(Duration.ofSeconds(2))
+                        .build());
+        requestFactory.setReadTimeout(Duration.ofSeconds(5));
+
         return RestClient.builder()
+                .requestFactory(requestFactory)
                 .requestInterceptor(requestInterceptor)
                 .build();
     }

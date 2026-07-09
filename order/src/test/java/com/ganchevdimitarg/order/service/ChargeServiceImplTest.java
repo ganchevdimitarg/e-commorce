@@ -4,7 +4,7 @@ import com.ganchevdimitarg.order.dao.ChargeDao;
 import com.ganchevdimitarg.order.domain.Charge;
 import com.ganchevdimitarg.order.domain.Order;
 import com.ganchevdimitarg.order.dto.PaymentDto;
-import com.ganchevdimitarg.order.exception.InvalidRequestDataException;
+import com.ganchevdimitarg.order.exception.ServiceUnavailableException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -114,7 +114,7 @@ class ChargeServiceImplTest {
     }
 
     @Test
-    void should_throwInvalidRequest_when_paymentServiceUnavailable() {
+    void should_throwServiceUnavailable_when_paymentServiceUnavailable() {
         when(circuitBreakerFactory.create(anyString())).thenReturn(circuitBreaker);
         when(circuitBreaker.run(any(), any())).thenAnswer(inv -> {
             Function<Throwable, ?> fallback = inv.getArgument(1);
@@ -122,6 +122,6 @@ class ChargeServiceImplTest {
         });
 
         assertThatThrownBy(() -> chargeService.makePayment("card_1", "john", 1000L))
-                .isInstanceOf(InvalidRequestDataException.class);
+                .isInstanceOf(ServiceUnavailableException.class);
     }
 }
