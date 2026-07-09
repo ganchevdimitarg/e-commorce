@@ -3,6 +3,7 @@ package com.ganchevdimitarg.catalog.repository;
 import com.ganchevdimitarg.catalog.domain.Product;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -16,6 +17,14 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
     Optional<Product> findByName(String productName);
     Optional<Product> findByNameAndCategoryId(String name, UUID categoryId);
 
+    // category is join-fetched to avoid a select per row on page reads; comments stay
+    // lazy (@BatchSize on the entity) because a collection fetch join cannot paginate
+    // in SQL.
+    @Override
+    @EntityGraph(attributePaths = "category")
+    Page<Product> findAll(Pageable pageable);
+
+    @EntityGraph(attributePaths = "category")
     @Query("select p from Product p where p.category.id = :categoryId")
     Page<Product> findAllByCategoryIdByPage(@Param("categoryId") UUID categoryId, Pageable pageable);
 
