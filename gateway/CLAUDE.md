@@ -19,5 +19,5 @@ to this module — read the root file first.
 
 ## Known migration gaps
 - Migrated to Boot 4.1.0 / Java 25 (build green as of 2026-06-23). The root reactor
-  build cannot run until the pre-Boot-4 modules catch up — build standalone with
-  `./mvnw -f gateway/pom.xml ...`.
+  builds green again as of 2026-07-08 (all modules on Boot 4); standalone
+  `./mvnw -f gateway/pom.xml ...` still works when you only touch this module.

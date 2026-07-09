@@ -3,12 +3,13 @@
 > **Repo.** `com.ganchevdimitarg:e-commerce` — a Spring Boot 4.1.0 / Java 25 multi-module
 > monorepo: `gateway` (WebFlux edge) + business services (`authentication`, `catalog`,
 > `profile`, `order`, `payment`, `notification`) on PostgreSQL/MongoDB, plus
-> `eureka-server`, `config-server`, `client`. Conventions below are the **target**; some
-> modules still lag (notification, order, payment are pre-Boot-4) — migrate toward these
-> when you touch lagging code, never copy the legacy pattern forward. Section-level
-> "aspirational" notes mark not-yet-built infrastructure (`common-events`, Schema
-> Registry, cross-service sagas). The root reactor cannot build until every module is on
-> Boot 4 — build a single module standalone with `./mvnw -f <module>/pom.xml ...`.
+> `eureka-server`, `config-server`, `client`. Conventions below are the **target**; all
+> modules are on Boot 4.1.0 as of 2026-07-08 (notification's full remediation is landing
+> from `feat/notification-boot4-migration`) — migrate toward these when you touch
+> lagging code, never copy a legacy pattern forward. Section-level "aspirational" notes
+> mark not-yet-built infrastructure (`common-events`, Schema Registry, cross-service
+> sagas). The root reactor builds green; a single module can still be built standalone
+> with `./mvnw -f <module>/pom.xml ...`.
 >
 > Each module has its own thin `CLAUDE.md` (identity + deltas only). Read it alongside
 > this file when working in that module.
