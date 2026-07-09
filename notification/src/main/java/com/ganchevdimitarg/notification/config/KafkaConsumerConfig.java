@@ -34,13 +34,13 @@ public class KafkaConsumerConfig {
     private String bootstrapAddress;
 
     @Bean
-    public NewTopic notificationEmailRequestedTopic() {
-        return TopicBuilder.name(KafkaTopics.NOTIFICATION_EMAIL_REQUESTED).partitions(1).replicas(1).build();
+    public NewTopic orderNotificationRequestedTopic() {
+        return TopicBuilder.name(KafkaTopics.ORDER_NOTIFICATION_REQUESTED).partitions(1).replicas(1).build();
     }
 
     @Bean
-    public NewTopic notificationEmailRequestedDlt() {
-        return TopicBuilder.name(KafkaTopics.NOTIFICATION_EMAIL_REQUESTED_DLT).partitions(1).replicas(1).build();
+    public NewTopic orderNotificationRequestedDlt() {
+        return TopicBuilder.name(KafkaTopics.ORDER_NOTIFICATION_REQUESTED_DLT).partitions(1).replicas(1).build();
     }
 
     @Bean
