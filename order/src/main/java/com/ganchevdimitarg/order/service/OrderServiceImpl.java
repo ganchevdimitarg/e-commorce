@@ -46,7 +46,8 @@ import java.util.stream.Collectors;
 @Slf4j
 public class OrderServiceImpl implements OrderService {
 
-    private static final String CIRCUIT_BREAKER = "orderService";
+    private static final String PROFILE_CIRCUIT_BREAKER = "order-profile";
+    private static final String CATALOG_CIRCUIT_BREAKER = "order-catalog";
 
     private final OrderDao orderDao;
     private final RestClient restClient;
@@ -246,7 +247,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private UserDto getProfile(String username) {
-        return callDependency("Profile service", () -> restClient
+        return callDependency("Profile service", PROFILE_CIRCUIT_BREAKER, () -> restClient
                 .get()
                 .uri(profileServiceGetProfileByUsernameUri + username)
                 .accept(MediaType.APPLICATION_JSON)
@@ -255,7 +256,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private List<ProductResponseDto> getProducts(ItemRequestDto request) {
-        List<ProductResponseDto> products = callDependency("Catalog service", () -> restClient
+        List<ProductResponseDto> products = callDependency("Catalog service", CATALOG_CIRCUIT_BREAKER, () -> restClient
                 .post()
                 .uri(catalogServiceGetProductsByIdsUri)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -274,12 +275,14 @@ public class OrderServiceImpl implements OrderService {
     }
 
     /**
-     * Run an outbound call behind the shared circuit breaker. A tripped breaker or a failed
-     * call surfaces as a 503 {@link ServiceUnavailableException} — never a silent empty
-     * sentinel that downstream code would mistake for a valid "not found" result.
+     * Run an outbound call behind its dependency's own circuit breaker — one breaker per
+     * downstream service, so a payment outage cannot trip calls to catalog or profile. A
+     * tripped breaker or a failed call surfaces as a 503 {@link ServiceUnavailableException} —
+     * never a silent empty sentinel that downstream code would mistake for a valid
+     * "not found" result.
      */
-    private <T> T callDependency(String dependencyName, Supplier<T> call) {
-        return circuitBreakerFactory.create(CIRCUIT_BREAKER).run(call::get, throwable -> {
+    private <T> T callDependency(String dependencyName, String circuitBreakerId, Supplier<T> call) {
+        return circuitBreakerFactory.create(circuitBreakerId).run(call::get, throwable -> {
             log.warn("{} unavailable", dependencyName, throwable);
             throw new ServiceUnavailableException(dependencyName + " is unavailable");
         });

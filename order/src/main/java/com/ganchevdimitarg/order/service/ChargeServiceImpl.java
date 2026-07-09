@@ -5,6 +5,7 @@ import com.ganchevdimitarg.order.domain.Charge;
 import com.ganchevdimitarg.order.domain.Order;
 import com.ganchevdimitarg.order.dto.PaymentDto;
 import com.ganchevdimitarg.order.exception.InvalidRequestDataException;
+import com.ganchevdimitarg.order.exception.ServiceUnavailableException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,6 +18,9 @@ import org.springframework.web.client.RestClient;
 @RequiredArgsConstructor
 @Slf4j
 public class ChargeServiceImpl implements ChargeService {
+
+    private static final String PAYMENT_CIRCUIT_BREAKER = "order-payment";
+
     private final ChargeDao chargeDao;
     private final RestClient restClient;
     private final CircuitBreakerFactory circuitBreakerFactory;
@@ -80,8 +84,12 @@ public class ChargeServiceImpl implements ChargeService {
         return sendRequestToPaymentService(paymentServiceChargeCustomerUri, chargeRequest);
     }
 
+    /**
+     * A tripped breaker or a failed call surfaces as a 503 {@link ServiceUnavailableException}
+     * — never a silent empty sentinel that callers would mistake for a valid response.
+     */
     private PaymentDto sendRequestToPaymentService(String uri, PaymentDto request) {
-        PaymentDto paymentDto = circuitBreakerFactory.create("orderService").run(
+        PaymentDto paymentDto = circuitBreakerFactory.create(PAYMENT_CIRCUIT_BREAKER).run(
                 () -> restClient
                         .post()
                         .uri(uri)
@@ -91,19 +99,18 @@ public class ChargeServiceImpl implements ChargeService {
                         .retrieve()
                         .body(PaymentDto.class),
                 throwable -> {
-                    log.warn("Payment service is down", throwable);
-                    return PaymentDto.builder().chargeId("").build();
+                    log.warn("Payment service unavailable", throwable);
+                    throw new ServiceUnavailableException("Payment service is unavailable");
                 });
 
         if (paymentDto == null) {
             throw new InvalidRequestDataException("Payment service returned no response");
         }
-        checkPaymentServiceAvailability(paymentDto.chargeId());
         return paymentDto;
     }
 
     private PaymentDto getCustomerFromPaymentService(String uri) {
-        PaymentDto paymentDto = circuitBreakerFactory.create("orderService").run(
+        PaymentDto paymentDto = circuitBreakerFactory.create(PAYMENT_CIRCUIT_BREAKER).run(
                 () -> restClient
                         .get()
                         .uri(uri)
@@ -111,24 +118,14 @@ public class ChargeServiceImpl implements ChargeService {
                         .retrieve()
                         .body(PaymentDto.class),
                 throwable -> {
-                    log.warn("Payment service is down", throwable);
-                    return PaymentDto.builder().username("").build();
+                    log.warn("Payment service unavailable", throwable);
+                    throw new ServiceUnavailableException("Payment service is unavailable");
                 });
 
         if (paymentDto == null) {
             throw new InvalidRequestDataException("Payment service returned no response");
         }
-        checkPaymentServiceAvailability(paymentDto.username());
         return paymentDto;
-    }
-
-    private void checkPaymentServiceAvailability(String token) {
-        if (token.isEmpty()) {
-            throw new InvalidRequestDataException("""
-                    Something happened with the order service.
-                    Please check the request details again
-                    """);
-        }
     }
 
 }
