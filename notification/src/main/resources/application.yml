@@ -1,0 +1,7 @@
+spring:
+  application:
+    name: notification-service
+  # Default to the dev profile for local runs; tests override via @ActiveProfiles("test").
+  # Vault import + connection live in application-dev.yml so the test profile never contacts Vault.
+  profiles:
+    active: dev

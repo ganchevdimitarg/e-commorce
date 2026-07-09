@@ -2,6 +2,19 @@ server:
   port: 8085
 
 spring:
+  # Vault provides secrets in dev (optional so the app still starts without Vault).
+  config:
+    import: optional:vault://
+  cloud:
+    vault:
+      uri: http://localhost:8200
+      authentication: TOKEN
+      token: ${VAULT_DEV_ROOT_TOKEN_ID:}
+      generic:
+        enable: true
+        backend: auth-service
+        default-context: credentials
+
   #Data Source Properties
   datasource:
     username: ${POSTGRES_USER}

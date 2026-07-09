@@ -7,6 +7,7 @@ import com.ganchevdimitarg.notification.mapper.MapStructMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
@@ -17,12 +18,16 @@ public class NotificationServiceImpl implements NotificationService {
 
     private final NotificationDao notificationDao;
     private final MapStructMapper mapper;
+
     @Override
+    @Transactional
     public NotificationDto createNotification(NotificationDto notificationDto) {
         Notification notification = mapper.mapNotificationDtoToNotification(notificationDto);
-        notification.setCreatedOn(LocalDateTime.now());
-        NotificationDto notificationResp = mapper.mapNotificationToNotificationDto(notificationDao.saveAndFlush(notification));
-        log.info("The notification has been created");
-        return notificationResp;
+        LocalDateTime now = LocalDateTime.now();
+        notification.setCreatedAt(now);
+        notification.setUpdatedAt(now);
+        Notification saved = notificationDao.saveAndFlush(notification);
+        log.info("Notification {} persisted", saved.getId());
+        return mapper.mapNotificationToNotificationDto(saved);
     }
 }
