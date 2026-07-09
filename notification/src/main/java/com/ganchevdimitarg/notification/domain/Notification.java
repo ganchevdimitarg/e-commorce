@@ -1,33 +1,47 @@
 package com.ganchevdimitarg.notification.domain;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.Size;
-import lombok.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 
-@Entity(name = "Notification")
-@Table(name="notification" )
+@Entity
+@Table(name = "notification")
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Setter
-@Getter
 public class Notification {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", unique = true, nullable = false, updatable = false)
     private String id;
-    @Column(name = "recipient", columnDefinition = "TEXT")
-    @Email
+
+    @Column(name = "recipient", columnDefinition = "TEXT", nullable = false)
     private String recipient;
-    @Column(name = "subject", length = 200)
+
+    @Column(name = "subject", columnDefinition = "TEXT", nullable = false)
     private String subject;
-    @Column(name = "msgBody", columnDefinition = "TEXT")
-    @Size(min = 10, max = 251)
+
+    @Column(name = "msg_body", columnDefinition = "TEXT", nullable = false)
     private String msgBody;
-    private String attachment;
-    @Column(name = "created_on")
-    LocalDateTime createdOn;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 }
