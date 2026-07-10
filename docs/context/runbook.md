@@ -25,5 +25,5 @@ curl http://localhost:8081/compatibility/subjects/order.payment.completed-value/
   -H "Content-Type: application/json"
 ```
 
-Build a single module standalone (the root reactor cannot build until every module is on
-Boot 4): `./mvnw -f <module>/pom.xml clean verify`.
+Build a single module standalone (fast path; the root reactor also builds):
+`./mvnw -f <module>/pom.xml clean verify`

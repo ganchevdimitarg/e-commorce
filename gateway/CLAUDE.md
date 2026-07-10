@@ -18,6 +18,5 @@ to this module — read the root file first.
   downstream services. Owns auth + rate-limit per the root architecture rules.
 
 ## Known migration gaps
-- Migrated to Boot 4.1.0 / Java 25 (build green as of 2026-06-23). The root reactor
-  build cannot run until the pre-Boot-4 modules catch up — build standalone with
-  `./mvnw -f gateway/pom.xml ...`.
+- Migrated to Boot 4.1.0 / Java 25 (build green as of 2026-06-23).
+  The root reactor builds; `./mvnw -f gateway/pom.xml ...` remains the fast path.

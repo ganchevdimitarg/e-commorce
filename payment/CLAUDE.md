@@ -15,9 +15,5 @@ to this module — read the root file first.
 - Web stack: WebMVC for business endpoints.
 
 ## Known migration gaps
-- **Pre-Boot-4 — does NOT compile yet** (~112 migration hits as of 2026-06-23):
-  `javax.*` → `jakarta.*`, `@EnableEurekaClient` removal, pre-lambda Security DSL →
-  lambda + `@EnableMethodSecurity`, `ResponseEntity.getStatusCodeValue()` →
-  `getStatusCode().value()`. Migrate toward root conventions when you touch this code;
-  never copy the legacy pattern forward. Build standalone with
-  `./mvnw -f payment/pom.xml ...`.
+- Migrated to Boot 4.1.0 / Java 25; grade-A remediation complete (PRs #16-#18,
+  2026-07). Keep it green: migrate any code you touch toward the root conventions.

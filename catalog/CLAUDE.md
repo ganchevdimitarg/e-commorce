@@ -54,10 +54,9 @@ root `docker-compose`. Env: `POSTGRES_USER`, `POSTGRES_PASSWORD`, `VAULT_DEV_ROO
 - Source fully migrated to Boot 4.1.0 / Java 25 on the single `com.ganchevdimitarg.catalog`
   package — no `com.concordeu` remnant. `clean verify` is green (136 tests, JaCoCo 85%
   bundle / 100% `service.*`). The reference module.
-- Build catalog **standalone** — the root reactor is unparseable (`gateway/pom.xml` lacks a
-  dependency version): `../mvnw -f catalog/pom.xml clean verify`. catalog depends on the
-  `client` module, so install it once first: `../mvnw -f client/pom.xml install -DskipTests`
-  (uses the root pom only as a parent, sidestepping the broken gateway module).
+- Build standalone for speed (`../mvnw -f catalog/pom.xml clean verify`) or from the
+  root reactor - both are green. catalog depends on the `client` module; install it
+  once first if building standalone: `../mvnw -f client/pom.xml install -DskipTests`.
 - Follow-ups (not blocking, human decision): no checkstyle plugin/config yet (stated PR
   gate); integration tests run under surefire (failsafe unbound); the catalog Docker build
   uses `-pl catalog -am` and so also trips the broken root reactor; no `application-prod.yml`

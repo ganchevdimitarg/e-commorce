@@ -35,10 +35,9 @@ were also closed: `spring-boot-starter-flyway` (migrations now run), `spring-boo
 (`ClientRegistrationRepository` now built), and dropping the Jackson-3-invalid
 `write-dates-as-timestamps` property. See `decisions.md` (2026-07-04).
 
-Deferred follow-ups (breaking, tracked separately): the `OrderDto.items : List<Item>`
-entity leak → introduce `OrderLineDto(String productId, long quantity)` and map in the
-service; the physical Kafka topic rename `"sentMail"` → `order.notification.requested`
-(needs a coordinated change with the notification service).
+Both previously deferred follow-ups have landed: `OrderDto` carries
+`List<OrderLineDto>` (no entity leak), and the notification topic is
+`order.notification.requested` end-to-end (`KafkaTopics.ORDER_NOTIFICATION_REQUESTED`).
 
 Migrate toward root conventions when you touch this code; never copy the legacy pattern
-forward. Build standalone: `./mvnw -f order/pom.xml ...` (root reactor is blocked).
+forward. Build standalone: `./mvnw -f order/pom.xml ...` or via the root reactor.
