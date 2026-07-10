@@ -10,6 +10,17 @@ Format: `- [YYYY-MM-DD] <decision> — <why>`
 
 ## Decisions
 
+- [2026-07-10] Git history rewritten to purge the leaked `gateway` TLS keystore
+  (`bootsecurity.p12`, committed 2023, gateway SSL long removed): `main` force-pushed as
+  the filter-repo'd local Boot-4 line (`e0f5ed9` → `a0aed3e`, identical trees) and the 18
+  stale remote branches still carrying the blob deleted (all recoverable from local refs).
+  Old PRs #16–#18 were **not** merged: their unique payment work (payer-from-`X-User-Id`
+  charge flow, refund ownership check, `PaymentCompletedEvent` on
+  `payment.charge.completed`, migrations V3–V5) was ported onto the Boot-4 line instead
+  (`feat(payment)!` commit) — the rest was already re-implemented there. Caveat: GitHub
+  retains the blob in immutable `refs/pull/16|17|18` until a Support ticket GCs it, so the
+  rewrite alone does not un-leak — **rotating `GATEWAY_CLIENT_SECRET` (Flyway `V8` on the
+  auth `clients` row + new env value) is the actual mitigation and is still pending.**
 - [2026-07-08] `main` fast-forwarded to `feat/order-boot4-migration` (63 commits) — the
   remediated gateway/order/payment code had diverged from `main`, which no longer
   compiled; keeping two truths was the repo's largest standing risk.
