@@ -28,7 +28,7 @@ spring:
         opaquetoken:
           introspection-uri: http://localhost:8082/oauth2/introspect
           client-id: ${OAUTH2_INTROSPECTION_CLIENT_ID:gateway}
-          client-secret: ${OAUTH2_INTROSPECTION_CLIENT_SECRET:secret}
+          client-secret: ${OAUTH2_INTROSPECTION_CLIENT_SECRET}
 
   #Pagination
   mvc:
@@ -94,7 +94,7 @@ springdoc:
     oauth2RedirectUrl: http://127.0.0.1:8081/login/oauth2/code/gateway-client-oidc
     oauth:
       client-id: gateway
-      client-secret: secret
+      client-secret: ${GATEWAY_CLIENT_SECRET}
       scopes:
         - openid
         - profile.read
