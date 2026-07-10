@@ -1,7 +1,7 @@
 package com.ganchevdimitarg.notification.aop;
 
 import com.ganchevdimitarg.notification.dto.NotificationDto;
-import com.ganchevdimitarg.notification.excaption.InvalidRequestDataException;
+import com.ganchevdimitarg.notification.exception.InvalidRequestDataException;
 import com.ganchevdimitarg.notification.validation.ValidateRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

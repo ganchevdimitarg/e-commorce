@@ -1,7 +1,7 @@
 package com.ganchevdimitarg.notification.validation;
 
 import com.ganchevdimitarg.notification.dto.NotificationDto;
-import com.ganchevdimitarg.notification.excaption.InvalidRequestDataException;
+import com.ganchevdimitarg.notification.exception.InvalidRequestDataException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 

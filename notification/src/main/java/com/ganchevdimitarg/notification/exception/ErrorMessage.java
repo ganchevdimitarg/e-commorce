@@ -1,4 +1,4 @@
-package com.ganchevdimitarg.notification.excaption;
+package com.ganchevdimitarg.notification.exception;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
