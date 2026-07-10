@@ -9,6 +9,9 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate
+  flyway:
+    placeholders:
+      gateway_client_secret_hash: dummy-rotated-hash-tests-never-authenticate-this-client
 eureka:
   client:
     enabled: false

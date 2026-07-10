@@ -24,6 +24,13 @@ spring:
     password: ${POSTGRES_PASSWORD}
     url: jdbc:postgresql://localhost:5432/registered_client
 
+  # Flyway placeholders — V8 rotates the gateway client secret without committing the
+  # hash. GATEWAY_CLIENT_SECRET_HASH is required at startup (like POSTGRES_USER above):
+  # a bare BCrypt(12) hash whose plaintext is served as GATEWAY_CLIENT_SECRET.
+  flyway:
+    placeholders:
+      gateway_client_secret_hash: ${GATEWAY_CLIENT_SECRET_HASH}
+
   #JPA Properties
   jpa:
     hibernate:
