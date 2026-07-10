@@ -38,6 +38,9 @@ public class NotificationController {
         return emailService.sendSimpleMail(notificationDto);
     }
 
+    /**
+     * Old path {@code /sendMailWithAttachment} is a deprecated alias; remove after clients migrate.
+     */
     @Operation(summary = "Sent Email With Attachment", description = "Sent email with attachment",
             security = @SecurityRequirement(name = "security_auth"))
     @ApiResponses({
@@ -46,7 +49,7 @@ public class NotificationController {
             @ApiResponse(responseCode = "403", description = "Unauthorized"),
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
-    @PostMapping("/sendMailWithAttachment")
+    @PostMapping({"/send-email-attachment", "/sendMailWithAttachment"})
     @ValidationRequest
     public String sendMailWithAttachment(@RequestBody NotificationDto notificationDto) {
         return emailService.sendMailWithAttachment(notificationDto);
