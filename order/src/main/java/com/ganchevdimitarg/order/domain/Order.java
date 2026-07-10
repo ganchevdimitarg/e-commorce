@@ -16,7 +16,7 @@ import java.util.List;
                 @UniqueConstraint(name = "order_number", columnNames = "order_number")
         },
         indexes = @Index(name = "order_number_index",columnList = "order_number"))
-@SQLDelete(sql = "UPDATE orders SET deleted_at = now() WHERE order_id = ?")
+@SQLDelete(sql = "UPDATE orders SET deleted_at = now() WHERE order_id = ? AND version = ?")
 @SQLRestriction("deleted_at IS NULL")
 @NoArgsConstructor
 @AllArgsConstructor
