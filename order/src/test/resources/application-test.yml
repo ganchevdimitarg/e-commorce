@@ -15,8 +15,6 @@ spring:
       enabled: false
     compatibility-verifier:
       enabled: false
-  config:
-    import: "optional:configserver:"
   security:
     oauth2:
       resourceserver:
