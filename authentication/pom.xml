@@ -87,7 +87,6 @@
         <dependency>
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-            <version>3.0.3</version>
         </dependency>
 
         <!-- Spring Boot Starter Test for testing -->
@@ -185,7 +184,6 @@
         <dependency>
             <groupId>io.opentelemetry.instrumentation</groupId>
             <artifactId>opentelemetry-logback-appender-1.0</artifactId>
-            <version>2.28.0-alpha</version>
         </dependency>
 
     </dependencies>

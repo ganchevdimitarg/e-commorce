@@ -16,7 +16,7 @@
     <packaging>pom</packaging>
 
     <name>e-commerce</name>
-    <description>Demo project for Spring Boot</description>
+    <description>E-commerce microservices platform (Spring Boot 4.1 / Java 25 monorepo)</description>
 
     <modules>
         <module>catalog</module>
@@ -39,6 +39,8 @@
         <metrics.version>0.5.1.RELEASE</metrics.version>
         <oauth2-oidc-sdk.version>11.23</oauth2-oidc-sdk.version>
         <logstash-logback-encoder.version>8.0</logstash-logback-encoder.version>
+        <springdoc-openapi.version>3.0.3</springdoc-openapi.version>
+        <otel-logback.version>2.28.0-alpha</otel-logback.version>
     </properties>
 
     <dependencyManagement>
@@ -66,6 +68,21 @@
                 <groupId>net.logstash.logback</groupId>
                 <artifactId>logstash-logback-encoder</artifactId>
                 <version>${logstash-logback-encoder.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+                <version>${springdoc-openapi.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-starter-webflux-ui</artifactId>
+                <version>${springdoc-openapi.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.opentelemetry.instrumentation</groupId>
+                <artifactId>opentelemetry-logback-appender-1.0</artifactId>
+                <version>${otel-logback.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -138,7 +155,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.13.0</version> <!-- Try 3.13.0 instead of 3.15.0 -->
+                <version>3.13.0</version>
                 <configuration>
                     <source>${java.version}</source>
                     <target>${java.version}</target>
