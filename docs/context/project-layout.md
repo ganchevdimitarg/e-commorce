@@ -1,44 +1,33 @@
 # Project layout
 
-Single-module Spring Boot application (`com.ganchevdimitarg.claudetemplate`).
-Not a multi-module microservice repo — adapt module-specific rules accordingly.
+Multi-module Spring Boot monorepo (`com.ganchevdimitarg:e-commerce`), Boot 4.1.0 /
+Java 25. One Maven reactor, ten modules.
 
 ```
 /
-├── CLAUDE.md                       ← master context (imports docs/context/* on demand)
-├── MEMORY.md                       ← Claude's auto-maintained scratchpad
-├── SETUP.md                        ← placement + setup guide
-├── HELP.md                         ← Spring Boot generated help
-├── pom.xml                         ← dependencies (single module)
-├── mvnw / mvnw.cmd                 ← Maven wrapper
-│
-├── docs/
-│   ├── decisions.md                ← running decision log
-│   ├── adr/                        ← Architecture Decision Records
-│   └── context/                    ← @import targets (loaded on demand)
-│
-├── src/
-│   ├── main/java/com/ganchevdimitarg/claudetemplate/
-│   │   └── ClaudeTemplateApplication.java
-│   ├── main/resources/
-│   │   ├── application.properties
-│   │   └── db/migration/           ← Flyway migrations (V<n>__*.sql)
-│   └── test/java/com/ganchevdimitarg/claudetemplate/
-│       └── ClaudeTemplateApplicationTests.java
-│
-└── .claude/
-    ├── settings.json               ← hook wiring (commit)
-    ├── settings.local.json         ← personal overrides (gitignore)
-    ├── mcp.json                    ← MCP server config
-    ├── hooks.md                    ← hook documentation
-    ├── CLAUDE.md                   ← project-scoped extra context
-    ├── agents/                     ← code-writer, code-reviewer, git-agent, test-agent, scaffold-agent, debug-agent
-    ├── skills/                     ← write, review, commit, test, migrate
-    ├── context/                    ← kafka-setup, testcontainers-patterns
-    └── hooks/                      ← lifecycle scripts (chmod +x after clone)
++-- CLAUDE.md                    <- master context (imports docs/context/* on demand)
++-- pom.xml                      <- parent + BOM (all version pins live here)
++-- docker-compose.yml           <- local infra (PG, Mongo, Redis, Kafka, Vault, Zipkin)
++-- Jenkinsfile                  <- CI (catalog pipeline; fleet rollout pending)
++-- decisions.md                 <- root architectural/technical decision log
++-- docs/
+|   +-- decisions.md             <- cross-module decision log (module-local ones live in <module>/decisions.md)
+|   +-- adr/                     <- Architecture Decision Records
+|   +-- context/                 <- on-demand pattern files (@import targets)
+|   +-- sagas/                   <- cross-service flow docs
+|   +-- spec/                    <- reviews and specifications
++-- gateway/                     <- WebFlux edge (routing, OAuth2, rate limit)
++-- authentication/              <- OAuth2 authorization server (PG, outbox)
++-- catalog/                     <- products/categories/comments (PG, replica, reference module)
++-- order/                       <- order lifecycle (PG, saga orchestration)
++-- payment/                     <- Stripe payments (PG, idempotent replay)
++-- profile/                     <- customer profiles (MongoDB)
++-- notification/                <- email dispatch (PG, Kafka consumer)
++-- client/                      <- shared opaque-token introspection library
++-- eureka-server/               <- service discovery
++-- config-server/               <- Spring Cloud Config
++-- .claude/                     <- canonical Claude config (agents, skills, hooks, context)
 ```
 
-## Note on your current structure
-- Agents live in `.claude/agents/` (plural) — the layout Claude Code expects. ✓
-- `docs/sagas/` already holds a `_template.md`; add one flow doc per cross-service saga as modules appear.
-- When you add microservice modules later, give each its own `CLAUDE.md`.
+Each service module has its own thin `CLAUDE.md` (identity + deltas). Every module owns
+its schema; Flyway migrations live in `<module>/src/main/resources/db/migration/`.

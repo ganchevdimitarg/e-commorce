@@ -13,7 +13,7 @@ import org.hibernate.annotations.SQLRestriction;
                 @UniqueConstraint(name = "product_id", columnNames = "product_id")
         },
         indexes = @Index(name = "product_id_index", columnList = "product_id"))
-@SQLDelete(sql = "UPDATE items SET deleted_at = now() WHERE item_id = ?")
+@SQLDelete(sql = "UPDATE items SET deleted_at = now() WHERE item_id = ? AND version = ?")
 @SQLRestriction("deleted_at IS NULL")
 @NoArgsConstructor
 @AllArgsConstructor
