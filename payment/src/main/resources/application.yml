@@ -28,7 +28,7 @@ spring:
         opaquetoken:
           introspection-uri: http://localhost:8082/oauth2/introspect
           client-id: ${OAUTH2_INTROSPECTION_CLIENT_ID:gateway}
-          client-secret: ${OAUTH2_INTROSPECTION_CLIENT_SECRET:secret}
+          client-secret: ${OAUTH2_INTROSPECTION_CLIENT_SECRET}
 
   #Pagination
   mvc:
