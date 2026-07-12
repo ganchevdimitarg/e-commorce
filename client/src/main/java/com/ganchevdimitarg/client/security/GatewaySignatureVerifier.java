@@ -45,7 +45,8 @@ public class GatewaySignatureVerifier {
         try {
             Mac mac = Mac.getInstance(ALGORITHM);
             mac.init(key);
-            String payload = userId + "|" + (roles == null ? "" : roles) + "|" + timestamp;
+            String safeRoles = roles == null ? "" : roles;
+            String payload = userId.length() + ":" + userId + "|" + safeRoles.length() + ":" + safeRoles + "|" + timestamp;
             byte[] raw = mac.doFinal(payload.getBytes(StandardCharsets.UTF_8));
             return HexFormat.of().formatHex(raw);
         } catch (Exception e) {
