@@ -3,12 +3,15 @@ package com.ganchevdimitarg.catalog.config;
 import com.ganchevdimitarg.catalog.exception.ProblemAccessDeniedHandler;
 import com.ganchevdimitarg.catalog.exception.ProblemAuthenticationEntryPoint;
 import com.ganchevdimitarg.client.introspector.CustomOpaqueTokenIntrospector;
+import com.ganchevdimitarg.client.security.GatewaySignatureVerifier;
+import com.ganchevdimitarg.client.security.GatewayTrustFilter;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import jakarta.servlet.http.HttpServletRequest;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -23,6 +26,7 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationProvider;
 import org.springframework.security.oauth2.server.resource.authentication.OpaqueTokenAuthenticationProvider;
 import org.springframework.security.oauth2.server.resource.introspection.OpaqueTokenIntrospector;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
@@ -37,7 +41,8 @@ public class ResourceServerConfig {
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http,
-                                            AuthenticationManagerResolver<HttpServletRequest> resolver) throws Exception {
+                                            AuthenticationManagerResolver<HttpServletRequest> resolver,
+                                            GatewayTrustFilter gatewayTrustFilter) throws Exception {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session ->
@@ -46,6 +51,7 @@ public class ResourceServerConfig {
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/info", "/actuator/prometheus").permitAll()
                         .anyRequest().authenticated())
+                .addFilterBefore(gatewayTrustFilter, BearerTokenAuthenticationFilter.class)
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .authenticationManagerResolver(resolver)
                         .authenticationEntryPoint(authenticationEntryPoint))
@@ -53,6 +59,11 @@ public class ResourceServerConfig {
                         .authenticationEntryPoint(authenticationEntryPoint)
                         .accessDeniedHandler(accessDeniedHandler))
                 .build();
+    }
+
+    @Bean
+    GatewayTrustFilter gatewayTrustFilter(@Value("${gateway.trust.secret}") String trustSecret) {
+        return new GatewayTrustFilter(new GatewaySignatureVerifier(trustSecret));
     }
 
     @Bean

@@ -1,6 +1,10 @@
 server:
   port: 8087
 
+gateway:
+  trust:
+    secret: ${GATEWAY_TRUST_SECRET}
+
 spring:
   #Data Source Properties
   datasource:
