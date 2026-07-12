@@ -9,6 +9,8 @@ import org.springframework.web.server.WebFilter;
 import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
 
+import java.nio.charset.StandardCharsets;
+
 /**
  * Reactive counterpart to {@code client}'s {@code GatewayTrustFilter} — profile is
  * the platform's one WebFlux business service, so it needs its own {@link WebFilter}
@@ -44,7 +46,12 @@ public class GatewayTrustWebFilter implements WebFilter {
         if (!verifier.isValid(userId, roles, timestamp, signature)) {
             exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
             exchange.getResponse().getHeaders().add("Content-Type", "application/problem+json");
-            return exchange.getResponse().setComplete();
+            byte[] body = """
+                    {"type":"about:blank","title":"Unauthorized","status":401,\
+                    "detail":"Missing or invalid gateway trust signature"}"""
+                    .getBytes(StandardCharsets.UTF_8);
+            return exchange.getResponse().writeWith(
+                    Mono.just(exchange.getResponse().bufferFactory().wrap(body)));
         }
 
         return chain.filter(exchange);
