@@ -62,6 +62,7 @@ public class RestClientConfig {
         return RestClient.builder()
                 .requestFactory(requestFactory)
                 .requestInterceptor(requestInterceptor)
+                .requestInterceptor(new GatewayHeaderPropagationInterceptor())
                 .build();
     }
 }
