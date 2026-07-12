@@ -19,17 +19,17 @@ Before scoring anything, read the build file(s) (`pom.xml`, `build.gradle`, or e
 
 Evaluate and score the project (1–10) in each of the following areas:
 
-1. Overall architecture
+1. Overall architecture & architectural-style adherence — including whether the project follows Hexagonal Architecture, Clean Architecture, Domain-Driven Design (where appropriate), Layered Architecture, CQRS (if applicable), and event-driven design (if applicable). Do not recommend a pattern unless it provides a clear, stated benefit for this codebase — avoid over-engineering.
 2. Package/module organization
 3. SOLID principles
 4. Design patterns (correct usage, misuse, and missed opportunities)
-5. Clean Code principles
+5. Code quality & maintainability (naming, function/class size, readability, long-term cost of change — treat these as one concern, not three)
 6. Object-oriented design
 7. Separation of concerns
 8. Spring Boot best practices
 9. Dependency Injection
 10. Configuration management
-11. Exception handling
+11. Exception & error handling
 12. Validation
 13. Security
 14. Authentication & authorization
@@ -38,63 +38,47 @@ Evaluate and score the project (1–10) in each of the following areas:
 17. JPA/Hibernate usage
 18. Transaction management
 19. Database design
-20. Performance and efficiency
+20. Performance & efficiency (including N+1 queries and other performance bottlenecks)
 21. Caching opportunities
-22. Concurrency and thread safety
+22. Concurrency & thread safety (including race conditions and resource leaks)
 23. Logging and observability
 24. Testing (unit, integration, end-to-end)
-25. Error handling
-26. Code readability
-27. Maintainability
-28. Scalability
-29. Documentation
-30. Production readiness
+25. Scalability
+26. Documentation
 
-For every category:
+## Depth triage
 
-- Assign a score from 1–10.
-- Explain why the score was given.
-- Point to concrete examples in the code.
-- Explain the risks of the current implementation.
-- Suggest improvements following modern Java 21 and Spring Boot 3.x best practices.
-- Include code examples where appropriate.
+Before writing anything, rank all 26 categories by risk to production. Give the full template below to your 10 highest-risk categories. For the remaining categories, give only the score and a one-sentence rationale — skip the extended fields. State which categories you triaged as low-depth and why, in one line, before the category write-ups.
 
-Additionally, identify:
+## Per-category template
 
-- Code smells
-- Anti-patterns
-- Over-engineering
-- Under-engineering
-- Violations of SOLID
-- Violations of DRY
-- Violations of KISS
-- Violations of YAGNI
-- Hidden bugs
-- Potential race conditions
-- Resource leaks
-- Security vulnerabilities
-- Performance bottlenecks
-- N+1 query problems
-- Transactional issues
-- Poor naming
-- Dead code
-- Duplicate logic
-- Tight coupling
-- Low cohesion
-- Circular dependencies
-- Large or "God" classes
-- Methods that should be refactored
+Write every category — full-depth or triaged — as:
 
-Evaluate whether the project follows:
+### <N>. <Category name> — Score: X/10
 
-- Hexagonal Architecture
-- Clean Architecture
-- Domain-Driven Design (where appropriate)
-- Layered Architecture
-- CQRS (if applicable)
-- Event-driven design (if applicable)
+**Rationale:** why this score, against the rubric above.
 
-Do not recommend patterns unless they provide a clear benefit. Avoid over-engineering.
+**Evidence:** cite every example as `path/to/File.java:123` (or a line range `path/to/File.java:120-135`). Do not describe an example you have not located at a specific path and line. If you cannot locate a concrete example for a claim, say so explicitly instead of writing a general statement as if it were evidence.
+
+**Red flags:** note any that apply to this category specifically — code smell, anti-pattern, over-engineering, under-engineering, DRY/KISS/YAGNI violation, hidden bug, dead code, duplicate logic, tight coupling, low cohesion, circular dependency, God class/method, poor naming, transactional issue. Skip this field if none apply — do not force one.
+
+**Risk:** what breaks, and under what conditions, if this is not addressed.
+
+**Improvement:** a concrete suggestion following the actual tech-stack version identified above. Include a code example only for full-depth categories.
+
+### Worked example (for calibration — do not repeat this example, it is illustrative only)
+
+### 11. Exception & error handling — Score: 4/10
+
+**Rationale:** exceptions are caught close to where they occur, but several handlers swallow the original cause, which will make production incidents undiagnosable.
+
+**Evidence:** `src/main/java/com/example/order/OrderService.java:88-91` catches `SQLException` and rethrows `new RuntimeException("failed")` without wrapping the original exception as the cause.
+
+**Red flags:** hidden bug — the original stack trace is discarded, so any monitoring tool downstream of this handler will show "failed" with no way to trace it back to the SQL error that caused it.
+
+**Risk:** the first production incident that hits this path will be undiagnosable from logs alone; on-call will need to reproduce it manually.
+
+**Improvement:** wrap the cause — `throw new RuntimeException("Order lookup failed for id=" + orderId, e);` — and prefer a typed domain exception over `RuntimeException` so callers can distinguish this failure from others.
 
 At the end, provide:
 
