@@ -38,6 +38,10 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -76,15 +80,16 @@ public class OrderServiceImpl implements OrderService {
             throw new NotFoundException("Order not found for user " + authenticationName);
         }
 
-        UserDto userInfo = getProfile(authenticationName);
+        DependencyResult deps = fetchProfileAndProducts(authenticationName, ItemRequestDto.builder()
+                .items(orderDto.items().stream().map(OrderLineDto::productId).toList())
+                .build());
+        UserDto userInfo = deps.profile();
         if (userInfo == null || userInfo.username() == null || userInfo.username().isBlank()) {
             throw new ConflictException("No profile for " + authenticationName
                     + "; register and add a card before ordering");
         }
 
-        List<ProductResponseDto> products = getProducts(ItemRequestDto.builder()
-                .items(orderDto.items().stream().map(OrderLineDto::productId).toList())
-                .build());
+        List<ProductResponseDto> products = deps.products();
         long amount = computeAmountInCents(orderDto.items(), products);
 
         // 1. Commit the order before any money moves, so it survives a payment failure.
@@ -164,14 +169,16 @@ public class OrderServiceImpl implements OrderService {
     public OrderResponseDto getOrder(long orderNumber, String authenticationName) {
         Order order = loadOwnedOrder(orderNumber, authenticationName);
 
-        UserDto userInfo = getProfile(authenticationName);
-        List<ProductResponseDto> productInfo = getProducts(ItemRequestDto.builder()
+        // Pure outbound HTTP only — never fork a call that touches orderDao/the persistence
+        // context here: this method is @Transactional and Hibernate's session is bound to
+        // the calling thread, not visible to a forked virtual thread.
+        DependencyResult deps = fetchProfileAndProducts(authenticationName, ItemRequestDto.builder()
                 .items(order.getItems().stream().map(Item::getProductId).toList())
                 .build());
 
         return OrderResponseDto.builder()
-                .userInfo(userInfo)
-                .productInfo(productInfo)
+                .userInfo(deps.profile())
+                .productInfo(deps.products())
                 .orderNumber(order.getOrderNumber())
                 .deliveryComment(order.getDeliveryComment())
                 .createdOn(order.getCreatedOn())
@@ -244,6 +251,36 @@ public class OrderServiceImpl implements OrderService {
             throw new NotFoundException("Order not found: " + orderNumber);
         }
         return order;
+    }
+
+    private record DependencyResult(UserDto profile, List<ProductResponseDto> products) { }
+
+    /**
+     * Fetch profile and catalog data concurrently — both are pure outbound HTTP calls with
+     * no shared state, so running them on separate virtual threads is safe. Never fork a
+     * call that touches the JPA persistence context this way: Hibernate's session is bound
+     * to the calling thread, not visible to a task running on another one.
+     *
+     * <p>{@code StructuredTaskScope} (the documented house pattern for this) is still a
+     * preview API on this project's JDK 25 build and would require {@code --enable-preview}
+     * project-wide, so this uses {@link CompletableFuture} on a virtual-thread-per-task
+     * executor instead — same concurrency benefit, stable API.
+     */
+    private DependencyResult fetchProfileAndProducts(String username, ItemRequestDto productsRequest) {
+        try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            CompletableFuture<UserDto> profileFuture =
+                    CompletableFuture.supplyAsync(() -> getProfile(username), executor);
+            CompletableFuture<List<ProductResponseDto>> productsFuture =
+                    CompletableFuture.supplyAsync(() -> getProducts(productsRequest), executor);
+            CompletableFuture.allOf(profileFuture, productsFuture).join();
+            return new DependencyResult(profileFuture.join(), productsFuture.join());
+        } catch (CompletionException e) {
+            throw unwrap(e.getCause());
+        }
+    }
+
+    private static RuntimeException unwrap(Throwable t) {
+        return (t instanceof RuntimeException re) ? re : new ServiceUnavailableException("Dependency lookup failed");
     }
 
     private UserDto getProfile(String username) {
