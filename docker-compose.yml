@@ -160,6 +160,42 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
     restart: unless-stopped
 
+  eureka-server-1:
+    build:
+      context: .
+      dockerfile: eureka-server/Dockerfile
+    container_name: eureka-server-1
+    environment:
+      EUREKA_INSTANCE_HOSTNAME: eureka-server-1
+    ports:
+      - "8761:8761"
+    restart: unless-stopped
+    networks:
+      - eureka-network
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8761/actuator/health" ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  eureka-server-2:
+    build:
+      context: .
+      dockerfile: eureka-server/Dockerfile
+    container_name: eureka-server-2
+    environment:
+      EUREKA_INSTANCE_HOSTNAME: eureka-server-2
+    ports:
+      - "8762:8761"
+    restart: unless-stopped
+    networks:
+      - eureka-network
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8761/actuator/health" ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
 volumes:
   mongodb_data:
   data:
@@ -170,4 +206,6 @@ networks:
   mongodb-network:
     driver: bridge
   vault-network:
+    driver: bridge
+  eureka-network:
     driver: bridge

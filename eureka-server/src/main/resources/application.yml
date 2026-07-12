@@ -6,11 +6,19 @@ spring:
     name: eureka-server
   zipkin:
     enabled: false
+  #Spring Cloud — Spring Cloud 2025.1 only certifies Boot 4.0.x; suppress the verifier on Boot 4.1.x
+  cloud:
+    compatibility-verifier:
+      enabled: false
 
 eureka:
+  instance:
+    hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
   client:
-    fetch-registry: false
-    register-with-eureka: false
+    fetch-registry: true
+    register-with-eureka: true
+    service-url:
+      defaultZone: ${EUREKA_PEER_ZONES:http://eureka-server-1:8761/eureka/,http://eureka-server-2:8761/eureka/}
 
 management:
   otlp:
