@@ -1,6 +1,10 @@
 # Integration-test profile: disables cloud infra (Vault/config/eureka) and points every
 # outbound URI at a loopback stub. Flyway stays enabled so V1–V5 run against the Postgres
 # Testcontainer; the datasource is supplied by @ServiceConnection.
+gateway:
+  trust:
+    secret: test-shared-secret
+
 spring:
   jpa:
     hibernate:

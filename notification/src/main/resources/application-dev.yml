@@ -1,6 +1,10 @@
 server:
   port: 8085
 
+gateway:
+  trust:
+    secret: ${GATEWAY_TRUST_SECRET}
+
 spring:
   # Vault provides secrets in dev (optional so the app still starts without Vault).
   config:

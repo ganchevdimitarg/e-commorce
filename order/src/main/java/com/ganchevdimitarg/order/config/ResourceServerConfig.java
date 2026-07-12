@@ -1,11 +1,14 @@
 package com.ganchevdimitarg.order.config;
 
 import com.ganchevdimitarg.client.introspector.CustomOpaqueTokenIntrospector;
+import com.ganchevdimitarg.client.security.GatewaySignatureVerifier;
+import com.ganchevdimitarg.client.security.GatewayTrustFilter;
 import com.ganchevdimitarg.order.exception.ProblemAccessDeniedHandler;
 import com.ganchevdimitarg.order.exception.ProblemAuthenticationEntryPoint;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -21,6 +24,7 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationProvider;
 import org.springframework.security.oauth2.server.resource.authentication.OpaqueTokenAuthenticationProvider;
 import org.springframework.security.oauth2.server.resource.introspection.OpaqueTokenIntrospector;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 
 
@@ -35,7 +39,7 @@ public class ResourceServerConfig {
     private final ProblemAccessDeniedHandler accessDeniedHandler;
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http) {
+    SecurityFilterChain securityFilterChain(HttpSecurity http, GatewayTrustFilter gatewayTrustFilter) {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -45,11 +49,17 @@ public class ResourceServerConfig {
                         // actuator endpoint must be authenticated so metrics/env never leak.
                         .requestMatchers("/actuator/health/**").permitAll()
                         .anyRequest().authenticated())
+                .addFilterBefore(gatewayTrustFilter, BearerTokenAuthenticationFilter.class)
                 .oauth2ResourceServer(oauth -> oauth.authenticationManagerResolver(this.tokenAuthenticationManagerResolver()))
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(authenticationEntryPoint)
                         .accessDeniedHandler(accessDeniedHandler));
         return http.build();
+    }
+
+    @Bean
+    GatewayTrustFilter gatewayTrustFilter(@Value("${gateway.trust.secret}") String trustSecret) {
+        return new GatewayTrustFilter(new GatewaySignatureVerifier(trustSecret));
     }
 
     @Bean

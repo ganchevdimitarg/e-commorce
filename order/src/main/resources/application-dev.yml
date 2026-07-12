@@ -1,6 +1,10 @@
 server:
   port: 8086
 
+gateway:
+  trust:
+    secret: ${GATEWAY_TRUST_SECRET}
+
 spring:
   #Security
   security:
