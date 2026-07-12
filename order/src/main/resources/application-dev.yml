@@ -163,7 +163,7 @@ resilience4j.timelimiter:
 
 catalog:
   base:
-    uri: ${CATALOG_SERVICE_BASE_URI:http://127.0.0.1:8084/api/v1}
+    uri: lb://catalog-service/api/v1
   service:
     products:
       get:
@@ -171,7 +171,7 @@ catalog:
 
 profile:
   base:
-    uri: ${PROFILE_SERVICE_BASE_URI:http://127.0.0.1:8083/api/v1}
+    uri: lb://profile-service/api/v1
   service:
     get:
       uri: ${profile.base.uri}/profile/get-by-username?username=
@@ -180,7 +180,7 @@ profile:
 
 payment:
   base:
-    uri: ${PAYMENT_SERVICE_BASE_URI:http://127.0.0.1:8087/api/v1}
+    uri: lb://payment-service/api/v1
   service:
     customer:
       post:

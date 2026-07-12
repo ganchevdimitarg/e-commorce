@@ -1,6 +1,7 @@
 package com.ganchevdimitarg.order.config;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.oauth2.client.AuthorizedClientServiceOAuth2AuthorizedClientManager;
@@ -19,7 +20,10 @@ import java.time.Duration;
 /**
  * WebMVC outbound HTTP: blocking {@link RestClient} carrying an OAuth2 client-credentials
  * bearer token. Replaces the reactive {@code WebClient} setup — reactive types belong only
- * in {@code gateway}.
+ * in {@code gateway}. The builder is {@link LoadBalanced} so {@code lb://<service-id>} URIs
+ * resolve against Eureka via Spring Cloud LoadBalancer's blocking client — this is the
+ * WebMVC-side equivalent of gateway's reactive {@code lb://} route filter, not the same
+ * mechanism.
  */
 @Configuration
 public class RestClientConfig {
@@ -46,7 +50,14 @@ public class RestClientConfig {
     }
 
     @Bean
-    RestClient restClient(OAuth2AuthorizedClientManager authorizedClientManager) {
+    @LoadBalanced
+    RestClient.Builder loadBalancedRestClientBuilder() {
+        return RestClient.builder();
+    }
+
+    @Bean
+    RestClient restClient(OAuth2AuthorizedClientManager authorizedClientManager,
+                           @LoadBalanced RestClient.Builder loadBalancedBuilder) {
         OAuth2ClientHttpRequestInterceptor requestInterceptor =
                 new OAuth2ClientHttpRequestInterceptor(authorizedClientManager);
         requestInterceptor.setClientRegistrationIdResolver(request -> defaultClientRegistrationId);
@@ -59,7 +70,7 @@ public class RestClientConfig {
                         .build());
         requestFactory.setReadTimeout(Duration.ofSeconds(5));
 
-        return RestClient.builder()
+        return loadBalancedBuilder
                 .requestFactory(requestFactory)
                 .requestInterceptor(requestInterceptor)
                 .build();
