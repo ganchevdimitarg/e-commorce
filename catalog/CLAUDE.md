@@ -47,8 +47,9 @@ read the root file first.
 ```
 catalog auto-manages its own data plane (PG writer/reader, Redis, Kafka) via
 `catalog/compose.yaml` on `spring-boot:run` (dev only; tests use Testcontainers). Shared
-platform services (Vault `:8200`, Eureka `:8761`, auth `:8082`, OTLP `:4318`) come from the
-root `docker-compose`. Env: `POSTGRES_USER`, `POSTGRES_PASSWORD`, `VAULT_DEV_ROOT_TOKEN_ID`.
+platform services (Vault `:8200`, Eureka `:8761`/`:8762` — 2 HA peers, auth `:8082`,
+OTLP `:4318`) come from the root `docker-compose`. Env: `POSTGRES_USER`,
+`POSTGRES_PASSWORD`, `VAULT_DEV_ROOT_TOKEN_ID`, `EUREKA_USERNAME`, `EUREKA_PASSWORD`.
 
 ## Known migration gaps
 - Source fully migrated to Boot 4.1.0 / Java 25 on the single `com.ganchevdimitarg.catalog`
