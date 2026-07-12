@@ -27,6 +27,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.jsonPath;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
@@ -78,21 +79,27 @@ class ChargeServiceImplTest {
     }
 
     @Test
-    void should_returnCharge_when_paymentServiceApproves() throws Exception {
+    void should_sendOrderIdAndReturnCharge_when_paymentServiceApproves() throws Exception {
         runSupplier();
         PaymentDto customer = PaymentDto.builder().username("john").customerId("cust_1").build();
-        PaymentDto charged = PaymentDto.builder().chargeId("ch_1").chargeStatus("succeeded").build();
+        String chargeResponseJson = """
+                {"chargeId":"ch_1","chargeStatus":"succeeded"}""";
 
         server.expect(requestTo("http://payment/customer?username=john"))
                 .andExpect(method(GET))
                 .andRespond(withSuccess(json.writeValueAsString(customer), MediaType.APPLICATION_JSON));
         server.expect(requestTo("http://payment/charge"))
                 .andExpect(method(POST))
-                .andRespond(withSuccess(json.writeValueAsString(charged), MediaType.APPLICATION_JSON));
+                .andExpect(jsonPath("$.orderId").value("42"))
+                .andExpect(jsonPath("$.cardId").value("card_1"))
+                .andExpect(jsonPath("$.amount").value(1000))
+                .andExpect(jsonPath("$.currency").value("usd"))
+                .andRespond(withSuccess(chargeResponseJson, MediaType.APPLICATION_JSON));
 
-        PaymentDto result = chargeService.makePayment("card_1", "john", 1000L);
+        PaymentDto result = chargeService.makePayment("card_1", "john", 1000L, "42");
 
         assertThat(result.chargeId()).isEqualTo("ch_1");
+        assertThat(result.chargeStatus()).isEqualTo("succeeded");
         server.verify();
     }
 
@@ -101,15 +108,18 @@ class ChargeServiceImplTest {
         runSupplier();
         ReflectionTestUtils.setField(chargeService,
                 "paymentServiceRefundChargeUri", "http://payment/refund");
-        PaymentDto refunded = PaymentDto.builder().chargeId("ch_1").chargeStatus("refunded").build();
+        String refundResponseJson = """
+                {"chargeId":"ch_1","chargeStatus":"refunded"}""";
 
         server.expect(requestTo("http://payment/refund"))
                 .andExpect(method(POST))
-                .andRespond(withSuccess(json.writeValueAsString(refunded), MediaType.APPLICATION_JSON));
+                .andExpect(jsonPath("$.chargeId").value("ch_1"))
+                .andRespond(withSuccess(refundResponseJson, MediaType.APPLICATION_JSON));
 
         PaymentDto result = chargeService.refund("ch_1", "john");
 
         assertThat(result.chargeId()).isEqualTo("ch_1");
+        assertThat(result.chargeStatus()).isEqualTo("refunded");
         server.verify();
     }
 
@@ -121,7 +131,7 @@ class ChargeServiceImplTest {
             return fallback.apply(new RuntimeException("payment down"));
         });
 
-        assertThatThrownBy(() -> chargeService.makePayment("card_1", "john", 1000L))
+        assertThatThrownBy(() -> chargeService.makePayment("card_1", "john", 1000L, "42"))
                 .isInstanceOf(ServiceUnavailableException.class);
     }
 }
