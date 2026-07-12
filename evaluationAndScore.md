@@ -83,19 +83,19 @@ Write every category — full-depth or triaged — as:
 At the end, provide:
 
 ## Overall Score
-An overall score from 1–10.
+A single overall score from 1–10, computed as the average of the category scores above. If the repository is a multi-module monorepo, first produce a per-module score table: for each module, re-score all 26 categories against that module's own code only, reusing the scoring rubric above, then average those per-module category scores into a single number for that module and give a one-line rationale — then give the single composite Overall Score (the average of the original, project-wide category scores above) beneath the table. Do not collapse an unevenly-mature monorepo into one number with no way to see the spread.
 
 ## Production Readiness
-Would you approve this project for production? Why or why not?
+Would you approve this project for production? Answer by synthesising the category scores already given above — name the specific categories (by number) that drove your verdict, especially Security, Testing, Concurrency & thread safety, and Logging and observability. Do not re-derive a separate, independent judgement; if your verdict here would contradict any category score above, resolve the contradiction by revising the category score, not by ignoring it here.
 
 ## Top 10 Critical Issues
-Rank the most important issues by severity.
+Rank the most important issues by severity. Every issue listed here must cite the category number it came from (e.g. "Category 13 — Security"). Do not introduce a new finding in this section that wasn't raised in a category write-up above.
 
 ## Quick Wins
-List improvements that can be completed in under one day.
+List improvements that can be completed in under one day. Cite the category number each one came from.
 
 ## Long-Term Refactoring Plan
-Recommend architectural improvements in priority order.
+Recommend architectural improvements in priority order. Cite the category number(s) each one came from.
 
 ## Strengths
 Highlight parts of the project that are particularly well designed.
