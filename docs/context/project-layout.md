@@ -1,7 +1,7 @@
 # Project layout
 
 Multi-module Spring Boot monorepo (`com.ganchevdimitarg:e-commerce`), Boot 4.1.0 /
-Java 25. One Maven reactor, ten modules.
+Java 25. One Maven reactor, nine modules.
 
 ```
 /
@@ -25,7 +25,6 @@ Java 25. One Maven reactor, ten modules.
 +-- notification/                <- email dispatch (PG, Kafka consumer)
 +-- client/                      <- shared opaque-token introspection library
 +-- eureka-server/               <- service discovery
-+-- config-server/               <- Spring Cloud Config
 +-- .claude/                     <- canonical Claude config (agents, skills, hooks, context)
 ```
 
