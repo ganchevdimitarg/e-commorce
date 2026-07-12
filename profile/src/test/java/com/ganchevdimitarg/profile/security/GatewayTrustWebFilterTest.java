@@ -66,5 +66,10 @@ class GatewayTrustWebFilterTest {
         StepVerifier.create(filter.filter(exchange, chain)).verifyComplete();
 
         assertThat(exchange.getResponse().getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(exchange.getResponse().getHeaders().getFirst("Content-Type"))
+                .isEqualTo("application/problem+json");
+        String body = exchange.getResponse().getBodyAsString().block();
+        assertThat(body).contains("\"Unauthorized\"")
+                .contains("\"detail\":\"Missing or invalid gateway trust signature\"");
     }
 }
