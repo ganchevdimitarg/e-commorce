@@ -1,0 +1,5 @@
+# Maven wrapper must stay LF regardless of core.autocrlf — Docker builds run
+# "./mvnw ..." via /bin/sh inside Linux containers; a CRLF shebang line
+# (#!/bin/sh\r) makes the interpreter unresolvable ("./mvnw: not found").
+mvnw text eol=lf
+mvnw.cmd text eol=crlf
