@@ -11,6 +11,9 @@ import org.springframework.security.web.server.authentication.RedirectServerAuth
 @EnableWebFluxSecurity
 public class SecurityConfig {
 
+    // No CORS policy configured: no browser-based frontend calls this gateway
+    // cross-origin today (only same-origin swagger-ui). Add an explicit
+    // CorsConfigurationSource here if/when one is introduced — do not default to "*".
     @Bean
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
         return http
