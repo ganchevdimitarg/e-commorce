@@ -12,8 +12,6 @@ spring:
       enabled: false
     compatibility-verifier:
       enabled: false
-  config:
-    import: "optional:configserver:"
   # JWT resource-server config — tests use @WithMockUser so the JWK endpoint is never contacted,
   # but the JwtDecoder bean must exist for the security filter chain to initialise.
   security:

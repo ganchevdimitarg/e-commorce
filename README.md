@@ -17,7 +17,6 @@ This project implements a distributed microservices architecture for an e-commer
 
 ### Infrastructure Services
 
-- **Config Server** - Centralized configuration management for all microservices
 - **Eureka Server** - Service discovery and registration
 - **Gateway** - API Gateway for routing and load balancing
 - **Client** - Frontend application/client interface
@@ -32,7 +31,7 @@ This project implements a distributed microservices architecture for an e-commer
 - **Framework**: Spring Boot, Spring Cloud
 - **Service Discovery**: Netflix Eureka
 - **API Gateway**: Spring Cloud Gateway
-- **Configuration**: Spring Cloud Config
+- **Configuration**: HashiCorp Vault
 - **Containerization**: Docker, Docker Compose
 - **Database Migration**: Flyway
 - **Security**: HashiCorp Vault (for secrets management)
@@ -94,9 +93,9 @@ Services communicate through:
 
 ### Configuration Management
 
-All service configurations are centralized in the Config Server, allowing for:
+Service configuration and secrets are sourced from HashiCorp Vault
+(`spring.config.import: optional:vault://`), allowing for:
 - Environment-specific configurations
-- Dynamic configuration updates
 - Secure credential management
 
 ### Service Discovery
@@ -148,7 +147,7 @@ mvn spring-boot:run
 
 1. Create a new module in the parent POM
 2. Add service discovery configuration
-3. Register with Config Server
+3. Wire Vault-backed configuration (`bootstrap.yml`)
 4. Add to docker-compose.yaml
 5. Configure monitoring endpoints
 
@@ -162,7 +161,6 @@ e-commorce/
 ├── payment/             # Payment processing service
 ├── profile/             # User profile service
 ├── notification/        # Notification service
-├── config-server/       # Centralized configuration
 ├── eureka-server/       # Service discovery
 ├── gateway/             # API Gateway
 ├── client/              # Frontend client
@@ -204,7 +202,7 @@ e-commorce/
 
 - Check if Eureka Server is running
 - Verify network connectivity between services
-- Check service configuration in Config Server
+- Check service configuration in Vault
 
 ### Database Migration Failures
 

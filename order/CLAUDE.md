@@ -21,8 +21,8 @@ to this module — read the root file first.
   `bootstrap.yml` (`spring.profiles.include: dev`). Add `application-<env>.yml` and run with
   `--spring.profiles.active=<env>` for other environments.
 - `bootstrap.yml` also wires Vault config — a full `@SpringBootTest` therefore needs
-  Vault/config-server/eureka reachable; a Testcontainers IT (`OrderPersistenceIT`) now runs
-  the full context in a `test` profile that disables Vault/config/eureka.
+  Vault/eureka reachable; a Testcontainers IT (`OrderPersistenceIT`) now runs
+  the full context in a `test` profile that disables Vault/eureka.
 
 ## Migration status (verified 2026-07-04)
 The Boot-4 migration and grade-A remediation are **complete** — `./mvnw -f order/pom.xml
