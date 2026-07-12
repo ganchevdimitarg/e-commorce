@@ -3,7 +3,7 @@
 > **Repo.** `com.ganchevdimitarg:e-commerce` — a Spring Boot 4.1.0 / Java 25 multi-module
 > monorepo: `gateway` (WebFlux edge) + business services (`authentication`, `catalog`,
 > `profile`, `order`, `payment`, `notification`) on PostgreSQL/MongoDB, plus
-> `eureka-server`, `config-server`, `client`. Conventions below are the **target**; all
+> `eureka-server`, `client`. Conventions below are the **target**; all
 > modules are on Boot 4.1.0 as of 2026-07-08 (notification's full remediation is landing
 > from `feat/notification-boot4-migration`) — migrate toward these when you touch
 > lagging code, never copy a legacy pattern forward. Section-level "aspirational" notes
@@ -193,7 +193,7 @@ topic constant `<DOMAIN>_<ENTITY>_<EVENT>`.
 
 ## Project layout
 Multi-module monorepo: `gateway` (WebFlux) + business services (PG) + `profile` (Mongo) +
-`eureka-server`/`config-server`/`client`. Single canonical Claude config in root `.claude/`;
+`eureka-server`/`client`. Single canonical Claude config in root `.claude/`;
 pattern docs in `docs/context/`. @docs/context/project-layout.md
 
 ---
