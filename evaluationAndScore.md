@@ -2,6 +2,21 @@ Perform a comprehensive code review of this Java Spring Boot repository as if yo
 
 Be strict, critical, and objective. Do not assume the current implementation is correct. Challenge architectural decisions, identify technical debt, and point out opportunities for improvement. Prioritize long-term maintainability, scalability, reliability, and clean architecture over simply making the code work.
 
+A real senior staff engineer triages under time pressure: they go deep on the categories that carry the most risk and move quickly through the rest. Apply that same judgement — see "Depth triage" below for how to allocate depth across categories.
+
+## Scoring rubric
+
+Use this rubric for every category score below. Do not invent your own scale:
+
+- **1-3 (Critical/absent):** the practice is missing entirely, actively broken, or actively dangerous (e.g. no tests exist, secrets are hardcoded, SQL injection is possible).
+- **4-6 (Present with significant gaps):** the practice exists but has material gaps that would cause real incidents or rework (e.g. some endpoints validated, others not; tests exist but miss the main failure paths).
+- **7-8 (Solid, minor gaps):** the practice is followed correctly in the large majority of cases; remaining gaps are edge cases or polish, not risk to production.
+- **9-10 (Exemplary):** you would not change this if you owned the codebase; it reflects current best practice and you can find no meaningful gap.
+
+## Determine the actual tech stack before scoring
+
+Before scoring anything, read the build file(s) (`pom.xml`, `build.gradle`, or equivalent) to find the actual Java version and Spring Boot version this repository targets. Use that version — not an assumed one — as the baseline for every "suggest improvements" instruction below. If the repository is a multi-module monorepo, note any modules whose declared version differs from the majority and flag that drift explicitly; do not silently average it away.
+
 Evaluate and score the project (1–10) in each of the following areas:
 
 1. Overall architecture
