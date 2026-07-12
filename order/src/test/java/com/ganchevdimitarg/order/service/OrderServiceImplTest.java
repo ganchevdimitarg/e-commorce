@@ -167,14 +167,14 @@ class OrderServiceImplTest {
         PaymentDto payment = PaymentDto.builder().chargeId("ch_1").chargeStatus("succeeded").build();
         when(orderPersistence.placeOrder(any(), eq("john")))
                 .thenReturn(Order.builder().orderNumber(1).username("john").build());
-        when(chargeService.makePayment(eq("card_1"), eq("john"), eq(1000L))).thenReturn(payment);
+        when(chargeService.makePayment(eq("card_1"), eq("john"), eq(1000L), eq("1"))).thenReturn(payment);
 
         OrderCreatedResponse response =
                 orderService.createOrder(orderFor("john", new OrderLineDto("p_1", 1)), "john");
 
         assertThat(response.orderNumber()).isEqualTo(1L);
         verify(orderPersistence).placeOrder(any(), eq("john"));
-        verify(chargeService).makePayment("card_1", "john", 1000L);
+        verify(chargeService).makePayment("card_1", "john", 1000L, "1");
         verify(orderPersistence).confirmPaid(1L, payment, "john");
         server.verify();
     }
@@ -187,13 +187,13 @@ class OrderServiceImplTest {
                 .price(new BigDecimal("10.50")).build()));
         when(orderPersistence.placeOrder(any(), eq("john")))
                 .thenReturn(Order.builder().orderNumber(1).username("john").build());
-        when(chargeService.makePayment(anyString(), anyString(), anyLong()))
+        when(chargeService.makePayment(anyString(), anyString(), anyLong(), anyString()))
                 .thenReturn(PaymentDto.builder().chargeId("ch_1").build());
 
         orderService.createOrder(orderFor("john", new OrderLineDto("p_1", 3)), "john");
 
         // 10.50 * 3 = 31.50 -> 3150 cents
-        verify(chargeService).makePayment("card_1", "john", 3150L);
+        verify(chargeService).makePayment("card_1", "john", 3150L, "1");
     }
 
     @Test
@@ -204,7 +204,7 @@ class OrderServiceImplTest {
                 .price(new BigDecimal("10.00")).build()));
         when(orderPersistence.placeOrder(any(), eq("john")))
                 .thenReturn(Order.builder().orderNumber(7).username("john").build());
-        when(chargeService.makePayment(anyString(), anyString(), anyLong()))
+        when(chargeService.makePayment(anyString(), anyString(), anyLong(), anyString()))
                 .thenThrow(new InvalidRequestDataException("payment down"));
 
         assertThatThrownBy(() -> orderService.createOrder(orderFor("john", new OrderLineDto("p_1", 1)), "john"))
@@ -224,7 +224,7 @@ class OrderServiceImplTest {
         PaymentDto payment = PaymentDto.builder().chargeId("ch_1").chargeStatus("succeeded").build();
         when(orderPersistence.placeOrder(any(), eq("john")))
                 .thenReturn(Order.builder().orderNumber(8).username("john").build());
-        when(chargeService.makePayment(anyString(), anyString(), anyLong())).thenReturn(payment);
+        when(chargeService.makePayment(anyString(), anyString(), anyLong(), anyString())).thenReturn(payment);
         org.mockito.Mockito.doThrow(new IllegalStateException("db down"))
                 .when(orderPersistence).confirmPaid(eq(8L), any(), eq("john"));
 

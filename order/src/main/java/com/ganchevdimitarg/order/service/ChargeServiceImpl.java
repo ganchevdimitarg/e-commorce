@@ -3,7 +3,10 @@ package com.ganchevdimitarg.order.service;
 import com.ganchevdimitarg.order.dao.ChargeDao;
 import com.ganchevdimitarg.order.domain.Charge;
 import com.ganchevdimitarg.order.domain.Order;
+import com.ganchevdimitarg.order.dto.ChargeRequest;
+import com.ganchevdimitarg.order.dto.PaymentChargeResponse;
 import com.ganchevdimitarg.order.dto.PaymentDto;
+import com.ganchevdimitarg.order.dto.RefundRequest;
 import com.ganchevdimitarg.order.exception.InvalidRequestDataException;
 import com.ganchevdimitarg.order.exception.ServiceUnavailableException;
 import lombok.RequiredArgsConstructor;
@@ -33,12 +36,12 @@ public class ChargeServiceImpl implements ChargeService {
     private String paymentServiceRefundChargeUri;
 
     @Override
-    public PaymentDto makePayment(String cardId, String authenticationName, long amount) {
+    public PaymentDto makePayment(String cardId, String authenticationName, long amount, String orderId) {
         PaymentDto paymentCustomer = getCustomerFromPaymentService(
                 paymentServiceGetCustomerByUsernameUri + authenticationName
         );
 
-        PaymentDto chargeCustomer = chargeCustomer(amount, paymentCustomer, cardId);
+        PaymentDto chargeCustomer = chargeCustomer(amount, paymentCustomer, cardId, orderId);
         log.info("Payment went through successfully: {}", chargeCustomer.chargeId());
         return chargeCustomer;
     }
@@ -61,35 +64,26 @@ public class ChargeServiceImpl implements ChargeService {
      */
     @Override
     public PaymentDto refund(String stripeChargeId, String username) {
-        PaymentDto refundRequest = PaymentDto.builder()
-                .chargeId(stripeChargeId)
-                .username(username)
-                .build();
+        RefundRequest refundRequest = new RefundRequest(stripeChargeId);
 
-        PaymentDto refunded = sendRequestToPaymentService(paymentServiceRefundChargeUri, refundRequest);
+        PaymentChargeResponse refunded = sendChargeRequestToPaymentService(paymentServiceRefundChargeUri, refundRequest);
         log.info("Refund went through successfully: {}", refunded.chargeId());
-        return refunded;
+        return PaymentDto.builder().chargeId(refunded.chargeId()).chargeStatus(refunded.chargeStatus()).build();
     }
 
-    private PaymentDto chargeCustomer(long amount, PaymentDto paymentCustomer, String cardId) {
-        PaymentDto chargeRequest = PaymentDto.builder()
-                .amount(amount)
-                .currency("usd")
-                .receiptEmail(paymentCustomer.username())
-                .customerId(paymentCustomer.customerId())
-                .username(paymentCustomer.username())
-                .cardId(cardId)
-                .build();
+    private PaymentDto chargeCustomer(long amount, PaymentDto paymentCustomer, String cardId, String orderId) {
+        ChargeRequest chargeRequest = new ChargeRequest(orderId, cardId, amount, "usd", paymentCustomer.username());
 
-        return sendRequestToPaymentService(paymentServiceChargeCustomerUri, chargeRequest);
+        PaymentChargeResponse response = sendChargeRequestToPaymentService(paymentServiceChargeCustomerUri, chargeRequest);
+        return PaymentDto.builder().chargeId(response.chargeId()).chargeStatus(response.chargeStatus()).build();
     }
 
     /**
      * A tripped breaker or a failed call surfaces as a 503 {@link ServiceUnavailableException}
      * — never a silent empty sentinel that callers would mistake for a valid response.
      */
-    private PaymentDto sendRequestToPaymentService(String uri, PaymentDto request) {
-        PaymentDto paymentDto = circuitBreakerFactory.create(PAYMENT_CIRCUIT_BREAKER).run(
+    private PaymentChargeResponse sendChargeRequestToPaymentService(String uri, Object request) {
+        PaymentChargeResponse response = circuitBreakerFactory.create(PAYMENT_CIRCUIT_BREAKER).run(
                 () -> restClient
                         .post()
                         .uri(uri)
@@ -97,16 +91,16 @@ public class ChargeServiceImpl implements ChargeService {
                         .accept(MediaType.APPLICATION_JSON)
                         .body(request)
                         .retrieve()
-                        .body(PaymentDto.class),
+                        .body(PaymentChargeResponse.class),
                 throwable -> {
                     log.warn("Payment service unavailable", throwable);
                     throw new ServiceUnavailableException("Payment service is unavailable");
                 });
 
-        if (paymentDto == null) {
+        if (response == null) {
             throw new InvalidRequestDataException("Payment service returned no response");
         }
-        return paymentDto;
+        return response;
     }
 
     private PaymentDto getCustomerFromPaymentService(String uri) {

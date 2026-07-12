@@ -93,7 +93,7 @@ public class OrderServiceImpl implements OrderService {
         // 2. Charge outside any transaction. A failure here means no money moved.
         PaymentDto payment;
         try {
-            payment = chargeService.makePayment(userInfo.cardId(), authenticationName, amount);
+            payment = chargeService.makePayment(userInfo.cardId(), authenticationName, amount, String.valueOf(orderNumber));
         } catch (RuntimeException e) {
             log.warn("Charge failed for order {}", orderNumber, e);
             orderPersistence.markPaymentFailed(orderNumber, authenticationName, "charge failed");
