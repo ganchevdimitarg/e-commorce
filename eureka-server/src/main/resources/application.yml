@@ -10,6 +10,10 @@ spring:
   cloud:
     compatibility-verifier:
       enabled: false
+  security:
+    user:
+      name: ${EUREKA_USERNAME:eureka}
+      password: ${EUREKA_PASSWORD}
 
 eureka:
   instance:
@@ -18,7 +22,7 @@ eureka:
     fetch-registry: true
     register-with-eureka: true
     service-url:
-      defaultZone: ${EUREKA_PEER_ZONES:http://eureka-server-1:8761/eureka/,http://eureka-server-2:8761/eureka/}
+      defaultZone: ${EUREKA_PEER_ZONES:http://${EUREKA_USERNAME:eureka}:${EUREKA_PASSWORD}@eureka-server-1:8761/eureka/,http://${EUREKA_USERNAME:eureka}:${EUREKA_PASSWORD}@eureka-server-2:8761/eureka/}
 
 management:
   otlp:

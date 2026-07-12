@@ -167,6 +167,8 @@ services:
     container_name: eureka-server-1
     environment:
       EUREKA_INSTANCE_HOSTNAME: eureka-server-1
+      EUREKA_USERNAME: ${EUREKA_USERNAME}
+      EUREKA_PASSWORD: ${EUREKA_PASSWORD}
     ports:
       - "8761:8761"
     restart: unless-stopped
@@ -185,6 +187,8 @@ services:
     container_name: eureka-server-2
     environment:
       EUREKA_INSTANCE_HOSTNAME: eureka-server-2
+      EUREKA_USERNAME: ${EUREKA_USERNAME}
+      EUREKA_PASSWORD: ${EUREKA_PASSWORD}
     ports:
       - "8762:8761"
     restart: unless-stopped
