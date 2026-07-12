@@ -1,6 +1,7 @@
 package com.ganchevdimitarg.payment.idempotency;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ganchevdimitarg.client.security.GatewaySignatureVerifier;
 import com.ganchevdimitarg.payment.AbstractIntegrationTest;
 import com.ganchevdimitarg.payment.dto.CreateChargeCommand;
 import com.ganchevdimitarg.payment.gateway.PaymentGateway;
@@ -12,6 +13,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import java.util.UUID;
 
@@ -35,7 +37,10 @@ class IdempotencyInterceptorIT extends AbstractIntegrationTest {
     private static final String CREATE_CHARGE_URL = "/api/v1/payment/charge/create-charge";
     private static final String IDEMPOTENCY_KEY_HEADER = "Idempotency-Key";
     private static final String USER_ID_HEADER = "X-User-Id";
+    private static final String TIMESTAMP_HEADER = "X-Gateway-Timestamp";
+    private static final String SIGNATURE_HEADER = "X-Gateway-Signature";
     private static final String UNSEEDED_USER = "nonexistent-user";
+    private static final String GATEWAY_TRUST_SECRET = "test-shared-secret";
 
     @Autowired
     private MockMvc mockMvc;
@@ -54,9 +59,8 @@ class IdempotencyInterceptorIT extends AbstractIntegrationTest {
         // Optional-but-honored: no Idempotency-Key means the interceptor does NOT reject the
         // request. It clears preHandle and reaches ChargeServiceImpl#createCharge, which 404s
         // on the unseeded customer lookup — proving the interceptor neither 400'd nor 409'd.
-        mockMvc.perform(post(CREATE_CHARGE_URL)
+        mockMvc.perform(withGatewayTrust(post(CREATE_CHARGE_URL), UNSEEDED_USER)
                         .with(jwt().authorities(new SimpleGrantedAuthority("SCOPE_payment.write")))
-                        .header(USER_ID_HEADER, UNSEEDED_USER)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validChargeCommand())))
                 .andExpect(status().isNotFound());
@@ -69,16 +73,14 @@ class IdempotencyInterceptorIT extends AbstractIntegrationTest {
 
         // First call clears the interceptor and stores the key; downstream 404s on the
         // unseeded customer lookup, well before any gateway call — its status is not asserted.
-        mockMvc.perform(post(CREATE_CHARGE_URL)
+        mockMvc.perform(withGatewayTrust(post(CREATE_CHARGE_URL), UNSEEDED_USER)
                 .with(jwt().authorities(new SimpleGrantedAuthority("SCOPE_payment.write")))
-                .header(USER_ID_HEADER, UNSEEDED_USER)
                 .contentType(MediaType.APPLICATION_JSON)
                 .header(IDEMPOTENCY_KEY_HEADER, key)
                 .content(body));
 
-        mockMvc.perform(post(CREATE_CHARGE_URL)
+        mockMvc.perform(withGatewayTrust(post(CREATE_CHARGE_URL), UNSEEDED_USER)
                         .with(jwt().authorities(new SimpleGrantedAuthority("SCOPE_payment.write")))
-                        .header(USER_ID_HEADER, UNSEEDED_USER)
                         .contentType(MediaType.APPLICATION_JSON)
                         .header(IDEMPOTENCY_KEY_HEADER, key)
                         .content(body))
@@ -89,9 +91,8 @@ class IdempotencyInterceptorIT extends AbstractIntegrationTest {
     void should_storeKeyInRedis_when_firstWrite() throws Exception {
         String key = UUID.randomUUID().toString();
 
-        mockMvc.perform(post(CREATE_CHARGE_URL)
+        mockMvc.perform(withGatewayTrust(post(CREATE_CHARGE_URL), UNSEEDED_USER)
                 .with(jwt().authorities(new SimpleGrantedAuthority("SCOPE_payment.write")))
-                .header(USER_ID_HEADER, UNSEEDED_USER)
                 .contentType(MediaType.APPLICATION_JSON)
                 .header(IDEMPOTENCY_KEY_HEADER, key)
                 .content(objectMapper.writeValueAsString(validChargeCommand())));
@@ -101,5 +102,23 @@ class IdempotencyInterceptorIT extends AbstractIntegrationTest {
 
     private static CreateChargeCommand validChargeCommand() {
         return new CreateChargeCommand("order-1", "card_1", 500L, "usd", "nonexistent@doe.com");
+    }
+
+    /**
+     * Stamps the request with {@code X-User-Id} plus a fresh, valid gateway trust
+     * signature, mirroring what {@code GatewayTrustFilter} requires now that it runs
+     * ahead of the idempotency interceptor in the security chain (see
+     * {@code ResourceServerConfig}). Roles are omitted, matching production requests
+     * that carry no {@code X-User-Roles} header.
+     */
+    private static MockHttpServletRequestBuilder withGatewayTrust(
+            MockHttpServletRequestBuilder builder, String userId) {
+        String timestamp = String.valueOf(System.currentTimeMillis());
+        String signature = new GatewaySignatureVerifier(GATEWAY_TRUST_SECRET)
+                .sign(userId, null, timestamp);
+        return builder
+                .header(USER_ID_HEADER, userId)
+                .header(TIMESTAMP_HEADER, timestamp)
+                .header(SIGNATURE_HEADER, signature);
     }
 }
