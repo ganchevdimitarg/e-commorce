@@ -4,6 +4,7 @@ import com.ganchevdimitarg.profile.dto.CardSetupCommand;
 import com.ganchevdimitarg.profile.dto.UpdateProfileCommand;
 import com.ganchevdimitarg.profile.dto.UserDto;
 import com.ganchevdimitarg.profile.event.UserRegisteredEvent;
+import org.springframework.security.access.prepost.PreAuthorize;
 import reactor.core.publisher.Mono;
 
 public interface ProfileService {
@@ -29,10 +30,12 @@ public interface ProfileService {
     /**
      * Updates the display fields of the active profile for the given userId.
      */
+    @PreAuthorize("hasAnyAuthority('SCOPE_profile.write', 'ROLE_USER')")
     Mono<Void> updateProfile(String userId, UpdateProfileCommand command);
 
     /**
      * Sets up a payment customer and attaches a card for the given userId.
      */
+    @PreAuthorize("hasAnyAuthority('SCOPE_profile.write', 'ROLE_USER')")
     Mono<UserDto> setupPayment(String userId, CardSetupCommand command);
 }

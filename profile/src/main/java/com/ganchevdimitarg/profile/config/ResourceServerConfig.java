@@ -2,7 +2,9 @@ package com.ganchevdimitarg.profile.config;
 
 //import com.ganchevdimitarg.client.introspector.CustomOpaqueTokenIntrospector;
 
+import com.ganchevdimitarg.client.security.GatewaySignatureVerifier;
 import com.ganchevdimitarg.profile.handler.CustomLogoutHandler;
+import com.ganchevdimitarg.profile.security.GatewayTrustWebFilter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -11,6 +13,7 @@ import org.springframework.security.authentication.ReactiveAuthenticationManager
 import org.springframework.security.authentication.ReactiveAuthenticationManagerResolver;
 import org.springframework.security.config.annotation.method.configuration.EnableReactiveMethodSecurity;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
+import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
 import org.springframework.security.oauth2.jwt.NimbusReactiveJwtDecoder;
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtReactiveAuthenticationManager;
@@ -55,9 +58,16 @@ public class ResourceServerConfig {
 //        return exchange -> isJwt(exchange) ? Mono.just(jwtManager) : Mono.just(opaqueTokenManager);
     }
 
+    @Bean
+    public GatewayTrustWebFilter gatewayTrustWebFilter(
+            @Value("${gateway.trust.secret}") String trustSecret) {
+        return new GatewayTrustWebFilter(new GatewaySignatureVerifier(trustSecret));
+    }
+
     // ServerHttpSecurity received as method parameter - NOT a constructor field
     @Bean
-    public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
+    public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http,
+                                                          GatewayTrustWebFilter gatewayTrustWebFilter) {
         // Disables CSRF; configures authorization and logout
         return http
                 // Configures authorization rules for specified paths
@@ -77,6 +87,7 @@ public class ResourceServerConfig {
                         // is the userId); registration/deletion are owned by auth.
                         .anyExchange().authenticated()
                 )
+                .addFilterBefore(gatewayTrustWebFilter, SecurityWebFiltersOrder.AUTHENTICATION)
                 .logout(logout -> logout
                         .logoutUrl("/api/v1/profile/logout")
                         .logoutHandler(logoutHandler)

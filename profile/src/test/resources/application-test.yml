@@ -1,3 +1,7 @@
+gateway:
+  trust:
+    secret: test-shared-secret
+
 spring:
   main:
     banner-mode: off
