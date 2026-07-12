@@ -22,7 +22,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class UserIdentityGlobalFilterTest {
 
-    private final UserIdentityGlobalFilter filter = new UserIdentityGlobalFilter();
+    private static final String SECRET = "test-shared-secret";
+    private final UserIdentityGlobalFilter filter = new UserIdentityGlobalFilter(SECRET);
 
     @Test
     void should_stripSpoofedIdentityHeaders_when_requestIsUnauthenticated() {
@@ -45,7 +46,7 @@ class UserIdentityGlobalFilterTest {
     }
 
     @Test
-    void should_overwriteSpoofedHeadersWithPrincipal_when_authenticated() {
+    void should_overwriteSpoofedHeadersWithSignedPrincipal_when_authenticated() {
         MockServerWebExchange exchange = MockServerWebExchange.from(
                 MockServerHttpRequest.get("/api/v1/order")
                         .header(UserIdentityGlobalFilter.USER_ID, "attacker"));
@@ -66,6 +67,10 @@ class UserIdentityGlobalFilterTest {
         HttpHeaders headers = forwarded.get().getHeaders();
         assertThat(headers.getFirst(UserIdentityGlobalFilter.USER_ID)).isEqualTo("user-123");
         assertThat(headers.getFirst(UserIdentityGlobalFilter.USER_ROLES)).isEqualTo("ROLE_USER");
+        assertThat(headers.getFirst("X-Gateway-Timestamp")).isNotBlank();
+        String timestamp = headers.getFirst("X-Gateway-Timestamp");
+        String expectedSignature = new GatewaySignatureSigner(SECRET).sign("user-123", "ROLE_USER", timestamp);
+        assertThat(headers.getFirst("X-Gateway-Signature")).isEqualTo(expectedSignature);
     }
 
     @Test
