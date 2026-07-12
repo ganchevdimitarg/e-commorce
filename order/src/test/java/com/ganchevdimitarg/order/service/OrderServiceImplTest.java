@@ -77,7 +77,9 @@ class OrderServiceImplTest {
     @BeforeEach
     void setUp() {
         RestClient.Builder builder = RestClient.builder();
-        server = MockRestServiceServer.bindTo(builder).build();
+        // profile and catalog now run concurrently (fetchProfileAndProducts), so the two
+        // requests can hit the mock server in either order.
+        server = MockRestServiceServer.bindTo(builder).ignoreExpectOrder(true).build();
         orderService = new OrderServiceImpl(orderDao, builder.build(), circuitBreakerFactory,
                 chargeService, statusHistoryDao, orderPersistence);
         ReflectionTestUtils.setField(orderService,
@@ -132,6 +134,10 @@ class OrderServiceImplTest {
     void should_throwConflict_when_noProfileRegistered() throws Exception {
         runSupplier();
         stubProfile(UserDto.builder().username("").build());
+        // profile and catalog are now fetched concurrently, so catalog is called even though
+        // the profile turns out to be invalid — stub it so the concurrent call has a response.
+        stubCatalog(List.of(ProductResponseDto.builder().id("p_1").name("Widget")
+                .price(new BigDecimal("10.00")).build()));
 
         assertThatThrownBy(() -> orderService.createOrder(orderFor("john", new OrderLineDto("p_1", 1)), "john"))
                 .isInstanceOf(ConflictException.class);
