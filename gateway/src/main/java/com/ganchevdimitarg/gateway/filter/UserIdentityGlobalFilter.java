@@ -1,5 +1,6 @@
 package com.ganchevdimitarg.gateway.filter;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
@@ -19,17 +20,27 @@ import java.util.stream.Collectors;
 /**
  * Establishes the trusted identity contract with downstream services.
  *
- * <p>Downstream services trust {@code X-User-Id} / {@code X-User-Roles} without
- * re-validating them, so the gateway must be the sole source of those headers. This
- * filter therefore always <em>strips</em> any client-supplied identity headers (closing
- * the spoofing hole) and, for an authenticated exchange, re-injects them from the
- * OAuth2 principal.
+ * <p>Downstream services trust {@code X-User-Id} / {@code X-User-Roles} only when
+ * they carry a fresh HMAC signature computed here, so the gateway must be the sole
+ * source of those headers. This filter therefore always <em>strips</em> any
+ * client-supplied identity headers (closing the spoofing hole) and, for an
+ * authenticated exchange, re-injects them from the OAuth2 principal along with a
+ * signature and timestamp downstream services verify via
+ * {@code GatewayTrustFilter} (client module) / {@code GatewayTrustWebFilter} (profile).
  */
 @Component
 public class UserIdentityGlobalFilter implements GlobalFilter, Ordered {
 
     static final String USER_ID = "X-User-Id";
     static final String USER_ROLES = "X-User-Roles";
+    static final String GATEWAY_TIMESTAMP = "X-Gateway-Timestamp";
+    static final String GATEWAY_SIGNATURE = "X-Gateway-Signature";
+
+    private final GatewaySignatureSigner signer;
+
+    public UserIdentityGlobalFilter(@Value("${gateway.trust.secret}") String trustSecret) {
+        this.signer = new GatewaySignatureSigner(trustSecret);
+    }
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
@@ -37,6 +48,8 @@ public class UserIdentityGlobalFilter implements GlobalFilter, Ordered {
                 .request(r -> r.headers(h -> {
                     h.remove(USER_ID);
                     h.remove(USER_ROLES);
+                    h.remove(GATEWAY_TIMESTAMP);
+                    h.remove(GATEWAY_SIGNATURE);
                 }))
                 .build();
 
@@ -54,6 +67,8 @@ public class UserIdentityGlobalFilter implements GlobalFilter, Ordered {
         String roles = auth.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.joining(","));
+        String timestamp = String.valueOf(System.currentTimeMillis());
+        String signature = signer.sign(userId, roles, timestamp);
 
         return exchange.mutate()
                 .request(r -> r.headers(h -> {
@@ -61,6 +76,8 @@ public class UserIdentityGlobalFilter implements GlobalFilter, Ordered {
                     if (!roles.isBlank()) {
                         h.set(USER_ROLES, roles);
                     }
+                    h.set(GATEWAY_TIMESTAMP, timestamp);
+                    h.set(GATEWAY_SIGNATURE, signature);
                 }))
                 .build();
     }

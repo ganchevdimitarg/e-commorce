@@ -1,6 +1,10 @@
 server:
   port: 8084
 
+gateway:
+  trust:
+    secret: ${GATEWAY_TRUST_SECRET}
+
 spring:
   #Data Source Properties — credentials shared by the routed writer/reader pools
   datasource:

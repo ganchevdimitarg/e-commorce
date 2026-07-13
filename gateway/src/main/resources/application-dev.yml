@@ -136,6 +136,10 @@ spring:
               filters:
                 - RewritePath=/payment-service/v3/api-docs, /v3/api-docs
 
+gateway:
+  trust:
+    secret: ${GATEWAY_TRUST_SECRET}
+
 # Eureka Client Configuration
 eureka:
   client:
