@@ -16,12 +16,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Entity(name = "Product")
-@Table(
-        name = "products",
-        uniqueConstraints = {
-                @UniqueConstraint(name = "product_name", columnNames = "name")
-        },
-        indexes = @Index(name = "product_index",columnList = "name"))
+@Table(name = "products")
 @SQLDelete(sql = "UPDATE products SET deleted_at = now() WHERE id = ? AND version = ?")
 @SQLRestriction("deleted_at IS NULL")
 @NoArgsConstructor

@@ -66,7 +66,7 @@ class ProductEventIT extends RedisKafkaIntegrationBase {
         jdbc.update("""
                 INSERT INTO categories (id, name, created_at, updated_at, version)
                 VALUES (?, ?, now(), now(), 0)
-                ON CONFLICT (name) DO NOTHING
+                ON CONFLICT (name) WHERE deleted_at IS NULL DO NOTHING
                 """, categoryId, CATEGORY_NAME);
 
         // Create a test Kafka consumer subscribed to the topic BEFORE producing

@@ -12,12 +12,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Entity(name = "Category")
-@Table(
-        name = "categories",
-        uniqueConstraints = {
-                @UniqueConstraint(name = "category_name", columnNames = "name")
-        },
-        indexes = @Index(name = "category_index",columnList = "name"))
+@Table(name = "categories")
 @SQLDelete(sql = "UPDATE categories SET deleted_at = now() WHERE id = ? AND version = ?")
 @SQLRestriction("deleted_at IS NULL")
 @NoArgsConstructor
@@ -28,7 +23,7 @@ public class Category extends Auditable {
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", unique = true, nullable = false, updatable = false)
     private UUID id;
-    @Column(name = "name", unique = true, nullable = false, length = 200)
+    @Column(name = "name", nullable = false, length = 200)
     private String name;
     @OneToMany(mappedBy = "category", targetEntity = Product.class, cascade = CascadeType.ALL)
     @JsonIgnore
