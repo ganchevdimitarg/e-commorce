@@ -16,6 +16,7 @@ import java.util.UUID;
 public interface ProductRepository extends JpaRepository<Product, UUID> {
     Optional<Product> findByName(String productName);
     Optional<Product> findByNameAndCategoryId(String name, UUID categoryId);
+    boolean existsByCategory_Id(UUID categoryId);
 
     // category is join-fetched to avoid a select per row on page reads; comments stay
     // lazy (@BatchSize on the entity) because a collection fetch join cannot paginate

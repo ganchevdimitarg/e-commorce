@@ -59,8 +59,12 @@ public class CategoryServiceImpl implements CategoryService {
     @Transactional
     @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
     public void deleteCategory(String categoryName) {
-        requireCategory(categoryName);
-        categoryRepository.deleteByName(categoryName);
+        Category category = requireCategory(categoryName);
+        if (productRepository.existsByCategory_Id(category.getId())) {
+            throw new ConflictException(
+                    "Category " + categoryName + " still contains products; move them first");
+        }
+        categoryRepository.delete(category);
         meterRegistry.counter("catalog.category.deleted").increment();
     }
 

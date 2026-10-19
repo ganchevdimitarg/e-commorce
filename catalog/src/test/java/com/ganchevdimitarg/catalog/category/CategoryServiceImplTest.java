@@ -110,12 +110,30 @@ class CategoryServiceImplTest {
     @Test
     void should_deleteCategory_when_categoryExists() {
         Category categoryToDelete = new Category();
+        categoryToDelete.setId(C1);
         categoryToDelete.setName(categoryName);
         when(categoryRepository.findByName(categoryName)).thenReturn(Optional.of(categoryToDelete));
+        when(productRepository.existsByCategory_Id(C1)).thenReturn(false);
 
         testService.deleteCategory(categoryName);
 
-        verify(categoryRepository).deleteByName(categoryName);
+        verify(categoryRepository).delete(categoryToDelete);
+    }
+
+    @Test
+    void should_throwConflict_when_categoryStillHasProducts() {
+        Category existingCategory = new Category();
+        existingCategory.setId(C1);
+        existingCategory.setName(categoryName);
+        when(categoryRepository.findByName(categoryName)).thenReturn(Optional.of(existingCategory));
+        when(productRepository.existsByCategory_Id(C1)).thenReturn(true);
+
+        assertThatThrownBy(() -> testService.deleteCategory(categoryName))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining(categoryName)
+                .hasMessageContaining("still contains products");
+
+        verify(categoryRepository, never()).delete(any());
     }
 
     @Test
@@ -124,7 +142,7 @@ class CategoryServiceImplTest {
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("Category not found: " + categoryName);
 
-        verify(categoryRepository, never()).deleteByName(any());
+        verify(categoryRepository, never()).delete(any());
     }
 
     @Test

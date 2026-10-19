@@ -25,7 +25,7 @@ public class Category extends Auditable {
     private UUID id;
     @Column(name = "name", nullable = false, length = 200)
     private String name;
-    @OneToMany(mappedBy = "category", targetEntity = Product.class, cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "category", targetEntity = Product.class)
     @JsonIgnore
     private List<Product> products;
 
