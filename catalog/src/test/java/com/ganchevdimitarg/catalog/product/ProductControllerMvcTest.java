@@ -33,6 +33,7 @@ import org.springframework.data.domain.PageRequest;
 
 import java.math.BigDecimal;
 import java.time.Duration;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -178,6 +179,32 @@ class ProductControllerMvcTest {
                                 """.formatted(ID_1)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(ID_1.toString()));
+    }
+
+    @Test
+    void should_return400ProblemJson_when_batchGetExceeds100Ids() throws Exception {
+        String items = String.join(",", Collections.nCopies(101, "\"" + ID_1 + "\""));
+
+        mockMvc.perform(post("/api/v1/catalog/products/:batch-get")
+                        .with(csrf())
+                        .with(jwt().authorities(() -> "SCOPE_catalog.read"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"items\":[" + items + "]}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON));
+    }
+
+    @Test
+    void should_return400ProblemJson_when_batchGetContainsNullId() throws Exception {
+        mockMvc.perform(post("/api/v1/catalog/products/:batch-get")
+                        .with(csrf())
+                        .with(jwt().authorities(() -> "SCOPE_catalog.read"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"items": [null]}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON));
     }
 
     @Test

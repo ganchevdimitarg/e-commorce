@@ -272,33 +272,65 @@ class ProductServiceImplTest {
     @Test
     void should_returnProducts_when_getProductsByIdWithValidItems() {
         ItemRequestDto items = new ItemRequestDto(List.of(ID_1, ID_2));
-
-        Product product1 = new Product();
-        product1.setId(ID_1);
-        Product product2 = new Product();
-        product2.setId(ID_2);
-
-        when(productRepository.findById(ID_1)).thenReturn(Optional.of(product1));
-        when(productRepository.findById(ID_2)).thenReturn(Optional.of(product2));
-
-        ProductResponseDto dto1 = new ProductResponseDto(ID_1, "p1", "", BigDecimal.ZERO, true, "", null, new ArrayList<>());
-        ProductResponseDto dto2 = new ProductResponseDto(ID_2, "p2", "", BigDecimal.ZERO, true, "", null, new ArrayList<>());
-        when(mapStructMapper.mapProductToProductResponseDto(product1)).thenReturn(dto1);
-        when(mapStructMapper.mapProductToProductResponseDto(product2)).thenReturn(dto2);
+        Product product1 = product(ID_1, "p1");
+        Product product2 = product(ID_2, "p2");
+        when(productRepository.findAllById(List.of(ID_1, ID_2)))
+                .thenReturn(List.of(product1, product2));
 
         List<ProductResponseDto> result = testService.getProductsById(items);
 
-        assertThat(result).containsExactly(dto1, dto2);
+        assertThat(result).containsExactly(productDto(product1), productDto(product2));
+    }
+
+    @Test
+    void should_returnProductsInRequestOrder_when_repositoryReturnsUnordered() {
+        ItemRequestDto items = new ItemRequestDto(List.of(ID_1, ID_2));
+        Product product1 = product(ID_1, "p1");
+        Product product2 = product(ID_2, "p2");
+        when(productRepository.findAllById(List.of(ID_1, ID_2)))
+                .thenReturn(List.of(product2, product1));
+
+        List<ProductResponseDto> result = testService.getProductsById(items);
+
+        assertThat(result).containsExactly(productDto(product1), productDto(product2));
+    }
+
+    @Test
+    void should_throwNotFoundListingEveryMissingId_when_anyIdMissing() {
+        ItemRequestDto items = new ItemRequestDto(List.of(ID_1, MISSING, NONEXISTENT));
+        when(productRepository.findAllById(List.of(ID_1, MISSING, NONEXISTENT)))
+                .thenReturn(List.of(product(ID_1, "p1")));
+
+        assertThatThrownBy(() -> testService.getProductsById(items))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessage("Products not found: [" + MISSING + ", " + NONEXISTENT + "]");
     }
 
     @Test
     void should_throwNotFound_when_getProductsByIdWithUnknownId() {
         ItemRequestDto items = new ItemRequestDto(List.of(MISSING));
-        when(productRepository.findById(MISSING)).thenReturn(Optional.empty());
+        when(productRepository.findAllById(List.of(MISSING))).thenReturn(List.of());
 
         assertThatThrownBy(() -> testService.getProductsById(items))
                 .isInstanceOf(NotFoundException.class)
-                .hasMessageContaining("Product not found: " + MISSING);
+                .hasMessage("Products not found: [" + MISSING + "]");
+    }
+
+    private static Product product(UUID id, String name) {
+        Product product = new Product();
+        product.setId(id);
+        product.setName(name);
+        product.setDescription("");
+        product.setPrice(BigDecimal.ZERO);
+        product.setInStock(true);
+        product.setCharacteristics("");
+        return product;
+    }
+
+    private static ProductResponseDto productDto(Product product) {
+        return new ProductResponseDto(
+                product.getId(), product.getName(), product.getDescription(), product.getPrice(),
+                product.isInStock(), product.getCharacteristics(), null, List.of());
     }
 
     @Test

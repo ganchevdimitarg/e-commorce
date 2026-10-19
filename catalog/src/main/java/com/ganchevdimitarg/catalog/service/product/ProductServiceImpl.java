@@ -8,7 +8,6 @@ import com.ganchevdimitarg.catalog.dto.product.CreateProductCommand;
 import com.ganchevdimitarg.catalog.dto.product.ItemRequestDto;
 import com.ganchevdimitarg.catalog.dto.product.ProductResponseDto;
 import com.ganchevdimitarg.catalog.dto.product.UpdateProductCommand;
-import com.ganchevdimitarg.catalog.concurrency.VirtualThreads;
 import com.ganchevdimitarg.catalog.event.ProductEventPublisher;
 import com.ganchevdimitarg.catalog.exception.ConflictException;
 import com.ganchevdimitarg.catalog.exception.NotFoundException;
@@ -28,7 +27,10 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -145,14 +147,25 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
     public List<ProductResponseDto> getProductsById(ItemRequestDto product) {
-        // Each id is fetched as an independent read on its own virtual thread via
-        // VirtualThreads#mapParallel. Because this is a self-invocation (this::getProductById),
-        // the proxy-applied @Transactional/@Cacheable on getProductById do NOT apply here — each
-        // lookup is a plain auto-commit read. A missing id still surfaces as NotFoundException
-        // (fail-fast via VirtualThreads#mapParallel).
-        return VirtualThreads.mapParallel(product.items(), this::getProductById);
+        // One query for the whole batch; the transaction keeps the lazy comments collection
+        // and the category association usable while mapping, and findAllById order is
+        // unspecified so the response is rebuilt in request order.
+        List<UUID> requested = product.items();
+        Map<UUID, Product> found = productRepository.findAllById(requested).stream()
+                .collect(Collectors.toMap(Product::getId, Function.identity()));
+        List<UUID> missing = requested.stream()
+                .filter(id -> !found.containsKey(id))
+                .distinct()
+                .toList();
+        if (!missing.isEmpty()) {
+            throw new NotFoundException("Products", missing);
+        }
+        return requested.stream()
+                .map(id -> convertProduct(found.get(id)))
+                .toList();
     }
 
     private Product findProductById(UUID id) {

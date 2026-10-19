@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -17,6 +18,12 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
     Optional<Product> findByName(String productName);
     Optional<Product> findByNameAndCategoryId(String name, UUID categoryId);
     boolean existsByCategory_Id(UUID categoryId);
+
+    // One query for the whole batch; category is joined, comments stay lazy
+    // (@BatchSize) so a collection fetch join cannot duplicate rows.
+    @Override
+    @EntityGraph(attributePaths = "category")
+    List<Product> findAllById(Iterable<UUID> ids);
 
     // category is join-fetched to avoid a select per row on page reads; comments stay
     // lazy (@BatchSize on the entity) because a collection fetch join cannot paginate
