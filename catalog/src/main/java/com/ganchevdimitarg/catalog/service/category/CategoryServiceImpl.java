@@ -1,5 +1,6 @@
 package com.ganchevdimitarg.catalog.service.category;
 
+import com.ganchevdimitarg.catalog.cache.ProductCacheEvictor;
 import com.ganchevdimitarg.catalog.repository.CategoryRepository;
 import com.ganchevdimitarg.catalog.repository.ProductRepository;
 import com.ganchevdimitarg.catalog.domain.Category;
@@ -31,6 +32,7 @@ public class CategoryServiceImpl implements CategoryService {
     private final ProductRepository productRepository;
     private final MapStructMapper mapper;
     private final MeterRegistry meterRegistry;
+    private final ProductCacheEvictor productCacheEvictor;
 
     @Override
     @Transactional
@@ -65,6 +67,7 @@ public class CategoryServiceImpl implements CategoryService {
                     "Category " + categoryName + " still contains products; move them first");
         }
         categoryRepository.delete(category);
+        productCacheEvictor.evictAll();
         meterRegistry.counter("catalog.category.deleted").increment();
     }
 
@@ -86,6 +89,7 @@ public class CategoryServiceImpl implements CategoryService {
         if (updated == 0) {
             throw new ObjectOptimisticLockingFailureException(Product.class.getSimpleName(), product.getName());
         }
+        productCacheEvictor.evict(product.getId());
         meterRegistry.counter("catalog.category.moved").increment();
     }
 
@@ -97,6 +101,7 @@ public class CategoryServiceImpl implements CategoryService {
         Category to = requireCategory(categoryNameTo);
 
         int moved = productRepository.moveAllProductsToCategory(from.getId(), to.getId());
+        productCacheEvictor.evictAll();
         meterRegistry.counter("catalog.category.moved").increment(moved);
         log.info("Moved {} products from {} to {}", moved, categoryNameFrom, categoryNameTo);
     }

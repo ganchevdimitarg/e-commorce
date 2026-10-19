@@ -1,10 +1,14 @@
 package com.ganchevdimitarg.catalog.cache;
 
 import com.ganchevdimitarg.catalog.AbstractIntegrationTest;
+import com.ganchevdimitarg.catalog.dto.category.MoveProductCommand;
+import com.ganchevdimitarg.catalog.dto.comment.CreateCommentCommand;
 import com.ganchevdimitarg.catalog.dto.product.ProductResponseDto;
 import com.ganchevdimitarg.catalog.dto.product.UpdateProductCommand;
 import com.ganchevdimitarg.catalog.event.ProductEventPublisher;
 import com.ganchevdimitarg.catalog.repository.ProductRepository;
+import com.ganchevdimitarg.catalog.service.category.CategoryService;
+import com.ganchevdimitarg.catalog.service.comment.CommentService;
 import com.ganchevdimitarg.catalog.service.product.ProductService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.MethodOrderer;
@@ -38,7 +42,10 @@ import static org.mockito.Mockito.verify;
 class ProductCacheIT extends AbstractIntegrationTest {
 
     private static final UUID CATEGORY_ID = UUID.fromString("aaaaaaaa-0000-0000-0000-00000000ca11");
+    private static final UUID CATEGORY_2_ID = UUID.fromString("aaaaaaaa-0000-0000-0000-00000000ca22");
     private static final UUID PRODUCT_ID = UUID.fromString("bbbbbbbb-0000-0000-0000-00000000d00d");
+    private static final String CATEGORY_NAME = "cache-test-cat";
+    private static final String CATEGORY_2_NAME = "cache-test-cat-2";
     private static final String PRODUCT_NAME = "cache-test-product";
 
     @Container
@@ -62,6 +69,12 @@ class ProductCacheIT extends AbstractIntegrationTest {
     ProductService productService;
 
     @Autowired
+    CommentService commentService;
+
+    @Autowired
+    CategoryService categoryService;
+
+    @Autowired
     CacheManager cacheManager;
 
     @Autowired
@@ -75,25 +88,34 @@ class ProductCacheIT extends AbstractIntegrationTest {
         // Flush ALL Redis keys to guarantee a clean cache
         Objects.requireNonNull(redisConnectionFactory.getConnection()).serverCommands().flushAll();
 
-        // Ensure the product exists (undo any soft-delete from a prior test)
+        // Ensure both categories exist; the move tests need a destination category
         jdbc.update("""
                 INSERT INTO categories (id, name, created_at, updated_at, version)
-                VALUES (?, 'cache-test-cat', now(), now(), 0)
+                VALUES (?, ?, now(), now(), 0)
                 ON CONFLICT (id) DO NOTHING
-                """, CATEGORY_ID);
+                """, CATEGORY_ID, CATEGORY_NAME);
 
+        jdbc.update("""
+                INSERT INTO categories (id, name, created_at, updated_at, version)
+                VALUES (?, ?, now(), now(), 0)
+                ON CONFLICT (id) DO NOTHING
+                """, CATEGORY_2_ID, CATEGORY_2_NAME);
+
+        // Ensure the product exists (undo any soft-delete or move from a prior test)
         jdbc.update("""
                 INSERT INTO products (id, name, description, price, stock, characteristics,
                                       category_id, created_at, updated_at, version, deleted_at)
                 VALUES (?, ?, 'A product for cache testing', ?, true, 'test-chars',
                         ?, now(), now(), 0, NULL)
                 ON CONFLICT (id) DO UPDATE SET deleted_at = NULL,
+                                               category_id = ?,
                                                description = 'A product for cache testing',
                                                price = ?,
                                                stock = true,
                                                characteristics = 'test-chars',
                                                version = 0
-                """, PRODUCT_ID, PRODUCT_NAME, BigDecimal.TEN, CATEGORY_ID, BigDecimal.TEN);
+                """, PRODUCT_ID, PRODUCT_NAME, BigDecimal.TEN, CATEGORY_ID,
+                CATEGORY_ID, BigDecimal.TEN);
 
         // Clear spy invocation history so setUp calls are not counted
         clearInvocations(productRepository);
@@ -152,6 +174,44 @@ class ProductCacheIT extends AbstractIntegrationTest {
         productService.deleteProduct(PRODUCT_ID);
 
         // Verify cache is empty after eviction
+        assertThat(cacheManager.getCache("product").get(PRODUCT_ID)).isNull();
+    }
+
+    @Test
+    @Order(4)
+    @WithMockUser(authorities = {"SCOPE_catalog.read", "SCOPE_catalog.write"})
+    void should_evictProduct_when_commentCreated() {
+        productService.getProductById(PRODUCT_ID);
+        assertThat(cacheManager.getCache("product").get(PRODUCT_ID)).isNotNull();
+
+        commentService.createComment(new CreateCommentCommand(
+                "great", "thorough review text", 5.0, "joe", PRODUCT_NAME));
+
+        assertThat(cacheManager.getCache("product").get(PRODUCT_ID)).isNull();
+    }
+
+    @Test
+    @Order(5)
+    @WithMockUser(authorities = {"SCOPE_catalog.read", "SCOPE_catalog.write"})
+    void should_evictProduct_when_productMoved() {
+        productService.getProductById(PRODUCT_ID);
+        assertThat(cacheManager.getCache("product").get(PRODUCT_ID)).isNotNull();
+
+        categoryService.moveOneProduct(
+                new MoveProductCommand(CATEGORY_NAME, CATEGORY_2_NAME, PRODUCT_NAME));
+
+        assertThat(cacheManager.getCache("product").get(PRODUCT_ID)).isNull();
+    }
+
+    @Test
+    @Order(6)
+    @WithMockUser(authorities = {"SCOPE_catalog.read", "SCOPE_catalog.write"})
+    void should_evictAllProducts_when_allProductsMoved() {
+        productService.getProductById(PRODUCT_ID);
+        assertThat(cacheManager.getCache("product").get(PRODUCT_ID)).isNotNull();
+
+        categoryService.moveAllProducts(CATEGORY_NAME, CATEGORY_2_NAME);
+
         assertThat(cacheManager.getCache("product").get(PRODUCT_ID)).isNull();
     }
 }

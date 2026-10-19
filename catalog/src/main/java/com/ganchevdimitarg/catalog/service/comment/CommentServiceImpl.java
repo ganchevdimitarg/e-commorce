@@ -1,5 +1,6 @@
 package com.ganchevdimitarg.catalog.service.comment;
 
+import com.ganchevdimitarg.catalog.cache.ProductCacheEvictor;
 import com.ganchevdimitarg.catalog.repository.CommentRepository;
 import com.ganchevdimitarg.catalog.repository.ProductRepository;
 import com.ganchevdimitarg.catalog.domain.Comment;
@@ -28,6 +29,7 @@ public class CommentServiceImpl implements CommentService {
     private final ProductRepository productRepository;
     private final MapStructMapper mapper;
     private final MeterRegistry meterRegistry;
+    private final ProductCacheEvictor productCacheEvictor;
 
     @Override
     @Transactional
@@ -41,6 +43,7 @@ public class CommentServiceImpl implements CommentService {
         Comment comment = mapper.mapCreateCommentCommandToComment(command);
         comment.setProduct(product);
         commentRepository.saveAndFlush(comment);
+        productCacheEvictor.evict(product.getId());
         meterRegistry.counter("catalog.comment.created").increment();
         log.info("The comment {} is saved successfully", comment.getTitle());
         return mapper.mapCommentToCommentResponseDto(comment);

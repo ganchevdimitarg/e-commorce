@@ -1,5 +1,6 @@
 package com.ganchevdimitarg.catalog.comment;
 
+import com.ganchevdimitarg.catalog.cache.ProductCacheEvictor;
 import com.ganchevdimitarg.catalog.repository.CommentRepository;
 import com.ganchevdimitarg.catalog.repository.ProductRepository;
 import com.ganchevdimitarg.catalog.domain.Comment;
@@ -43,15 +44,20 @@ class CommentServerImplTest {
     ProductRepository productRepository;
     @Mock
     MapStructMapper mapStructMapper;
+    @Mock
+    ProductCacheEvictor productCacheEvictor;
 
     @BeforeEach
     void setUp() {
-        testService = new CommentServiceImpl(commentRepository, productRepository, mapStructMapper, new SimpleMeterRegistry());
+        testService = new CommentServiceImpl(commentRepository, productRepository, mapStructMapper,
+                new SimpleMeterRegistry(), productCacheEvictor);
     }
 
     @Test
     void should_createComment_when_productExists() {
+        UUID productId = UUID.fromString("0030223b-fdb9-40e2-a4b0-81bdf54479a2");
         Product product = new Product();
+        product.setId(productId);
         product.setName("mouse");
         when(productRepository.findByName("mouse")).thenReturn(Optional.of(product));
         Comment comment = new Comment();
@@ -64,6 +70,7 @@ class CommentServerImplTest {
                 new CreateCommentCommand("nice", "great product!!", 5.0, "joe", "mouse"));
 
         verify(commentRepository).saveAndFlush(comment);
+        verify(productCacheEvictor).evict(productId);
         assertThat(result.title()).isEqualTo("nice");
     }
 
@@ -148,7 +155,8 @@ class CommentServerImplTest {
     void should_incrementCreatedCounter_when_commentCreated() {
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
         CommentServiceImpl service =
-                new CommentServiceImpl(commentRepository, productRepository, mapStructMapper, registry);
+                new CommentServiceImpl(commentRepository, productRepository, mapStructMapper, registry,
+                        productCacheEvictor);
 
         Product product = new Product();
         product.setName("aaa");

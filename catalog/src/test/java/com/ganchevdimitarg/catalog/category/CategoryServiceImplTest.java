@@ -1,5 +1,6 @@
 package com.ganchevdimitarg.catalog.category;
 
+import com.ganchevdimitarg.catalog.cache.ProductCacheEvictor;
 import com.ganchevdimitarg.catalog.repository.CategoryRepository;
 import com.ganchevdimitarg.catalog.repository.ProductRepository;
 import com.ganchevdimitarg.catalog.domain.Category;
@@ -47,6 +48,7 @@ class CategoryServiceImplTest {
     private static final UUID C1 = UUID.fromString("11111111-1111-1111-1111-111111111111");
     private static final UUID FROM_ID = UUID.fromString("22222222-2222-2222-2222-222222222222");
     private static final UUID TO_ID = UUID.fromString("33333333-3333-3333-3333-333333333333");
+    private static final UUID PRODUCT_ID = UUID.fromString("44444444-4444-4444-4444-444444444444");
 
     private CategoryService testService;
 
@@ -56,12 +58,15 @@ class CategoryServiceImplTest {
     ProductRepository productRepository;
     @Mock
     MapStructMapper mapStructMapper;
+    @Mock
+    ProductCacheEvictor productCacheEvictor;
 
     String categoryName;
 
     @BeforeEach
     void setUp() {
-        testService = new CategoryServiceImpl(categoryRepository, productRepository, mapStructMapper, new SimpleMeterRegistry());
+        testService = new CategoryServiceImpl(categoryRepository, productRepository, mapStructMapper,
+                new SimpleMeterRegistry(), productCacheEvictor);
         categoryName = "bbbbb";
     }
 
@@ -118,6 +123,7 @@ class CategoryServiceImplTest {
         testService.deleteCategory(categoryName);
 
         verify(categoryRepository).delete(categoryToDelete);
+        verify(productCacheEvictor).evictAll();
     }
 
     @Test
@@ -134,6 +140,7 @@ class CategoryServiceImplTest {
                 .hasMessageContaining("still contains products");
 
         verify(categoryRepository, never()).delete(any());
+        verify(productCacheEvictor, never()).evictAll();
     }
 
     @Test
@@ -148,6 +155,7 @@ class CategoryServiceImplTest {
     @Test
     void should_moveProduct_when_bothCategoriesExist() {
         Product mouseProduct = new Product();
+        mouseProduct.setId(PRODUCT_ID);
         mouseProduct.setName("mouse");
         mouseProduct.setVersion(1L);
         Category categoryFrom = new Category();
@@ -167,6 +175,7 @@ class CategoryServiceImplTest {
         testService.moveOneProduct(new MoveProductCommand("pc", "acc", "mouse"));
 
         verify(productRepository).changeCategory(any(), any(), anyLong());
+        verify(productCacheEvictor).evict(PRODUCT_ID);
     }
 
     @Test
@@ -190,6 +199,8 @@ class CategoryServiceImplTest {
 
         assertThatThrownBy(() -> testService.moveOneProduct(new MoveProductCommand("pc", "acc", "mouse")))
                 .isInstanceOf(ObjectOptimisticLockingFailureException.class);
+
+        verify(productCacheEvictor, never()).evict(any());
     }
 
     @Test
@@ -281,13 +292,15 @@ class CategoryServiceImplTest {
 
         verify(productRepository, times(1)).moveAllProductsToCategory(FROM_ID, TO_ID);
         verify(productRepository, never()).changeCategory(anyString(), any(UUID.class), anyLong());
+        verify(productCacheEvictor).evictAll();
     }
 
     @Test
     void should_incrementCreatedCounter_when_categoryCreated() {
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
         CategoryServiceImpl service =
-                new CategoryServiceImpl(categoryRepository, productRepository, mapStructMapper, registry);
+                new CategoryServiceImpl(categoryRepository, productRepository, mapStructMapper, registry,
+                        productCacheEvictor);
 
         when(categoryRepository.findByName(categoryName)).thenReturn(Optional.empty());
         Category saved = new Category();
