@@ -39,6 +39,24 @@ Run from the repo root (Git Bash):
 - Pagination max-100 enforced by `PageableSupport.capped()` (oversized → 400).
 - **No MongoDB, no Avro / schema registry** in catalog — do not scaffold them here.
 
+## Hardening-run rules (TODO.md sessions)
+
+Session rules for the `catalog/TODO.md` hardening list — restated from the root
+`CLAUDE.md` so each session sees them without cross-module context:
+
+- **Scope**: stay inside `catalog/` — never edit other modules. Base package:
+  `catalog/src/main/java/com/ganchevdimitarg/catalog`.
+- **Flyway**: migrations only under `src/main/resources/db/migration/`; never edit a
+  committed migration — add the next free version (currently V9); `IF [NOT] EXISTS`
+  guards; `ddl-auto=validate`; Flyway owns the schema.
+- **Tests**: JUnit 5 + AssertJ, names `should_<expected>_when_<condition>`; write the
+  failing test first, then the fix; ITs extend `AbstractIntegrationTest` /
+  `RedisKafkaIntegrationBase` (Testcontainers — Docker must be running); never
+  H2/EmbeddedMongo; Awaitility, never `Thread.sleep()`.
+- **Errors**: domain exceptions extend `BusinessException` and map to problem+json
+  (RFC 9457) via `@ControllerAdvice`; no raw 500s; never catch a `BusinessException`
+  and rethrow as `RuntimeException`.
+
 ## Catalog-specific infrastructure (load the doc on demand)
 - **Redis** — `Idempotency-Key` guard (`catalog:idempotency:<key>`, 24h TTL, duplicate → 409)
   and product read cache. NB catalog uses Spring `@Cacheable`/`@CacheEvict` (10-min TTL,
