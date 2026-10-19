@@ -2,8 +2,10 @@ package com.ganchevdimitarg.catalog.persistence;
 
 import com.ganchevdimitarg.catalog.AbstractIntegrationTest;
 import com.ganchevdimitarg.catalog.domain.Category;
+import com.ganchevdimitarg.catalog.domain.Comment;
 import com.ganchevdimitarg.catalog.domain.Product;
 import com.ganchevdimitarg.catalog.repository.CategoryRepository;
+import com.ganchevdimitarg.catalog.repository.CommentRepository;
 import com.ganchevdimitarg.catalog.repository.ProductRepository;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -29,6 +31,9 @@ class CatalogPersistenceIT extends AbstractIntegrationTest {
 
     @Autowired
     ProductRepository productRepository;
+
+    @Autowired
+    CommentRepository commentRepository;
 
     @Autowired
     EntityManager entityManager;
@@ -152,6 +157,28 @@ class CatalogPersistenceIT extends AbstractIntegrationTest {
 
         assertThatThrownBy(() -> productRepository.saveAndFlush(second))
                 .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void should_rejectOutOfRangeStar_when_commentPersistedDirectly() {
+        Category category = new Category();
+        category.setName("star-cat-" + UUID.randomUUID());
+        categoryRepository.saveAndFlush(category);
+
+        Product product = createProduct("sp-" + UUID.randomUUID().toString().substring(0, 8),
+                "Star range product", category);
+        productRepository.saveAndFlush(product);
+
+        Comment comment = new Comment();
+        comment.setTitle("bad star");
+        comment.setText("Out of range rating");
+        comment.setStar(6.0);
+        comment.setAuthor("tester");
+        comment.setProduct(product);
+
+        assertThatThrownBy(() -> commentRepository.saveAndFlush(comment))
+                .isInstanceOf(DataIntegrityViolationException.class)
+                .hasStackTraceContaining("comments_star_range");
     }
 
     private Product createProduct(String name, String description, Category category) {

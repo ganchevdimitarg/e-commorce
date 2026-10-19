@@ -18,8 +18,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -87,15 +85,10 @@ public class CommentServiceImpl implements CommentService {
     @Transactional(readOnly = true)
     @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
     public double getAvgStars(String productName) {
-        List<Comment> comments = commentRepository.findAllByProductName(productName);
-        if (comments.isEmpty()) {
-            return 0.0;
-        }
-        double sum = 0.0;
-        for (Comment comment : comments) {
-            sum += comment.getStar();
-        }
-        return sum / comments.size();
+        return productRepository.findByName(productName)
+                .map(product -> commentRepository.findAverageStarByProductId(product.getId()))
+                .map(avg -> avg == null ? 0.0 : avg)
+                .orElse(0.0);
     }
 
     public CommentResponseDto convertComment(Comment comment) {

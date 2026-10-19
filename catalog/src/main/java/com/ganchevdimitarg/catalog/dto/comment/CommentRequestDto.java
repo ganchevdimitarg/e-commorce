@@ -1,5 +1,7 @@
 package com.ganchevdimitarg.catalog.dto.comment;
 
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Size;
 
 public record CommentRequestDto(
@@ -7,6 +9,8 @@ public record CommentRequestDto(
         String title,
         @Size(min = 10, max = 150, message = "The text is not correct!")
         String text,
+        @DecimalMin(value = "1.0", message = "The star rating must be at least 1")
+        @DecimalMax(value = "5.0", message = "The star rating must be at most 5")
         double star,
         String author) {
 }

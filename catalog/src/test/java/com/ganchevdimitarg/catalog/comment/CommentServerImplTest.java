@@ -127,28 +127,42 @@ class CommentServerImplTest {
     }
 
     @Test
-    void should_returnZero_when_noCommentsExist() {
-        when(commentRepository.findAllByProductName("empty")).thenReturn(List.of());
+    void should_returnAverageStars_when_productExists() {
+        UUID productId = UUID.fromString("0030223b-fdb9-40e2-a4b0-81bdf54479a2");
+        Product product = new Product();
+        product.setId(productId);
+        product.setName("mouse");
+        when(productRepository.findByName("mouse")).thenReturn(Optional.of(product));
+        when(commentRepository.findAverageStarByProductId(productId)).thenReturn(4.0);
 
-        double avgStars = testService.getAvgStars("empty");
+        double avgStars = testService.getAvgStars("mouse");
+
+        assertThat(avgStars).isEqualTo(4.0);
+        verify(commentRepository).findAverageStarByProductId(productId);
+    }
+
+    @Test
+    void should_returnZero_when_productHasNoComments() {
+        UUID productId = UUID.fromString("0030223b-fdb9-40e2-a4b0-81bdf54479a2");
+        Product product = new Product();
+        product.setId(productId);
+        product.setName("mouse");
+        when(productRepository.findByName("mouse")).thenReturn(Optional.of(product));
+        when(commentRepository.findAverageStarByProductId(productId)).thenReturn(null);
+
+        double avgStars = testService.getAvgStars("mouse");
 
         assertThat(avgStars).isEqualTo(0.0);
     }
 
     @Test
-    void should_returnAverageStars_when_commentsExist() {
-        Comment comment1 = new Comment();
-        comment1.setStar(4);
-        Comment comment2 = new Comment();
-        comment2.setStar(5);
-        Comment comment3 = new Comment();
-        comment3.setStar(3);
+    void should_returnZero_when_productDoesNotExist() {
+        when(productRepository.findByName("nonexistent")).thenReturn(Optional.empty());
 
-        when(commentRepository.findAllByProductName("mouse")).thenReturn(List.of(comment1, comment2, comment3));
+        double avgStars = testService.getAvgStars("nonexistent");
 
-        double avgStars = testService.getAvgStars("mouse");
-
-        assertThat(avgStars).isEqualTo(4.0);
+        assertThat(avgStars).isEqualTo(0.0);
+        verify(commentRepository, never()).findAverageStarByProductId(any());
     }
 
     @Test

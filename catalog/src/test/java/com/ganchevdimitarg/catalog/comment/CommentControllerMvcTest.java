@@ -169,6 +169,66 @@ class CommentControllerMvcTest {
     }
 
     @Test
+    void should_return400ProblemJson_when_starAboveRange() throws Exception {
+        mockMvc.perform(post("/api/v1/catalog/products/mouse/comments")
+                        .with(jwt().authorities(() -> "SCOPE_catalog.write"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Idempotency-Key", "k-star-high")
+                        .content("""
+                                {
+                                    "title": "Great product",
+                                    "text": "This is a thorough review text",
+                                    "star": 6,
+                                    "author": "john"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
+    void should_return400ProblemJson_when_starBelowRange() throws Exception {
+        mockMvc.perform(post("/api/v1/catalog/products/mouse/comments")
+                        .with(jwt().authorities(() -> "SCOPE_catalog.write"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Idempotency-Key", "k-star-low")
+                        .content("""
+                                {
+                                    "title": "Great product",
+                                    "text": "This is a thorough review text",
+                                    "star": 0,
+                                    "author": "john"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
+    void should_return201_when_starIsFractionalWithinRange() throws Exception {
+        CommentResponseDto response = new CommentResponseDto(
+                "Great product", "This is a thorough review text", 4.5, "john", null);
+        when(commentService.createComment(any(CreateCommentCommand.class))).thenReturn(response);
+
+        mockMvc.perform(post("/api/v1/catalog/products/mouse/comments")
+                        .with(jwt().authorities(() -> "SCOPE_catalog.write"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Idempotency-Key", "k-star-fractional")
+                        .content("""
+                                {
+                                    "title": "Great product",
+                                    "text": "This is a thorough review text",
+                                    "star": 4.5,
+                                    "author": "john"
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.star").value(4.5));
+    }
+
+    @Test
     void should_return404ProblemJson_when_getAvgStarsForNonexistentProduct() throws Exception {
         when(commentService.getAvgStars("nonexistent"))
                 .thenThrow(new NotFoundException("Product", "nonexistent"));
