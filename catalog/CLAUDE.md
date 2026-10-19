@@ -11,6 +11,24 @@ Shared conventions, stack rules, hooks, skills and pattern docs live at the **re
 `../CLAUDE.md` and `../docs/context/`. This file records only catalog-specific deltas —
 read the root file first.
 
+## Test baseline (recorded 2026-10-19 on `catalog-hardening`)
+
+Run from the repo root (Git Bash):
+
+```bash
+# Unit tests only — surefire runs everything, so exclude *IT by name
+./mvnw test -pl catalog -am -Dtest='!*IT' -Dsurefire.failIfNoSpecifiedTests=false
+# Full verify — unit + Testcontainers ITs + JaCoCo gates (Docker required)
+./mvnw clean verify -pl catalog -am
+```
+
+- How tests run: `maven-surefire-plugin` includes `**/*Test.java` and `**/*IT.java`;
+  `maven-failsafe-plugin` is **not bound** — there is no `integration` tag. The
+  unit/full split is by class-name exclusion only.
+- Unit: `127` run, `0` failures, `0` errors (catalog module).
+- Full verify: `136` run, `0` failures, `0` errors.
+  - Status: green. JaCoCo gates met (BUNDLE ≥ 85 % line, `service.*` = 100 %).
+
 ## Module specifics
 - Web stack: WebMVC (records for DTOs/commands/responses); MapStruct (`MapStructMapper`)
   for entity↔DTO; springdoc-openapi + Swagger UI (OAuth2 PKCE).
