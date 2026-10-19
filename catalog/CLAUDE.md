@@ -47,7 +47,7 @@ Session rules for the `catalog/TODO.md` hardening list — restated from the roo
 - **Scope**: stay inside `catalog/` — never edit other modules. Base package:
   `catalog/src/main/java/com/ganchevdimitarg/catalog`.
 - **Flyway**: migrations only under `src/main/resources/db/migration/`; never edit a
-  committed migration — add the next free version (currently V9); `IF [NOT] EXISTS`
+  committed migration — add the next free version (currently V11); `IF [NOT] EXISTS`
   guards; `ddl-auto=validate`; Flyway owns the schema.
 - **Tests**: JUnit 5 + AssertJ, names `should_<expected>_when_<condition>`; write the
   failing test first, then the fix; ITs extend `AbstractIntegrationTest` /
