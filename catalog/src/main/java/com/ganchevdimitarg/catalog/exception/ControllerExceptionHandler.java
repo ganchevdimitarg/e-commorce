@@ -1,10 +1,13 @@
 package com.ganchevdimitarg.catalog.exception;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
@@ -35,6 +38,27 @@ public class ControllerExceptionHandler extends ResponseEntityExceptionHandler {
         log.warn("Optimistic lock conflict: {}", ex.getMessage());
         return problemResponse(HttpStatus.CONFLICT, "CONFLICT",
                 "The resource was modified concurrently; please retry");
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ProblemDetail> handleAccessDenied(AccessDeniedException ex) {
+        log.warn("Access denied: {}", ex.getMessage());
+        return problemResponse(HttpStatus.FORBIDDEN, "ACCESS_DENIED",
+                "You do not have permission to access this resource");
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ProblemDetail> handleAuthentication(AuthenticationException ex) {
+        log.warn("Authentication failed: {}", ex.getMessage());
+        return problemResponse(HttpStatus.UNAUTHORIZED, "UNAUTHENTICATED",
+                "Authentication is required to access this resource");
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ProblemDetail> handleIntegrityViolation(DataIntegrityViolationException ex) {
+        log.warn("Data integrity violation", ex);
+        return problemResponse(HttpStatus.CONFLICT, "CONFLICT",
+                "The request conflicts with existing data");
     }
 
     @ExceptionHandler(Exception.class)

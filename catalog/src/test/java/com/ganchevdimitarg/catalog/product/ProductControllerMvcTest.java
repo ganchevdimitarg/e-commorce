@@ -16,8 +16,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -37,6 +39,7 @@ import java.util.UUID;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -243,6 +246,49 @@ class ProductControllerMvcTest {
                                 """))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON));
+    }
+
+    @Test
+    void should_return403ProblemJson_when_updateProductDenied() throws Exception {
+        doThrow(new AccessDeniedException("denied"))
+                .when(productService).updateProduct(eq(PROD_123), any());
+
+        mockMvc.perform(put("/api/v1/catalog/products/" + PROD_123)
+                        .with(csrf())
+                        .with(jwt().authorities(() -> "SCOPE_catalog.write"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Idempotency-Key", "k-denied")
+                        .content("""
+                                {
+                                    "name": "mouse123",
+                                    "description": "updated description text",
+                                    "price": 19.99,
+                                    "inStock": true,
+                                    "characteristics": "black"
+                                }
+                                """))
+                .andExpect(status().isForbidden())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
+    }
+
+    @Test
+    void should_return409ProblemJson_when_createProductViolatesIntegrity() throws Exception {
+        when(productService.createProduct(any()))
+                .thenThrow(new DataIntegrityViolationException("duplicate key"));
+
+        mockMvc.perform(post("/api/v1/catalog/products?categoryName=PC")
+                        .with(csrf())
+                        .with(jwt().authorities(() -> "SCOPE_catalog.write"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Idempotency-Key", "k-conflict")
+                        .content("""
+                                {"name":"mouse","description":"WiFi mouse USB","price":1,"inStock":true,"characteristics":""}
+                                """))
+                .andExpect(status().isConflict())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.code").value("CONFLICT"))
+                .andExpect(jsonPath("$.detail").value("The request conflicts with existing data"));
     }
 
     @Test

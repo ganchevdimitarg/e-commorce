@@ -5,10 +5,13 @@ import com.ganchevdimitarg.catalog.exception.ControllerExceptionHandler;
 import com.ganchevdimitarg.catalog.exception.NotFoundException;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.BadCredentialsException;
 
 import java.time.Instant;
 
@@ -53,6 +56,45 @@ class ControllerExceptionHandlerTest {
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().getStatus()).isEqualTo(500);
         assertThat(response.getBody().getProperties()).containsEntry("code", "INTERNAL_ERROR");
+    }
+
+    @Test
+    void should_return403ProblemDetail_when_accessDenied() {
+        ResponseEntity<ProblemDetail> response =
+                handler.handleAccessDenied(new AccessDeniedException("denied"));
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_PROBLEM_JSON);
+        ProblemDetail body = response.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.getStatus()).isEqualTo(403);
+        assertThat(body.getDetail())
+                .isEqualTo("You do not have permission to access this resource");
+        assertThat(body.getProperties()).containsEntry("code", "ACCESS_DENIED");
+    }
+
+    @Test
+    void should_return401ProblemDetail_when_authenticationException() {
+        ResponseEntity<ProblemDetail> response =
+                handler.handleAuthentication(new BadCredentialsException("bad credentials"));
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_PROBLEM_JSON);
+        ProblemDetail body = response.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.getProperties()).containsEntry("code", "UNAUTHENTICATED");
+    }
+
+    @Test
+    void should_return409ProblemDetail_when_dataIntegrityViolation() {
+        ResponseEntity<ProblemDetail> response =
+                handler.handleIntegrityViolation(new DataIntegrityViolationException("duplicate key"));
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        ProblemDetail body = response.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.getProperties()).containsEntry("code", "CONFLICT");
+        assertThat(body.getDetail()).doesNotContain("duplicate key");
     }
 
     @Test
