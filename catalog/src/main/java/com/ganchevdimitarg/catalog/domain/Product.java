@@ -9,7 +9,9 @@ import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.Digits;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.util.List;
@@ -27,15 +29,17 @@ public class Product extends Auditable {
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", unique = true, nullable = false, updatable = false)
     private UUID id;
-    @Column(name = "name", nullable = false, length = 20)
-    @NotEmpty
-    @Size(min = 3, max = 20)
+    @Column(name = "name", nullable = false, length = 200)
+    @NotBlank
+    @Size(min = 3, max = 200)
     private String name;
     @Column(name = "description", nullable = false, columnDefinition = "TEXT")
-    @NotEmpty
-    @Size(min = 10, max = 50)
+    @NotBlank
+    @Size(min = 10, max = 2000)
     private String description;
     @Column(name = "price", nullable = false)
+    @PositiveOrZero
+    @Digits(integer = 17, fraction = 2)
     private BigDecimal price;
     @Column(name = "stock")
     private boolean inStock;

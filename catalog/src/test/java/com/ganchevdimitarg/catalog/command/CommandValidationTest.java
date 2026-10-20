@@ -38,6 +38,20 @@ class CommandValidationTest {
                 new CreateProductCommand("mouse", "WiFi mouse USB", BigDecimal.ZERO, true, "", "PC"));
     }
 
+    @Test
+    void should_buildCreateCommand_when_limitsAreRelaxed() {
+        String name = "n".repeat(200);
+        String description = "d".repeat(2000);
+
+        CreateProductCommand cmd =
+                new CreateProductCommand(name, description, BigDecimal.ZERO, true, "", "PC");
+
+        assertThat(cmd.name()).isEqualTo(name);
+        assertThat(cmd.description()).isEqualTo(description);
+        assertThat(cmd.price()).isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(cmd.categoryName()).isEqualTo("PC");
+    }
+
     // --- UpdateProductCommand ---
 
     @Test

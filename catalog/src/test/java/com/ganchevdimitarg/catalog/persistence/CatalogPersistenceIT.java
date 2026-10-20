@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import jakarta.persistence.EntityManager;
+import jakarta.validation.ConstraintViolationException;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -281,6 +282,46 @@ class CatalogPersistenceIT extends AbstractIntegrationTest {
 
         assertThat(names).containsExactlyInAnyOrder(
                 "idx_products_category_id", "idx_comments_product_id");
+    }
+
+    @Test
+    void should_widenProductsNameTo200_when_v13Applied() {
+        Integer width = jdbcTemplate.queryForObject(
+                "select character_maximum_length from information_schema.columns"
+                        + " where table_schema = 'public' and table_name = 'products' and column_name = 'name'",
+                Integer.class);
+
+        assertThat(width).isEqualTo(200);
+    }
+
+    @Test
+    void should_persistProductWith200CharacterName_when_saved() {
+        Category category = new Category();
+        category.setName("wide-name-cat-" + UUID.randomUUID());
+        categoryRepository.saveAndFlush(category);
+
+        String name = "n".repeat(200);
+        Product product = createProduct(name, "Product with a 200-character name", category);
+        UUID id = productRepository.saveAndFlush(product).getId();
+        entityManager.clear();
+
+        Product reloaded = productRepository.findById(id).orElseThrow();
+
+        assertThat(reloaded.getName()).isEqualTo(name).hasSize(200);
+    }
+
+    @Test
+    void should_rejectNegativePrice_when_productFlushedDirectly() {
+        Category category = new Category();
+        category.setName("neg-price-cat-" + UUID.randomUUID());
+        categoryRepository.saveAndFlush(category);
+
+        Product product = createProduct("neg-price-" + UUID.randomUUID().toString().substring(0, 8),
+                "Negative price product", category);
+        product.setPrice(new BigDecimal("-1.00"));
+
+        assertThatThrownBy(() -> productRepository.saveAndFlush(product))
+                .isInstanceOf(ConstraintViolationException.class);
     }
 
     @Test
