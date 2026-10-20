@@ -194,6 +194,82 @@ class CatalogPersistenceIT extends AbstractIntegrationTest {
     }
 
     @Test
+    @Transactional
+    void should_excludeSoftDeletedComments_when_findAllByProductIdByPage() {
+        Category category = new Category();
+        category.setName("jpql-cat-" + UUID.randomUUID());
+        categoryRepository.saveAndFlush(category);
+        Product product = productRepository.saveAndFlush(
+                createProduct("jpql-p-" + UUID.randomUUID().toString().substring(0, 8),
+                        "Comment jpql product description", category));
+        Comment live = commentRepository.saveAndFlush(
+                createComment(product, "alice-" + UUID.randomUUID(), 5.0, "live comment"));
+        Comment deleted = commentRepository.saveAndFlush(
+                createComment(product, "alice-" + UUID.randomUUID(), 4.0, "deleted comment"));
+        commentRepository.delete(deleted);
+        entityManager.flush();
+        entityManager.clear();
+
+        Page<Comment> page = commentRepository.findAllByProductIdByPage(
+                product.getId(), PageRequest.of(0, 20));
+
+        assertThat(page.getTotalElements()).isEqualTo(1);
+        assertThat(page.getContent()).extracting(Comment::getTitle).containsExactly("live comment");
+        assertThat(entityManager.getEntityManagerFactory().getPersistenceUnitUtil()
+                .isLoaded(page.getContent().getFirst(), "product")).isTrue();
+    }
+
+    @Test
+    void should_reportCorrectTotalPages_when_findAllByProductIdByPage() {
+        Category category = new Category();
+        category.setName("jpql-count-cat-" + UUID.randomUUID());
+        categoryRepository.saveAndFlush(category);
+        Product product = productRepository.saveAndFlush(
+                createProduct("jpql-c-" + UUID.randomUUID().toString().substring(0, 8),
+                        "Comment count product description", category));
+        for (int i = 0; i < 3; i++) {
+            commentRepository.saveAndFlush(
+                    createComment(product, "count-author-" + UUID.randomUUID(), 5.0, "count " + i));
+        }
+
+        Page<Comment> page = commentRepository.findAllByProductIdByPage(
+                product.getId(), PageRequest.of(0, 2));
+
+        assertThat(page.getTotalElements()).isEqualTo(3);
+        assertThat(page.getTotalPages()).isEqualTo(2);
+        assertThat(page.getContent()).hasSize(2);
+    }
+
+    @Test
+    @Transactional
+    void should_excludeSoftDeletedAndLoadProduct_when_findAllByAuthorByPage() {
+        String author = "bob-" + UUID.randomUUID();
+        Category category = new Category();
+        category.setName("jpql-author-cat-" + UUID.randomUUID());
+        categoryRepository.saveAndFlush(category);
+        Product firstProduct = productRepository.saveAndFlush(
+                createProduct("jpql-a1-" + UUID.randomUUID().toString().substring(0, 8),
+                        "Author page first product", category));
+        Product secondProduct = productRepository.saveAndFlush(
+                createProduct("jpql-a2-" + UUID.randomUUID().toString().substring(0, 8),
+                        "Author page second product", category));
+        commentRepository.saveAndFlush(createComment(firstProduct, author, 5.0, "first comment"));
+        commentRepository.saveAndFlush(createComment(secondProduct, author, 4.0, "second comment"));
+        Comment deleted = commentRepository.saveAndFlush(
+                createComment(firstProduct, author, 3.0, "deleted comment"));
+        commentRepository.delete(deleted);
+        entityManager.flush();
+        entityManager.clear();
+
+        Page<Comment> page = commentRepository.findAllByAuthorByPage(author, PageRequest.of(0, 20));
+
+        assertThat(page.getTotalElements()).isEqualTo(2);
+        assertThat(page.getContent()).allSatisfy(comment -> assertThat(
+                entityManager.getEntityManagerFactory().getPersistenceUnitUtil()
+                        .isLoaded(comment, "product")).isTrue());
+    }
+
+    @Test
     void should_createForeignKeyIndexes_when_migrationsApplied() {
         List<String> names = jdbcTemplate.query(
                 "select indexname from pg_indexes"
@@ -283,6 +359,16 @@ class CatalogPersistenceIT extends AbstractIntegrationTest {
         product.setCharacteristics("test characteristics");
         product.setCategory(category);
         return product;
+    }
+
+    private Comment createComment(Product product, String author, double star, String title) {
+        Comment comment = new Comment();
+        comment.setTitle(title);
+        comment.setText("Characterization comment text");
+        comment.setStar(star);
+        comment.setAuthor(author);
+        comment.setProduct(product);
+        return comment;
     }
 
     private int inTransaction(IntSupplier work) {
