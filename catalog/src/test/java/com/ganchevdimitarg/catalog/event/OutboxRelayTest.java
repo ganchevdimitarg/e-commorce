@@ -2,6 +2,7 @@ package com.ganchevdimitarg.catalog.event;
 
 import com.ganchevdimitarg.catalog.domain.OutboxEvent;
 import com.ganchevdimitarg.catalog.repository.OutboxEventRepository;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.KafkaException;
 import org.junit.jupiter.api.Tag;
@@ -11,13 +12,16 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.SendResult;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -41,8 +45,11 @@ class OutboxRelayTest {
     @Mock
     KafkaTemplate<String, String> kafkaTemplate;
 
+    private final SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
+
     private OutboxRelay newRelay() {
-        return new OutboxRelay(repository, kafkaTemplate, new OutboxProperties(true, 20, Duration.ofSeconds(5)));
+        return new OutboxRelay(repository, kafkaTemplate,
+                new OutboxProperties(true, 20, Duration.ofSeconds(5)), meterRegistry);
     }
 
     private static OutboxEvent event() {
@@ -70,6 +77,8 @@ class OutboxRelayTest {
 
         assertThat(sent).isEqualTo(1);
         assertThat(event.getSentAt()).isNotNull();
+        assertThat(meterRegistry.counter(OutboxRelay.PUBLISHED_METRIC).count()).isEqualTo(1.0);
+        assertThat(meterRegistry.counter(OutboxRelay.FAILED_METRIC).count()).isZero();
 
         ArgumentCaptor<ProducerRecord<String, String>> captor = ArgumentCaptor.captor();
         verify(kafkaTemplate).send(captor.capture());
@@ -112,5 +121,86 @@ class OutboxRelayTest {
         assertThat(first.getSentAt()).isNull();
         assertThat(second.getSentAt()).isNull();
         verify(kafkaTemplate, times(1)).send(any(ProducerRecord.class));
+    }
+
+    @Test
+    void should_leaveRowDueWithoutAttempt_when_relayIsInterrupted() {
+        OutboxEvent event = event();
+        when(repository.lockUnsentBatch(20)).thenReturn(List.of(event));
+        when(kafkaTemplate.send(any(ProducerRecord.class))).thenReturn(new InterruptingFuture());
+
+        try {
+            assertThat(newRelay().relayOnce()).isZero();
+            assertThat(Thread.currentThread().isInterrupted()).isTrue();
+        } finally {
+            Thread.interrupted(); // clear the flag so the test runner is unaffected
+        }
+
+        assertThat(event.getSentAt()).isNull();
+        assertThat(event.getAttempts()).isZero();
+        assertThat(event.getLastError()).isNull();
+        assertThat(meterRegistry.counter(OutboxRelay.FAILED_METRIC).count()).isZero();
+    }
+
+    @Test
+    void should_setBackoffAndLastError_when_sendFails() {
+        OutboxEvent event = event();
+        event.setAttempts(0);
+        when(repository.lockUnsentBatch(20)).thenReturn(List.of(event));
+        when(kafkaTemplate.send(any(ProducerRecord.class)))
+                .thenThrow(new KafkaException("broker down"));
+        Instant before = Instant.now();
+
+        assertThat(newRelay().relayOnce()).isZero();
+
+        assertThat(event.getAttempts()).isEqualTo(1);
+        assertThat(event.getLastError()).contains("broker down");
+        assertThat(event.getNextAttemptAt())
+                .isBetween(before.plusSeconds(1), Instant.now().plusSeconds(5));
+        assertThat(meterRegistry.counter(OutboxRelay.FAILED_METRIC).count()).isEqualTo(1.0);
+        assertThat(meterRegistry.counter(OutboxRelay.PUBLISHED_METRIC).count()).isZero();
+    }
+
+    @Test
+    void should_capBackoffAt60Seconds_when_attemptsHigh() {
+        assertThat(OutboxRelay.backoff(1)).isEqualTo(Duration.ofSeconds(1));
+        assertThat(OutboxRelay.backoff(2)).isEqualTo(Duration.ofSeconds(2));
+        assertThat(OutboxRelay.backoff(6)).isEqualTo(Duration.ofSeconds(32));
+        assertThat(OutboxRelay.backoff(7)).isEqualTo(Duration.ofSeconds(60));
+        assertThat(OutboxRelay.backoff(10)).isEqualTo(Duration.ofSeconds(60));
+        assertThat(OutboxRelay.backoff(100)).isEqualTo(Duration.ofSeconds(60));
+    }
+
+    @Test
+    void should_fallBackToExceptionType_when_messageIsNull() {
+        OutboxEvent event = event();
+        when(repository.lockUnsentBatch(20)).thenReturn(List.of(event));
+        when(kafkaTemplate.send(any(ProducerRecord.class)))
+                .thenThrow(new KafkaException((String) null));
+
+        assertThat(newRelay().relayOnce()).isZero();
+
+        assertThat(event.getLastError()).isEqualTo("KafkaException");
+    }
+
+    @Test
+    void should_truncateLastError_when_messageExceedsLimit() {
+        OutboxEvent event = event();
+        when(repository.lockUnsentBatch(20)).thenReturn(List.of(event));
+        when(kafkaTemplate.send(any(ProducerRecord.class)))
+                .thenThrow(new KafkaException("x".repeat(2000)));
+
+        assertThat(newRelay().relayOnce()).isZero();
+
+        assertThat(event.getLastError()).hasSize(1000);
+    }
+
+    /** A send future that reports an interrupt, as the relay's blocking get() would. */
+    private static final class InterruptingFuture extends CompletableFuture<SendResult<String, String>> {
+
+        @Override
+        public SendResult<String, String> get(long timeout, TimeUnit unit) throws InterruptedException {
+            throw new InterruptedException("stop requested");
+        }
     }
 }
