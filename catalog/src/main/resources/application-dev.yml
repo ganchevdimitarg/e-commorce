@@ -137,3 +137,6 @@ catalog:
       url: jdbc:postgresql://localhost:5432/catalog
     reader:
       url: jdbc:postgresql://localhost:5433/catalog
+  #How often the transactional-outbox relay sweeps unsettled events
+  outbox:
+    relay-interval-ms: 1000

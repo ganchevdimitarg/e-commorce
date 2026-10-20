@@ -28,6 +28,11 @@ spring:
 kafka:
   bootstrapAddress: localhost:9092
 
+# The scheduled relay is disabled in tests; ITs call relayOnce() directly.
+catalog:
+  outbox:
+    enabled: false
+
 eureka:
   client:
     enabled: false
