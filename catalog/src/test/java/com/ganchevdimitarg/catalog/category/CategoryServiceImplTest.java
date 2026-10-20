@@ -300,6 +300,20 @@ class CategoryServiceImplTest {
     }
 
     @Test
+    void should_preservePaginationMetadata_when_requestedPageIsBeyondLastPage() {
+        PageRequest pageRequest = PageRequest.of(5, 20);
+        when(categoryRepository.findAll(pageRequest))
+                .thenReturn(new PageImpl<>(List.of(), pageRequest, 25));
+
+        Page<CategoryResponseDto> result = testService.getCategoriesByPage(pageRequest);
+
+        assertThat(result.getContent().size()).isZero();
+        assertThat(result.getTotalElements()).isEqualTo(25);
+        assertThat(result.getTotalPages()).isEqualTo(2);
+        verify(productRepository, never()).countProductsByCategoryIds(any());
+    }
+
+    @Test
     void should_returnCategory_when_getCategoryByName() {
         Category category = new Category();
         category.setName(categoryName);

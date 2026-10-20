@@ -15,11 +15,13 @@ import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -112,7 +114,9 @@ public class CategoryServiceImpl implements CategoryService {
     public Page<CategoryResponseDto> getCategoriesByPage(Pageable pageable) {
         Page<Category> categories = categoryRepository.findAll(pageable);
         if (categories.isEmpty()) {
-            return Page.empty(pageable);
+            // Page.empty(pageable) would reset totalElements/totalPages to 0, which breaks
+            // navigation for out-of-range pages; keep the totals the count query returned.
+            return new PageImpl<>(List.of(), pageable, categories.getTotalElements());
         }
         Map<UUID, Long> counts = productRepository
                 .countProductsByCategoryIds(categories.getContent().stream().map(Category::getId).toList())
