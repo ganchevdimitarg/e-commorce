@@ -14,9 +14,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -91,13 +94,28 @@ public class CommentServiceImpl implements CommentService {
                 .orElse(0.0);
     }
 
+    @Override
+    @Transactional
+    @PreAuthorize("hasAnyAuthority('SCOPE_catalog.write','ROLE_ADMIN')")
+    public void deleteComment(UUID commentId, String requester, boolean admin) {
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new NotFoundException("Comment", commentId));
+        if (!admin && !requester.equals(comment.getAuthor())) {
+            throw new AccessDeniedException(
+                    "Only the author or an administrator may delete this comment");
+        }
+        commentRepository.delete(comment);
+        // A soft-deleted product is hidden by @SQLRestriction, so the association can be null.
+        Product product = comment.getProduct();
+        if (product != null) {
+            productCacheEvictor.evict(product.getId());
+        }
+        meterRegistry.counter("catalog.comment.deleted").increment();
+        log.info("The comment {} is deleted successfully", commentId);
+    }
+
     public CommentResponseDto convertComment(Comment comment) {
-        return new CommentResponseDto(
-                comment.getTitle(),
-                comment.getText(),
-                comment.getStar(),
-                comment.getAuthor(),
-                mapper.mapProductToProductRequestDto(comment.getProduct()));
+        return mapper.mapCommentToCommentResponseDto(comment);
     }
 
 }

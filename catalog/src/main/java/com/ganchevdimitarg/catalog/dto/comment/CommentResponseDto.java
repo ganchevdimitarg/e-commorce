@@ -1,11 +1,13 @@
 package com.ganchevdimitarg.catalog.dto.comment;
 
-import com.ganchevdimitarg.catalog.dto.product.ProductRequestDto;
+import java.util.UUID;
 
 public record CommentResponseDto(
+        UUID id,
         String title,
         String text,
         double star,
         String author,
-        ProductRequestDto product) {
+        UUID productId,
+        String productName) {
 }

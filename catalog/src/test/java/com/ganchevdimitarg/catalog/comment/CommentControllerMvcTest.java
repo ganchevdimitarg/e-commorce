@@ -20,6 +20,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -30,15 +31,18 @@ import org.springframework.data.domain.PageRequest;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -51,6 +55,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import({ResourceServerConfig.class, ControllerExceptionHandler.class,
         ProblemAuthenticationEntryPoint.class, ProblemAccessDeniedHandler.class})
 class CommentControllerMvcTest {
+
+    private static final UUID COMMENT_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
+    private static final UUID PRODUCT_ID = UUID.fromString("22222222-2222-2222-2222-222222222222");
 
     @Autowired
     MockMvc mockMvc;
@@ -72,9 +79,10 @@ class CommentControllerMvcTest {
     }
 
     @Test
-    void should_return201AndLocation_when_createCommentWithWriteScope() throws Exception {
+    void should_return201AndCommentLocation_when_createCommentWithWriteScope() throws Exception {
         CommentResponseDto response = new CommentResponseDto(
-                "Great product", "This is a thorough review text", 5, "john", null);
+                COMMENT_ID, "Great product", "This is a thorough review text", 5, "john",
+                PRODUCT_ID, "mouse");
         when(commentService.createComment(any(CreateCommentCommand.class))).thenReturn(response);
 
         mockMvc.perform(post("/api/v1/catalog/products/mouse/comments")
@@ -90,8 +98,56 @@ class CommentControllerMvcTest {
                                 }
                                 """))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", "/api/v1/catalog/products/mouse/comments"))
-                .andExpect(jsonPath("$.title").value("Great product"));
+                .andExpect(header().string("Location", "/api/v1/catalog/comments/" + COMMENT_ID))
+                .andExpect(jsonPath("$.id").value(COMMENT_ID.toString()))
+                .andExpect(jsonPath("$.title").value("Great product"))
+                .andExpect(jsonPath("$.productId").value(PRODUCT_ID.toString()))
+                .andExpect(jsonPath("$.productName").value("mouse"));
+    }
+
+    @Test
+    void should_return204_when_deleteCommentWithWriteScope() throws Exception {
+        mockMvc.perform(delete("/api/v1/catalog/comments/{id}", COMMENT_ID)
+                        .with(jwt().jwt(token -> token.subject("user-123"))
+                                .authorities(() -> "SCOPE_catalog.write"))
+                        .header("Idempotency-Key", "k-del-1"))
+                .andExpect(status().isNoContent());
+
+        verify(commentService).deleteComment(COMMENT_ID, "user-123", false);
+    }
+
+    @Test
+    void should_return400ProblemJson_when_deleteCommentWithoutIdempotencyKey() throws Exception {
+        mockMvc.perform(delete("/api/v1/catalog/comments/{id}", COMMENT_ID)
+                        .with(jwt().jwt(token -> token.subject("user-123"))
+                                .authorities(() -> "SCOPE_catalog.write")))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON));
+    }
+
+    @Test
+    void should_return403ProblemJson_when_deleteCommentIsDenied() throws Exception {
+        doThrow(new AccessDeniedException("not the author"))
+                .when(commentService).deleteComment(COMMENT_ID, "user-123", false);
+
+        mockMvc.perform(delete("/api/v1/catalog/comments/{id}", COMMENT_ID)
+                        .with(jwt().jwt(token -> token.subject("user-123"))
+                                .authorities(() -> "SCOPE_catalog.write"))
+                        .header("Idempotency-Key", "k-del-denied"))
+                .andExpect(status().isForbidden())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
+    }
+
+    @Test
+    void should_return204_when_adminDeletesComment() throws Exception {
+        mockMvc.perform(delete("/api/v1/catalog/comments/{id}", COMMENT_ID)
+                        .with(jwt().jwt(token -> token.subject("admin-1"))
+                                .authorities(() -> "SCOPE_catalog.write", () -> "ROLE_ADMIN"))
+                        .header("Idempotency-Key", "k-del-admin"))
+                .andExpect(status().isNoContent());
+
+        verify(commentService).deleteComment(COMMENT_ID, "admin-1", true);
     }
 
     @Test
@@ -107,7 +163,7 @@ class CommentControllerMvcTest {
     @Test
     void should_return200_when_findAllByProductNameWithReadScope() throws Exception {
         CommentResponseDto dto = new CommentResponseDto(
-                "Great", "Good product review", 5, "john", null);
+                COMMENT_ID, "Great", "Good product review", 5, "john", PRODUCT_ID, "mouse");
         Page<CommentResponseDto> page = new PageImpl<>(
                 List.of(dto), PageRequest.of(0, 20), 1);
         when(commentService.findAllByProductNameByPage(eq("mouse"), any())).thenReturn(page);
@@ -121,7 +177,7 @@ class CommentControllerMvcTest {
     @Test
     void should_return200_when_findAllByAuthorWithReadScope() throws Exception {
         CommentResponseDto dto = new CommentResponseDto(
-                "Great", "Good product review", 5, "john", null);
+                COMMENT_ID, "Great", "Good product review", 5, "john", PRODUCT_ID, "mouse");
         Page<CommentResponseDto> page = new PageImpl<>(
                 List.of(dto), PageRequest.of(0, 20), 1);
         when(commentService.findAllByAuthorByPage(eq("john"), any())).thenReturn(page);
@@ -217,7 +273,8 @@ class CommentControllerMvcTest {
     @Test
     void should_return201_when_starIsFractionalWithinRange() throws Exception {
         CommentResponseDto response = new CommentResponseDto(
-                "Great product", "This is a thorough review text", 4.5, "john", null);
+                COMMENT_ID, "Great product", "This is a thorough review text", 4.5, "john",
+                PRODUCT_ID, "mouse");
         when(commentService.createComment(any(CreateCommentCommand.class))).thenReturn(response);
 
         mockMvc.perform(post("/api/v1/catalog/products/mouse/comments")
@@ -252,7 +309,8 @@ class CommentControllerMvcTest {
     @Test
     void should_useAuthenticatedPrincipalAsAuthor_when_requestBodySuppliesDifferentAuthor() throws Exception {
         CommentResponseDto response = new CommentResponseDto(
-                "Great product", "This is a thorough review text", 5, "user-123", null);
+                COMMENT_ID, "Great product", "This is a thorough review text", 5, "user-123",
+                PRODUCT_ID, "mouse");
         when(commentService.createComment(any(CreateCommentCommand.class))).thenReturn(response);
 
         mockMvc.perform(post("/api/v1/catalog/products/mouse/comments")
@@ -279,7 +337,8 @@ class CommentControllerMvcTest {
     @Test
     void should_useAuthenticatedPrincipalAsAuthor_when_requestBodyOmitsAuthor() throws Exception {
         CommentResponseDto response = new CommentResponseDto(
-                "Great product", "This is a thorough review text", 5, "user-456", null);
+                COMMENT_ID, "Great product", "This is a thorough review text", 5, "user-456",
+                PRODUCT_ID, "mouse");
         when(commentService.createComment(any(CreateCommentCommand.class))).thenReturn(response);
 
         mockMvc.perform(post("/api/v1/catalog/products/mouse/comments")

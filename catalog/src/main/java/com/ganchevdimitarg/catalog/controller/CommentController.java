@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
 import java.util.Set;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/catalog")
@@ -41,7 +42,16 @@ public class CommentController {
         CommentResponseDto created = commentService.createComment(new CreateCommentCommand(
                 requestDto.title(), requestDto.text(), requestDto.star(), authentication.getName(), productName));
         return ResponseEntity.created(
-                URI.create("/api/v1/catalog/products/" + productName + "/comments")).body(created);
+                URI.create("/api/v1/catalog/comments/" + created.id())).body(created);
+    }
+
+    @Operation(summary = "Delete comment", security = @SecurityRequirement(name = "security_auth"))
+    @DeleteMapping("/comments/{id}")
+    public ResponseEntity<Void> deleteComment(@PathVariable UUID id, Authentication authentication) {
+        boolean admin = authentication.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+        commentService.deleteComment(id, authentication.getName(), admin);
+        return ResponseEntity.noContent().build();
     }
 
     @Operation(summary = "List comments by product", security = @SecurityRequirement(name = "security_auth"))

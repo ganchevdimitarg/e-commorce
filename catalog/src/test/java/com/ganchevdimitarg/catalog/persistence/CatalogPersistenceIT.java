@@ -223,6 +223,29 @@ class CatalogPersistenceIT extends AbstractIntegrationTest {
     }
 
     @Test
+    @Transactional
+    void should_softDeleteComment_when_repositoryDeleteRuns() {
+        Category category = new Category();
+        category.setName("comment-soft-del-cat-" + UUID.randomUUID());
+        categoryRepository.saveAndFlush(category);
+        Product product = productRepository.saveAndFlush(
+                createProduct("csd-" + UUID.randomUUID().toString().substring(0, 8),
+                        "Comment soft delete product", category));
+        Comment comment = commentRepository.saveAndFlush(
+                createComment(product, "alice-" + UUID.randomUUID(), 5.0, "soft delete me"));
+
+        commentRepository.delete(comment);
+        entityManager.flush();
+        entityManager.clear();
+
+        OffsetDateTime deletedAt = jdbcTemplate.queryForObject(
+                "select deleted_at from comments where id = ?",
+                (rs, rowNum) -> rs.getObject("deleted_at", OffsetDateTime.class), comment.getId());
+        assertThat(deletedAt).isNotNull();
+        assertThat(commentRepository.findById(comment.getId())).isEmpty();
+    }
+
+    @Test
     void should_reportCorrectTotalPages_when_findAllByProductIdByPage() {
         Category category = new Category();
         category.setName("jpql-count-cat-" + UUID.randomUUID());

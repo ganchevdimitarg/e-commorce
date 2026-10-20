@@ -21,20 +21,23 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.security.access.AccessDeniedException;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @Tag("unit")
 @ExtendWith(MockitoExtension.class)
 class CommentServerImplTest {
+
+    private static final UUID PRODUCT_ID = UUID.fromString("0030223b-fdb9-40e2-a4b0-81bdf54479a2");
 
     CommentService testService;
 
@@ -55,22 +58,22 @@ class CommentServerImplTest {
 
     @Test
     void should_createComment_when_productExists() {
-        UUID productId = UUID.fromString("0030223b-fdb9-40e2-a4b0-81bdf54479a2");
         Product product = new Product();
-        product.setId(productId);
+        product.setId(PRODUCT_ID);
         product.setName("mouse");
         when(productRepository.findByName("mouse")).thenReturn(Optional.of(product));
         Comment comment = new Comment();
         comment.setTitle("nice");
         when(mapStructMapper.mapCreateCommentCommandToComment(any())).thenReturn(comment);
         when(mapStructMapper.mapCommentToCommentResponseDto(comment))
-                .thenReturn(new CommentResponseDto("nice", "great product!!", 5.0, "joe", null));
+                .thenReturn(new CommentResponseDto(UUID.randomUUID(), "nice", "great product!!", 5.0,
+                        "joe", PRODUCT_ID, "mouse"));
 
         CommentResponseDto result = testService.createComment(
                 new CreateCommentCommand("nice", "great product!!", 5.0, "joe", "mouse"));
 
         verify(commentRepository).saveAndFlush(comment);
-        verify(productCacheEvictor).evict(productId);
+        verify(productCacheEvictor).evict(PRODUCT_ID);
         assertThat(result.title()).isEqualTo("nice");
     }
 
@@ -88,19 +91,22 @@ class CommentServerImplTest {
     @Test
     void should_returnComments_when_productExists() {
         PageRequest pageRequest = PageRequest.of(1, 5);
-        List<Comment> products = Arrays.asList(new Comment(), new Comment());
-        Page<Comment> page = new PageImpl<>(products, pageRequest, products.size());
-        UUID productId = UUID.fromString("0030223b-fdb9-40e2-a4b0-81bdf54479a2");
+        List<Comment> comments = Arrays.asList(new Comment(), new Comment());
+        Page<Comment> page = new PageImpl<>(comments, pageRequest, comments.size());
         Product product = new Product();
-        product.setId(productId);
+        product.setId(PRODUCT_ID);
         product.setName("aaaa89");
 
         when(productRepository.findByName(any(String.class))).thenReturn(Optional.of(product));
-        when(commentRepository.findAllByProductIdByPage(productId, pageRequest)).thenReturn(page);
+        when(commentRepository.findAllByProductIdByPage(PRODUCT_ID, pageRequest)).thenReturn(page);
+        when(mapStructMapper.mapCommentToCommentResponseDto(any(Comment.class)))
+                .thenReturn(new CommentResponseDto(UUID.randomUUID(), "nice", "great product!!", 5.0,
+                        "joe", PRODUCT_ID, "aaaa89"));
 
-        testService.findAllByProductNameByPage("aaaa89", pageRequest);
+        Page<CommentResponseDto> result = testService.findAllByProductNameByPage("aaaa89", pageRequest);
 
         verify(commentRepository).findAllByProductIdByPage(product.getId(), pageRequest);
+        assertThat(result.getContent()).hasSize(2);
     }
 
     @Test
@@ -115,40 +121,42 @@ class CommentServerImplTest {
     @Test
     void should_returnComments_when_authorExists() {
         PageRequest pageRequest = PageRequest.of(1, 5);
-        List<Comment> products = Arrays.asList(new Comment(), new Comment());
-        Page<Comment> page = new PageImpl<>(products, pageRequest, products.size());
-        String productName = "aaaa";
+        List<Comment> comments = Arrays.asList(new Comment(), new Comment());
+        Page<Comment> page = new PageImpl<>(comments, pageRequest, comments.size());
+        String author = "aaaa";
 
-        when(commentRepository.findAllByAuthorByPage(productName, pageRequest)).thenReturn(page);
+        when(commentRepository.findAllByAuthorByPage(author, pageRequest)).thenReturn(page);
+        when(mapStructMapper.mapCommentToCommentResponseDto(any(Comment.class)))
+                .thenReturn(new CommentResponseDto(UUID.randomUUID(), "nice", "great product!!", 5.0,
+                        author, PRODUCT_ID, "mouse"));
 
-        testService.findAllByAuthorByPage(productName, pageRequest);
+        Page<CommentResponseDto> result = testService.findAllByAuthorByPage(author, pageRequest);
 
         verify(commentRepository).findAllByAuthorByPage(any(String.class), any(PageRequest.class));
+        assertThat(result.getContent()).hasSize(2);
     }
 
     @Test
     void should_returnAverageStars_when_productExists() {
-        UUID productId = UUID.fromString("0030223b-fdb9-40e2-a4b0-81bdf54479a2");
         Product product = new Product();
-        product.setId(productId);
+        product.setId(PRODUCT_ID);
         product.setName("mouse");
         when(productRepository.findByName("mouse")).thenReturn(Optional.of(product));
-        when(commentRepository.findAverageStarByProductId(productId)).thenReturn(4.0);
+        when(commentRepository.findAverageStarByProductId(PRODUCT_ID)).thenReturn(4.0);
 
         double avgStars = testService.getAvgStars("mouse");
 
         assertThat(avgStars).isEqualTo(4.0);
-        verify(commentRepository).findAverageStarByProductId(productId);
+        verify(commentRepository).findAverageStarByProductId(PRODUCT_ID);
     }
 
     @Test
     void should_returnZero_when_productHasNoComments() {
-        UUID productId = UUID.fromString("0030223b-fdb9-40e2-a4b0-81bdf54479a2");
         Product product = new Product();
-        product.setId(productId);
+        product.setId(PRODUCT_ID);
         product.setName("mouse");
         when(productRepository.findByName("mouse")).thenReturn(Optional.of(product));
-        when(commentRepository.findAverageStarByProductId(productId)).thenReturn(null);
+        when(commentRepository.findAverageStarByProductId(PRODUCT_ID)).thenReturn(null);
 
         double avgStars = testService.getAvgStars("mouse");
 
@@ -179,10 +187,119 @@ class CommentServerImplTest {
         Comment comment = new Comment();
         when(mapStructMapper.mapCreateCommentCommandToComment(any())).thenReturn(comment);
         when(mapStructMapper.mapCommentToCommentResponseDto(comment))
-                .thenReturn(new CommentResponseDto("", "", 0, "", null));
+                .thenReturn(new CommentResponseDto(UUID.randomUUID(), "", "", 0, "", null, null));
 
         service.createComment(new CreateCommentCommand("nice", "great product!!", 5.0, "joe", "aaa"));
 
         assertThat(registry.get("catalog.comment.created").counter().count()).isEqualTo(1.0);
+    }
+
+    @Test
+    void should_deleteComment_when_requesterIsAuthor() {
+        UUID commentId = UUID.randomUUID();
+        Comment comment = commentWithAuthor("joe");
+        when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
+
+        testService.deleteComment(commentId, "joe", false);
+
+        verify(commentRepository).delete(comment);
+    }
+
+    @Test
+    void should_deleteComment_when_requesterIsAdmin() {
+        UUID commentId = UUID.randomUUID();
+        Comment comment = commentWithAuthor("joe");
+        when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
+
+        testService.deleteComment(commentId, "admin-1", true);
+
+        verify(commentRepository).delete(comment);
+    }
+
+    @Test
+    void should_throwAccessDenied_when_requesterIsNeitherAuthorNorAdmin() {
+        UUID commentId = UUID.randomUUID();
+        Comment comment = commentWithAuthor("joe");
+        when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
+
+        assertThatThrownBy(() -> testService.deleteComment(commentId, "mallory", false))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessage("Only the author or an administrator may delete this comment");
+
+        verify(commentRepository, never()).delete(any());
+    }
+
+    @Test
+    void should_throwAccessDenied_when_authorIsNullAndRequesterIsNotAdmin() {
+        UUID commentId = UUID.randomUUID();
+        Comment comment = commentWithAuthor(null);
+        when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
+
+        assertThatThrownBy(() -> testService.deleteComment(commentId, "mallory", false))
+                .isInstanceOf(AccessDeniedException.class);
+
+        verify(commentRepository, never()).delete(any());
+    }
+
+    @Test
+    void should_throwNotFound_when_commentDoesNotExist() {
+        UUID commentId = UUID.randomUUID();
+        when(commentRepository.findById(commentId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> testService.deleteComment(commentId, "joe", false))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Comment not found: " + commentId);
+
+        verify(commentRepository, never()).delete(any());
+    }
+
+    @Test
+    void should_evictProductCache_when_commentDeleted() {
+        UUID commentId = UUID.randomUUID();
+        Product product = new Product();
+        product.setId(PRODUCT_ID);
+        Comment comment = commentWithAuthor("joe");
+        comment.setProduct(product);
+        when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
+
+        testService.deleteComment(commentId, "joe", false);
+
+        verify(productCacheEvictor).evict(PRODUCT_ID);
+    }
+
+    @Test
+    void should_deleteComment_when_productIsSoftDeleted() {
+        UUID commentId = UUID.randomUUID();
+        Comment comment = commentWithAuthor("joe");
+        comment.setProduct(null);
+        when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
+
+        testService.deleteComment(commentId, "joe", false);
+
+        verify(commentRepository).delete(comment);
+        verify(productCacheEvictor, never()).evict(any());
+    }
+
+    @Test
+    void should_incrementDeletedCounter_when_commentDeleted() {
+        SimpleMeterRegistry registry = new SimpleMeterRegistry();
+        CommentServiceImpl service =
+                new CommentServiceImpl(commentRepository, productRepository, mapStructMapper, registry,
+                        productCacheEvictor);
+        UUID commentId = UUID.randomUUID();
+        when(commentRepository.findById(commentId)).thenReturn(Optional.of(commentWithAuthor("joe")));
+
+        service.deleteComment(commentId, "joe", false);
+
+        assertThat(registry.get("catalog.comment.deleted").counter().count()).isEqualTo(1.0);
+    }
+
+    private static Comment commentWithAuthor(String author) {
+        Comment comment = new Comment();
+        comment.setTitle("nice");
+        comment.setText("great product!!");
+        comment.setStar(5.0);
+        comment.setAuthor(author);
+        return comment;
     }
 }

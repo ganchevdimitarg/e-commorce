@@ -26,9 +26,9 @@ public interface MapStructMapper {
 
     CategorySummaryDto mapCategoryToCategorySummaryDto(Category category);
 
-    Comment mapCommentResponseDtoToComment(CommentResponseDto commentResponseDto);
+    @Mapping(source = "product.id", target = "productId")
+    @Mapping(source = "product.name", target = "productName")
     CommentResponseDto mapCommentToCommentResponseDto(Comment comment);
-    List<Comment> mapCommentResponseDtosToComments(List<CommentResponseDto> commentResponseDtos);
     List<CommentResponseDto> mapCommentsToCommentResponseDtos(List<Comment> comments);
 
     CreateProductCommand mapProductRequestToCreateCommand(ProductRequestDto dto, String categoryName);

@@ -2,6 +2,7 @@ package com.ganchevdimitarg.catalog.cache;
 
 import com.ganchevdimitarg.catalog.AbstractIntegrationTest;
 import com.ganchevdimitarg.catalog.dto.category.MoveProductCommand;
+import com.ganchevdimitarg.catalog.dto.comment.CommentResponseDto;
 import com.ganchevdimitarg.catalog.dto.comment.CreateCommentCommand;
 import com.ganchevdimitarg.catalog.dto.product.CreateProductCommand;
 import com.ganchevdimitarg.catalog.dto.product.ProductResponseDto;
@@ -257,5 +258,20 @@ class ProductCacheIT extends AbstractIntegrationTest {
 
         assertThat(read.price()).isEqualByComparingTo(BigDecimal.valueOf(42));
         verify(productRepository, never()).findById(any());
+    }
+
+    @Test
+    @Order(9)
+    @WithMockUser(authorities = {"SCOPE_catalog.read", "SCOPE_catalog.write"})
+    void should_evictProduct_when_commentDeleted() {
+        CommentResponseDto created = commentService.createComment(new CreateCommentCommand(
+                "great", "thorough review text", 5.0, "joe", PRODUCT_NAME));
+
+        productService.getProductById(PRODUCT_ID);
+        assertThat(cacheManager.getCache("product").get(PRODUCT_ID)).isNotNull();
+
+        commentService.deleteComment(created.id(), "joe", false);
+
+        assertThat(cacheManager.getCache("product").get(PRODUCT_ID)).isNull();
     }
 }
