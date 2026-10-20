@@ -9,7 +9,7 @@ import com.ganchevdimitarg.catalog.domain.Product;
 import com.ganchevdimitarg.catalog.dto.product.CreateProductCommand;
 import com.ganchevdimitarg.catalog.dto.product.ProductResponseDto;
 import com.ganchevdimitarg.catalog.dto.product.UpdateProductCommand;
-import com.ganchevdimitarg.catalog.event.ProductEventPublisher;
+import com.ganchevdimitarg.catalog.event.OutboxEventWriter;
 import com.ganchevdimitarg.catalog.exception.ConflictException;
 import com.ganchevdimitarg.catalog.exception.NotFoundException;
 import com.ganchevdimitarg.catalog.mapper.MapStructMapper;
@@ -63,13 +63,13 @@ class ProductServiceImplTest {
     @Mock
     MapStructMapper mapStructMapper;
     @Mock
-    ProductEventPublisher productEventPublisher;
+    OutboxEventWriter outboxEventWriter;
     @Mock
     ProductCache productCache;
 
     @BeforeEach
     void setup() {
-        testService = new ProductServiceImpl(productRepository, categoryRepository, mapStructMapper, new SimpleMeterRegistry(), productEventPublisher, productCache);
+        testService = new ProductServiceImpl(productRepository, categoryRepository, mapStructMapper, new SimpleMeterRegistry(), outboxEventWriter, productCache);
     }
 
     @Test
@@ -91,7 +91,7 @@ class ProductServiceImplTest {
         ArgumentCaptor<Product> argument = ArgumentCaptor.forClass(Product.class);
         verify(productRepository).saveAndFlush(argument.capture());
         assertThat(argument.getValue().isInStock()).isTrue();
-        verify(productEventPublisher).publishCreated(P1.toString(), product.getName());
+        verify(outboxEventWriter).writeCreated(product);
         verify(productCache).put(P1, expectedDto);
         assertThat(result).isEqualTo(expectedDto);
     }
@@ -191,7 +191,7 @@ class ProductServiceImplTest {
         ProductResponseDto result = testService.updateProduct(P1, cmd);
 
         verify(productRepository).updateById(P1, "aaaaaaaaaaa", BigDecimal.ONE, "", false, 1L);
-        verify(productEventPublisher).publishUpdated(P1.toString(), existing.getName());
+        verify(outboxEventWriter).writeUpdated(refreshed);
         verify(productCache).put(P1, expectedDto);
         assertThat(result).isEqualTo(expectedDto);
     }
@@ -260,7 +260,7 @@ class ProductServiceImplTest {
 
         verify(productRepository).delete(existing);
         verify(productCache).evict(P1);
-        verify(productEventPublisher).publishDeleted(P1.toString(), "mouse");
+        verify(outboxEventWriter).writeDeleted(existing);
     }
 
     @Test
@@ -390,7 +390,7 @@ class ProductServiceImplTest {
     void should_incrementCreatedCounter_when_productCreated() {
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
         ProductServiceImpl service =
-                new ProductServiceImpl(productRepository, categoryRepository, mapStructMapper, registry, productEventPublisher, productCache);
+                new ProductServiceImpl(productRepository, categoryRepository, mapStructMapper, registry, outboxEventWriter, productCache);
 
         CreateProductCommand cmd = new CreateProductCommand("mouse", "WiFi mouse USB", BigDecimal.ONE, true, "", "PC");
         Category category = new Category();

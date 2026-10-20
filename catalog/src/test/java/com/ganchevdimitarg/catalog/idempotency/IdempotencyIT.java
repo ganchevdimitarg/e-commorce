@@ -1,7 +1,7 @@
 package com.ganchevdimitarg.catalog.idempotency;
 
 import com.ganchevdimitarg.catalog.AbstractIntegrationTest;
-import com.ganchevdimitarg.catalog.event.ProductEventPublisher;
+import com.ganchevdimitarg.catalog.event.OutboxEventWriter;
 import com.ganchevdimitarg.catalog.idempotency.IdempotencyStore.ClaimResult;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -61,7 +61,7 @@ class IdempotencyIT extends AbstractIntegrationTest {
     }
 
     @MockitoBean
-    ProductEventPublisher productEventPublisher;
+    OutboxEventWriter outboxEventWriter;
 
     @Autowired
     MockMvc mockMvc;

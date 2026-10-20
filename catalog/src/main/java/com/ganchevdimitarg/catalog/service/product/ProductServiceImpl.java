@@ -9,7 +9,7 @@ import com.ganchevdimitarg.catalog.dto.product.CreateProductCommand;
 import com.ganchevdimitarg.catalog.dto.product.ItemRequestDto;
 import com.ganchevdimitarg.catalog.dto.product.ProductResponseDto;
 import com.ganchevdimitarg.catalog.dto.product.UpdateProductCommand;
-import com.ganchevdimitarg.catalog.event.ProductEventPublisher;
+import com.ganchevdimitarg.catalog.event.OutboxEventWriter;
 import com.ganchevdimitarg.catalog.exception.ConflictException;
 import com.ganchevdimitarg.catalog.exception.NotFoundException;
 import com.ganchevdimitarg.catalog.mapper.MapStructMapper;
@@ -23,8 +23,6 @@ import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
 import java.util.Map;
@@ -41,7 +39,7 @@ public class ProductServiceImpl implements ProductService {
     private final CategoryRepository categoryRepository;
     private final MapStructMapper mapper;
     private final MeterRegistry meterRegistry;
-    private final ProductEventPublisher productEventPublisher;
+    private final OutboxEventWriter outboxEventWriter;
     private final ProductCache productCache;
 
     @Override
@@ -63,9 +61,10 @@ public class ProductServiceImpl implements ProductService {
         product.setCategory(category);
 
         productRepository.saveAndFlush(product);
+        // Written in the same transaction as the product row: the outbox commits or rolls back with it
+        outboxEventWriter.writeCreated(product);
         log.info("The product {} is save successful", product.getName());
         meterRegistry.counter("catalog.product.created").increment();
-        publishAfterCommit(() -> productEventPublisher.publishCreated(product.getId().toString(), product.getName()));
 
         ProductResponseDto dto = mapper.mapProductToProductResponseDto(product);
         productCache.put(product.getId(), dto);
@@ -133,11 +132,11 @@ public class ProductServiceImpl implements ProductService {
             throw new ObjectOptimisticLockingFailureException(Product.class.getSimpleName(), id);
         }
         meterRegistry.counter("catalog.product.updated").increment();
-        publishAfterCommit(() -> productEventPublisher.publishUpdated(id.toString(), existing.getName()));
 
         // Primary read inside the write transaction: the after-commit put caches the new state
         Product refreshed = productRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Product", id));
+        outboxEventWriter.writeUpdated(refreshed);
         ProductResponseDto dto = mapper.mapProductToProductResponseDto(refreshed);
         productCache.put(id, dto);
         log.info("The updates were successful on product: {}", id);
@@ -150,9 +149,9 @@ public class ProductServiceImpl implements ProductService {
     public void deleteProduct(UUID id) {
         Product existing = findProductById(id);
         productRepository.delete(existing);   // honours @SQLDelete soft-delete
+        outboxEventWriter.writeDeleted(existing);
         productCache.evict(id);
         meterRegistry.counter("catalog.product.deleted").increment();
-        publishAfterCommit(() -> productEventPublisher.publishDeleted(id.toString(), existing.getName()));
     }
 
     @Override
@@ -183,19 +182,6 @@ public class ProductServiceImpl implements ProductService {
                     log.warn("Product with the id: {} does not exist.", id);
                     return new NotFoundException("Product", id);
                 });
-    }
-
-    private void publishAfterCommit(Runnable action) {
-        if (TransactionSynchronizationManager.isSynchronizationActive()) {
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    action.run();
-                }
-            });
-        } else {
-            action.run();
-        }
     }
 
     public ProductResponseDto convertProduct(Product product){

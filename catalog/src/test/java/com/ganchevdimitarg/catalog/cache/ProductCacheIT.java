@@ -6,7 +6,7 @@ import com.ganchevdimitarg.catalog.dto.comment.CreateCommentCommand;
 import com.ganchevdimitarg.catalog.dto.product.CreateProductCommand;
 import com.ganchevdimitarg.catalog.dto.product.ProductResponseDto;
 import com.ganchevdimitarg.catalog.dto.product.UpdateProductCommand;
-import com.ganchevdimitarg.catalog.event.ProductEventPublisher;
+import com.ganchevdimitarg.catalog.event.OutboxEventWriter;
 import com.ganchevdimitarg.catalog.repository.ProductRepository;
 import com.ganchevdimitarg.catalog.service.category.CategoryService;
 import com.ganchevdimitarg.catalog.service.comment.CommentService;
@@ -63,7 +63,7 @@ class ProductCacheIT extends AbstractIntegrationTest {
     }
 
     @MockitoBean
-    ProductEventPublisher productEventPublisher;
+    OutboxEventWriter outboxEventWriter;
 
     @MockitoSpyBean
     ProductRepository productRepository;

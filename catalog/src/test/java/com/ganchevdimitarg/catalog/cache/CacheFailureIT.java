@@ -3,7 +3,7 @@ package com.ganchevdimitarg.catalog.cache;
 import com.ganchevdimitarg.catalog.AbstractIntegrationTest;
 import com.ganchevdimitarg.catalog.dto.product.ProductResponseDto;
 import com.ganchevdimitarg.catalog.dto.product.UpdateProductCommand;
-import com.ganchevdimitarg.catalog.event.ProductEventPublisher;
+import com.ganchevdimitarg.catalog.event.OutboxEventWriter;
 import com.ganchevdimitarg.catalog.service.product.ProductService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -43,7 +43,7 @@ class CacheFailureIT extends AbstractIntegrationTest {
     }
 
     @MockitoBean
-    ProductEventPublisher productEventPublisher;
+    OutboxEventWriter outboxEventWriter;
 
     @Autowired
     ProductService productService;
