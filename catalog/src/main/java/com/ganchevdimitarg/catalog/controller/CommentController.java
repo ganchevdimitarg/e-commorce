@@ -14,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -31,9 +32,10 @@ public class CommentController {
     @Operation(summary = "Create comment", security = @SecurityRequirement(name = "security_auth"))
     @PostMapping("/products/{productName}/comments")
     public ResponseEntity<CommentResponseDto> createComment(@PathVariable @NotBlank String productName,
-                                                            @RequestBody @Valid CommentRequestDto requestDto) {
+                                                            @RequestBody @Valid CommentRequestDto requestDto,
+                                                            Authentication authentication) {
         CommentResponseDto created = commentService.createComment(new CreateCommentCommand(
-                requestDto.title(), requestDto.text(), requestDto.star(), requestDto.author(), productName));
+                requestDto.title(), requestDto.text(), requestDto.star(), authentication.getName(), productName));
         return ResponseEntity.created(
                 URI.create("/api/v1/catalog/products/" + productName + "/comments")).body(created);
     }

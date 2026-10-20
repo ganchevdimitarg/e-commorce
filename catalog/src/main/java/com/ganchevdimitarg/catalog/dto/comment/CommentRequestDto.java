@@ -11,6 +11,5 @@ public record CommentRequestDto(
         String text,
         @DecimalMin(value = "1.0", message = "The star rating must be at least 1")
         @DecimalMax(value = "5.0", message = "The star rating must be at most 5")
-        double star,
-        String author) {
+        double star) {
 }

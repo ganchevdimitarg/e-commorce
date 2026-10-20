@@ -13,6 +13,7 @@ import io.micrometer.tracing.Tracer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -30,10 +31,12 @@ import org.springframework.data.domain.PageRequest;
 import java.time.Duration;
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -236,5 +239,57 @@ class CommentControllerMvcTest {
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.code").value("NOT_FOUND"))
                 .andExpect(jsonPath("$.detail").value("Product not found: nonexistent"));
+    }
+
+    @Test
+    void should_useAuthenticatedPrincipalAsAuthor_when_requestBodySuppliesDifferentAuthor() throws Exception {
+        CommentResponseDto response = new CommentResponseDto(
+                "Great product", "This is a thorough review text", 5, "user-123", null);
+        when(commentService.createComment(any(CreateCommentCommand.class))).thenReturn(response);
+
+        mockMvc.perform(post("/api/v1/catalog/products/mouse/comments")
+                        .with(jwt().jwt(token -> token.subject("user-123"))
+                                .authorities(() -> "SCOPE_catalog.write"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Idempotency-Key", "k-author-spoof")
+                        .content("""
+                                {
+                                    "title": "Great product",
+                                    "text": "This is a thorough review text",
+                                    "star": 5,
+                                    "author": "someone-else"
+                                }
+                                """))
+                .andExpect(status().isCreated());
+
+        ArgumentCaptor<CreateCommentCommand> captor = ArgumentCaptor.forClass(CreateCommentCommand.class);
+        verify(commentService).createComment(captor.capture());
+        assertThat(captor.getValue().author()).isEqualTo("user-123");
+        assertThat(captor.getValue().productName()).isEqualTo("mouse");
+    }
+
+    @Test
+    void should_useAuthenticatedPrincipalAsAuthor_when_requestBodyOmitsAuthor() throws Exception {
+        CommentResponseDto response = new CommentResponseDto(
+                "Great product", "This is a thorough review text", 5, "user-456", null);
+        when(commentService.createComment(any(CreateCommentCommand.class))).thenReturn(response);
+
+        mockMvc.perform(post("/api/v1/catalog/products/mouse/comments")
+                        .with(jwt().jwt(token -> token.subject("user-456"))
+                                .authorities(() -> "SCOPE_catalog.write"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Idempotency-Key", "k-author-omitted")
+                        .content("""
+                                {
+                                    "title": "Great product",
+                                    "text": "This is a thorough review text",
+                                    "star": 5
+                                }
+                                """))
+                .andExpect(status().isCreated());
+
+        ArgumentCaptor<CreateCommentCommand> captor = ArgumentCaptor.forClass(CreateCommentCommand.class);
+        verify(commentService).createComment(captor.capture());
+        assertThat(captor.getValue().author()).isEqualTo("user-456");
     }
 }
