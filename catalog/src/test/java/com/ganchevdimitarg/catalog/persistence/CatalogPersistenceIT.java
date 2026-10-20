@@ -13,10 +13,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -37,6 +39,9 @@ class CatalogPersistenceIT extends AbstractIntegrationTest {
 
     @Autowired
     EntityManager entityManager;
+
+    @Autowired
+    JdbcTemplate jdbcTemplate;
 
     @Test
     void should_populateAuditColumns_when_entityPersisted() {
@@ -179,6 +184,18 @@ class CatalogPersistenceIT extends AbstractIntegrationTest {
         assertThatThrownBy(() -> commentRepository.saveAndFlush(comment))
                 .isInstanceOf(DataIntegrityViolationException.class)
                 .hasStackTraceContaining("comments_star_range");
+    }
+
+    @Test
+    void should_createForeignKeyIndexes_when_migrationsApplied() {
+        List<String> names = jdbcTemplate.query(
+                "select indexname from pg_indexes"
+                        + " where schemaname = current_schema() and indexname in (?, ?)",
+                (rs, rowNum) -> rs.getString("indexname"),
+                "idx_products_category_id", "idx_comments_product_id");
+
+        assertThat(names).containsExactlyInAnyOrder(
+                "idx_products_category_id", "idx_comments_product_id");
     }
 
     private Product createProduct(String name, String description, Category category) {
