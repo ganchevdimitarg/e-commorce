@@ -4,11 +4,15 @@ import com.ganchevdimitarg.catalog.dto.PageResponse;
 import com.ganchevdimitarg.catalog.dto.product.ItemRequestDto;
 import com.ganchevdimitarg.catalog.dto.product.ProductRequestDto;
 import com.ganchevdimitarg.catalog.dto.product.ProductResponseDto;
+import com.ganchevdimitarg.catalog.dto.product.ProductSearchCriteria;
 import com.ganchevdimitarg.catalog.dto.product.UpdateProductRequestDto;
 import com.ganchevdimitarg.catalog.mapper.MapStructMapper;
 import com.ganchevdimitarg.catalog.service.product.ProductService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +23,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.net.URI;
 import java.util.List;
 import java.util.Set;
@@ -46,19 +51,19 @@ public class ProductController {
         return ResponseEntity.created(URI.create("/api/v1/catalog/products/" + created.id())).body(created);
     }
 
-    @Operation(summary = "List products", security = @SecurityRequirement(name = "security_auth"))
+    @Operation(summary = "List and search products", security = @SecurityRequirement(name = "security_auth"))
     @GetMapping
-    public PageResponse<ProductResponseDto> getProducts(@PageableDefault(size = 20) Pageable pageable) {
-        return PageResponse.of(productService.getProductsByPage(
+    public PageResponse<ProductResponseDto> getProducts(
+            @PageableDefault(size = 20) Pageable pageable,
+            @RequestParam(required = false) @Size(max = 200) String q,
+            @RequestParam(required = false) @DecimalMin("0") BigDecimal minPrice,
+            @RequestParam(required = false) @DecimalMin("0") BigDecimal maxPrice,
+            @RequestParam(required = false) Boolean inStock,
+            @RequestParam(required = false) @Size(max = 200)
+            @Pattern(regexp = ".*\\S.*", message = "categoryName must not be blank") String categoryName) {
+        ProductSearchCriteria criteria = new ProductSearchCriteria(q, minPrice, maxPrice, inStock, categoryName);
+        return PageResponse.of(productService.searchProducts(criteria,
                 PageableSupport.capped(pageable, SORTABLE_PROPERTIES)));
-    }
-
-    @Operation(summary = "List products by category", security = @SecurityRequirement(name = "security_auth"))
-    @GetMapping(params = "categoryName")
-    public PageResponse<ProductResponseDto> getProductsByCategory(@PageableDefault(size = 20) Pageable pageable,
-                                                                  @RequestParam @NotBlank String categoryName) {
-        return PageResponse.of(productService.getProductsByCategoryByPage(
-                PageableSupport.capped(pageable, SORTABLE_PROPERTIES), categoryName));
     }
 
     @Operation(summary = "Get product by id", security = @SecurityRequirement(name = "security_auth"))

@@ -1,6 +1,7 @@
 package com.ganchevdimitarg.catalog.persistence;
 
 import com.ganchevdimitarg.catalog.AbstractIntegrationTest;
+import com.ganchevdimitarg.catalog.dto.product.ProductSearchCriteria;
 import com.ganchevdimitarg.catalog.service.category.CategoryService;
 import com.ganchevdimitarg.catalog.service.comment.CommentService;
 import com.ganchevdimitarg.catalog.service.product.ProductService;
@@ -90,19 +91,21 @@ class ListQueryCountIT extends AbstractIntegrationTest {
     }
 
     @Test
-    void should_boundStatements_when_productPageRequested() {
+    void should_boundStatements_when_productSearchRequested() {
         Statistics stats = statistics();
 
-        productService.getProductsByPage(PageRequest.of(0, 20));
+        productService.searchProducts(new ProductSearchCriteria(null, null, null, null, null),
+                PageRequest.of(0, 20));
 
         assertThat(stats.getPrepareStatementCount()).isLessThanOrEqualTo(4);
     }
 
     @Test
-    void should_boundStatements_when_productsByCategoryPageRequested() {
+    void should_boundStatements_when_productSearchByCategoryRequested() {
         Statistics stats = statistics();
 
-        productService.getProductsByCategoryByPage(PageRequest.of(0, 20), categoryName);
+        productService.searchProducts(new ProductSearchCriteria(null, null, null, null, categoryName),
+                PageRequest.of(0, 20));
 
         assertThat(stats.getPrepareStatementCount()).isLessThanOrEqualTo(5);
     }

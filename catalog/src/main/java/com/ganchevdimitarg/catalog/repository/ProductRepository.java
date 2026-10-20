@@ -3,8 +3,10 @@ package com.ganchevdimitarg.catalog.repository;
 import com.ganchevdimitarg.catalog.domain.Product;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -15,7 +17,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface ProductRepository extends JpaRepository<Product, UUID> {
+public interface ProductRepository extends JpaRepository<Product, UUID>, JpaSpecificationExecutor<Product> {
     Optional<Product> findByName(String productName);
     Optional<Product> findByNameAndCategoryId(String name, UUID categoryId);
     boolean existsByCategory_Id(UUID categoryId);
@@ -33,6 +35,12 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
     @Override
     @EntityGraph(attributePaths = "category")
     Page<Product> findAll(Pageable pageable);
+
+    // Search pages carry the same eager category as plain page reads; without the graph a
+    // response mapping would issue one select per distinct category on the page.
+    @Override
+    @EntityGraph(attributePaths = "category")
+    Page<Product> findAll(Specification<Product> spec, Pageable pageable);
 
     @EntityGraph(attributePaths = "category")
     @Query("select p from Product p where p.category.id = :categoryId")

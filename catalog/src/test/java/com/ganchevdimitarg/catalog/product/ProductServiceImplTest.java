@@ -8,6 +8,7 @@ import com.ganchevdimitarg.catalog.domain.Category;
 import com.ganchevdimitarg.catalog.domain.Product;
 import com.ganchevdimitarg.catalog.dto.product.CreateProductCommand;
 import com.ganchevdimitarg.catalog.dto.product.ProductResponseDto;
+import com.ganchevdimitarg.catalog.dto.product.ProductSearchCriteria;
 import com.ganchevdimitarg.catalog.dto.product.UpdateProductCommand;
 import com.ganchevdimitarg.catalog.event.OutboxEventWriter;
 import com.ganchevdimitarg.catalog.exception.ConflictException;
@@ -21,12 +22,14 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 
 import com.ganchevdimitarg.catalog.dto.product.ItemRequestDto;
 
@@ -129,24 +132,27 @@ class ProductServiceImplTest {
     }
 
     @Test
-    void should_returnMappedProductsPage_when_pageRequested() {
+    void should_searchAllProducts_when_categoryNameIsAbsent() {
         PageRequest pageRequest = PageRequest.of(0, 2);
         Product p = new Product();
         p.setId(P1);
         p.setName("mouse");
         p.setCategory(new Category());
         Page<Product> page = new PageImpl<>(List.of(p), pageRequest, 1);
-        when(productRepository.findAll(pageRequest)).thenReturn(page);
+        when(productRepository.findAll(ArgumentMatchers.<Specification<Product>>any(), eq(pageRequest)))
+                .thenReturn(page);
 
-        Page<ProductResponseDto> result = testService.getProductsByPage(pageRequest);
+        Page<ProductResponseDto> result = testService.searchProducts(
+                new ProductSearchCriteria(null, null, null, null, null), pageRequest);
 
         assertThat(result.getContent()).hasSize(1);
         assertThat(result.getContent().get(0).name()).isEqualTo("mouse");
         assertThat(result.getTotalElements()).isEqualTo(1);
+        verify(categoryRepository, never()).findByName(any());
     }
 
     @Test
-    void should_returnProducts_when_categoryExists() {
+    void should_resolveCategoryId_when_categoryNameIsPresent() {
         Category category = new Category();
         category.setId(CAT_1);
         when(categoryRepository.findByName("pc")).thenReturn(Optional.of(category));
@@ -155,21 +161,30 @@ class ProductServiceImplTest {
         List<Product> products = Arrays.asList(new Product(), new Product());
         Page<Product> page = new PageImpl<>(products, pageRequest, products.size());
 
-        when(productRepository.findAllByCategoryIdByPage(CAT_1, pageRequest)).thenReturn(page);
+        when(productRepository.findAll(ArgumentMatchers.<Specification<Product>>any(), eq(pageRequest)))
+                .thenReturn(page);
 
-        testService.getProductsByCategoryByPage(pageRequest, "pc");
+        testService.searchProducts(
+                new ProductSearchCriteria(null, null, null, null, "pc"), pageRequest);
 
-        verify(productRepository).findAllByCategoryIdByPage(category.getId(), pageRequest);
+        verify(categoryRepository).findByName("pc");
+        verify(productRepository)
+                .findAll(ArgumentMatchers.<Specification<Product>>any(), eq(pageRequest));
     }
 
     @Test
-    void should_throwNotFound_when_getProductsByMissingCategory() {
-        Pageable pageRequest = PageRequest.of(1, 5);
-        assertThatThrownBy(() -> testService.getProductsByCategoryByPage(pageRequest, ""))
-                .isInstanceOf(NotFoundException.class)
-                .hasMessageContaining("Category not found: ");
+    void should_throwNotFound_when_categoryNameIsUnknown() {
+        when(categoryRepository.findByName("missing")).thenReturn(Optional.empty());
 
-        verify(productRepository, never()).findAllByCategoryIdByPage(new Category().getId(), pageRequest);
+        Pageable pageRequest = PageRequest.of(0, 20);
+
+        assertThatThrownBy(() -> testService.searchProducts(
+                new ProductSearchCriteria(null, null, null, null, "missing"), pageRequest))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Category not found: missing");
+
+        verify(productRepository, never())
+                .findAll(ArgumentMatchers.<Specification<Product>>any(), any(Pageable.class));
     }
 
     @Test

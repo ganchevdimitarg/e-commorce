@@ -3,6 +3,7 @@ package com.ganchevdimitarg.catalog.product;
 import com.ganchevdimitarg.catalog.config.ResourceServerConfig;
 import com.ganchevdimitarg.catalog.controller.ProductController;
 import com.ganchevdimitarg.catalog.dto.product.ProductResponseDto;
+import com.ganchevdimitarg.catalog.dto.product.ProductSearchCriteria;
 import com.ganchevdimitarg.catalog.dto.product.UpdateProductRequestDto;
 import com.ganchevdimitarg.catalog.exception.ControllerExceptionHandler;
 import com.ganchevdimitarg.catalog.exception.ProblemAccessDeniedHandler;
@@ -125,13 +126,95 @@ class ProductControllerMvcTest {
                 true, "black", null, List.of());
         Page<ProductResponseDto> page = new PageImpl<>(
                 List.of(dto), PageRequest.of(0, 20), 1);
-        when(productService.getProductsByPage(any())).thenReturn(page);
+        when(productService.searchProducts(any(), any())).thenReturn(page);
 
         mockMvc.perform(get("/api/v1/catalog/products")
                         .with(jwt().authorities(() -> "SCOPE_catalog.read")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].name").value("mouse"))
                 .andExpect(jsonPath("$.totalElements").value(1));
+    }
+
+    @Test
+    void should_passFiltersToService_when_queryParamsProvided() throws Exception {
+        when(productService.searchProducts(any(), any()))
+                .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 20), 0));
+
+        mockMvc.perform(get("/api/v1/catalog/products")
+                        .param("q", "mo")
+                        .param("minPrice", "10")
+                        .param("maxPrice", "20")
+                        .param("inStock", "true")
+                        .param("categoryName", "PC")
+                        .with(jwt().authorities(() -> "SCOPE_catalog.read")))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<ProductSearchCriteria> captor =
+                ArgumentCaptor.forClass(ProductSearchCriteria.class);
+        verify(productService).searchProducts(captor.capture(), any());
+        ProductSearchCriteria captured = captor.getValue();
+        assertThat(captured.q()).isEqualTo("mo");
+        assertThat(captured.minPrice()).isEqualByComparingTo("10");
+        assertThat(captured.maxPrice()).isEqualByComparingTo("20");
+        assertThat(captured.inStock()).isTrue();
+        assertThat(captured.categoryName()).isEqualTo("PC");
+    }
+
+    @Test
+    void should_return400ProblemJson_when_minPriceExceedsMaxPrice() throws Exception {
+        mockMvc.perform(get("/api/v1/catalog/products")
+                        .param("minPrice", "20")
+                        .param("maxPrice", "10")
+                        .with(jwt().authorities(() -> "SCOPE_catalog.read")))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
+    void should_return400ProblemJson_when_filterPriceIsNegative() throws Exception {
+        mockMvc.perform(get("/api/v1/catalog/products")
+                        .param("minPrice", "-1")
+                        .with(jwt().authorities(() -> "SCOPE_catalog.read")))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
+    void should_return400ProblemJson_when_qExceeds200Characters() throws Exception {
+        mockMvc.perform(get("/api/v1/catalog/products")
+                        .param("q", "a".repeat(201))
+                        .with(jwt().authorities(() -> "SCOPE_catalog.read")))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
+    void should_return200_when_qIsBlank() throws Exception {
+        when(productService.searchProducts(any(), any()))
+                .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 20), 0));
+
+        mockMvc.perform(get("/api/v1/catalog/products")
+                        .param("q", "")
+                        .with(jwt().authorities(() -> "SCOPE_catalog.read")))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<ProductSearchCriteria> captor =
+                ArgumentCaptor.forClass(ProductSearchCriteria.class);
+        verify(productService).searchProducts(captor.capture(), any());
+        assertThat(captor.getValue().q()).isNull();
+    }
+
+    @Test
+    void should_return400ProblemJson_when_categoryNameIsBlank() throws Exception {
+        mockMvc.perform(get("/api/v1/catalog/products")
+                        .param("categoryName", " ")
+                        .with(jwt().authorities(() -> "SCOPE_catalog.read")))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.status").value(400));
     }
 
     @Test
@@ -143,18 +226,23 @@ class ProductControllerMvcTest {
     }
 
     @Test
-    void should_return200WithProductsByCategory_when_getCategoryProductsWithReadScope() throws Exception {
+    void should_return200_when_categoryNameProvided() throws Exception {
         ProductResponseDto dto = new ProductResponseDto(
                 P1, "mouse", "WiFi mouse USB", BigDecimal.valueOf(29.99),
                 true, "black", null, List.of());
         Page<ProductResponseDto> page = new PageImpl<>(
                 List.of(dto), PageRequest.of(0, 20), 1);
-        when(productService.getProductsByCategoryByPage(any(), eq("PC"))).thenReturn(page);
+        when(productService.searchProducts(any(), any())).thenReturn(page);
 
         mockMvc.perform(get("/api/v1/catalog/products?categoryName=PC")
                         .with(jwt().authorities(() -> "SCOPE_catalog.read")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].name").value("mouse"));
+
+        ArgumentCaptor<ProductSearchCriteria> captor =
+                ArgumentCaptor.forClass(ProductSearchCriteria.class);
+        verify(productService).searchProducts(captor.capture(), any());
+        assertThat(captor.getValue().categoryName()).isEqualTo("PC");
     }
 
     @Test

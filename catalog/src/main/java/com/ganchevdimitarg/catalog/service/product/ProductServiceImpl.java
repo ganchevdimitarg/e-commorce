@@ -3,11 +3,13 @@ package com.ganchevdimitarg.catalog.service.product;
 import com.ganchevdimitarg.catalog.cache.ProductCache;
 import com.ganchevdimitarg.catalog.repository.CategoryRepository;
 import com.ganchevdimitarg.catalog.repository.ProductRepository;
+import com.ganchevdimitarg.catalog.repository.ProductSpecifications;
 import com.ganchevdimitarg.catalog.domain.Category;
 import com.ganchevdimitarg.catalog.domain.Product;
 import com.ganchevdimitarg.catalog.dto.product.CreateProductCommand;
 import com.ganchevdimitarg.catalog.dto.product.ItemRequestDto;
 import com.ganchevdimitarg.catalog.dto.product.ProductResponseDto;
+import com.ganchevdimitarg.catalog.dto.product.ProductSearchCriteria;
 import com.ganchevdimitarg.catalog.dto.product.UpdateProductCommand;
 import com.ganchevdimitarg.catalog.event.OutboxEventWriter;
 import com.ganchevdimitarg.catalog.exception.ConflictException;
@@ -74,29 +76,15 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional(readOnly = true)
     @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
-    public Page<ProductResponseDto> getProductsByPage(Pageable pageable) {
-        Page<ProductResponseDto> products = productRepository
-                .findAll(pageable)
+    public Page<ProductResponseDto> searchProducts(ProductSearchCriteria criteria, Pageable pageable) {
+        UUID categoryId = null;
+        if (criteria.categoryName() != null) {
+            categoryId = categoryRepository.findByName(criteria.categoryName())
+                    .orElseThrow(() -> new NotFoundException("Category", criteria.categoryName()))
+                    .getId();
+        }
+        return productRepository.findAll(ProductSpecifications.matching(criteria, categoryId), pageable)
                 .map(this::convertProduct);
-        log.info("Successful get products: {}", products.getSize());
-
-        return products;
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
-    public Page<ProductResponseDto> getProductsByCategoryByPage(Pageable pageable, String categoryName) {
-        Category category = categoryRepository
-                .findByName(categoryName)
-                .orElseThrow(() -> new NotFoundException("Category", categoryName));
-
-        Page<ProductResponseDto> products = productRepository
-                .findAllByCategoryIdByPage(category.getId(), pageable)
-                .map(this::convertProduct);
-        log.info("Successful get products by category: {}", categoryName);
-
-        return products;
     }
 
     @Override
