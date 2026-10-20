@@ -1,6 +1,6 @@
 package com.ganchevdimitarg.catalog.comment;
 
-import com.ganchevdimitarg.catalog.cache.ProductCacheEvictor;
+import com.ganchevdimitarg.catalog.cache.ProductCache;
 import com.ganchevdimitarg.catalog.repository.CommentRepository;
 import com.ganchevdimitarg.catalog.repository.ProductRepository;
 import com.ganchevdimitarg.catalog.domain.Comment;
@@ -45,7 +45,7 @@ class CommentServerImplTest {
     @Mock
     MapStructMapper mapStructMapper;
     @Mock
-    ProductCacheEvictor productCacheEvictor;
+    ProductCache productCacheEvictor;
 
     @BeforeEach
     void setUp() {

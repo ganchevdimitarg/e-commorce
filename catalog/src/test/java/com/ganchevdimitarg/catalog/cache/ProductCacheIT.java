@@ -3,6 +3,7 @@ package com.ganchevdimitarg.catalog.cache;
 import com.ganchevdimitarg.catalog.AbstractIntegrationTest;
 import com.ganchevdimitarg.catalog.dto.category.MoveProductCommand;
 import com.ganchevdimitarg.catalog.dto.comment.CreateCommentCommand;
+import com.ganchevdimitarg.catalog.dto.product.CreateProductCommand;
 import com.ganchevdimitarg.catalog.dto.product.ProductResponseDto;
 import com.ganchevdimitarg.catalog.dto.product.UpdateProductCommand;
 import com.ganchevdimitarg.catalog.event.ProductEventPublisher;
@@ -33,7 +34,9 @@ import java.util.Objects;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -142,12 +145,12 @@ class ProductCacheIT extends AbstractIntegrationTest {
     @Test
     @Order(2)
     @WithMockUser(authorities = {"SCOPE_catalog.read", "SCOPE_catalog.write"})
-    void should_evictCache_when_productUpdated() {
+    void should_serveUpdatedProductFromCache_when_readAfterUpdate() {
         // Populate cache
         productService.getProductById(PRODUCT_ID);
         verify(productRepository, times(1)).findById(PRODUCT_ID);
 
-        // Update product: evicts the cache after method completes successfully
+        // Update product: the refreshed DTO is put into the cache after commit
         UpdateProductCommand updateCmd = new UpdateProductCommand(
                 "Updated description!", BigDecimal.ONE, true, "new-chars");
         productService.updateProduct(PRODUCT_ID, updateCmd);
@@ -155,11 +158,13 @@ class ProductCacheIT extends AbstractIntegrationTest {
         // Clear invocation count so we can assert fresh
         clearInvocations(productRepository);
 
-        // Next read should miss the cache and hit the repository again
+        // Next read is served from the cache with the updated state
         ProductResponseDto afterUpdate = productService.getProductById(PRODUCT_ID);
         assertThat(afterUpdate).isNotNull();
+        assertThat(afterUpdate.description()).isEqualTo("Updated description!");
+        assertThat(afterUpdate.price()).isEqualByComparingTo(BigDecimal.ONE);
 
-        verify(productRepository, times(1)).findById(PRODUCT_ID);
+        verify(productRepository, never()).findById(any());
     }
 
     @Test
@@ -213,5 +218,44 @@ class ProductCacheIT extends AbstractIntegrationTest {
         categoryService.moveAllProducts(CATEGORY_NAME, CATEGORY_2_NAME);
 
         assertThat(cacheManager.getCache("product").get(PRODUCT_ID)).isNull();
+    }
+
+    @Test
+    @Order(7)
+    @WithMockUser(authorities = {"SCOPE_catalog.read", "SCOPE_catalog.write"})
+    void should_serveCreatedProductFromCache_when_readImmediatelyAfterCreate() {
+        ProductResponseDto created = null;
+        try {
+            created = productService.createProduct(new CreateProductCommand(
+                    "cache-new-product", "A product created for cache",
+                    BigDecimal.TEN, true, "test-chars", CATEGORY_NAME));
+
+            clearInvocations(productRepository);
+
+            ProductResponseDto read = productService.getProductById(created.id());
+
+            assertThat(read.name()).isEqualTo("cache-new-product");
+            verify(productRepository, never()).findById(any());
+        } finally {
+            // Remove the created row so a rerun starts clean
+            if (created != null) {
+                jdbc.update("DELETE FROM products WHERE id = ?", created.id());
+            }
+        }
+    }
+
+    @Test
+    @Order(8)
+    @WithMockUser(authorities = {"SCOPE_catalog.read", "SCOPE_catalog.write"})
+    void should_serveUpdatedProductFromCache_when_readImmediatelyAfterUpdate() {
+        productService.updateProduct(PRODUCT_ID, new UpdateProductCommand(
+                "Price update for cache", BigDecimal.valueOf(42), true, "test-chars"));
+
+        clearInvocations(productRepository);
+
+        ProductResponseDto read = productService.getProductById(PRODUCT_ID);
+
+        assertThat(read.price()).isEqualByComparingTo(BigDecimal.valueOf(42));
+        verify(productRepository, never()).findById(any());
     }
 }

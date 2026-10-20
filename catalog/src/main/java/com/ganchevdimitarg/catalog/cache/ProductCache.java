@@ -1,5 +1,6 @@
 package com.ganchevdimitarg.catalog.cache;
 
+import com.ganchevdimitarg.catalog.dto.product.ProductResponseDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
@@ -10,18 +11,29 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import java.util.UUID;
 
 /**
- * Evicts the {@code product} cache after the surrounding transaction commits.
+ * Maintains the {@code product} cache after the surrounding transaction commits.
  *
- * <p>Evicting inside a transactional method can race a concurrent read that repopulates
- * the cache with pre-commit data, so the eviction is deferred until after commit.
+ * <p>Writing to the cache inside a transactional method can expose rolled-back state and
+ * race a concurrent read, so puts and evictions are deferred until after commit. The
+ * after-commit put is what makes a just-written product readable from the cache instead
+ * of a lagging replica.
  */
 @Component
 @RequiredArgsConstructor
-public class ProductCacheEvictor {
+public class ProductCache {
 
     private static final String CACHE = "product";
 
     private final CacheManager cacheManager;
+
+    public void put(UUID productId, ProductResponseDto product) {
+        afterCommit(() -> {
+            Cache cache = cacheManager.getCache(CACHE);
+            if (cache != null) {
+                cache.put(productId, product);
+            }
+        });
+    }
 
     public void evict(UUID productId) {
         afterCommit(() -> {

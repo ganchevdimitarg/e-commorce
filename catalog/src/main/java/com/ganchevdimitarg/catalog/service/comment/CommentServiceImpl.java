@@ -1,6 +1,6 @@
 package com.ganchevdimitarg.catalog.service.comment;
 
-import com.ganchevdimitarg.catalog.cache.ProductCacheEvictor;
+import com.ganchevdimitarg.catalog.cache.ProductCache;
 import com.ganchevdimitarg.catalog.repository.CommentRepository;
 import com.ganchevdimitarg.catalog.repository.ProductRepository;
 import com.ganchevdimitarg.catalog.domain.Comment;
@@ -27,7 +27,7 @@ public class CommentServiceImpl implements CommentService {
     private final ProductRepository productRepository;
     private final MapStructMapper mapper;
     private final MeterRegistry meterRegistry;
-    private final ProductCacheEvictor productCacheEvictor;
+    private final ProductCache productCacheEvictor;
 
     @Override
     @Transactional

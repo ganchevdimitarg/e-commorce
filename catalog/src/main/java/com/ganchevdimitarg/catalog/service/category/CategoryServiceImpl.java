@@ -1,6 +1,6 @@
 package com.ganchevdimitarg.catalog.service.category;
 
-import com.ganchevdimitarg.catalog.cache.ProductCacheEvictor;
+import com.ganchevdimitarg.catalog.cache.ProductCache;
 import com.ganchevdimitarg.catalog.repository.CategoryRepository;
 import com.ganchevdimitarg.catalog.repository.ProductRepository;
 import com.ganchevdimitarg.catalog.domain.Category;
@@ -34,7 +34,7 @@ public class CategoryServiceImpl implements CategoryService {
     private final CategoryRepository categoryRepository;
     private final ProductRepository productRepository;
     private final MeterRegistry meterRegistry;
-    private final ProductCacheEvictor productCacheEvictor;
+    private final ProductCache productCacheEvictor;
 
     @Override
     @Transactional

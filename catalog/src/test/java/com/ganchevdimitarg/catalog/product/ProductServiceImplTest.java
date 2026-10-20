@@ -1,6 +1,7 @@
 package com.ganchevdimitarg.catalog.product;
 
 
+import com.ganchevdimitarg.catalog.cache.ProductCache;
 import com.ganchevdimitarg.catalog.repository.CategoryRepository;
 import com.ganchevdimitarg.catalog.repository.ProductRepository;
 import com.ganchevdimitarg.catalog.domain.Category;
@@ -63,10 +64,12 @@ class ProductServiceImplTest {
     MapStructMapper mapStructMapper;
     @Mock
     ProductEventPublisher productEventPublisher;
+    @Mock
+    ProductCache productCache;
 
     @BeforeEach
     void setup() {
-        testService = new ProductServiceImpl(productRepository, categoryRepository, mapStructMapper, new SimpleMeterRegistry(), productEventPublisher);
+        testService = new ProductServiceImpl(productRepository, categoryRepository, mapStructMapper, new SimpleMeterRegistry(), productEventPublisher, productCache);
     }
 
     @Test
@@ -79,13 +82,18 @@ class ProductServiceImplTest {
         product.setId(P1);
         product.setInStock(true);
         when(mapStructMapper.mapCreateCommandToProduct(cmd)).thenReturn(product);
+        ProductResponseDto expectedDto = new ProductResponseDto(P1, "mouse", "WiFi mouse USB",
+                BigDecimal.ONE, true, "", null, List.of());
+        when(mapStructMapper.mapProductToProductResponseDto(product)).thenReturn(expectedDto);
 
-        testService.createProduct(cmd);
+        ProductResponseDto result = testService.createProduct(cmd);
 
         ArgumentCaptor<Product> argument = ArgumentCaptor.forClass(Product.class);
         verify(productRepository).saveAndFlush(argument.capture());
         assertThat(argument.getValue().isInStock()).isTrue();
         verify(productEventPublisher).publishCreated(P1.toString(), product.getName());
+        verify(productCache).put(P1, expectedDto);
+        assertThat(result).isEqualTo(expectedDto);
     }
 
     @Test
@@ -166,14 +174,26 @@ class ProductServiceImplTest {
         Product existing = new Product();
         existing.setId(P1);
         existing.setVersion(1L);
-        when(productRepository.findById(P1)).thenReturn(Optional.of(existing));
+        Product refreshed = new Product();
+        refreshed.setId(P1);
+        refreshed.setDescription("aaaaaaaaaaa");
+        refreshed.setPrice(BigDecimal.ONE);
+        refreshed.setCharacteristics("");
+        refreshed.setInStock(false);
+        when(productRepository.findById(P1))
+                .thenReturn(Optional.of(existing), Optional.of(refreshed));
         when(productRepository.updateById(P1, "aaaaaaaaaaa", BigDecimal.ONE, "", false, 1L)).thenReturn(1);
+        ProductResponseDto expectedDto = new ProductResponseDto(P1, "mouse", "aaaaaaaaaaa",
+                BigDecimal.ONE, false, "", null, List.of());
+        when(mapStructMapper.mapProductToProductResponseDto(refreshed)).thenReturn(expectedDto);
         UpdateProductCommand cmd = new UpdateProductCommand("aaaaaaaaaaa", BigDecimal.ONE, false, "");
 
-        testService.updateProduct(P1, cmd);
+        ProductResponseDto result = testService.updateProduct(P1, cmd);
 
         verify(productRepository).updateById(P1, "aaaaaaaaaaa", BigDecimal.ONE, "", false, 1L);
         verify(productEventPublisher).publishUpdated(P1.toString(), existing.getName());
+        verify(productCache).put(P1, expectedDto);
+        assertThat(result).isEqualTo(expectedDto);
     }
 
     @Test
@@ -187,6 +207,38 @@ class ProductServiceImplTest {
 
         assertThatThrownBy(() -> testService.updateProduct(P1, cmd))
                 .isInstanceOf(ObjectOptimisticLockingFailureException.class);
+    }
+
+    @Test
+    void should_notPutCache_when_updateFails() {
+        Product existing = new Product();
+        existing.setId(P1);
+        existing.setVersion(1L);
+        when(productRepository.findById(P1)).thenReturn(Optional.of(existing));
+        when(productRepository.updateById(P1, "aaaaaaaaaaa", BigDecimal.ONE, "", false, 1L)).thenReturn(0);
+        UpdateProductCommand cmd = new UpdateProductCommand("aaaaaaaaaaa", BigDecimal.ONE, false, "");
+
+        assertThatThrownBy(() -> testService.updateProduct(P1, cmd))
+                .isInstanceOf(ObjectOptimisticLockingFailureException.class);
+
+        verify(productCache, never()).put(any(), any());
+    }
+
+    @Test
+    void should_throwNotFound_when_productDisappearsBeforeCachePut() {
+        Product existing = new Product();
+        existing.setId(P1);
+        existing.setVersion(1L);
+        when(productRepository.findById(P1))
+                .thenReturn(Optional.of(existing), Optional.empty());
+        when(productRepository.updateById(P1, "aaaaaaaaaaa", BigDecimal.ONE, "", false, 1L)).thenReturn(1);
+        UpdateProductCommand cmd = new UpdateProductCommand("aaaaaaaaaaa", BigDecimal.ONE, false, "");
+
+        assertThatThrownBy(() -> testService.updateProduct(P1, cmd))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Product not found: " + P1);
+
+        verify(productCache, never()).put(any(), any());
     }
 
     @Test
@@ -207,6 +259,7 @@ class ProductServiceImplTest {
         testService.deleteProduct(P1);
 
         verify(productRepository).delete(existing);
+        verify(productCache).evict(P1);
         verify(productEventPublisher).publishDeleted(P1.toString(), "mouse");
     }
 
@@ -337,7 +390,7 @@ class ProductServiceImplTest {
     void should_incrementCreatedCounter_when_productCreated() {
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
         ProductServiceImpl service =
-                new ProductServiceImpl(productRepository, categoryRepository, mapStructMapper, registry, productEventPublisher);
+                new ProductServiceImpl(productRepository, categoryRepository, mapStructMapper, registry, productEventPublisher, productCache);
 
         CreateProductCommand cmd = new CreateProductCommand("mouse", "WiFi mouse USB", BigDecimal.ONE, true, "", "PC");
         Category category = new Category();
@@ -346,6 +399,8 @@ class ProductServiceImplTest {
         Product product = new Product();
         product.setId(P1);
         when(mapStructMapper.mapCreateCommandToProduct(cmd)).thenReturn(product);
+        when(mapStructMapper.mapProductToProductResponseDto(product)).thenReturn(
+                new ProductResponseDto(P1, "mouse", "WiFi mouse USB", BigDecimal.ONE, true, "", null, List.of()));
 
         service.createProduct(cmd);
 

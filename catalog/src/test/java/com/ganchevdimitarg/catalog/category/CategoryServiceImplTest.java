@@ -1,6 +1,6 @@
 package com.ganchevdimitarg.catalog.category;
 
-import com.ganchevdimitarg.catalog.cache.ProductCacheEvictor;
+import com.ganchevdimitarg.catalog.cache.ProductCache;
 import com.ganchevdimitarg.catalog.repository.CategoryRepository;
 import com.ganchevdimitarg.catalog.repository.ProductRepository;
 import com.ganchevdimitarg.catalog.domain.Category;
@@ -56,7 +56,7 @@ class CategoryServiceImplTest {
     @Mock
     ProductRepository productRepository;
     @Mock
-    ProductCacheEvictor productCacheEvictor;
+    ProductCache productCacheEvictor;
 
     String categoryName;
 

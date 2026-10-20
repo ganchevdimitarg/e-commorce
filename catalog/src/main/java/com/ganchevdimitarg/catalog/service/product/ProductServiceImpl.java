@@ -1,5 +1,6 @@
 package com.ganchevdimitarg.catalog.service.product;
 
+import com.ganchevdimitarg.catalog.cache.ProductCache;
 import com.ganchevdimitarg.catalog.repository.CategoryRepository;
 import com.ganchevdimitarg.catalog.repository.ProductRepository;
 import com.ganchevdimitarg.catalog.domain.Category;
@@ -15,7 +16,6 @@ import com.ganchevdimitarg.catalog.mapper.MapStructMapper;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -42,6 +42,7 @@ public class ProductServiceImpl implements ProductService {
     private final MapStructMapper mapper;
     private final MeterRegistry meterRegistry;
     private final ProductEventPublisher productEventPublisher;
+    private final ProductCache productCache;
 
     @Override
     @Transactional
@@ -66,7 +67,9 @@ public class ProductServiceImpl implements ProductService {
         meterRegistry.counter("catalog.product.created").increment();
         publishAfterCommit(() -> productEventPublisher.publishCreated(product.getId().toString(), product.getName()));
 
-        return mapper.mapProductToProductResponseDto(product);
+        ProductResponseDto dto = mapper.mapProductToProductResponseDto(product);
+        productCache.put(product.getId(), dto);
+        return dto;
     }
 
     @Override
@@ -120,8 +123,7 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional
     @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
-    @CacheEvict(cacheNames = "product", key = "#id")
-    public void updateProduct(UUID id, UpdateProductCommand command) {
+    public ProductResponseDto updateProduct(UUID id, UpdateProductCommand command) {
         Product existing = findProductById(id);
 
         int updated = productRepository.updateById(id,
@@ -132,16 +134,23 @@ public class ProductServiceImpl implements ProductService {
         }
         meterRegistry.counter("catalog.product.updated").increment();
         publishAfterCommit(() -> productEventPublisher.publishUpdated(id.toString(), existing.getName()));
+
+        // Primary read inside the write transaction: the after-commit put caches the new state
+        Product refreshed = productRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Product", id));
+        ProductResponseDto dto = mapper.mapProductToProductResponseDto(refreshed);
+        productCache.put(id, dto);
         log.info("The updates were successful on product: {}", id);
+        return dto;
     }
 
     @Override
     @Transactional
     @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
-    @CacheEvict(cacheNames = "product", key = "#id")
     public void deleteProduct(UUID id) {
         Product existing = findProductById(id);
         productRepository.delete(existing);   // honours @SQLDelete soft-delete
+        productCache.evict(id);
         meterRegistry.counter("catalog.product.deleted").increment();
         publishAfterCommit(() -> productEventPublisher.publishDeleted(id.toString(), existing.getName()));
     }
