@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @RestController
@@ -28,6 +29,9 @@ import java.util.UUID;
 @Slf4j
 @Validated
 public class ProductController {
+
+    private static final Set<String> SORTABLE_PROPERTIES =
+            Set.of("name", "price", "inStock", "createdAt", "updatedAt");
 
     private final ProductService productService;
     private final MapStructMapper mapper;
@@ -44,14 +48,16 @@ public class ProductController {
     @Operation(summary = "List products", security = @SecurityRequirement(name = "security_auth"))
     @GetMapping
     public PageResponse<ProductResponseDto> getProducts(@PageableDefault(size = 20) Pageable pageable) {
-        return PageResponse.of(productService.getProductsByPage(PageableSupport.capped(pageable)));
+        return PageResponse.of(productService.getProductsByPage(
+                PageableSupport.capped(pageable, SORTABLE_PROPERTIES)));
     }
 
     @Operation(summary = "List products by category", security = @SecurityRequirement(name = "security_auth"))
     @GetMapping(params = "categoryName")
     public PageResponse<ProductResponseDto> getProductsByCategory(@PageableDefault(size = 20) Pageable pageable,
                                                                   @RequestParam @NotBlank String categoryName) {
-        return PageResponse.of(productService.getProductsByCategoryByPage(PageableSupport.capped(pageable), categoryName));
+        return PageResponse.of(productService.getProductsByCategoryByPage(
+                PageableSupport.capped(pageable, SORTABLE_PROPERTIES), categoryName));
     }
 
     @Operation(summary = "Get product by id", security = @SecurityRequirement(name = "security_auth"))

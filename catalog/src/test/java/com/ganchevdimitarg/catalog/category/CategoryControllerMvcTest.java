@@ -91,6 +91,14 @@ class CategoryControllerMvcTest {
     }
 
     @Test
+    void should_return400ProblemJson_when_sortPropertyIsNotWhitelisted() throws Exception {
+        mockMvc.perform(get("/api/v1/catalog/categories?sort=doesNotExist")
+                        .with(jwt().authorities(() -> "SCOPE_catalog.read")))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON));
+    }
+
+    @Test
     void should_return201_when_createCategoryWithValidBody() throws Exception {
         CategoryResponseDto response = new CategoryResponseDto(CATEGORY_ID, "Electronics", 0L);
         when(categoryService.createCategory(any(CreateCategoryCommand.class))).thenReturn(response);

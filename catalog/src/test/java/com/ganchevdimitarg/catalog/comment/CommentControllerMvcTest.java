@@ -133,6 +133,14 @@ class CommentControllerMvcTest {
     }
 
     @Test
+    void should_return400ProblemJson_when_sortPropertyIsNotWhitelisted() throws Exception {
+        mockMvc.perform(get("/api/v1/catalog/comments/by-author/alice?sort=doesNotExist")
+                        .with(jwt().authorities(() -> "SCOPE_catalog.read")))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON));
+    }
+
+    @Test
     void should_return400ProblemJson_when_createCommentWithInvalidBody() throws Exception {
         mockMvc.perform(post("/api/v1/catalog/products/mouse/comments")
                         .with(jwt().authorities(() -> "SCOPE_catalog.write"))

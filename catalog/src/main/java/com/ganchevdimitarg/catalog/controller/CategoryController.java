@@ -19,6 +19,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/api/v1/catalog/categories")
@@ -26,6 +27,9 @@ import java.net.URI;
 @Slf4j
 @Validated
 public class CategoryController {
+
+    private static final Set<String> SORTABLE_PROPERTIES =
+            Set.of("name", "createdAt", "updatedAt");
 
     private final CategoryService categoryService;
 
@@ -47,7 +51,8 @@ public class CategoryController {
     @Operation(summary = "List categories", security = @SecurityRequirement(name = "security_auth"))
     @GetMapping
     public PageResponse<CategoryResponseDto> getCategories(@PageableDefault(size = 20) Pageable pageable) {
-        return PageResponse.of(categoryService.getCategoriesByPage(PageableSupport.capped(pageable)));
+        return PageResponse.of(categoryService.getCategoriesByPage(
+                PageableSupport.capped(pageable, SORTABLE_PROPERTIES)));
     }
 
     @Operation(summary = "Move one product between categories", security = @SecurityRequirement(name = "security_auth"))

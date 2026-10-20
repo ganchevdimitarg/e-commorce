@@ -19,6 +19,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/api/v1/catalog")
@@ -26,6 +27,9 @@ import java.net.URI;
 @Slf4j
 @Validated
 public class CommentController {
+
+    private static final Set<String> SORTABLE_PROPERTIES =
+            Set.of("star", "title", "author", "createdAt", "updatedAt");
 
     private final CommentService commentService;
 
@@ -44,14 +48,16 @@ public class CommentController {
     @GetMapping("/products/{productName}/comments")
     public PageResponse<CommentResponseDto> findAllByProductName(@PathVariable @NotBlank String productName,
                                                                  @PageableDefault(size = 20) Pageable pageable) {
-        return PageResponse.of(commentService.findAllByProductNameByPage(productName, PageableSupport.capped(pageable)));
+        return PageResponse.of(commentService.findAllByProductNameByPage(productName,
+                PageableSupport.capped(pageable, SORTABLE_PROPERTIES)));
     }
 
     @Operation(summary = "List comments by author", security = @SecurityRequirement(name = "security_auth"))
     @GetMapping("/comments/by-author/{author}")
     public PageResponse<CommentResponseDto> findAllByAuthor(@PathVariable @NotBlank String author,
                                                             @PageableDefault(size = 20) Pageable pageable) {
-        return PageResponse.of(commentService.findAllByAuthorByPage(author, PageableSupport.capped(pageable)));
+        return PageResponse.of(commentService.findAllByAuthorByPage(author,
+                PageableSupport.capped(pageable, SORTABLE_PROPERTIES)));
     }
 
     @Operation(summary = "Average stars for product", security = @SecurityRequirement(name = "security_auth"))

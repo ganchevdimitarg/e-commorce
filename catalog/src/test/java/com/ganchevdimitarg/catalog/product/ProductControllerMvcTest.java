@@ -132,6 +132,14 @@ class ProductControllerMvcTest {
     }
 
     @Test
+    void should_return400ProblemJson_when_sortPropertyIsNotWhitelisted() throws Exception {
+        mockMvc.perform(get("/api/v1/catalog/products?sort=doesNotExist")
+                        .with(jwt().authorities(() -> "SCOPE_catalog.read")))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON));
+    }
+
+    @Test
     void should_return200WithProductsByCategory_when_getCategoryProductsWithReadScope() throws Exception {
         ProductResponseDto dto = new ProductResponseDto(
                 P1, "mouse", "WiFi mouse USB", BigDecimal.valueOf(29.99),
