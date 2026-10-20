@@ -46,7 +46,7 @@ Every entry is a JSON `IdempotencyRecord(state, status, contentType, location, b
 | `IN_PROGRESS` | Concurrent duplicate | 409 `application/problem+json` — the first request is still running |
 | `COMPLETED` | Retry | Replay the stored status, `Content-Type`, `Location` and body; the handler does not run |
 | missing (`null`) | Race with expiry | 409 — never execute an ambiguous request twice |
-| unparseable (legacy `"1"`, corruption) | Rolling deploy or corruption | 409 — never replay or re-execute an ambiguous request |
+| unparseable value (corruption) | Corrupt entry | 409 — never replay or re-execute an ambiguous request |
 
 - A new key is claimed with `SET NX` as `IN_PROGRESS` with a 24 h TTL.
 - On a 2xx/3xx/4xx outcome the entry is replaced by a `COMPLETED` record with the same
@@ -85,13 +85,17 @@ responses intact. Idempotency remains an MVC interceptor rather than a filter be
 - **A completion-storage failure leaves the key `IN_PROGRESS` until the TTL expires**
   (24 h). Retries of that request return 409 even though the original succeeded; the
   client must treat 409 as "outcome unknown, do not retry blindly" for the TTL window.
-- **Legacy `"1"` keys are unparseable and yield 409 until they expire.** This is
-  deliberate during a rolling deploy: an ambiguous request is never re-executed.
+- **An unparseable stored value yields 409 until it expires.** A corrupt entry is treated
+  as ambiguous and is never replayed or re-executed.
 - **Cached 4xx responses are replayed.** A client that fixes its payload and retries with
   the same key receives the cached validation error until the key expires; it must use a
   new key for a materially different request.
 - **In-progress entries are never automatically cleared by a crashed request.** A process
   crash between claim and completion leaves the key `IN_PROGRESS` until the TTL. A
   shorter claim TTL or a heartbeat would address this, but is out of scope for Phase 4.
-- The key formula changes the Redis key space; old latch keys (`catalog:idempotency:<raw
-  client key>`) are simply orphaned and expire on their own TTL.
+- **Deploying this change opens a duplicate-write window.** Old nodes computed
+  `catalog:idempotency:<raw client key>` and new nodes compute
+  `catalog:idempotency:<SHA-256>`, so the two key spaces are disjoint: a retry that
+  crosses the deploy boundary is treated as a new request and can execute twice. The
+  deploy window accepts this duplicate-write risk; old latch entries are orphaned and
+  expire on their own TTL.

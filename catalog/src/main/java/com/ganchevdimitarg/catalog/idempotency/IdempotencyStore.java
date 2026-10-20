@@ -48,8 +48,8 @@ public final class IdempotencyStore {
         try {
             record = objectMapper.readValue(stored, IdempotencyRecord.class);
         } catch (JsonProcessingException e) {
-            // Legacy "1" latch values (rolling deploy) and corrupt entries are never replayable;
-            // never re-execute an ambiguous request.
+            // Unparseable values are corrupt; never replay or re-execute an ambiguous request.
+            // Old latch entries lived under a different key space and are never read here.
             return new ClaimResult.InProgress();
         }
         return record.state() == IdempotencyRecord.State.COMPLETED

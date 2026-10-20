@@ -102,8 +102,10 @@ public class IdempotencyInterceptor implements HandlerInterceptor {
             response.setHeader(HttpHeaders.LOCATION, record.location());
         }
         if (record.body() != null) {
-            response.getWriter().write(record.body());
-            response.getWriter().flush();
+            // Write the captured bytes verbatim. The container's writer would encode with the
+            // response charset (ISO-8859-1 when none is set), corrupting non-ASCII bodies.
+            response.getOutputStream().write(record.body().getBytes(StandardCharsets.UTF_8));
+            response.getOutputStream().flush();
         }
     }
 

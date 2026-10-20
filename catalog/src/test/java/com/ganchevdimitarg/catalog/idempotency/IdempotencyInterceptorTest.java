@@ -91,6 +91,22 @@ class IdempotencyInterceptorTest {
     }
 
     @Test
+    void should_replayUtf8BodyByteExactly_when_storedBodyContainsNonAscii() throws Exception {
+        // text/plain keeps MockHttpServletResponse on its ISO-8859-1 default (it special-cases
+        // JSON to UTF-8), which is exactly the container fallback that byte-exact replay must
+        // not depend on.
+        String body = "{\"name\":\"мышка\"}";
+        when(store.claim(SCOPED_KEY)).thenReturn(new ClaimResult.Completed(
+                IdempotencyRecord.completed(201, "text/plain", null, body)));
+        MockHttpServletRequest request = writeRequest();
+        ContentCachingResponseWrapper wrapper = new ContentCachingResponseWrapper(new MockHttpServletResponse());
+
+        assertThat(interceptor.preHandle(request, wrapper, new Object())).isFalse();
+
+        assertThat(wrapper.getContentAsByteArray()).isEqualTo(body.getBytes(StandardCharsets.UTF_8));
+    }
+
+    @Test
     void should_throwValidation_when_writeMissingIdempotencyKey() {
         MockHttpServletRequest request = new MockHttpServletRequest("POST", URI);
 
