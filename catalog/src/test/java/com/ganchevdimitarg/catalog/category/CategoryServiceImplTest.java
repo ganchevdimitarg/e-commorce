@@ -10,7 +10,6 @@ import com.ganchevdimitarg.catalog.dto.category.CreateCategoryCommand;
 import com.ganchevdimitarg.catalog.dto.category.MoveProductCommand;
 import com.ganchevdimitarg.catalog.exception.ConflictException;
 import com.ganchevdimitarg.catalog.exception.NotFoundException;
-import com.ganchevdimitarg.catalog.mapper.MapStructMapper;
 import com.ganchevdimitarg.catalog.service.category.CategoryService;
 import com.ganchevdimitarg.catalog.service.category.CategoryServiceImpl;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -57,15 +56,13 @@ class CategoryServiceImplTest {
     @Mock
     ProductRepository productRepository;
     @Mock
-    MapStructMapper mapStructMapper;
-    @Mock
     ProductCacheEvictor productCacheEvictor;
 
     String categoryName;
 
     @BeforeEach
     void setUp() {
-        testService = new CategoryServiceImpl(categoryRepository, productRepository, mapStructMapper,
+        testService = new CategoryServiceImpl(categoryRepository, productRepository,
                 new SimpleMeterRegistry(), productCacheEvictor);
         categoryName = "bbbbb";
     }
@@ -77,8 +74,6 @@ class CategoryServiceImplTest {
         saved.setId(C1);
         saved.setName("PC");
         when(categoryRepository.saveAndFlush(any())).thenReturn(saved);
-        when(mapStructMapper.mapCategoryToCategoryResponseDto(saved))
-                .thenReturn(new CategoryResponseDto(C1, "PC", List.of()));
 
         CategoryResponseDto result = testService.createCategory(new CreateCategoryCommand("PC"));
 
@@ -88,6 +83,10 @@ class CategoryServiceImplTest {
     @Test
     void should_createCategory_when_nameIsNotEmpty() {
         when(categoryRepository.findByName(categoryName)).thenReturn(Optional.empty());
+        Category saved = new Category();
+        saved.setId(C1);
+        saved.setName(categoryName);
+        when(categoryRepository.saveAndFlush(any())).thenReturn(saved);
 
         testService.createCategory(new CreateCategoryCommand(categoryName));
 
@@ -251,9 +250,53 @@ class CategoryServiceImplTest {
         List<Category> products = Arrays.asList(new Category(), new Category());
         Page<Category> page = new PageImpl<>(products, pageRequest, products.size());
         when(categoryRepository.findAll(pageRequest)).thenReturn(page);
+        when(productRepository.countProductsByCategoryIds(any())).thenReturn(List.of());
 
         testService.getCategoriesByPage(pageRequest);
         verify(categoryRepository).findAll(pageRequest);
+    }
+
+    @Test
+    void should_returnProductCount_when_categoryListed() {
+        Category category = new Category();
+        category.setId(C1);
+        category.setName("PC");
+        PageRequest pageRequest = PageRequest.of(0, 20);
+        when(categoryRepository.findAll(pageRequest))
+                .thenReturn(new PageImpl<>(List.of(category), pageRequest, 1));
+        when(productRepository.countProductsByCategoryIds(List.of(C1)))
+                .thenReturn(List.of(categoryProductCount(C1, 7L)));
+
+        CategoryResponseDto result = testService.getCategoriesByPage(pageRequest).getContent().getFirst();
+
+        assertThat(result.productCount()).isEqualTo(7L);
+    }
+
+    @Test
+    void should_defaultToZeroCount_when_categoryHasNoProducts() {
+        Category category = new Category();
+        category.setId(C1);
+        category.setName("PC");
+        PageRequest pageRequest = PageRequest.of(0, 20);
+        when(categoryRepository.findAll(pageRequest))
+                .thenReturn(new PageImpl<>(List.of(category), pageRequest, 1));
+        when(productRepository.countProductsByCategoryIds(List.of(C1))).thenReturn(List.of());
+
+        CategoryResponseDto result = testService.getCategoriesByPage(pageRequest).getContent().getFirst();
+
+        assertThat(result.productCount()).isZero();
+    }
+
+    @Test
+    void should_returnEmptyPage_when_noCategoriesExist() {
+        PageRequest pageRequest = PageRequest.of(0, 20);
+        when(categoryRepository.findAll(pageRequest)).thenReturn(Page.empty(pageRequest));
+
+        Page<CategoryResponseDto> result = testService.getCategoriesByPage(pageRequest);
+
+        assertThat(result.getContent().size()).isZero();
+        assertThat(result.getTotalElements()).isZero();
+        verify(productRepository, never()).countProductsByCategoryIds(any());
     }
 
     @Test
@@ -267,6 +310,19 @@ class CategoryServiceImplTest {
 
         assertThat(result).isNotNull();
         assertThat(result.name()).isEqualTo(categoryName);
+    }
+
+    @Test
+    void should_returnProductCount_when_singleCategoryFetched() {
+        Category category = new Category();
+        category.setId(C1);
+        category.setName(categoryName);
+        when(categoryRepository.findByName(categoryName)).thenReturn(Optional.of(category));
+        when(productRepository.countByCategory_Id(C1)).thenReturn(4L);
+
+        CategoryResponseDto result = testService.getCategory(categoryName);
+
+        assertThat(result.productCount()).isEqualTo(4L);
     }
 
     @Test
@@ -299,7 +355,7 @@ class CategoryServiceImplTest {
     void should_incrementCreatedCounter_when_categoryCreated() {
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
         CategoryServiceImpl service =
-                new CategoryServiceImpl(categoryRepository, productRepository, mapStructMapper, registry,
+                new CategoryServiceImpl(categoryRepository, productRepository, registry,
                         productCacheEvictor);
 
         when(categoryRepository.findByName(categoryName)).thenReturn(Optional.empty());
@@ -310,5 +366,19 @@ class CategoryServiceImplTest {
         service.createCategory(new CreateCategoryCommand(categoryName));
 
         assertThat(registry.get("catalog.category.created").counter().count()).isEqualTo(1.0);
+    }
+
+    private static ProductRepository.CategoryProductCount categoryProductCount(UUID categoryId, long count) {
+        return new ProductRepository.CategoryProductCount() {
+            @Override
+            public UUID getCategoryId() {
+                return categoryId;
+            }
+
+            @Override
+            public long getProductCount() {
+                return count;
+            }
+        };
     }
 }

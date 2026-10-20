@@ -75,7 +75,7 @@ class CategoryControllerMvcTest {
 
     @Test
     void should_return200WithCategories_when_getCategoriesWithReadScope() throws Exception {
-        CategoryResponseDto dto = new CategoryResponseDto(CATEGORY_ID, "PC", List.of());
+        CategoryResponseDto dto = new CategoryResponseDto(CATEGORY_ID, "PC", 3L);
         Page<CategoryResponseDto> page = new PageImpl<>(
                 List.of(dto), PageRequest.of(0, 20), 1);
         when(categoryService.getCategoriesByPage(any())).thenReturn(page);
@@ -85,12 +85,14 @@ class CategoryControllerMvcTest {
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.content[0].name").value("PC"))
+                .andExpect(jsonPath("$.content[0].productCount").value(3))
+                .andExpect(jsonPath("$.content[0].products").doesNotExist())
                 .andExpect(jsonPath("$.totalElements").value(1));
     }
 
     @Test
     void should_return201_when_createCategoryWithValidBody() throws Exception {
-        CategoryResponseDto response = new CategoryResponseDto(CATEGORY_ID, "Electronics", List.of());
+        CategoryResponseDto response = new CategoryResponseDto(CATEGORY_ID, "Electronics", 0L);
         when(categoryService.createCategory(any(CreateCategoryCommand.class))).thenReturn(response);
 
         mockMvc.perform(post("/api/v1/catalog/categories")

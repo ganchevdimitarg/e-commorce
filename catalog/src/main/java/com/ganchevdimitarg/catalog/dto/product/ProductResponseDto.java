@@ -1,6 +1,6 @@
 package com.ganchevdimitarg.catalog.dto.product;
 
-import com.ganchevdimitarg.catalog.dto.category.CategoryResponseDto;
+import com.ganchevdimitarg.catalog.dto.category.CategorySummaryDto;
 import com.ganchevdimitarg.catalog.dto.comment.CommentResponseDto;
 
 import java.math.BigDecimal;
@@ -14,6 +14,6 @@ public record ProductResponseDto(
         BigDecimal price,
         boolean inStock,
         String characteristics,
-        CategoryResponseDto category,
+        CategorySummaryDto category,
         List<CommentResponseDto> comments) {
 }

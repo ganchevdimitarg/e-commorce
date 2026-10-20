@@ -3,8 +3,7 @@ package com.ganchevdimitarg.catalog.mapper;
 import com.ganchevdimitarg.catalog.domain.Category;
 import com.ganchevdimitarg.catalog.domain.Comment;
 import com.ganchevdimitarg.catalog.domain.Product;
-import com.ganchevdimitarg.catalog.dto.category.CategoryRequestDto;
-import com.ganchevdimitarg.catalog.dto.category.CategoryResponseDto;
+import com.ganchevdimitarg.catalog.dto.category.CategorySummaryDto;
 import com.ganchevdimitarg.catalog.dto.comment.CommentResponseDto;
 import com.ganchevdimitarg.catalog.dto.comment.CreateCommentCommand;
 import com.ganchevdimitarg.catalog.dto.product.CreateProductCommand;
@@ -22,14 +21,9 @@ public interface MapStructMapper {
     ProductRequestDto mapProductToProductRequestDto(Product product);
     ProductResponseDto mapProductToProductResponseDto(Product product);
     List<Product> mapProductResponseDtosToProducts(List<ProductResponseDto> productResponseDtos);
-    List<ProductRequestDto> mapProductsToProductRequestDtos(List<Product> product);
     ProductResponseDto mapProductRequestDtoToProductResponseDto(ProductRequestDto requestDto);
 
-    Category mapCategoryResponseDtoToCategory(CategoryResponseDto categoryResponseDTO);
-    CategoryResponseDto mapCategoryToCategoryResponseDto(Category category);
-    List<Category> mapCategoryResponseDtosToCategories(List<CategoryResponseDto> categoryResponseDto);
-    List<CategoryResponseDto> mapCategoriesToCategoryResponseDtos(List<Category> category);
-    CategoryResponseDto mapCategoryRequestDtoToCategoryDto(CategoryRequestDto requestDto);
+    CategorySummaryDto mapCategoryToCategorySummaryDto(Category category);
 
     Comment mapCommentResponseDtoToComment(CommentResponseDto commentResponseDto);
     CommentResponseDto mapCommentToCommentResponseDto(Comment comment);

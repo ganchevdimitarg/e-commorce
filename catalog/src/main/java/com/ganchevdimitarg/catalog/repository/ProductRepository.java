@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -35,6 +36,22 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
     @EntityGraph(attributePaths = "category")
     @Query("select p from Product p where p.category.id = :categoryId")
     Page<Product> findAllByCategoryIdByPage(@Param("categoryId") UUID categoryId, Pageable pageable);
+
+    long countByCategory_Id(UUID categoryId);
+
+    interface CategoryProductCount {
+        UUID getCategoryId();
+
+        long getProductCount();
+    }
+
+    @Query("""
+            select p.category.id as categoryId, count(p) as productCount
+            from Product p
+            where p.category.id in :categoryIds
+            group by p.category.id
+            """)
+    List<CategoryProductCount> countProductsByCategoryIds(@Param("categoryIds") Collection<UUID> categoryIds);
 
     @Modifying(clearAutomatically = true)
     @Query("""

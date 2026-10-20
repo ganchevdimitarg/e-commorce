@@ -22,8 +22,10 @@ import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.function.IntSupplier;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
@@ -348,6 +350,37 @@ class CatalogPersistenceIT extends AbstractIntegrationTest {
         assertThat(updated).isEqualTo(2);
         assertThat(updatedAt(first.getId())).isAfter(OffsetDateTime.now().minusMinutes(5));
         assertThat(updatedAt(second.getId())).isAfter(OffsetDateTime.now().minusMinutes(5));
+    }
+
+    @Test
+    @Transactional
+    void should_countOnlyLiveProducts_when_countProductsByCategoryIds() {
+        Category first = new Category();
+        first.setName("count-cat-a-" + UUID.randomUUID());
+        Category second = new Category();
+        second.setName("count-cat-b-" + UUID.randomUUID());
+        categoryRepository.saveAndFlush(first);
+        categoryRepository.saveAndFlush(second);
+        productRepository.saveAndFlush(createProduct("cnt-a1-" + UUID.randomUUID().toString().substring(0, 8),
+                "Counted product one", first));
+        productRepository.saveAndFlush(createProduct("cnt-a2-" + UUID.randomUUID().toString().substring(0, 8),
+                "Counted product two", first));
+        Product deleted = productRepository.saveAndFlush(
+                createProduct("cnt-a3-" + UUID.randomUUID().toString().substring(0, 8),
+                        "Soft-deleted counted product", first));
+        productRepository.saveAndFlush(createProduct("cnt-b1-" + UUID.randomUUID().toString().substring(0, 8),
+                "Counted product three", second));
+        productRepository.delete(deleted);
+        entityManager.flush();
+        entityManager.clear();
+
+        Map<UUID, Long> counts = productRepository
+                .countProductsByCategoryIds(List.of(first.getId(), second.getId()))
+                .stream()
+                .collect(Collectors.toMap(ProductRepository.CategoryProductCount::getCategoryId,
+                                          ProductRepository.CategoryProductCount::getProductCount));
+
+        assertThat(counts).containsEntry(first.getId(), 2L).containsEntry(second.getId(), 1L);
     }
 
     private Product createProduct(String name, String description, Category category) {
