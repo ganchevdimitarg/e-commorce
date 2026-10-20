@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.ganchevdimitarg.catalog.domain.Category;
 import com.ganchevdimitarg.catalog.domain.OutboxEvent;
 import com.ganchevdimitarg.catalog.domain.Product;
 import com.ganchevdimitarg.catalog.repository.OutboxEventRepository;
@@ -15,6 +16,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.MDC;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -27,6 +29,9 @@ class OutboxEventWriterTest {
 
     private static final UUID PRODUCT_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
     private static final String PRODUCT_NAME = "mouse";
+    private static final String CATEGORY_NAME = "peripherals";
+    private static final BigDecimal PRICE = BigDecimal.valueOf(19.99);
+    private static final long VERSION = 7L;
 
     private static final ObjectMapper MAPPER = new ObjectMapper()
             .registerModule(new JavaTimeModule())
@@ -46,9 +51,16 @@ class OutboxEventWriterTest {
     }
 
     private static Product product() {
+        Category category = new Category();
+        category.setName(CATEGORY_NAME);
+
         Product product = new Product();
         product.setId(PRODUCT_ID);
         product.setName(PRODUCT_NAME);
+        product.setPrice(PRICE);
+        product.setInStock(true);
+        product.setVersion(VERSION);
+        product.setCategory(category);
         return product;
     }
 
@@ -65,6 +77,37 @@ class OutboxEventWriterTest {
                 .containsEntry("eventType", "created")
                 .containsKey("correlationId")
                 .containsKey("traceId");
+    }
+
+    @Test
+    void should_serialiseEnrichedVersionedPayload_when_productIsWritten() throws Exception {
+        newWriter().writeCreated(product());
+
+        String payload = captureSaved().getPayload();
+        assertThat(payload).contains("\"schemaVersion\":1");
+        JsonNode node = MAPPER.readTree(payload);
+        assertThat(node.get("price").decimalValue()).isEqualByComparingTo(PRICE);
+        assertThat(node.get("inStock").asBoolean()).isTrue();
+        assertThat(node.get("categoryName").asText()).isEqualTo(CATEGORY_NAME);
+        assertThat(node.get("version").asLong()).isEqualTo(VERSION);
+        assertThat(node.get("schemaVersion").asInt()).isEqualTo(ProductEvent.SCHEMA_VERSION);
+    }
+
+    @Test
+    void should_writeCategoryChangedRowWithPreviousCategoryAndNextVersion() throws Exception {
+        newWriter().writeCategoryChanged(product(), "storage", CATEGORY_NAME);
+
+        OutboxEvent row = captureSaved();
+        assertThat(row.getTopic()).isEqualTo(ProductTopics.PRODUCT_CATEGORY_CHANGED);
+        assertThat(row.getEventType()).isEqualTo("category-changed");
+        assertThat(row.getHeaders()).containsEntry("eventType", "category-changed");
+
+        JsonNode payload = MAPPER.readTree(row.getPayload());
+        assertThat(payload.get("previousCategoryName").asText()).isEqualTo("storage");
+        assertThat(payload.get("categoryName").asText()).isEqualTo(CATEGORY_NAME);
+        // The bulk update increments the row's version by one, so the event carries it
+        assertThat(payload.get("version").asLong()).isEqualTo(VERSION + 1);
+        assertThat(payload.get("schemaVersion").asInt()).isEqualTo(ProductEvent.SCHEMA_VERSION);
     }
 
     @Test

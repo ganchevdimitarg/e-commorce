@@ -80,7 +80,10 @@ class ProductServiceImplTest {
         when(categoryRepository.findByName("PC")).thenReturn(Optional.of(category));
         Product product = new Product();
         product.setId(P1);
+        product.setName("mouse");
+        product.setPrice(BigDecimal.ONE);
         product.setInStock(true);
+        product.setCategory(category);
         when(mapStructMapper.mapCreateCommandToProduct(cmd)).thenReturn(product);
         ProductResponseDto expectedDto = new ProductResponseDto(P1, "mouse", "WiFi mouse USB",
                 BigDecimal.ONE, true, "", null, List.of());
@@ -176,10 +179,12 @@ class ProductServiceImplTest {
         existing.setVersion(1L);
         Product refreshed = new Product();
         refreshed.setId(P1);
+        refreshed.setName("mouse");
         refreshed.setDescription("aaaaaaaaaaa");
         refreshed.setPrice(BigDecimal.ONE);
         refreshed.setCharacteristics("");
         refreshed.setInStock(false);
+        refreshed.setCategory(productCategory());
         when(productRepository.findById(P1))
                 .thenReturn(Optional.of(existing), Optional.of(refreshed));
         when(productRepository.updateById(P1, "aaaaaaaaaaa", BigDecimal.ONE, "", false, 1L)).thenReturn(1);
@@ -254,6 +259,9 @@ class ProductServiceImplTest {
         Product existing = new Product();
         existing.setId(P1);
         existing.setName("mouse");
+        existing.setPrice(BigDecimal.ONE);
+        existing.setInStock(true);
+        existing.setCategory(productCategory());
         when(productRepository.findById(P1)).thenReturn(Optional.of(existing));
 
         testService.deleteProduct(P1);
@@ -378,6 +386,12 @@ class ProductServiceImplTest {
         product.setInStock(true);
         product.setCharacteristics("");
         return product;
+    }
+
+    private static Category productCategory() {
+        Category category = new Category();
+        category.setName("peripherals");
+        return category;
     }
 
     private static ProductResponseDto productDto(Product product) {

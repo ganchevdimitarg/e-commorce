@@ -96,6 +96,22 @@ class ProductEventIT extends AbstractIntegrationTest {
                 "SELECT payload ->> 'occurredAt' FROM outbox_events WHERE aggregate_id = ?",
                 String.class, productId.toString())).isNotBlank();
         assertThat(jdbc.queryForObject(
+                "SELECT payload ->> 'categoryName' FROM outbox_events WHERE aggregate_id = ?",
+                String.class, productId.toString())).isEqualTo(CATEGORY_NAME);
+        assertThat(jdbc.queryForObject(
+                "SELECT (payload ->> 'price')::numeric FROM outbox_events WHERE aggregate_id = ?",
+                BigDecimal.class, productId.toString())).isEqualByComparingTo("29.99");
+        assertThat(jdbc.queryForObject(
+                "SELECT payload ->> 'inStock' FROM outbox_events WHERE aggregate_id = ?",
+                String.class, productId.toString())).isEqualTo("true");
+        // A newly inserted product starts at version 0
+        assertThat(jdbc.queryForObject(
+                "SELECT (payload ->> 'version')::bigint FROM outbox_events WHERE aggregate_id = ?",
+                Long.class, productId.toString())).isZero();
+        assertThat(jdbc.queryForObject(
+                "SELECT (payload ->> 'schemaVersion')::int FROM outbox_events WHERE aggregate_id = ?",
+                Integer.class, productId.toString())).isEqualTo(ProductEvent.SCHEMA_VERSION);
+        assertThat(jdbc.queryForObject(
                 "SELECT sent_at IS NULL FROM outbox_events WHERE aggregate_id = ?",
                 Boolean.class, productId.toString())).isTrue();
         assertThat(jdbc.queryForObject(

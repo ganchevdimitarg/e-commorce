@@ -8,6 +8,7 @@ import com.ganchevdimitarg.catalog.domain.Product;
 import com.ganchevdimitarg.catalog.dto.category.CategoryResponseDto;
 import com.ganchevdimitarg.catalog.dto.category.CreateCategoryCommand;
 import com.ganchevdimitarg.catalog.dto.category.MoveProductCommand;
+import com.ganchevdimitarg.catalog.event.OutboxEventWriter;
 import com.ganchevdimitarg.catalog.exception.ConflictException;
 import com.ganchevdimitarg.catalog.exception.NotFoundException;
 import com.ganchevdimitarg.catalog.service.category.CategoryService;
@@ -24,6 +25,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -57,13 +59,15 @@ class CategoryServiceImplTest {
     ProductRepository productRepository;
     @Mock
     ProductCache productCacheEvictor;
+    @Mock
+    OutboxEventWriter outboxEventWriter;
 
     String categoryName;
 
     @BeforeEach
     void setUp() {
         testService = new CategoryServiceImpl(categoryRepository, productRepository,
-                new SimpleMeterRegistry(), productCacheEvictor);
+                new SimpleMeterRegistry(), productCacheEvictor, outboxEventWriter);
         categoryName = "bbbbb";
     }
 
@@ -156,6 +160,8 @@ class CategoryServiceImplTest {
         Product mouseProduct = new Product();
         mouseProduct.setId(PRODUCT_ID);
         mouseProduct.setName("mouse");
+        mouseProduct.setPrice(BigDecimal.valueOf(19.99));
+        mouseProduct.setInStock(true);
         mouseProduct.setVersion(1L);
         Category categoryFrom = new Category();
         categoryFrom.setId(FROM_ID);
@@ -175,12 +181,15 @@ class CategoryServiceImplTest {
 
         verify(productRepository).changeCategory(any(), any(), anyLong());
         verify(productCacheEvictor).evict(PRODUCT_ID);
+        verify(outboxEventWriter).writeCategoryChanged(mouseProduct, "pc", "acc");
     }
 
     @Test
     void should_throwOptimisticLock_when_moveProductVersionMismatch() {
         Product mouseProduct = new Product();
         mouseProduct.setName("mouse");
+        mouseProduct.setPrice(BigDecimal.valueOf(19.99));
+        mouseProduct.setInStock(true);
         mouseProduct.setVersion(1L);
         Category categoryFrom = new Category();
         categoryFrom.setId(FROM_ID);
@@ -354,15 +363,20 @@ class CategoryServiceImplTest {
         Category to = new Category();
         to.setId(TO_ID);
         to.setName("Laptop");
+        Product mouse = moveProduct(PRODUCT_ID, "mouse", 2L);
+        Product keyboard = moveProduct(UUID.fromString("55555555-5555-5555-5555-555555555555"), "keyboard", 0L);
         when(categoryRepository.findByName("PC")).thenReturn(Optional.of(from));
         when(categoryRepository.findByName("Laptop")).thenReturn(Optional.of(to));
-        when(productRepository.moveAllProductsToCategory(FROM_ID, TO_ID)).thenReturn(3);
+        when(productRepository.findAllByCategory_Id(FROM_ID)).thenReturn(List.of(mouse, keyboard));
+        when(productRepository.moveAllProductsToCategory(FROM_ID, TO_ID)).thenReturn(2);
 
         testService.moveAllProducts("PC", "Laptop");
 
         verify(productRepository, times(1)).moveAllProductsToCategory(FROM_ID, TO_ID);
         verify(productRepository, never()).changeCategory(anyString(), any(UUID.class), anyLong());
         verify(productCacheEvictor).evictAll();
+        verify(outboxEventWriter).writeCategoryChanged(mouse, "PC", "Laptop");
+        verify(outboxEventWriter).writeCategoryChanged(keyboard, "PC", "Laptop");
     }
 
     @Test
@@ -370,7 +384,7 @@ class CategoryServiceImplTest {
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
         CategoryServiceImpl service =
                 new CategoryServiceImpl(categoryRepository, productRepository, registry,
-                        productCacheEvictor);
+                        productCacheEvictor, outboxEventWriter);
 
         when(categoryRepository.findByName(categoryName)).thenReturn(Optional.empty());
         Category saved = new Category();
@@ -380,6 +394,16 @@ class CategoryServiceImplTest {
         service.createCategory(new CreateCategoryCommand(categoryName));
 
         assertThat(registry.get("catalog.category.created").counter().count()).isEqualTo(1.0);
+    }
+
+    private static Product moveProduct(UUID id, String name, long version) {
+        Product product = new Product();
+        product.setId(id);
+        product.setName(name);
+        product.setPrice(BigDecimal.valueOf(19.99));
+        product.setInStock(true);
+        product.setVersion(version);
+        return product;
     }
 
     private static ProductRepository.CategoryProductCount categoryProductCount(UUID categoryId, long count) {

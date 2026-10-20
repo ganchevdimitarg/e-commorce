@@ -31,17 +31,40 @@ public class OutboxEventWriter {
 
     public void writeCreated(Product product) {
         write(product, ProductTopics.PRODUCT_CREATED, "created",
-                new ProductEvent.ProductCreated(newEventId(), productId(product), product.getName(), Instant.now()));
+                new ProductEvent.ProductCreated(newEventId(), productId(product), product.getName(),
+                        product.getPrice(), product.isInStock(), categoryName(product),
+                        product.getVersion(), ProductEvent.SCHEMA_VERSION, Instant.now()));
     }
 
     public void writeUpdated(Product product) {
         write(product, ProductTopics.PRODUCT_UPDATED, "updated",
-                new ProductEvent.ProductUpdated(newEventId(), productId(product), product.getName(), Instant.now()));
+                new ProductEvent.ProductUpdated(newEventId(), productId(product), product.getName(),
+                        product.getPrice(), product.isInStock(), categoryName(product),
+                        product.getVersion(), ProductEvent.SCHEMA_VERSION, Instant.now()));
     }
 
     public void writeDeleted(Product product) {
         write(product, ProductTopics.PRODUCT_DELETED, "deleted",
-                new ProductEvent.ProductDeleted(newEventId(), productId(product), product.getName(), Instant.now()));
+                new ProductEvent.ProductDeleted(newEventId(), productId(product), product.getName(),
+                        product.getPrice(), product.isInStock(), categoryName(product),
+                        product.getVersion(), ProductEvent.SCHEMA_VERSION, Instant.now()));
+    }
+
+    /**
+     * Records a category move for one product.
+     *
+     * <p>The move is applied by a bulk update that bypasses the persistence context, so the
+     * new category name comes from the caller and the row version is the pre-update version
+     * plus one.
+     *
+     * @param previousCategoryName the category the product left
+     * @param newCategoryName      the category the product moved to
+     */
+    public void writeCategoryChanged(Product product, String previousCategoryName, String newCategoryName) {
+        write(product, ProductTopics.PRODUCT_CATEGORY_CHANGED, "category-changed",
+                new ProductEvent.ProductCategoryChanged(newEventId(), productId(product), product.getName(),
+                        product.getPrice(), product.isInStock(), newCategoryName, previousCategoryName,
+                        product.getVersion() + 1, ProductEvent.SCHEMA_VERSION, Instant.now()));
     }
 
     private void write(Product product, String topic, String eventType, ProductEvent event) {
@@ -81,6 +104,13 @@ public class OutboxEventWriter {
 
     private static String productId(Product product) {
         return product.getId().toString();
+    }
+
+    /**
+     * {@code products.category_id} is nullable, so a legacy product may have no category.
+     */
+    private static String categoryName(Product product) {
+        return product.getCategory() == null ? null : product.getCategory().getName();
     }
 
     private static String newEventId() {

@@ -8,6 +8,7 @@ import com.ganchevdimitarg.catalog.domain.Product;
 import com.ganchevdimitarg.catalog.dto.category.CategoryResponseDto;
 import com.ganchevdimitarg.catalog.dto.category.CreateCategoryCommand;
 import com.ganchevdimitarg.catalog.dto.category.MoveProductCommand;
+import com.ganchevdimitarg.catalog.event.OutboxEventWriter;
 import com.ganchevdimitarg.catalog.exception.ConflictException;
 import com.ganchevdimitarg.catalog.exception.NotFoundException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
@@ -35,6 +36,7 @@ public class CategoryServiceImpl implements CategoryService {
     private final ProductRepository productRepository;
     private final MeterRegistry meterRegistry;
     private final ProductCache productCacheEvictor;
+    private final OutboxEventWriter outboxEventWriter;
 
     @Override
     @Transactional
@@ -68,6 +70,7 @@ public class CategoryServiceImpl implements CategoryService {
             throw new ConflictException(
                     "Category " + categoryName + " still contains products; move them first");
         }
+        // A category with products cannot be deleted (guard above), so no product events are emitted
         categoryRepository.delete(category);
         productCacheEvictor.evictAll();
         meterRegistry.counter("catalog.category.deleted").increment();
@@ -92,6 +95,7 @@ public class CategoryServiceImpl implements CategoryService {
             throw new ObjectOptimisticLockingFailureException(Product.class.getSimpleName(), product.getName());
         }
         productCacheEvictor.evict(product.getId());
+        outboxEventWriter.writeCategoryChanged(product, from.getName(), to.getName());
         meterRegistry.counter("catalog.category.moved").increment();
     }
 
@@ -102,8 +106,13 @@ public class CategoryServiceImpl implements CategoryService {
         Category from = requireCategory(categoryNameFrom);
         Category to = requireCategory(categoryNameTo);
 
+        // Read the affected rows before the bulk update: it clears the persistence context,
+        // but one category-changed event is written per moved product afterwards.
+        List<Product> affected = productRepository.findAllByCategory_Id(from.getId());
         int moved = productRepository.moveAllProductsToCategory(from.getId(), to.getId());
         productCacheEvictor.evictAll();
+        affected.forEach(product ->
+                outboxEventWriter.writeCategoryChanged(product, from.getName(), to.getName()));
         meterRegistry.counter("catalog.category.moved").increment(moved);
         log.info("Moved {} products from {} to {}", moved, categoryNameFrom, categoryNameTo);
     }

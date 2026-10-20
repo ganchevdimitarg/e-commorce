@@ -19,6 +19,7 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
     Optional<Product> findByName(String productName);
     Optional<Product> findByNameAndCategoryId(String name, UUID categoryId);
     boolean existsByCategory_Id(UUID categoryId);
+    List<Product> findAllByCategory_Id(UUID categoryId);
 
     // One query for the whole batch; category is joined, comments stay lazy
     // (@BatchSize) so a collection fetch join cannot duplicate rows.
