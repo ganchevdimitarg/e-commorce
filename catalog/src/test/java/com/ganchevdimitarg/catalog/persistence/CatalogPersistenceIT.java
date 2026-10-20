@@ -14,12 +14,16 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.IntSupplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
@@ -42,6 +46,9 @@ class CatalogPersistenceIT extends AbstractIntegrationTest {
 
     @Autowired
     JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private PlatformTransactionManager transactionManager;
 
     @Test
     void should_populateAuditColumns_when_entityPersisted() {
@@ -198,6 +205,75 @@ class CatalogPersistenceIT extends AbstractIntegrationTest {
                 "idx_products_category_id", "idx_comments_product_id");
     }
 
+    @Test
+    void should_refreshUpdatedAt_when_bulkUpdateByIdRuns() {
+        Category category = new Category();
+        category.setName("bulk-update-cat-" + UUID.randomUUID());
+        categoryRepository.saveAndFlush(category);
+        Product product = productRepository.saveAndFlush(
+                createProduct("bulk-upd-" + UUID.randomUUID().toString().substring(0, 8),
+                        "Bulk update product description", category));
+        ageUpdatedAt(product.getId());
+        OffsetDateTime stale = updatedAt(product.getId());
+
+        int updated = inTransaction(() -> productRepository.updateById(
+                product.getId(), "A new bulk update description", new BigDecimal("11.00"),
+                "updated characteristics", true, product.getVersion()));
+
+        assertThat(updated).isEqualTo(1);
+        assertThat(updatedAt(product.getId())).isAfter(stale);
+    }
+
+    @Test
+    void should_refreshUpdatedAt_when_changeCategoryRuns() {
+        Category from = new Category();
+        from.setName("bulk-from-" + UUID.randomUUID());
+        Category to = new Category();
+        to.setName("bulk-to-" + UUID.randomUUID());
+        categoryRepository.saveAndFlush(from);
+        categoryRepository.saveAndFlush(to);
+        Product product = productRepository.saveAndFlush(
+                createProduct("bulk-move-" + UUID.randomUUID().toString().substring(0, 8),
+                        "Bulk category move product", from));
+        ageUpdatedAt(product.getId());
+        OffsetDateTime stale = updatedAt(product.getId());
+
+        int updated = inTransaction(() -> productRepository.changeCategory(
+                product.getName(), to.getId(), product.getVersion()));
+
+        assertThat(updated).isEqualTo(1);
+        assertThat(updatedAt(product.getId())).isAfter(stale);
+        UUID categoryId = jdbcTemplate.queryForObject(
+                "select category_id from products where id = ?",
+                (rs, rowNum) -> rs.getObject("category_id", UUID.class), product.getId());
+        assertThat(categoryId).isEqualTo(to.getId());
+    }
+
+    @Test
+    void should_refreshUpdatedAt_when_moveAllProductsToCategoryRuns() {
+        Category from = new Category();
+        from.setName("bulk-all-from-" + UUID.randomUUID());
+        Category to = new Category();
+        to.setName("bulk-all-to-" + UUID.randomUUID());
+        categoryRepository.saveAndFlush(from);
+        categoryRepository.saveAndFlush(to);
+        Product first = productRepository.saveAndFlush(
+                createProduct("bulk-all-1-" + UUID.randomUUID().toString().substring(0, 8),
+                        "First bulk move product", from));
+        Product second = productRepository.saveAndFlush(
+                createProduct("bulk-all-2-" + UUID.randomUUID().toString().substring(0, 8),
+                        "Second bulk move product", from));
+        ageUpdatedAt(first.getId());
+        ageUpdatedAt(second.getId());
+
+        int updated = inTransaction(() ->
+                productRepository.moveAllProductsToCategory(from.getId(), to.getId()));
+
+        assertThat(updated).isEqualTo(2);
+        assertThat(updatedAt(first.getId())).isAfter(OffsetDateTime.now().minusMinutes(5));
+        assertThat(updatedAt(second.getId())).isAfter(OffsetDateTime.now().minusMinutes(5));
+    }
+
     private Product createProduct(String name, String description, Category category) {
         Product product = new Product();
         product.setName(name);
@@ -207,5 +283,20 @@ class CatalogPersistenceIT extends AbstractIntegrationTest {
         product.setCharacteristics("test characteristics");
         product.setCategory(category);
         return product;
+    }
+
+    private int inTransaction(IntSupplier work) {
+        return new TransactionTemplate(transactionManager).execute(status -> work.getAsInt());
+    }
+
+    private void ageUpdatedAt(UUID productId) {
+        jdbcTemplate.update(
+                "update products set updated_at = now() - interval '1 hour' where id = ?", productId);
+    }
+
+    private OffsetDateTime updatedAt(UUID productId) {
+        return jdbcTemplate.queryForObject(
+                "select updated_at from products where id = ?",
+                (rs, rowNum) -> rs.getObject("updated_at", OffsetDateTime.class), productId);
     }
 }

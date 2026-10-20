@@ -40,7 +40,7 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
     @Query("""
             update Product p set p.description = :description, p.price = :price, \
             p.characteristics = :characteristics, p.inStock = :inStock, \
-            p.version = p.version + 1 \
+            p.updatedAt = CURRENT_TIMESTAMP, p.version = p.version + 1 \
             where p.id = :id and p.version = :version
             """)
     int updateById(@Param("id") UUID id, @Param("description") String description,
@@ -50,7 +50,7 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
     @Modifying
     @Query("""
             update Product p set p.category.id = :categoryId, \
-            p.version = p.version + 1 \
+            p.updatedAt = CURRENT_TIMESTAMP, p.version = p.version + 1 \
             where p.name = :name and p.version = :version
             """)
     int changeCategory(@Param("name") String name, @Param("categoryId") UUID categoryId,
@@ -58,7 +58,8 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
 
     @Modifying(clearAutomatically = true)
     @Query("""
-            update Product p set p.category.id = :toId, p.version = p.version + 1 \
+            update Product p set p.category.id = :toId, \
+            p.updatedAt = CURRENT_TIMESTAMP, p.version = p.version + 1 \
             where p.category.id = :fromId
             """)
     int moveAllProductsToCategory(@Param("fromId") UUID fromId, @Param("toId") UUID toId);
