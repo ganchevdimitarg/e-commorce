@@ -35,6 +35,10 @@ spring:
     redis:
       host: localhost
       port: 6379
+      # Bound a stalled Redis: the default Lettuce timeouts let idempotency and
+      # after-commit cache calls block for tens of seconds before failing open.
+      timeout: 1s
+      connect-timeout: 1s
 
   #Spring Cloud — Spring Cloud 2025.1 only certifies Boot 4.0.x; suppress the verifier on Boot 4.1.x
   cloud:

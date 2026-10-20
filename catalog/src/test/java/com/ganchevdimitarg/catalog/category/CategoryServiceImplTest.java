@@ -127,6 +127,7 @@ class CategoryServiceImplTest {
 
         verify(categoryRepository).delete(categoryToDelete);
         verify(productCacheEvictor).evictAll();
+        verifyNoInteractions(outboxEventWriter);
     }
 
     @Test
@@ -144,6 +145,7 @@ class CategoryServiceImplTest {
 
         verify(categoryRepository, never()).delete(any());
         verify(productCacheEvictor, never()).evictAll();
+        verifyNoInteractions(outboxEventWriter);
     }
 
     @Test
@@ -209,6 +211,7 @@ class CategoryServiceImplTest {
                 .isInstanceOf(ObjectOptimisticLockingFailureException.class);
 
         verify(productCacheEvictor, never()).evict(any());
+        verify(outboxEventWriter, never()).writeCategoryChanged(any(), any(), any());
     }
 
     @Test

@@ -24,14 +24,15 @@ import static org.assertj.core.api.Assertions.assertThat;
  * End-to-end integration test: creates a product through the service and asserts the
  * corresponding event was written to the outbox inside the same transaction.
  *
- * <p>Postgres only — the outbox write never contacts Kafka; delivery is the relay's job
- * (TODO 4.4c). {@link ProductCache} is mocked so the after-commit put does not attempt a
- * Redis connection in this Postgres-only context.
+ * <p>Postgres only — the outbox write never contacts Kafka; delivery is {@link OutboxRelay}'s
+ * job. {@link ProductCache} is mocked so the cache write registered for after commit does not
+ * attempt a Redis connection in this Postgres-only context.
  */
 @Tag("integration")
 class ProductEventIT extends AbstractIntegrationTest {
 
     private static final String PRODUCT_NAME = "mouse";
+    private static final String ROLLED_BACK_PRODUCT_NAME = "rolled-back-mouse";
     private static final String CATEGORY_NAME = "peripherals";
 
     @MockitoBean
@@ -64,6 +65,11 @@ class ProductEventIT extends AbstractIntegrationTest {
             jdbc.update("DELETE FROM outbox_events WHERE aggregate_id = ?", productId.toString());
         }
         // Clean up seeded data to avoid conflicts across test runs
+        jdbc.update("""
+                DELETE FROM outbox_events WHERE aggregate_id IN
+                    (SELECT id::text FROM products WHERE name = ?)
+                """, ROLLED_BACK_PRODUCT_NAME);
+        jdbc.update("DELETE FROM products WHERE name = ?", ROLLED_BACK_PRODUCT_NAME);
         jdbc.update("DELETE FROM products WHERE name = ?", PRODUCT_NAME);
         jdbc.update("DELETE FROM categories WHERE name = ?", CATEGORY_NAME);
     }
@@ -129,5 +135,28 @@ class ProductEventIT extends AbstractIntegrationTest {
         assertThat(jdbc.queryForObject(
                 "SELECT aggregate_type FROM outbox_events WHERE aggregate_id = ?",
                 String.class, productId.toString())).isEqualTo("Product");
+    }
+
+    @Test
+    @WithMockUser(authorities = "SCOPE_catalog.write")
+    void should_writeNoOutboxRow_when_productCreationIsRolledBack() {
+        CreateProductCommand cmd = new CreateProductCommand(
+                ROLLED_BACK_PRODUCT_NAME, "Rolled back creation fixture",
+                BigDecimal.valueOf(9.99), true, "Bluetooth 5.1",
+                CATEGORY_NAME);
+
+        AtomicReference<UUID> createdId = new AtomicReference<>();
+        txTemplate.executeWithoutResult(status -> {
+            createdId.set(productService.createProduct(cmd).id());
+            status.setRollbackOnly();
+        });
+
+        // Both writes shared one transaction: neither the product nor its outbox row survives
+        assertThat(jdbc.queryForObject(
+                "SELECT count(*) FROM products WHERE name = ?",
+                Integer.class, ROLLED_BACK_PRODUCT_NAME)).isZero();
+        assertThat(jdbc.queryForObject(
+                "SELECT count(*) FROM outbox_events WHERE aggregate_id = ?",
+                Integer.class, createdId.get().toString())).isZero();
     }
 }

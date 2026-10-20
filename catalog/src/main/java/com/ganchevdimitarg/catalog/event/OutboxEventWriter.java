@@ -17,8 +17,8 @@ import java.util.UUID;
  * Writes product events to the transactional outbox.
  *
  * <p>Every method is called from inside the caller's write transaction, so the event row
- * commits or rolls back together with the product row. Delivery to Kafka is the relay's
- * job (TODO 4.4c), not the writer's.
+ * commits or rolls back together with the product row. Delivery to Kafka is
+ * {@link OutboxRelay}'s job, not the writer's.
  */
 @Component
 @RequiredArgsConstructor

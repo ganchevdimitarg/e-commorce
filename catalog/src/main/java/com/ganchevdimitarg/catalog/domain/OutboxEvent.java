@@ -19,9 +19,10 @@ import java.util.UUID;
 /**
  * A transactional outbox row holding a product event until the relay delivers it.
  *
- * <p>Deliberately not an {@link Auditable}: outbox rows are operational, immutable
- * history, so they carry {@code created_at} and {@code sent_at} rather than the
- * audit/soft-delete/version columns.
+ * <p>Deliberately not an {@link Auditable}: outbox rows are operational delivery state, not
+ * an audited record — the relay mutates {@code attempts}, {@code last_error},
+ * {@code next_attempt_at} and {@code sent_at} — so the audit/soft-delete/version columns do
+ * not apply.
  */
 @Entity(name = "OutboxEvent")
 @Table(name = "outbox_events")

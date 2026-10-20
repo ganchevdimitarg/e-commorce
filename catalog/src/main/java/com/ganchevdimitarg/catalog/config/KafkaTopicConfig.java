@@ -12,6 +12,12 @@ import org.springframework.kafka.config.TopicBuilder;
  *
  * <p>Partition and replica counts are method parameters with property-backed defaults, which
  * keeps the beans testable without a Spring context.
+ *
+ * <p>{@code spring.kafka.bootstrap-servers} must be set wherever
+ * {@code kafka.bootstrapAddress} is set: Boot's {@code KafkaAdmin}, which creates these
+ * topics, honours the former, while the relay's producer honours the latter. Override
+ * {@code catalog.kafka.replicas} for multi-broker production clusters; the default of 1 suits
+ * local and single-broker environments.
  */
 @Configuration
 public class KafkaTopicConfig {

@@ -62,7 +62,7 @@ list/browse reads remain eventually consistent** (see Amendment 2026-10-20).
 
 | Option | Approach | Trade-off |
 |---|---|---|
-| **Write-through cache** | Add `@CachePut` on `createProduct` / `updateProduct` (or manually put into the cache after save) so the next read is served from Redis, not the replica. | Requires careful key alignment; `allEntries` eviction on delete still leaves a window for list queries. |
+| **Write-through cache** | Add `@CachePut` on `createProduct` / `updateProduct` (or manually put into the cache after save) so the next read is served from Redis, not the replica. | Requires careful key alignment; keyed eviction on delete still leaves a window for list queries. |
 | **Primary-pinned confirmation read** | After a write, route the confirmation read through a write transaction (`@Transactional` without `readOnly`) so it hits the primary. | Adds primary load; requires the caller to use a distinct "strong read" endpoint or parameter. |
 | **Accept eventual consistency** | Document that browse paths are eventually consistent; require strong reads only through write-transaction paths. | Simplest; acceptable if the UI does not display just-written data immediately after redirect. |
 | **Synchronous replication** | Configure PostgreSQL synchronous commit to the replica. | Eliminates lag but degrades write latency and availability (replica down blocks writes). Not recommended for catalogue workloads. |

@@ -111,6 +111,36 @@ class OutboxEventWriterTest {
     }
 
     @Test
+    void should_writeUpdatedRowWithUpdatedTopicAndEventType() throws Exception {
+        newWriter().writeUpdated(product());
+
+        OutboxEvent row = captureSaved();
+        assertThat(row.getTopic()).isEqualTo(ProductTopics.PRODUCT_UPDATED);
+        assertThat(row.getEventType()).isEqualTo("updated");
+        assertThat(row.getHeaders()).containsEntry("eventType", "updated");
+        assertEnrichedPayload(MAPPER.readTree(row.getPayload()));
+    }
+
+    @Test
+    void should_writeDeletedRowWithDeletedTopicAndEventType() throws Exception {
+        newWriter().writeDeleted(product());
+
+        OutboxEvent row = captureSaved();
+        assertThat(row.getTopic()).isEqualTo(ProductTopics.PRODUCT_DELETED);
+        assertThat(row.getEventType()).isEqualTo("deleted");
+        assertThat(row.getHeaders()).containsEntry("eventType", "deleted");
+        assertEnrichedPayload(MAPPER.readTree(row.getPayload()));
+    }
+
+    private static void assertEnrichedPayload(JsonNode payload) {
+        assertThat(payload.get("price").decimalValue()).isEqualByComparingTo(PRICE);
+        assertThat(payload.get("inStock").asBoolean()).isTrue();
+        assertThat(payload.get("categoryName").asText()).isEqualTo(CATEGORY_NAME);
+        assertThat(payload.get("version").asLong()).isEqualTo(VERSION);
+        assertThat(payload.get("schemaVersion").asInt()).isEqualTo(ProductEvent.SCHEMA_VERSION);
+    }
+
+    @Test
     void should_useProductIdAsMessageKey_andAggregateId() {
         newWriter().writeCreated(product());
 

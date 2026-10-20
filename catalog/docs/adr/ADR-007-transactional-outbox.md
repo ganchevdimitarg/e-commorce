@@ -25,7 +25,8 @@ transaction coordinator.
 
 `OutboxEventWriter` inserts an `outbox_events` row in the **same transaction** as the
 product change. The row carries the topic, message key, pre-serialised JSON payload and
-headers (including `eventId` and `correlationId`). If the business transaction rolls back,
+headers (`eventType`, `correlationId` (the event's `eventId`) and `traceId`); `eventId` is a
+payload field, not a header. If the business transaction rolls back,
 the event row rolls back with it; if it commits, the event is durable.
 
 ### Scheduled relay
