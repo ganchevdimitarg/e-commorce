@@ -8,6 +8,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.MDC;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -30,7 +33,7 @@ public class MdcRequestFilter extends OncePerRequestFilter {
                 MDC.put("traceId", span.context().traceId());
                 MDC.put("spanId", span.context().spanId());
             }
-            MDC.put("userId", headerOrEmpty(request, "X-User-Id"));
+            MDC.put("userId", currentUserId());
             MDC.put("serviceId", SERVICE_ID);
             filterChain.doFilter(request, response);
         } finally {
@@ -38,8 +41,18 @@ public class MdcRequestFilter extends OncePerRequestFilter {
         }
     }
 
-    private String headerOrEmpty(HttpServletRequest request, String name) {
-        String value = request.getHeader(name);
-        return value != null ? value : "";
+    /**
+     * This filter runs after springSecurityFilterChain (order -100), so the security context is
+     * already populated. Keep it ordered after security; a negative order would log an empty user.
+     */
+    private static String currentUserId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null
+                || authentication instanceof AnonymousAuthenticationToken
+                || !authentication.isAuthenticated()) {
+            return "";
+        }
+        String name = authentication.getName();
+        return name != null ? name : "";
     }
 }
