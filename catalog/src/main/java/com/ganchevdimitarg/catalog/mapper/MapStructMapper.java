@@ -10,6 +10,7 @@ import com.ganchevdimitarg.catalog.dto.product.CreateProductCommand;
 import com.ganchevdimitarg.catalog.dto.product.ProductRequestDto;
 import com.ganchevdimitarg.catalog.dto.product.ProductResponseDto;
 import com.ganchevdimitarg.catalog.dto.product.UpdateProductCommand;
+import com.ganchevdimitarg.catalog.dto.product.UpdateProductRequestDto;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
@@ -31,7 +32,7 @@ public interface MapStructMapper {
     List<CommentResponseDto> mapCommentsToCommentResponseDtos(List<Comment> comments);
 
     CreateProductCommand mapProductRequestToCreateCommand(ProductRequestDto dto, String categoryName);
-    UpdateProductCommand mapProductRequestToUpdateCommand(ProductRequestDto dto);
+    UpdateProductCommand mapProductRequestToUpdateCommand(UpdateProductRequestDto dto);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "category", ignore = true)

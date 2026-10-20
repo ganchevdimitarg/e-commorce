@@ -344,6 +344,28 @@ class CatalogPersistenceIT extends AbstractIntegrationTest {
     }
 
     @Test
+    void should_preserveProductName_when_bulkUpdateByIdRuns() {
+        Category category = new Category();
+        category.setName("bulk-name-cat-" + UUID.randomUUID());
+        categoryRepository.saveAndFlush(category);
+        Product product = productRepository.saveAndFlush(
+                createProduct("bulk-name-" + UUID.randomUUID().toString().substring(0, 8),
+                        "Bulk name product description", category));
+        String seededName = product.getName();
+
+        int updated = inTransaction(() -> productRepository.updateById(
+                product.getId(), "A new bulk update description", new BigDecimal("12.00"),
+                "new characteristics", false, product.getVersion()));
+
+        assertThat(updated).isEqualTo(1);
+        Product reloaded = productRepository.findById(product.getId()).orElseThrow();
+        assertThat(reloaded.getName()).isEqualTo(seededName);
+        assertThat(reloaded.getDescription()).isEqualTo("A new bulk update description");
+        assertThat(reloaded.getPrice()).isEqualByComparingTo("12.00");
+        assertThat(reloaded.isInStock()).isFalse();
+    }
+
+    @Test
     void should_refreshUpdatedAt_when_changeCategoryRuns() {
         Category from = new Category();
         from.setName("bulk-from-" + UUID.randomUUID());

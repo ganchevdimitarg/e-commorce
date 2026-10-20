@@ -3,6 +3,7 @@ package com.ganchevdimitarg.catalog.product;
 import com.ganchevdimitarg.catalog.config.ResourceServerConfig;
 import com.ganchevdimitarg.catalog.controller.ProductController;
 import com.ganchevdimitarg.catalog.dto.product.ProductResponseDto;
+import com.ganchevdimitarg.catalog.dto.product.UpdateProductRequestDto;
 import com.ganchevdimitarg.catalog.exception.ControllerExceptionHandler;
 import com.ganchevdimitarg.catalog.exception.ProblemAccessDeniedHandler;
 import com.ganchevdimitarg.catalog.exception.ProblemAuthenticationEntryPoint;
@@ -12,6 +13,7 @@ import io.micrometer.tracing.Tracer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -36,6 +38,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -213,23 +216,53 @@ class ProductControllerMvcTest {
     }
 
     @Test
-    void should_return200_when_updateProductWithValidBody() throws Exception {
+    void should_return200WithUpdatedProduct_when_updateProductWithValidBody() throws Exception {
+        ProductResponseDto updated = new ProductResponseDto(
+                PROD_123, "mouse", "WiFi mouse USB v2", BigDecimal.valueOf(19.99),
+                false, "black", null, List.of());
+        when(productService.updateProduct(eq(PROD_123), any())).thenReturn(updated);
+
         mockMvc.perform(put("/api/v1/catalog/products/" + PROD_123)
                         .with(csrf())
                         .with(jwt().authorities(() -> "SCOPE_catalog.write"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("Idempotency-Key", "k-2")
                         .content("""
-                                {
-                                    "name": "mouse123",
-                                    "description": "updated description text",
-                                    "price": 19.99,
-                                    "inStock": true,
-                                    "characteristics": "black"
-                                }
+                                {"description":"WiFi mouse USB v2","price":19.99,"inStock":false,"characteristics":"black"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(PROD_123.toString()))
+                .andExpect(jsonPath("$.name").value("mouse"))
+                .andExpect(jsonPath("$.description").value("WiFi mouse USB v2"))
+                .andExpect(jsonPath("$.price").value(19.99));
+
+        verify(productService).updateProduct(eq(PROD_123), any());
+    }
+
+    @Test
+    void should_ignoreName_when_updateRequestIncludesName() throws Exception {
+        when(productService.updateProduct(eq(PROD_123), any())).thenReturn(
+                new ProductResponseDto(PROD_123, "mouse", "WiFi mouse USB v2",
+                        BigDecimal.valueOf(19.99), false, "black", null, List.of()));
+
+        mockMvc.perform(put("/api/v1/catalog/products/" + PROD_123)
+                        .with(csrf())
+                        .with(jwt().authorities(() -> "SCOPE_catalog.write"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Idempotency-Key", "k-2b")
+                        .content("""
+                                {"name":"other-name","description":"WiFi mouse USB v2","price":19.99,"inStock":false,"characteristics":"black"}
                                 """))
                 .andExpect(status().isOk());
 
+        ArgumentCaptor<UpdateProductRequestDto> captor =
+                ArgumentCaptor.forClass(UpdateProductRequestDto.class);
+        verify(mapper).mapProductRequestToUpdateCommand(captor.capture());
+        UpdateProductRequestDto captured = captor.getValue();
+        assertThat(captured.description()).isEqualTo("WiFi mouse USB v2");
+        assertThat(captured.price()).isEqualByComparingTo("19.99");
+        assertThat(captured.inStock()).isFalse();
+        assertThat(captured.characteristics()).isEqualTo("black");
         verify(productService).updateProduct(eq(PROD_123), any());
     }
 

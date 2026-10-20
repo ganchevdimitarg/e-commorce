@@ -3,6 +3,8 @@ package com.ganchevdimitarg.catalog.mapper;
 import com.ganchevdimitarg.catalog.domain.Product;
 import com.ganchevdimitarg.catalog.dto.product.CreateProductCommand;
 import com.ganchevdimitarg.catalog.dto.product.ProductRequestDto;
+import com.ganchevdimitarg.catalog.dto.product.UpdateProductCommand;
+import com.ganchevdimitarg.catalog.dto.product.UpdateProductRequestDto;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
@@ -25,6 +27,19 @@ class CommandMapperTest {
         assertThat(cmd.name()).isEqualTo("mouse");
         assertThat(cmd.categoryName()).isEqualTo("PC");
         assertThat(cmd.characteristics()).isEqualTo("rgb");
+    }
+
+    @Test
+    void should_mapUpdateRequestToUpdateCommand_when_allFieldsProvided() {
+        UpdateProductRequestDto dto = new UpdateProductRequestDto(
+                "valid description text", BigDecimal.TEN, true, "black");
+
+        UpdateProductCommand cmd = mapper.mapProductRequestToUpdateCommand(dto);
+
+        assertThat(cmd.description()).isEqualTo("valid description text");
+        assertThat(cmd.price()).isEqualByComparingTo(BigDecimal.TEN);
+        assertThat(cmd.inStock()).isTrue();
+        assertThat(cmd.characteristics()).isEqualTo("black");
     }
 
     @Test

@@ -4,6 +4,7 @@ import com.ganchevdimitarg.catalog.dto.PageResponse;
 import com.ganchevdimitarg.catalog.dto.product.ItemRequestDto;
 import com.ganchevdimitarg.catalog.dto.product.ProductRequestDto;
 import com.ganchevdimitarg.catalog.dto.product.ProductResponseDto;
+import com.ganchevdimitarg.catalog.dto.product.UpdateProductRequestDto;
 import com.ganchevdimitarg.catalog.mapper.MapStructMapper;
 import com.ganchevdimitarg.catalog.service.product.ProductService;
 import jakarta.validation.Valid;
@@ -80,10 +81,10 @@ public class ProductController {
 
     @Operation(summary = "Update product", security = @SecurityRequirement(name = "security_auth"))
     @PutMapping("/{id}")
-    public ResponseEntity<Void> updateProduct(@PathVariable UUID id,
-                                              @RequestBody @Valid ProductRequestDto requestDto) {
-        productService.updateProduct(id, mapper.mapProductRequestToUpdateCommand(requestDto));
-        return ResponseEntity.ok().build();
+    public ResponseEntity<ProductResponseDto> updateProduct(@PathVariable UUID id,
+                                                            @RequestBody @Valid UpdateProductRequestDto requestDto) {
+        return ResponseEntity.ok(productService.updateProduct(
+                id, mapper.mapProductRequestToUpdateCommand(requestDto)));
     }
 
     @Operation(summary = "Delete product", security = @SecurityRequirement(name = "security_auth"))
