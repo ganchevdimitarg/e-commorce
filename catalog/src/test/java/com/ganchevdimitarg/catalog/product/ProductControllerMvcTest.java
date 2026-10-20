@@ -8,7 +8,6 @@ import com.ganchevdimitarg.catalog.exception.ProblemAccessDeniedHandler;
 import com.ganchevdimitarg.catalog.exception.ProblemAuthenticationEntryPoint;
 import com.ganchevdimitarg.catalog.mapper.MapStructMapper;
 import com.ganchevdimitarg.catalog.service.product.ProductService;
-import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import io.micrometer.tracing.Tracer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -71,8 +70,6 @@ class ProductControllerMvcTest {
     MapStructMapper mapper;
     @MockitoBean
     JwtDecoder jwtDecoder;
-    @MockitoBean
-    CircuitBreakerRegistry circuitBreakerRegistry;
     @MockitoBean
     StringRedisTemplate stringRedisTemplate;
     @MockitoBean
@@ -273,6 +270,14 @@ class ProductControllerMvcTest {
                                 """))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON));
+    }
+
+    @Test
+    void should_return401ProblemJson_when_requestHasNoToken() throws Exception {
+        mockMvc.perform(get("/api/v1/catalog/products/" + PROD_123))
+                .andExpect(status().isUnauthorized())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.code").value("UNAUTHENTICATED"));
     }
 
     @Test

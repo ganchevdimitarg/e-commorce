@@ -9,7 +9,6 @@ import com.ganchevdimitarg.catalog.exception.NotFoundException;
 import com.ganchevdimitarg.catalog.exception.ProblemAccessDeniedHandler;
 import com.ganchevdimitarg.catalog.exception.ProblemAuthenticationEntryPoint;
 import com.ganchevdimitarg.catalog.service.comment.CommentService;
-import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import io.micrometer.tracing.Tracer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -56,8 +55,6 @@ class CommentControllerMvcTest {
     CommentService commentService;
     @MockitoBean
     JwtDecoder jwtDecoder;
-    @MockitoBean
-    CircuitBreakerRegistry circuitBreakerRegistry;
     @MockitoBean
     StringRedisTemplate stringRedisTemplate;
     @MockitoBean

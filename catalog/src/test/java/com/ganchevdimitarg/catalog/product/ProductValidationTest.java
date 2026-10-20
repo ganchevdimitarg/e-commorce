@@ -7,7 +7,6 @@ import com.ganchevdimitarg.catalog.exception.ProblemAccessDeniedHandler;
 import com.ganchevdimitarg.catalog.exception.ProblemAuthenticationEntryPoint;
 import com.ganchevdimitarg.catalog.mapper.MapStructMapper;
 import com.ganchevdimitarg.catalog.service.product.ProductService;
-import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import io.micrometer.tracing.Tracer;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -50,8 +49,6 @@ class ProductValidationTest {
     MapStructMapper mapper;
     @MockitoBean
     JwtDecoder jwtDecoder;
-    @MockitoBean
-    CircuitBreakerRegistry circuitBreakerRegistry;
     @MockitoBean
     StringRedisTemplate stringRedisTemplate;
     @MockitoBean
