@@ -2,6 +2,7 @@ package com.ganchevdimitarg.catalog.cache;
 
 import com.ganchevdimitarg.catalog.dto.product.ProductResponseDto;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Component;
@@ -18,6 +19,7 @@ import java.util.UUID;
  * after-commit put is what makes a just-written product readable from the cache instead
  * of a lagging replica.
  */
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class ProductCache {
@@ -58,11 +60,24 @@ public class ProductCache {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
                 public void afterCommit() {
-                    action.run();
+                    runQuietly(action);
                 }
             });
         } else {
+            runQuietly(action);
+        }
+    }
+
+    /**
+     * Direct {@link Cache} calls bypass Spring's {@code CacheErrorHandler}. An exception
+     * thrown in {@code afterCommit} surfaces as a failed request even though the
+     * transaction has already committed, so the cache failure is logged and swallowed.
+     */
+    private void runQuietly(Runnable action) {
+        try {
             action.run();
+        } catch (RuntimeException e) {
+            log.warn("Cache operation failed; continuing: {}", e.getMessage());
         }
     }
 }

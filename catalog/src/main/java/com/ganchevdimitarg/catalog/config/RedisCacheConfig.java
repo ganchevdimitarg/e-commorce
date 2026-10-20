@@ -1,6 +1,9 @@
 package com.ganchevdimitarg.catalog.config;
 
+import com.ganchevdimitarg.catalog.cache.LoggingCacheErrorHandler;
+import org.springframework.cache.annotation.CachingConfigurer;
 import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.cache.interceptor.CacheErrorHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
@@ -14,7 +17,12 @@ import java.time.Duration;
 
 @Configuration
 @EnableCaching
-public class RedisCacheConfig {
+public class RedisCacheConfig implements CachingConfigurer {
+
+    @Override
+    public CacheErrorHandler errorHandler() {
+        return new LoggingCacheErrorHandler();
+    }
 
     @Bean
     public RedisCacheManager cacheManager(RedisConnectionFactory connectionFactory) {

@@ -10,6 +10,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
+import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
@@ -18,7 +19,9 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -100,6 +103,27 @@ class ProductCacheTest {
         productCache.put(PRODUCT_ID, dto);
 
         verify(cache).put(PRODUCT_ID, dto);
+    }
+
+    @Test
+    void should_notThrow_when_backingCacheThrows() {
+        TransactionSynchronizationManager.clearSynchronization();
+        when(cacheManager.getCache(CACHE)).thenReturn(cache);
+
+        RedisConnectionFailureException failure = new RedisConnectionFailureException("down");
+        doThrow(failure).when(cache).put(any(), any());
+        doThrow(failure).when(cache).evict(any());
+        doThrow(failure).when(cache).clear();
+
+        assertThatCode(() -> {
+            productCache.put(PRODUCT_ID, productDto());
+            productCache.evict(PRODUCT_ID);
+            productCache.evictAll();
+        }).doesNotThrowAnyException();
+
+        verify(cache).put(any(), any());
+        verify(cache).evict(any());
+        verify(cache).clear();
     }
 
     private static void runAfterCommit() {
