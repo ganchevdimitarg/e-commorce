@@ -14,8 +14,6 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: true
-    show-sql: true
 
   #Security
   security:
@@ -67,7 +65,6 @@ spring:
     virtual:
       enabled: true
 
-#Show SQL executed with parameter bindings
 #Logging Levels
 #Disable the default loggers
 logging:
@@ -79,10 +76,6 @@ logging:
         web: INFO
         security: INFO
         oauth2: INFO
-      hibernate:
-        SQL: DEBUG
-        type:
-          descriptor: TRACE
 
 #Eureka
 eureka:
