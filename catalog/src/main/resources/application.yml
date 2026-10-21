@@ -84,3 +84,8 @@ catalog:
   # How often the transactional-outbox relay sweeps unsettled events.
   outbox:
     relay-interval-ms: 1000
+  # Opt-in hard-delete of soft-deleted rows older than the retention window. Off by default.
+  retention:
+    purge-enabled: ${CATALOG_RETENTION_PURGE_ENABLED:false}
+    retention: ${CATALOG_RETENTION:90d}
+    cron: "${CATALOG_RETENTION_CRON:0 0 3 * * *}"

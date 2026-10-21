@@ -131,6 +131,9 @@ Configuration keys that matter locally:
 | `catalog.outbox.relay-interval-ms` | Outbox relay cadence, default `1000` |
 | `catalog.outbox.batch-size` | Rows claimed per relay run, default `20` |
 | `catalog.outbox.send-timeout` | Broker acknowledgement timeout per row, default `5s` |
+| `catalog.retention.purge-enabled` | Opt-in purge of expired soft-deleted rows, default `false` |
+| `catalog.retention.retention` | Age after which a soft-deleted row is purged, default `90d` |
+| `catalog.retention.cron` | Purge schedule, default `0 0 3 * * *` (nightly at 03:00) |
 | `spring.kafka.bootstrap-servers` | Spring Kafka bootstrap servers, `localhost:9092` |
 | `kafka.bootstrapAddress` | Bootstrap address of the outbox producer, `localhost:9092` |
 
@@ -306,6 +309,29 @@ is unreachable, the router falls back to the writer. Browse reads (`searchProduc
 `getProductByName`, batch-get) are eventually consistent; `getProductById` after a
 create/update is read-your-writes because the cache is populated after commit. See ADR-005.
 
+## Retention
+
+Catalog soft-deletes products, categories and comments. An optional scheduled job
+hard-deletes rows that were soft-deleted longer ago than the retention window — the one
+deliberate exception to the soft-delete rule, where the window is the audit window
+(`docs/decisions.md`).
+
+The job is **off by default**. Opting in enables a bean that runs on
+`catalog.retention.cron` and, each run, deletes in foreign-key order until a batch removes
+nothing or `catalog.retention.max-batches-per-run` is reached:
+
+1. comments soft-deleted before the cutoff;
+2. products soft-deleted before the cutoff, together with **all** their comments (live or
+   soft-deleted);
+3. categories soft-deleted before the cutoff that no longer hold any product row.
+
+The delete statements use native SQL (JPA's `@SQLRestriction` hides soft-deleted rows) and
+are bounded by `catalog.retention.batch-size`, default `500`, so a large backlog is purged
+over several batches and committed batch by batch. Each run reports its counts in the
+`catalog.retention.purged` counter (tagged `entity=comments|products|categories`) and in
+one structured INFO line; a run that deletes nothing logs at DEBUG. See the retention rows
+in the configuration table above.
+
 ## Observability
 
 | Endpoint | Contents |
@@ -330,7 +356,8 @@ probability. Business metrics follow `catalog.<entity>.<action>`:
 - `catalog.category.created`, `catalog.category.deleted`, `catalog.category.moved`;
 - `catalog.comment.created`, `catalog.comment.deleted`;
 - `catalog.outbox.published` and `catalog.outbox.failed` counters, plus the
-  `catalog.outbox.pending` gauge.
+  `catalog.outbox.pending` gauge;
+- `catalog.retention.purged`, tagged `entity` (`comments`, `products`, `categories`).
 
 ## Testing
 
@@ -375,7 +402,7 @@ change a file outside `catalog/`.
 - Architecture decision records: `docs/adr/` — ADR-005 read-replica staleness, ADR-006
   idempotency, ADR-007 transactional outbox, ADR-008 JWT-only resource server.
 - Decision log: `docs/decisions.md`.
-- Schema: `src/main/resources/db/migration/`, latest `V13__widen_products_name.sql`.
+- Schema: `src/main/resources/db/migration/`, latest `V15__index_soft_deleted_rows.sql`.
   Flyway owns every schema change (`ddl-auto: validate`); committed migrations are never
   edited.
 - Module guidance: `CLAUDE.md`.
