@@ -213,17 +213,18 @@ offset endpoint `GET /api/v1/catalog/products` is unchanged and remains the defa
 - Ordering is `(createdAt, id)` only. `sort` must be exactly `createdAt,asc` or
   `createdAt,desc` (the direction is case-insensitive); anything else — including
   `price,asc` — is a 400 `VALIDATION_ERROR`.
-- `limit` is 1–100 (default 20). A page can be shorter than `limit` while `nextCursor` is
-  still present; keep following the cursor until it is `null`.
+- `limit` is 1–100 (default 20). `nextCursor` is present only when another page exists;
+  keep following it until it is `null`. A page shorter than `limit` is the last page.
 - `cursor` is opaque. Do not build or edit it. It embeds a SHA-256 fingerprint of the
   filters and direction that minted it, so reusing a cursor with different `q`, price
   bounds, `inStock`, `categoryName` or `sort` returns 400 `VALIDATION_ERROR`, as does a
   malformed or truncated token.
 - Filters are applied on every page; the token is a position, not a query.
-- The keyset predicate and order are served by the partial index
+- The keyset predicate and order can be served by the partial index
   `idx_products_created_at_id` on `products (created_at DESC, id DESC) WHERE deleted_at IS
-  NULL` (`V17__index_product_cursor.sql`); an ascending page uses the same index with a
-  backward scan. Soft-deleted products never enter it.
+  NULL` (`V17__index_product_cursor.sql`); an ascending page can use the same index with a
+  backward scan. Soft-deleted products never enter it. Whether the planner chooses the index
+  depends on the filters and table statistics.
 
 Two-page flow:
 

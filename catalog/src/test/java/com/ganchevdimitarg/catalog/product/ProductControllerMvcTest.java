@@ -678,8 +678,10 @@ class ProductControllerMvcTest {
                         .with(jwt().authorities(() -> "SCOPE_catalog.read")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].name").value("mouse"))
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(5))
                 .andExpect(jsonPath("$.totalElements").value(1))
-                .andExpect(jsonPath("$.nextCursor").doesNotExist());
+                .andExpect(jsonPath("$.totalPages").value(1));
     }
 
     @Test

@@ -68,6 +68,16 @@ class ProductCursorCodecTest {
     }
 
     @Test
+    void should_throwValidation_when_payloadIsJsonNull() {
+        String encoded = Base64.getUrlEncoder().withoutPadding()
+                .encodeToString("null".getBytes(StandardCharsets.UTF_8));
+
+        assertThatThrownBy(() -> codec.decode(encoded, CRITERIA, "desc"))
+                .isInstanceOf(ValidationException.class)
+                .hasMessage("Invalid cursor");
+    }
+
+    @Test
     void should_throwValidation_when_cursorIsNull() {
         assertThatThrownBy(() -> codec.decode(null, CRITERIA, "desc"))
                 .isInstanceOf(ValidationException.class)

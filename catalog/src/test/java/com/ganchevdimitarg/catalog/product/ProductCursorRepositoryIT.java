@@ -23,10 +23,8 @@ import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -35,7 +33,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 /**
  * Cursor (keyset) pagination integration tests. The 25 live products and the soft-deleted
  * trap are scoped to a random run token so the shared singleton Postgres container can carry
- * rows seeded by other IT classes.
+ * rows seeded by other IT classes. Two live products share a {@code createdAt} across the
+ * first page boundary on purpose, so the id tie-break of the cursor predicate is exercised.
  */
 @Tag("integration")
 @WithMockUser(authorities = "SCOPE_catalog.read")
@@ -62,7 +61,6 @@ class ProductCursorRepositoryIT extends AbstractIntegrationTest {
     private UUID categoryId;
     private UUID softDeletedId;
     private final List<UUID> seededProductIds = new ArrayList<>();
-    private final Map<UUID, Instant> createdAtById = new HashMap<>();
 
     @BeforeEach
     void seedCatalogue() {
@@ -74,10 +72,8 @@ class ProductCursorRepositoryIT extends AbstractIntegrationTest {
 
         for (int i = 0; i < LIVE_PRODUCTS; i++) {
             UUID id = UUID.randomUUID();
-            Instant createdAt = createdAtFor(i);
-            insertProduct(id, "cursor-" + run + "-" + String.format("%02d", i), createdAt, null);
+            insertProduct(id, "cursor-" + run + "-" + String.format("%02d", i), createdAtFor(i), null);
             seededProductIds.add(id);
-            createdAtById.put(id, createdAt);
         }
 
         // Shares a createdAt with a live product on purpose: the soft-delete restriction,
@@ -93,12 +89,12 @@ class ProductCursorRepositoryIT extends AbstractIntegrationTest {
         jdbcTemplate.update("delete from products where category_id = ?", categoryId);
         jdbcTemplate.update("delete from categories where id = ?", categoryId);
         seededProductIds.clear();
-        createdAtById.clear();
     }
 
     @Test
     void should_pageThroughAllProductsWithoutDuplicatesOrGaps_when_ascending() {
         List<CursorPageResponse<ProductResponseDto>> pages = fetchAllPages(criteria(null), "asc");
+        List<UUID> expected = expectedIdsAscending();
 
         assertThat(pages).hasSize(3);
         assertThat(pages.get(0).content()).hasSize(10);
@@ -110,14 +106,11 @@ class ProductCursorRepositoryIT extends AbstractIntegrationTest {
 
         List<UUID> ids = idsOf(pages);
         assertThat(ids)
+                .containsExactlyElementsOf(expected)
                 .doesNotHaveDuplicates()
                 .hasSize(LIVE_PRODUCTS)
-                .containsExactlyInAnyOrderElementsOf(seededProductIds)
                 .doesNotContain(softDeletedId);
-
-        List<Instant> createdAts = ids.stream().map(createdAtById::get).toList();
-        assertThat(createdAts).isSorted();
-        assertTiedCreatedAtProductsAreAdjacent(ids);
+        assertTieStraddlesFirstPageBoundary(pages, expected);
     }
 
     @Test
@@ -125,7 +118,9 @@ class ProductCursorRepositoryIT extends AbstractIntegrationTest {
         List<UUID> ascending = idsOf(fetchAllPages(criteria(null), "asc"));
         List<UUID> descending = idsOf(fetchAllPages(criteria(null), "desc"));
 
-        assertThat(descending).containsExactlyElementsOf(ascending.reversed());
+        assertThat(descending)
+                .containsExactlyElementsOf(expectedIdsDescending())
+                .containsExactlyElementsOf(ascending.reversed());
     }
 
     @Test
@@ -209,19 +204,48 @@ class ProductCursorRepositoryIT extends AbstractIntegrationTest {
                 .toList();
     }
 
-    private void assertTiedCreatedAtProductsAreAdjacent(List<UUID> ids) {
-        List<UUID> tied = ids.stream()
-                .filter(id -> createdAtById.get(id).equals(createdAtFor(10)))
+    /**
+     * The single-shot ORDER BY is the oracle for the OR-expanded keyset predicate: a wrong
+     * id comparison (or a missing tie-break) would reorder, duplicate or drop rows.
+     */
+    private List<UUID> expectedIdsAscending() {
+        return jdbcTemplate.queryForList("""
+                        select id from products
+                        where category_id = ? and deleted_at is null
+                        order by created_at asc, id asc
+                        """, String.class, categoryId)
+                .stream()
+                .map(UUID::fromString)
                 .toList();
-        assertThat(tied).as("products 10 and 11 share createdAt").hasSize(2);
-        assertThat(Math.abs(ids.indexOf(tied.get(0)) - ids.indexOf(tied.get(1))))
-                .as("the id tie-break keeps equal createdAt values adjacent")
-                .isEqualTo(1);
+    }
+
+    private List<UUID> expectedIdsDescending() {
+        return jdbcTemplate.queryForList("""
+                        select id from products
+                        where category_id = ? and deleted_at is null
+                        order by created_at desc, id desc
+                        """, String.class, categoryId)
+                .stream()
+                .map(UUID::fromString)
+                .toList();
+    }
+
+    /**
+     * Products 9 and 10 share a {@code createdAt} on the first page boundary, so page 2 can
+     * only start with the second of the pair if the cursor predicate applies the id tie-break
+     * with the right comparison.
+     */
+    private static void assertTieStraddlesFirstPageBoundary(
+            List<CursorPageResponse<ProductResponseDto>> pages, List<UUID> expected) {
+        assertThat(createdAtFor(9)).isEqualTo(createdAtFor(10));
+        assertThat(pages.get(0).content().getLast().id()).isEqualTo(expected.get(9));
+        assertThat(pages.get(1).content().getFirst().id()).isEqualTo(expected.get(10));
     }
 
     private static Instant createdAtFor(int index) {
-        // Products 10 and 11 share a timestamp so the (createdAt, id) tie-break is exercised.
-        return BASE.plusSeconds(index == 11 ? 10 : index);
+        // Products 9 and 10 share a timestamp across the first page boundary so the
+        // (createdAt, id) tie-break is exercised by the keyset predicate.
+        return BASE.plusSeconds(index == 10 ? 9 : index);
     }
 
     private void insertProduct(UUID id, String name, Instant createdAt, Instant deletedAt) {

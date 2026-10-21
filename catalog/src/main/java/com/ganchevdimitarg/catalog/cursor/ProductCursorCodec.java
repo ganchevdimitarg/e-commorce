@@ -59,6 +59,10 @@ public class ProductCursorCodec {
     public ProductCursor decode(String encoded, ProductSearchCriteria criteria, String direction) {
         String requestedDirection = normaliseDirection(direction);
         ProductCursor cursor = parse(encoded);
+        if (cursor == null) {
+            // A valid Base64 payload can still be the JSON literal `null`.
+            throw new ValidationException(INVALID_CURSOR);
+        }
         if (cursor.version() != ProductCursor.CURRENT_VERSION
                 || cursor.createdAt() == null
                 || cursor.id() == null
