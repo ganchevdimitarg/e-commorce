@@ -325,12 +325,15 @@ nothing or `catalog.retention.max-batches-per-run` is reached:
    soft-deleted);
 3. categories soft-deleted before the cutoff that no longer hold any product row.
 
-The delete statements use native SQL (JPA's `@SQLRestriction` hides soft-deleted rows) and
-are bounded by `catalog.retention.batch-size`, default `500`, so a large backlog is purged
-over several batches and committed batch by batch. Each run reports its counts in the
-`catalog.retention.purged` counter (tagged `entity=comments|products|categories`) and in
-one structured INFO line; a run that deletes nothing logs at DEBUG. See the retention rows
-in the configuration table above.
+The delete statements use native SQL (JPA's `@SQLRestriction` hides soft-deleted rows).
+Each selection — expired comments, expired products, empty expired categories — is limited
+to `catalog.retention.batch-size`, default `500`, so a large backlog is purged over several
+batches and committed batch by batch. A selected product's comments are all deleted with
+it, so the total number of deleted rows is not itself capped by `batch-size`. Each batch
+that deletes something adds its counts to the `catalog.retention.purged` counter (tagged
+`entity=comments|products|categories`) and emits one structured INFO line; a batch that
+deletes nothing logs at DEBUG, so a multi-batch run logs one line per batch. See the
+retention rows in the configuration table above.
 
 ## Observability
 

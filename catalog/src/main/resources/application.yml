@@ -49,6 +49,13 @@ spring:
     virtual:
       enabled: true
 
+  # The scheduled retention purge must not starve the 1-second outbox relay on Boot's single
+  # default scheduler thread, so give the scheduler two threads.
+  task:
+    scheduling:
+      pool:
+        size: 2
+
 server:
   port: ${SERVER_PORT:8084}
 

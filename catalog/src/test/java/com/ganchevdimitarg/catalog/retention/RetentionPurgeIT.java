@@ -54,10 +54,16 @@ class RetentionPurgeIT extends AbstractIntegrationTest {
         UUID expiredCategoryWithProduct = insertCategory("busy-cat-" + suffix(), 100);
         UUID retainedProduct = insertProduct("retained-product-" + suffix(), expiredCategoryWithProduct, 0);
 
+        // An expired category whose only product is also expired must go in the same batch:
+        // products are deleted before the empty-category pass runs.
+        UUID expiredCategoryWithExpiredProduct = insertCategory("cascade-cat-" + suffix(), 100);
+        UUID expiredProductInExpiredCategory =
+                insertProduct("cascade-product-" + suffix(), expiredCategoryWithExpiredProduct, 100);
+
         RetentionPurgeService.PurgeResult result =
                 service.purgeBatch(Instant.now().minus(90, ChronoUnit.DAYS));
 
-        assertThat(result).isEqualTo(new RetentionPurgeService.PurgeResult(3, 1, 1));
+        assertThat(result).isEqualTo(new RetentionPurgeService.PurgeResult(3, 2, 2));
 
         assertThat(countCategories(oldCategory)).isZero();
         assertThat(countProducts(oldProduct)).isZero();
@@ -74,6 +80,9 @@ class RetentionPurgeIT extends AbstractIntegrationTest {
 
         assertThat(countCategories(expiredCategoryWithProduct)).isOne();
         assertThat(countProducts(retainedProduct)).isOne();
+
+        assertThat(countCategories(expiredCategoryWithExpiredProduct)).isZero();
+        assertThat(countProducts(expiredProductInExpiredCategory)).isZero();
     }
 
     @Test

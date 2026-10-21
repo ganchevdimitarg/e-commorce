@@ -19,7 +19,8 @@ import java.util.UUID;
  * <p>JPA cannot do this: every entity carries {@code @SQLRestriction("deleted_at IS NULL")},
  * so JPQL and derived deletes never see the expired rows. Deletes run in foreign-key order —
  * comments first, then products, then categories that no longer hold any product row — and
- * each statement is bounded by the caller's batch size.
+ * each selection is bounded by the caller's batch size, while a selected product's comments
+ * are all deleted with it.
  */
 @Repository
 @RequiredArgsConstructor

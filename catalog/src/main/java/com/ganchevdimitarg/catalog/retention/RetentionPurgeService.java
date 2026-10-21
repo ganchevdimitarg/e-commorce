@@ -34,9 +34,11 @@ public class RetentionPurgeService {
     private final MeterRegistry meterRegistry;
 
     /**
-     * Deletes up to {@code catalog.retention.batch-size} expired rows in foreign-key order:
-     * expired comments, then expired products together with all their comments, then
-     * expired categories left without any product row.
+     * Deletes expired rows in foreign-key order: expired comments, then expired products
+     * together with all their comments, then expired categories left without any product
+     * row. Each selection — comments, products, categories — is limited to
+     * {@code catalog.retention.batch-size}; a selected product's comments are all deleted
+     * with it, so the total deleted row count can exceed the batch size.
      *
      * @param cutoff rows soft-deleted strictly before this instant are purged
      * @return the number of comments, products and categories deleted by this batch
