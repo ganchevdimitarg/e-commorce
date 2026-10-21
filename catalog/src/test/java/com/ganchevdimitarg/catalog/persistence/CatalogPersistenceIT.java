@@ -360,7 +360,7 @@ class CatalogPersistenceIT extends AbstractIntegrationTest {
 
         int updated = inTransaction(() -> productRepository.updateById(
                 product.getId(), "A new bulk update description", new BigDecimal("11.00"),
-                "updated characteristics", true, product.getVersion()));
+                "updated characteristics", true, product.getVersion(), "tester"));
 
         assertThat(updated).isEqualTo(1);
         assertThat(updatedAt(product.getId())).isAfter(stale);
@@ -378,7 +378,7 @@ class CatalogPersistenceIT extends AbstractIntegrationTest {
 
         int updated = inTransaction(() -> productRepository.updateById(
                 product.getId(), "A new bulk update description", new BigDecimal("12.00"),
-                "new characteristics", false, product.getVersion()));
+                "new characteristics", false, product.getVersion(), "tester"));
 
         assertThat(updated).isEqualTo(1);
         Product reloaded = productRepository.findById(product.getId()).orElseThrow();
@@ -403,7 +403,7 @@ class CatalogPersistenceIT extends AbstractIntegrationTest {
         OffsetDateTime stale = updatedAt(product.getId());
 
         int updated = inTransaction(() -> productRepository.changeCategory(
-                product.getName(), to.getId(), product.getVersion()));
+                product.getName(), to.getId(), product.getVersion(), "tester"));
 
         assertThat(updated).isEqualTo(1);
         assertThat(updatedAt(product.getId())).isAfter(stale);
@@ -431,7 +431,7 @@ class CatalogPersistenceIT extends AbstractIntegrationTest {
         ageUpdatedAt(second.getId());
 
         int updated = inTransaction(() ->
-                productRepository.moveAllProductsToCategory(from.getId(), to.getId()));
+                productRepository.moveAllProductsToCategory(from.getId(), to.getId(), "tester"));
 
         assertThat(updated).isEqualTo(2);
         assertThat(updatedAt(first.getId())).isAfter(OffsetDateTime.now().minusMinutes(5));

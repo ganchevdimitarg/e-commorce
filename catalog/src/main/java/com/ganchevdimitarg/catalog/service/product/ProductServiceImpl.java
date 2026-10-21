@@ -20,6 +20,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.AuditorAware;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
@@ -44,6 +45,7 @@ public class ProductServiceImpl implements ProductService {
     private final MeterRegistry meterRegistry;
     private final OutboxEventWriter outboxEventWriter;
     private final ProductCache productCache;
+    private final AuditorAware<String> auditorAware;
 
     @Override
     @Transactional
@@ -119,7 +121,7 @@ public class ProductServiceImpl implements ProductService {
 
         int updated = productRepository.updateById(id,
                 command.description(), command.price(), command.characteristics(),
-                command.inStock(), existing.getVersion());
+                command.inStock(), existing.getVersion(), currentAuditor());
         if (updated == 0) {
             throw new ObjectOptimisticLockingFailureException(Product.class.getSimpleName(), id);
         }
@@ -174,6 +176,14 @@ public class ProductServiceImpl implements ProductService {
                     log.warn("Product with the id: {} does not exist.", id);
                     return new NotFoundException("Product", id);
                 });
+    }
+
+    /**
+     * JPQL bulk updates bypass the persistence context, so JPA auditing never fires for
+     * them; the auditor is passed explicitly.
+     */
+    private String currentAuditor() {
+        return auditorAware.getCurrentAuditor().orElse("system");
     }
 
     public ProductResponseDto convertProduct(Product product){

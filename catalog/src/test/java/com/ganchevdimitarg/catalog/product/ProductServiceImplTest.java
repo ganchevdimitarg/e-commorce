@@ -26,6 +26,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.AuditorAware;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -58,6 +59,7 @@ class ProductServiceImplTest {
     private static final UUID ID_2 = UUID.fromString("55555555-5555-5555-5555-555555555555");
     private static final UUID MISSING = UUID.fromString("66666666-6666-6666-6666-666666666666");
     private static final UUID NONEXISTENT = UUID.fromString("77777777-7777-7777-7777-777777777777");
+    private static final AuditorAware<String> AUDITOR = () -> Optional.of("alice");
 
     private ProductService testService;
     @Mock
@@ -73,7 +75,7 @@ class ProductServiceImplTest {
 
     @BeforeEach
     void setup() {
-        testService = new ProductServiceImpl(productRepository, categoryRepository, mapStructMapper, new SimpleMeterRegistry(), outboxEventWriter, productCache);
+        testService = new ProductServiceImpl(productRepository, categoryRepository, mapStructMapper, new SimpleMeterRegistry(), outboxEventWriter, productCache, AUDITOR);
     }
 
     @Test
@@ -203,7 +205,7 @@ class ProductServiceImplTest {
         refreshed.setCategory(productCategory());
         when(productRepository.findById(P1))
                 .thenReturn(Optional.of(existing), Optional.of(refreshed));
-        when(productRepository.updateById(P1, "aaaaaaaaaaa", BigDecimal.ONE, "", false, 1L)).thenReturn(1);
+        when(productRepository.updateById(P1, "aaaaaaaaaaa", BigDecimal.ONE, "", false, 1L, "alice")).thenReturn(1);
         ProductResponseDto expectedDto = new ProductResponseDto(P1, "mouse", "aaaaaaaaaaa",
                 BigDecimal.ONE, false, "", null, List.of(), 2L);
         when(mapStructMapper.mapProductToProductResponseDto(refreshed)).thenReturn(expectedDto);
@@ -211,7 +213,7 @@ class ProductServiceImplTest {
 
         ProductResponseDto result = testService.updateProduct(P1, cmd, null);
 
-        verify(productRepository).updateById(P1, "aaaaaaaaaaa", BigDecimal.ONE, "", false, 1L);
+        verify(productRepository).updateById(P1, "aaaaaaaaaaa", BigDecimal.ONE, "", false, 1L, "alice");
         verify(outboxEventWriter).writeUpdated(refreshed);
         verify(productCache).put(P1, expectedDto);
         assertThat(result).isEqualTo(expectedDto);
@@ -233,7 +235,7 @@ class ProductServiceImplTest {
         refreshed.setVersion(2L);
         when(productRepository.findById(P1))
                 .thenReturn(Optional.of(existing), Optional.of(refreshed));
-        when(productRepository.updateById(P1, "aaaaaaaaaaa", BigDecimal.ONE, "", false, 1L)).thenReturn(1);
+        when(productRepository.updateById(P1, "aaaaaaaaaaa", BigDecimal.ONE, "", false, 1L, "alice")).thenReturn(1);
         ProductResponseDto expectedDto = new ProductResponseDto(P1, "mouse", "aaaaaaaaaaa",
                 BigDecimal.ONE, false, "", null, List.of(), 2L);
         when(mapStructMapper.mapProductToProductResponseDto(refreshed)).thenReturn(expectedDto);
@@ -241,7 +243,7 @@ class ProductServiceImplTest {
 
         ProductResponseDto result = testService.updateProduct(P1, cmd, 1L);
 
-        verify(productRepository).updateById(P1, "aaaaaaaaaaa", BigDecimal.ONE, "", false, 1L);
+        verify(productRepository).updateById(P1, "aaaaaaaaaaa", BigDecimal.ONE, "", false, 1L, "alice");
         assertThat(result).isEqualTo(expectedDto);
     }
 
@@ -258,7 +260,7 @@ class ProductServiceImplTest {
                 .hasMessageContaining("Product was modified; refresh and retry: " + P1);
 
         verify(productRepository, never())
-                .updateById(any(), any(), any(), any(), anyBoolean(), anyLong());
+                .updateById(any(), any(), any(), any(), anyBoolean(), anyLong(), anyString());
         verify(productCache, never()).put(any(), any());
     }
 
@@ -268,7 +270,7 @@ class ProductServiceImplTest {
         existing.setId(P1);
         existing.setVersion(1L);
         when(productRepository.findById(P1)).thenReturn(Optional.of(existing));
-        when(productRepository.updateById(P1, "aaaaaaaaaaa", BigDecimal.ONE, "", false, 1L)).thenReturn(0);
+        when(productRepository.updateById(P1, "aaaaaaaaaaa", BigDecimal.ONE, "", false, 1L, "alice")).thenReturn(0);
         UpdateProductCommand cmd = new UpdateProductCommand("aaaaaaaaaaa", BigDecimal.ONE, false, "");
 
         assertThatThrownBy(() -> testService.updateProduct(P1, cmd, null))
@@ -281,7 +283,7 @@ class ProductServiceImplTest {
         existing.setId(P1);
         existing.setVersion(1L);
         when(productRepository.findById(P1)).thenReturn(Optional.of(existing));
-        when(productRepository.updateById(P1, "aaaaaaaaaaa", BigDecimal.ONE, "", false, 1L)).thenReturn(0);
+        when(productRepository.updateById(P1, "aaaaaaaaaaa", BigDecimal.ONE, "", false, 1L, "alice")).thenReturn(0);
         UpdateProductCommand cmd = new UpdateProductCommand("aaaaaaaaaaa", BigDecimal.ONE, false, "");
 
         assertThatThrownBy(() -> testService.updateProduct(P1, cmd, null))
@@ -297,7 +299,7 @@ class ProductServiceImplTest {
         existing.setVersion(1L);
         when(productRepository.findById(P1))
                 .thenReturn(Optional.of(existing), Optional.empty());
-        when(productRepository.updateById(P1, "aaaaaaaaaaa", BigDecimal.ONE, "", false, 1L)).thenReturn(1);
+        when(productRepository.updateById(P1, "aaaaaaaaaaa", BigDecimal.ONE, "", false, 1L, "alice")).thenReturn(1);
         UpdateProductCommand cmd = new UpdateProductCommand("aaaaaaaaaaa", BigDecimal.ONE, false, "");
 
         assertThatThrownBy(() -> testService.updateProduct(P1, cmd, null))
@@ -465,7 +467,7 @@ class ProductServiceImplTest {
     void should_incrementCreatedCounter_when_productCreated() {
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
         ProductServiceImpl service =
-                new ProductServiceImpl(productRepository, categoryRepository, mapStructMapper, registry, outboxEventWriter, productCache);
+                new ProductServiceImpl(productRepository, categoryRepository, mapStructMapper, registry, outboxEventWriter, productCache, AUDITOR);
 
         CreateProductCommand cmd = new CreateProductCommand("mouse", "WiFi mouse USB", BigDecimal.ONE, true, "", "PC");
         Category category = new Category();

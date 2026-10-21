@@ -21,6 +21,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.AuditorAware;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -39,6 +40,7 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.*;
 import static org.mockito.Mockito.when;
 
@@ -50,6 +52,7 @@ class CategoryServiceImplTest {
     private static final UUID FROM_ID = UUID.fromString("22222222-2222-2222-2222-222222222222");
     private static final UUID TO_ID = UUID.fromString("33333333-3333-3333-3333-333333333333");
     private static final UUID PRODUCT_ID = UUID.fromString("44444444-4444-4444-4444-444444444444");
+    private static final AuditorAware<String> AUDITOR = () -> Optional.of("alice");
 
     private CategoryService testService;
 
@@ -67,7 +70,7 @@ class CategoryServiceImplTest {
     @BeforeEach
     void setUp() {
         testService = new CategoryServiceImpl(categoryRepository, productRepository,
-                new SimpleMeterRegistry(), productCacheEvictor, outboxEventWriter);
+                new SimpleMeterRegistry(), productCacheEvictor, outboxEventWriter, AUDITOR);
         categoryName = "bbbbb";
     }
 
@@ -177,11 +180,11 @@ class CategoryServiceImplTest {
         when(categoryRepository.findByName("pc")).thenReturn(Optional.of(categoryFrom));
         when(categoryRepository.findByName("acc")).thenReturn(Optional.of(categoryTo));
         when(productRepository.findByNameAndCategoryId("mouse", FROM_ID)).thenReturn(Optional.of(mouseProduct));
-        when(productRepository.changeCategory(any(), any(), anyLong())).thenReturn(1);
+        when(productRepository.changeCategory(any(), any(), anyLong(), eq("alice"))).thenReturn(1);
 
         testService.moveOneProduct(new MoveProductCommand("pc", "acc", "mouse"));
 
-        verify(productRepository).changeCategory(any(), any(), anyLong());
+        verify(productRepository).changeCategory(any(), any(), anyLong(), eq("alice"));
         verify(productCacheEvictor).evict(PRODUCT_ID);
         verify(outboxEventWriter).writeCategoryChanged(mouseProduct, "pc", "acc");
     }
@@ -205,7 +208,7 @@ class CategoryServiceImplTest {
         when(categoryRepository.findByName("pc")).thenReturn(Optional.of(categoryFrom));
         when(categoryRepository.findByName("acc")).thenReturn(Optional.of(categoryTo));
         when(productRepository.findByNameAndCategoryId("mouse", FROM_ID)).thenReturn(Optional.of(mouseProduct));
-        when(productRepository.changeCategory(any(), any(), anyLong())).thenReturn(0);
+        when(productRepository.changeCategory(any(), any(), anyLong(), eq("alice"))).thenReturn(0);
 
         assertThatThrownBy(() -> testService.moveOneProduct(new MoveProductCommand("pc", "acc", "mouse")))
                 .isInstanceOf(ObjectOptimisticLockingFailureException.class);
@@ -232,7 +235,7 @@ class CategoryServiceImplTest {
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("Product not found: mouse");
 
-        verify(productRepository, never()).changeCategory(any(), any(), anyLong());
+        verify(productRepository, never()).changeCategory(any(), any(), anyLong(), eq("alice"));
     }
 
     @Test
@@ -241,7 +244,7 @@ class CategoryServiceImplTest {
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("Category not found: " + categoryName);
 
-        verify(productRepository, never()).changeCategory(any(), any(), anyLong());
+        verify(productRepository, never()).changeCategory(any(), any(), anyLong(), eq("alice"));
     }
 
     @Test
@@ -253,7 +256,7 @@ class CategoryServiceImplTest {
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("Category not found: aaaaa");
 
-        verify(productRepository, never()).changeCategory(any(), any(), anyLong());
+        verify(productRepository, never()).changeCategory(any(), any(), anyLong(), eq("alice"));
     }
 
     @Test
@@ -371,12 +374,12 @@ class CategoryServiceImplTest {
         when(categoryRepository.findByName("PC")).thenReturn(Optional.of(from));
         when(categoryRepository.findByName("Laptop")).thenReturn(Optional.of(to));
         when(productRepository.findAllByCategory_Id(FROM_ID)).thenReturn(List.of(mouse, keyboard));
-        when(productRepository.moveAllProductsToCategory(FROM_ID, TO_ID)).thenReturn(2);
+        when(productRepository.moveAllProductsToCategory(FROM_ID, TO_ID, "alice")).thenReturn(2);
 
         testService.moveAllProducts("PC", "Laptop");
 
-        verify(productRepository, times(1)).moveAllProductsToCategory(FROM_ID, TO_ID);
-        verify(productRepository, never()).changeCategory(anyString(), any(UUID.class), anyLong());
+        verify(productRepository, times(1)).moveAllProductsToCategory(FROM_ID, TO_ID, "alice");
+        verify(productRepository, never()).changeCategory(anyString(), any(UUID.class), anyLong(), anyString());
         verify(productCacheEvictor).evictAll();
         verify(outboxEventWriter).writeCategoryChanged(mouse, "PC", "Laptop");
         verify(outboxEventWriter).writeCategoryChanged(keyboard, "PC", "Laptop");
@@ -387,7 +390,7 @@ class CategoryServiceImplTest {
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
         CategoryServiceImpl service =
                 new CategoryServiceImpl(categoryRepository, productRepository, registry,
-                        productCacheEvictor, outboxEventWriter);
+                        productCacheEvictor, outboxEventWriter, AUDITOR);
 
         when(categoryRepository.findByName(categoryName)).thenReturn(Optional.empty());
         Category saved = new Category();

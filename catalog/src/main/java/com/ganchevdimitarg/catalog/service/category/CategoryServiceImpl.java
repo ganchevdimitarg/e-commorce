@@ -15,6 +15,7 @@ import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.AuditorAware;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -37,6 +38,7 @@ public class CategoryServiceImpl implements CategoryService {
     private final MeterRegistry meterRegistry;
     private final ProductCache productCacheEvictor;
     private final OutboxEventWriter outboxEventWriter;
+    private final AuditorAware<String> auditorAware;
 
     @Override
     @Transactional
@@ -90,7 +92,8 @@ public class CategoryServiceImpl implements CategoryService {
                     return new NotFoundException("Product", command.productName());
                 });
 
-        int updated = productRepository.changeCategory(product.getName(), to.getId(), product.getVersion());
+        int updated = productRepository.changeCategory(
+                product.getName(), to.getId(), product.getVersion(), currentAuditor());
         if (updated == 0) {
             throw new ObjectOptimisticLockingFailureException(Product.class.getSimpleName(), product.getName());
         }
@@ -109,7 +112,8 @@ public class CategoryServiceImpl implements CategoryService {
         // Read the affected rows before the bulk update: it clears the persistence context,
         // but one category-changed event is written per moved product afterwards.
         List<Product> affected = productRepository.findAllByCategory_Id(from.getId());
-        int moved = productRepository.moveAllProductsToCategory(from.getId(), to.getId());
+        int moved = productRepository.moveAllProductsToCategory(
+                from.getId(), to.getId(), currentAuditor());
         productCacheEvictor.evictAll();
         affected.forEach(product ->
                 outboxEventWriter.writeCategoryChanged(product, from.getName(), to.getName()));
@@ -143,6 +147,14 @@ public class CategoryServiceImpl implements CategoryService {
     private Category requireCategory(String name) {
         return categoryRepository.findByName(name)
                 .orElseThrow(() -> new NotFoundException("Category", name));
+    }
+
+    /**
+     * JPQL bulk updates bypass the persistence context, so JPA auditing never fires for
+     * them; the auditor is passed explicitly.
+     */
+    private String currentAuditor() {
+        return auditorAware.getCurrentAuditor().orElse("system");
     }
 
     private CategoryResponseDto convertCategory(Category category) {
