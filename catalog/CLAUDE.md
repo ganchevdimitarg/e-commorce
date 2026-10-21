@@ -81,8 +81,9 @@ Session rules for the `catalog/TODO.md` hardening list — restated from the roo
 - **Observability** — Micrometer → Prometheus; metrics `catalog.<entity>.<action>`; OTLP
   tracing + log export; actuator exposure narrowed to `health,info,prometheus`.
   → `../docs/context/otlp-patterns.md`
-- **CI/CD** — Jenkins declarative pipeline (`Jenkinsfile`); images `catalog:<git-sha>`;
-  PR branches skip deploy. → `../docs/context/cicd-patterns.md`
+- **CI/CD** — Jenkins declarative pipeline in `catalog/Jenkinsfile` (job Script Path,
+  `changeset "catalog/**"` gates, wrapper build, `catalog/` Docker context); images
+  `catalog:<git-sha>`; PR branches skip deploy. → `../docs/context/cicd-patterns.md`
 
 ## Local development
 ```bash
@@ -151,9 +152,10 @@ modules, and an OTLP collector (`:4318`) must be supplied separately. Env:
   aggregator, and the root `-pl catalog -am` build stays supported.
 - The Docker build is self-contained: the build context is `catalog/`
   (`docker build -t catalog:<tag> catalog/`), the image copies the explicit artifact
-  `target/catalog-0.0.1-SNAPSHOT.jar`, and no `-pl catalog -am` is used. The root
-  `Jenkinsfile`'s `-f catalog/Dockerfile .` stage stays incompatible until the Task 5
-  CI cutover (outside `catalog/`).
+  `target/catalog-0.0.1-SNAPSHOT.jar`, and no `-pl catalog -am` is used. The catalog-owned
+  `catalog/Jenkinsfile` now exists and is changeset-gated; the root `Jenkinsfile`'s
+  `-f catalog/Dockerfile .` stage remains incompatible until the root-pipeline cutover
+  (outside `catalog/`).
 - Follow-ups (not blocking, human decision): no checkstyle plugin/config yet (stated PR
   gate); integration tests run under surefire (failsafe unbound). The `prod` profile added
   with TODO 7.4 is actuator-hardened: exposure `health,info,prometheus`,

@@ -345,6 +345,28 @@ Integration tests extend `AbstractIntegrationTest` / `RedisKafkaIntegrationBase`
 Testcontainers, so Docker must be running for the full `verify`. JaCoCo enforces 90 % line
 coverage for the bundle and 100 % for `com.ganchevdimitarg.catalog.service.*`.
 
+## Continuous integration
+
+`catalog/Jenkinsfile` owns the catalog build. The Jenkins job must be a **Multibranch
+Pipeline** (or otherwise provide changelog data for the `changeset` gate) configured with
+**Script Path `catalog/Jenkinsfile`** — a plain Pipeline job without changelog data cannot
+evaluate the gate.
+
+- Every working stage runs only when a `catalog/**` file changed; a push that touches no
+  catalog file skips the build entirely.
+- Build and test runs `./mvnw -B clean verify` from `catalog/` — the module wrapper is the
+  only Maven entry point, and no root-reactor `-pl catalog -am` build is involved.
+- The image is built from the `catalog/` context and tagged `<registry>/catalog:<git-sha>`
+  (for example `catalog:3c0ae97`); push and deploy additionally require the `main` branch.
+
+**Root-pipeline cutover prerequisite.** The repository-root `Jenkinsfile` still runs
+`docker build -f catalog/Dockerfile .` with the repository root as the context. Since the
+Dockerfile now expects the `catalog/` context, that stage fails. Until the root Docker
+stage is changed to `docker build -f catalog/Dockerfile catalog` — or the root job's
+catalog stages are disabled in Jenkins — the catalog-owned changeset gate cannot fully
+take effect, because the root job still builds catalog. The catalog-owned pipeline cannot
+change a file outside `catalog/`.
+
 ## Project references
 
 - Architecture decision records: `docs/adr/` — ADR-005 read-replica staleness, ADR-006

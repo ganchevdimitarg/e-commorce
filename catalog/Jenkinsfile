@@ -1,0 +1,100 @@
+// Module-scoped pipeline for the catalog service (catalog/TODO.md 7.6).
+//
+// Configure a Multibranch Pipeline job with Script Path `catalog/Jenkinsfile`; the job
+// must provide changelog data, otherwise the `changeset` gates cannot be evaluated.
+// Every working stage skips unless a `catalog/**` file changed. The build uses the
+// catalog-owned Maven wrapper and the `catalog/` Docker context only — never the root
+// reactor, `-pl catalog -am`, or a root-context Docker build.
+pipeline {
+    agent any
+    tools {
+        jdk 'jdk-25'
+    }
+    environment {
+        DOCKER_REGISTRY = credentials('docker-registry-url')
+        // Ryuk's reaper container is not reachable from every Jenkins agent.
+        TESTCONTAINERS_RYUK_DISABLED = 'true'
+    }
+    stages {
+        stage('Checkout') {
+            // Runs unconditionally: its changelog data is what the `changeset` gates read.
+            steps {
+                checkout scm
+                script { env.GIT_SHA = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim() }
+            }
+        }
+        stage('Build and test') {
+            when { changeset "catalog/**" }
+            steps {
+                dir('catalog') {
+                    // `sh ./mvnw` is explicit so a checkout without the executable bit still runs the wrapper.
+                    // `clean verify` runs the unit and Testcontainers suites and enforces the JaCoCo gate.
+                    sh 'sh ./mvnw -B clean verify'
+                }
+            }
+            post {
+                always {
+                    // Reports are resolved from the workspace root, not from inside dir('catalog').
+                    junit 'catalog/target/surefire-reports/*.xml', allowEmptyResults: true
+                }
+            }
+        }
+        stage('Publish coverage') {
+            // Reporting only — the JaCoCo gate already ran inside `verify`.
+            when { changeset "catalog/**" }
+            steps {
+                jacoco(execPattern: 'catalog/target/jacoco.exec',
+                       classPattern: 'catalog/target/classes',
+                       sourcePattern: 'catalog/src/main/java')
+            }
+        }
+        stage('Docker build') {
+            when { changeset "catalog/**" }
+            steps {
+                // The Dockerfile sits at the context root, so no -f and no root-context build.
+                sh "docker build -t ${env.DOCKER_REGISTRY}/catalog:${env.GIT_SHA} catalog"
+            }
+        }
+        stage('Docker push') {
+            when {
+                allOf {
+                    branch 'main'
+                    changeset "catalog/**"
+                }
+            }
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'docker-registry-creds',
+                        usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    sh 'echo $DOCKER_PASS | docker login $DOCKER_REGISTRY -u $DOCKER_USER --password-stdin'
+                    sh "docker push ${env.DOCKER_REGISTRY}/catalog:${env.GIT_SHA}"
+                }
+            }
+        }
+        stage('Deploy to dev') {
+            when {
+                allOf {
+                    branch 'main'
+                    changeset "catalog/**"
+                }
+            }
+            steps {
+                echo 'Deploy placeholder — configure kubectl set image or docker-compose up for target environment'
+            }
+        }
+    }
+    post {
+        always {
+            archiveArtifacts artifacts: 'catalog/target/jacoco.exec', allowEmptyArchive: true
+        }
+        failure {
+            echo 'Build failed — configure Slack/email notification webhook'
+        }
+        cleanup {
+            script {
+                if (env.GIT_SHA) {
+                    sh "docker rmi ${env.DOCKER_REGISTRY}/catalog:${env.GIT_SHA} || true"
+                }
+            }
+        }
+    }
+}
