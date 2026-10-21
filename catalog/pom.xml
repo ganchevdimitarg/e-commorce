@@ -24,6 +24,7 @@
         <jacoco.version>0.8.13</jacoco.version>
         <otel-logback.version>2.28.0-alpha</otel-logback.version>
         <archunit.version>1.4.2</archunit.version>
+        <resilience4j.version>2.4.0</resilience4j.version>
         <!-- Testcontainers reuse for the integration suite; override with -Dtestcontainers.reuse.enable=false. -->
         <testcontainers.reuse.enable>true</testcontainers.reuse.enable>
     </properties>
@@ -120,6 +121,17 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-cache</artifactId>
+        </dependency>
+
+        <!--   Rate limiting (core RateLimiter API; Caffeine version comes from the Boot BOM)   -->
+        <dependency>
+            <groupId>io.github.resilience4j</groupId>
+            <artifactId>resilience4j-ratelimiter</artifactId>
+            <version>${resilience4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
         </dependency>
 
         <!--   Kafka   -->

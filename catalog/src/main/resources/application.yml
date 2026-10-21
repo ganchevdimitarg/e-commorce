@@ -96,3 +96,13 @@ catalog:
     purge-enabled: ${CATALOG_RETENTION_PURGE_ENABLED:false}
     retention: ${CATALOG_RETENTION:90d}
     cron: "${CATALOG_RETENTION_CRON:0 0 3 * * *}"
+  # Per-principal defence in depth on the read-heavy product endpoints. The gateway's
+  # 20 rps/40 burst limit remains the edge control; catalog is also reachable on 8084.
+  rate-limit:
+    enabled: ${CATALOG_RATE_LIMIT_ENABLED:true}
+    search:
+      permits: ${CATALOG_RATE_LIMIT_SEARCH_PERMITS:60}
+      period: 1m
+    batch-get:
+      permits: ${CATALOG_RATE_LIMIT_BATCH_GET_PERMITS:10}
+      period: 1m

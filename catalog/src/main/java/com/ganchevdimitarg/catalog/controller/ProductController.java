@@ -9,6 +9,8 @@ import com.ganchevdimitarg.catalog.dto.product.ProductSearchCriteria;
 import com.ganchevdimitarg.catalog.dto.product.UpdateProductRequestDto;
 import com.ganchevdimitarg.catalog.exception.ValidationException;
 import com.ganchevdimitarg.catalog.mapper.MapStructMapper;
+import com.ganchevdimitarg.catalog.ratelimit.RateLimitBucket;
+import com.ganchevdimitarg.catalog.ratelimit.RateLimited;
 import com.ganchevdimitarg.catalog.service.product.ProductService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
@@ -60,6 +62,7 @@ public class ProductController {
     }
 
     @Operation(summary = "List and search products", security = @SecurityRequirement(name = "security_auth"))
+    @RateLimited(RateLimitBucket.SEARCH)
     @GetMapping
     public PageResponse<ProductResponseDto> getProducts(
             @PageableDefault(size = 20) Pageable pageable,
@@ -75,6 +78,7 @@ public class ProductController {
     }
 
     @Operation(summary = "List and search products by cursor", security = @SecurityRequirement(name = "security_auth"))
+    @RateLimited(RateLimitBucket.SEARCH)
     @GetMapping(":cursor")
     public CursorPageResponse<ProductResponseDto> getProductsCursor(
             @RequestParam(required = false) String cursor,
@@ -110,6 +114,7 @@ public class ProductController {
     }
 
     @Operation(summary = "Batch get products by id", security = @SecurityRequirement(name = "security_auth"))
+    @RateLimited(RateLimitBucket.BATCH_GET)
     @PostMapping(":batch-get")
     public List<ProductResponseDto> getProductsById(@RequestBody @Valid ItemRequestDto items) {
         return productService.getProductsById(items);

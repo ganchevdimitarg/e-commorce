@@ -9,7 +9,9 @@ import com.ganchevdimitarg.catalog.exception.ControllerExceptionHandler;
 import com.ganchevdimitarg.catalog.exception.NotFoundException;
 import com.ganchevdimitarg.catalog.exception.ProblemAccessDeniedHandler;
 import com.ganchevdimitarg.catalog.exception.ProblemAuthenticationEntryPoint;
+import com.ganchevdimitarg.catalog.ratelimit.RateLimiterCache;
 import com.ganchevdimitarg.catalog.service.category.CategoryService;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import io.micrometer.tracing.Tracer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -49,7 +51,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Tag("integration")
 @WebMvcTest(controllers = CategoryController.class)
 @Import({ResourceServerConfig.class, ControllerExceptionHandler.class,
-        ProblemAuthenticationEntryPoint.class, ProblemAccessDeniedHandler.class})
+        ProblemAuthenticationEntryPoint.class, ProblemAccessDeniedHandler.class,
+        // The web slice excludes plain @Component beans, so the cache and registry are explicit.
+        RateLimiterCache.class, SimpleMeterRegistry.class})
 class CategoryControllerMvcTest {
 
     private static final UUID CATEGORY_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");

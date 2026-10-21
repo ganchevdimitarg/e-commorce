@@ -2,6 +2,7 @@ package com.ganchevdimitarg.catalog.exception;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
@@ -25,6 +26,22 @@ public class ControllerExceptionHandler extends ResponseEntityExceptionHandler {
     public ResponseEntity<ProblemDetail> handleBusinessException(BusinessException ex) {
         log.warn("Domain failure [{}]: {}", ex.getCode(), ex.getMessage());
         return problemResponse(ex.getStatus(), ex.getCode(), ex.getMessage());
+    }
+
+    /**
+     * Maps a rate-limit refusal to 429 problem+json. More specific than the
+     * {@link BusinessException} handler, so Spring selects it for this subtype.
+     */
+    @ExceptionHandler(RateLimitExceededException.class)
+    public ResponseEntity<ProblemDetail> handleRateLimitExceeded(RateLimitExceededException ex) {
+        log.warn("Rate limit exceeded: {}", ex.getMessage());
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(ex.getStatus(), ex.getMessage());
+        problem.setProperty("code", ex.getCode());
+        problem.setProperty("timestamp", Instant.now());
+        return ResponseEntity.status(ex.getStatus())
+                .header(HttpHeaders.RETRY_AFTER, String.valueOf(ex.getRetryAfterSeconds()))
+                .contentType(MediaType.APPLICATION_PROBLEM_JSON)
+                .body(problem);
     }
 
     @ExceptionHandler(ConstraintViolationException.class)

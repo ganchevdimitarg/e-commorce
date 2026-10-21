@@ -12,7 +12,9 @@ import com.ganchevdimitarg.catalog.exception.ValidationException;
 import com.ganchevdimitarg.catalog.exception.ProblemAccessDeniedHandler;
 import com.ganchevdimitarg.catalog.exception.ProblemAuthenticationEntryPoint;
 import com.ganchevdimitarg.catalog.mapper.MapStructMapper;
+import com.ganchevdimitarg.catalog.ratelimit.RateLimiterCache;
 import com.ganchevdimitarg.catalog.service.product.ProductService;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import io.micrometer.tracing.Tracer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -30,6 +32,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 
 import com.ganchevdimitarg.catalog.exception.NotFoundException;
 import com.ganchevdimitarg.catalog.dto.product.ItemRequestDto;
@@ -51,6 +54,8 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -65,7 +70,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Tag("integration")
 @WebMvcTest(controllers = ProductController.class)
 @Import({ResourceServerConfig.class, ControllerExceptionHandler.class,
-        ProblemAuthenticationEntryPoint.class, ProblemAccessDeniedHandler.class})
+        ProblemAuthenticationEntryPoint.class, ProblemAccessDeniedHandler.class,
+        // The web slice excludes plain @Component beans, so the cache and registry are explicit.
+        RateLimiterCache.class, SimpleMeterRegistry.class})
 class ProductControllerMvcTest {
 
     private static final UUID P1 = UUID.fromString("11111111-1111-1111-1111-111111111111");
@@ -695,5 +702,85 @@ class ProductControllerMvcTest {
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.code").value("NOT_FOUND"))
                 .andExpect(jsonPath("$.detail").value("Product not found: " + NONEXISTENT));
+    }
+
+    @Test
+    void should_return429ProblemJson_when_searchLimitIsExhausted() throws Exception {
+        String subject = UUID.randomUUID().toString();
+        when(productService.searchProducts(any(), any()))
+                .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 20), 0));
+
+        for (int i = 0; i < 60; i++) {
+            searchAs(subject).andExpect(status().isOk());
+        }
+
+        searchAs(subject)
+                .andExpect(status().isTooManyRequests())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.code").value("RATE_LIMIT_EXCEEDED"))
+                .andExpect(header().string(HttpHeaders.RETRY_AFTER, "60"));
+
+        verify(productService, times(60)).searchProducts(any(), any());
+    }
+
+    @Test
+    void should_shareSearchBucket_when_cursorEndpointIsUsed() throws Exception {
+        String subject = UUID.randomUUID().toString();
+        when(productService.searchProducts(any(), any()))
+                .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 20), 0));
+
+        for (int i = 0; i < 60; i++) {
+            searchAs(subject).andExpect(status().isOk());
+        }
+
+        mockMvc.perform(get("/api/v1/catalog/products/:cursor")
+                        .with(jwt().jwt(jwt -> jwt.subject(subject))
+                                .authorities(() -> "SCOPE_catalog.read")))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.code").value("RATE_LIMIT_EXCEEDED"))
+                .andExpect(header().string(HttpHeaders.RETRY_AFTER, "60"));
+
+        verify(productService, never()).searchProductsByCursor(any(), any(), anyInt(), anyString());
+    }
+
+    @Test
+    void should_rateLimitBatchGetIndependently_when_itsOwnLimitIsExhausted() throws Exception {
+        String subject = UUID.randomUUID().toString();
+        when(productService.getProductsById(any(ItemRequestDto.class))).thenReturn(List.of());
+        when(productService.searchProducts(any(), any()))
+                .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 20), 0));
+
+        for (int i = 0; i < 10; i++) {
+            batchGetAs(subject).andExpect(status().isOk());
+        }
+
+        batchGetAs(subject)
+                .andExpect(status().isTooManyRequests())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.code").value("RATE_LIMIT_EXCEEDED"))
+                .andExpect(header().string(HttpHeaders.RETRY_AFTER, "60"));
+
+        verify(productService, times(10)).getProductsById(any(ItemRequestDto.class));
+
+        // The SEARCH bucket is independent, so the same principal can still search.
+        searchAs(subject).andExpect(status().isOk());
+    }
+
+    private ResultActions searchAs(String subject) throws Exception {
+        return mockMvc.perform(get("/api/v1/catalog/products")
+                .with(jwt().jwt(jwt -> jwt.subject(subject))
+                        .authorities(() -> "SCOPE_catalog.read")));
+    }
+
+    private ResultActions batchGetAs(String subject) throws Exception {
+        return mockMvc.perform(post("/api/v1/catalog/products/:batch-get")
+                .with(csrf())
+                .with(jwt().jwt(jwt -> jwt.subject(subject))
+                        .authorities(() -> "SCOPE_catalog.read"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {"items": ["%s"]}
+                        """.formatted(ID_1)));
     }
 }

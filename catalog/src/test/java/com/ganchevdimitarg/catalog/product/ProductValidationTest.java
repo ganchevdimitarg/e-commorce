@@ -7,7 +7,9 @@ import com.ganchevdimitarg.catalog.exception.ControllerExceptionHandler;
 import com.ganchevdimitarg.catalog.exception.ProblemAccessDeniedHandler;
 import com.ganchevdimitarg.catalog.exception.ProblemAuthenticationEntryPoint;
 import com.ganchevdimitarg.catalog.mapper.MapStructMapper;
+import com.ganchevdimitarg.catalog.ratelimit.RateLimiterCache;
 import com.ganchevdimitarg.catalog.service.product.ProductService;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import io.micrometer.tracing.Tracer;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -43,7 +45,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @Tag("integration")
 @WebMvcTest(controllers = ProductController.class)
-@Import({ResourceServerConfig.class, ControllerExceptionHandler.class, ProblemAuthenticationEntryPoint.class, ProblemAccessDeniedHandler.class})
+@Import({ResourceServerConfig.class, ControllerExceptionHandler.class, ProblemAuthenticationEntryPoint.class, ProblemAccessDeniedHandler.class,
+        // The web slice excludes plain @Component beans, so the cache and registry are explicit.
+        RateLimiterCache.class, SimpleMeterRegistry.class})
 class ProductValidationTest {
 
     private static final String VALID_NAME = "mouse";
