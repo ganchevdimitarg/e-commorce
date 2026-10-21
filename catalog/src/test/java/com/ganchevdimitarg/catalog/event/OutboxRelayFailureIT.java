@@ -110,7 +110,7 @@ class OutboxRelayFailureIT extends AbstractIntegrationTest {
         assertThat(meterRegistry.counter("catalog.outbox.published").count() - publishedBefore)
                 .isEqualTo(1.0);
         assertThat(meterRegistry.get("catalog.outbox.pending").gauge().value())
-                .isEqualTo(repository.countBySentAtIsNull());
+                .isEqualTo(repository.countBySentAtIsNullAndDeadLetteredAtIsNull());
     }
 
     private void seedRow() {

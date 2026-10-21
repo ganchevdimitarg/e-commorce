@@ -85,7 +85,27 @@ class OutboxEventRepositoryIT extends AbstractIntegrationTest {
                 "{\"productName\":\"sent\"}", Map.of("eventType", "created"), now, now, now));
         entityManager.flush();
 
-        assertThat(outboxEventRepository.countBySentAtIsNull()).isEqualTo(2);
+        assertThat(outboxEventRepository.countBySentAtIsNullAndDeadLetteredAtIsNull()).isEqualTo(2);
+    }
+
+    @Test
+    void should_excludeDeadLetteredRows_when_claimingAndCounting() {
+        Instant now = Instant.now();
+        OutboxEvent live = outboxEventRepository.saveAndFlush(event(
+                "{\"productName\":\"live\"}", Map.of("eventType", "created"),
+                now.minusSeconds(60), now.minusSeconds(60), null));
+        OutboxEvent deadLettered = event(
+                "{\"productName\":\"dead-lettered\"}", Map.of("eventType", "created"),
+                now.minusSeconds(60), now.minusSeconds(60), null);
+        deadLettered.setDeadLetteredAt(now);
+        deadLettered.setDeadLetterReason("payload cannot be serialised");
+        outboxEventRepository.saveAndFlush(deadLettered);
+        entityManager.clear();
+
+        assertThat(outboxEventRepository.lockUnsentBatch(10))
+                .extracting(OutboxEvent::getId)
+                .containsExactly(live.getId());
+        assertThat(outboxEventRepository.countBySentAtIsNullAndDeadLetteredAtIsNull()).isEqualTo(1);
     }
 
     private OutboxEvent event(String payload, Map<String, String> headers,

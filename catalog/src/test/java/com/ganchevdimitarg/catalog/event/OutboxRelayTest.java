@@ -4,7 +4,11 @@ import com.ganchevdimitarg.catalog.domain.OutboxEvent;
 import com.ganchevdimitarg.catalog.repository.OutboxEventRepository;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.InvalidRecordException;
 import org.apache.kafka.common.KafkaException;
+import org.apache.kafka.common.errors.RecordTooLargeException;
+import org.apache.kafka.common.errors.SerializationException;
+import org.apache.kafka.common.errors.TimeoutException;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -139,7 +143,86 @@ class OutboxRelayTest {
         assertThat(event.getSentAt()).isNull();
         assertThat(event.getAttempts()).isZero();
         assertThat(event.getLastError()).isNull();
+        assertThat(event.getDeadLetteredAt()).isNull();
         assertThat(meterRegistry.counter(OutboxRelay.FAILED_METRIC).count()).isZero();
+        assertThat(meterRegistry.counter(OutboxRelay.DEAD_LETTER_METRIC).count()).isZero();
+    }
+
+    @Test
+    void should_deadLetter_when_serializationFails() {
+        OutboxEvent event = event();
+        Instant due = Instant.now().minusSeconds(30);
+        event.setNextAttemptAt(due);
+        when(repository.lockUnsentBatch(20)).thenReturn(List.of(event));
+        when(kafkaTemplate.send(any(ProducerRecord.class)))
+                .thenThrow(new SerializationException("payload cannot be serialised"));
+
+        assertThat(newRelay().relayOnce()).isZero();
+
+        assertThat(event.getDeadLetteredAt()).isNotNull();
+        assertThat(event.getDeadLetterReason()).contains("payload cannot be serialised");
+        assertThat(event.getSentAt()).isNull();
+        assertThat(event.getAttempts()).isEqualTo(1);
+        assertThat(event.getLastError()).contains("payload cannot be serialised");
+        // The poison branch parks the row instead of scheduling another attempt.
+        assertThat(event.getNextAttemptAt()).isEqualTo(due);
+        assertThat(meterRegistry.counter(OutboxRelay.DEAD_LETTER_METRIC).count()).isEqualTo(1.0);
+        assertThat(meterRegistry.counter(OutboxRelay.FAILED_METRIC).count()).isZero();
+    }
+
+    @Test
+    void should_notDeadLetter_when_brokerTimesOut() {
+        OutboxEvent event = event();
+        when(repository.lockUnsentBatch(20)).thenReturn(List.of(event));
+        when(kafkaTemplate.send(any(ProducerRecord.class)))
+                .thenThrow(new TimeoutException("broker timed out"));
+        Instant before = Instant.now();
+
+        assertThat(newRelay().relayOnce()).isZero();
+
+        assertThat(event.getDeadLetteredAt()).isNull();
+        assertThat(event.getDeadLetterReason()).isNull();
+        assertThat(event.getAttempts()).isEqualTo(1);
+        assertThat(event.getNextAttemptAt())
+                .isBetween(before.plusSeconds(1), Instant.now().plusSeconds(5));
+        assertThat(meterRegistry.counter(OutboxRelay.FAILED_METRIC).count()).isEqualTo(1.0);
+        assertThat(meterRegistry.counter(OutboxRelay.DEAD_LETTER_METRIC).count()).isZero();
+    }
+
+    @Test
+    void should_detectWrappedPoison_when_causeIsSerialization() {
+        assertThat(OutboxRelay.isPoison(
+                new KafkaException(new SerializationException("bad payload")))).isTrue();
+    }
+
+    @Test
+    void should_detectPoison_when_errorIsRecordTooLarge() {
+        assertThat(OutboxRelay.isPoison(new RecordTooLargeException("record too large"))).isTrue();
+    }
+
+    @Test
+    void should_detectPoison_when_errorIsInvalidRecord() {
+        assertThat(OutboxRelay.isPoison(new InvalidRecordException("invalid record"))).isTrue();
+    }
+
+    @Test
+    void should_detectPoison_when_errorIsIllegalArgument() {
+        assertThat(OutboxRelay.isPoison(new IllegalArgumentException("bad argument"))).isTrue();
+    }
+
+    @Test
+    void should_notDetectPoison_when_errorIsRetryable() {
+        assertThat(OutboxRelay.isPoison(new KafkaException("broker down"))).isFalse();
+    }
+
+    @Test
+    void should_countOnlyLiveRows_when_updatingPendingGauge() {
+        when(repository.lockUnsentBatch(20)).thenReturn(List.of());
+        when(repository.countBySentAtIsNullAndDeadLetteredAtIsNull()).thenReturn(3L);
+
+        newRelay().relayOnce();
+
+        assertThat(meterRegistry.get(OutboxRelay.PENDING_METRIC).gauge().value()).isEqualTo(3.0);
     }
 
     @Test

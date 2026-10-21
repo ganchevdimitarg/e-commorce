@@ -21,8 +21,8 @@ import java.util.UUID;
  *
  * <p>Deliberately not an {@link Auditable}: outbox rows are operational delivery state, not
  * an audited record — the relay mutates {@code attempts}, {@code last_error},
- * {@code next_attempt_at} and {@code sent_at} — so the audit/soft-delete/version columns do
- * not apply.
+ * {@code next_attempt_at}, {@code sent_at} and the dead-letter columns — so the
+ * audit/soft-delete/version columns do not apply.
  */
 @Entity(name = "OutboxEvent")
 @Table(name = "outbox_events")
@@ -75,4 +75,12 @@ public class OutboxEvent {
 
     @Column(name = "sent_at")
     private Instant sentAt;
+
+    // Dead-letter state: a non-retryable failure parks the row here for an operator to
+    // inspect instead of retrying it forever. Dead-lettered rows are never claimed again.
+    @Column(name = "dead_lettered_at")
+    private Instant deadLetteredAt;
+
+    @Column(name = "dead_letter_reason", columnDefinition = "TEXT")
+    private String deadLetterReason;
 }
