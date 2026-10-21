@@ -33,8 +33,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 /**
  * Cursor (keyset) pagination integration tests. The 25 live products and the soft-deleted
  * trap are scoped to a random run token so the shared singleton Postgres container can carry
- * rows seeded by other IT classes. Two live products share a {@code createdAt} across the
- * first page boundary on purpose, so the id tie-break of the cursor predicate is exercised.
+ * rows seeded by other IT classes. Two pairs of live products share a {@code createdAt} on
+ * purpose — one straddling the first ascending page boundary and one the first descending
+ * boundary — so the id tie-break of both cursor predicate directions is exercised.
  */
 @Tag("integration")
 @WithMockUser(authorities = "SCOPE_catalog.read")
@@ -115,12 +116,15 @@ class ProductCursorRepositoryIT extends AbstractIntegrationTest {
 
     @Test
     void should_returnExactlyReversedOrder_when_descending() {
-        List<UUID> ascending = idsOf(fetchAllPages(criteria(null), "asc"));
-        List<UUID> descending = idsOf(fetchAllPages(criteria(null), "desc"));
+        List<CursorPageResponse<ProductResponseDto>> ascendingPages = fetchAllPages(criteria(null), "asc");
+        List<CursorPageResponse<ProductResponseDto>> descendingPages = fetchAllPages(criteria(null), "desc");
+        List<UUID> ascending = idsOf(ascendingPages);
+        List<UUID> descending = idsOf(descendingPages);
 
         assertThat(descending)
                 .containsExactlyElementsOf(expectedIdsDescending())
                 .containsExactlyElementsOf(ascending.reversed());
+        assertTieStraddlesDescendingPageBoundary(descendingPages, expectedIdsDescending());
     }
 
     @Test
@@ -242,10 +246,29 @@ class ProductCursorRepositoryIT extends AbstractIntegrationTest {
         assertThat(pages.get(1).content().getFirst().id()).isEqualTo(expected.get(10));
     }
 
+    /**
+     * Products 14 and 15 share a {@code createdAt} at ascending positions 14/15, which are
+     * descending positions 9/10: the pair straddles the descending page boundary. This is the
+     * only place where the descending tie-break branch is load-bearing.
+     */
+    private static void assertTieStraddlesDescendingPageBoundary(
+            List<CursorPageResponse<ProductResponseDto>> pages, List<UUID> expectedDescending) {
+        assertThat(createdAtFor(14)).isEqualTo(createdAtFor(15));
+        assertThat(pages.get(0).content().getLast().id()).isEqualTo(expectedDescending.get(9));
+        assertThat(pages.get(1).content().getFirst().id()).isEqualTo(expectedDescending.get(10));
+    }
+
     private static Instant createdAtFor(int index) {
-        // Products 9 and 10 share a timestamp across the first page boundary so the
-        // (createdAt, id) tie-break is exercised by the keyset predicate.
-        return BASE.plusSeconds(index == 10 ? 9 : index);
+        // Two tied pairs, one per direction:
+        //  - indices 9 and 10 share BASE+9s  -> ascending positions 9/10  (asc boundary)
+        //  - indices 14 and 15 share BASE+14s -> descending positions 9/10 (desc boundary)
+        if (index == 10) {
+            return BASE.plusSeconds(9);
+        }
+        if (index == 15) {
+            return BASE.plusSeconds(14);
+        }
+        return BASE.plusSeconds(index);
     }
 
     private void insertProduct(UUID id, String name, Instant createdAt, Instant deletedAt) {
