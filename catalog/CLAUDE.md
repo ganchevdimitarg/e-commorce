@@ -96,6 +96,12 @@ cd catalog
 Flyway applies and validates migrations at application startup; there is no
 `flyway-maven-plugin` configured, so `./mvnw flyway:validate` is not available.
 
+Docker image: the build context is `catalog/` — run
+`docker build -t catalog:<tag> catalog/` from the repo root (or
+`docker build -t catalog:<tag> .` from `catalog/`). The Dockerfile builds with the
+in-context wrapper and copies the explicit artifact
+`target/catalog-0.0.1-SNAPSHOT.jar`; no `-pl catalog -am` is used.
+
 catalog auto-manages its own data plane (PG writer/reader, Redis, Kafka) via
 `catalog/compose.yaml` on `spring-boot:run` (dev only; tests use Testcontainers). Only
 shared infrastructure (Vault `:8200` and the other root-compose services) comes from the
@@ -110,8 +116,11 @@ modules, and an OTLP collector (`:4318`) must be supplied separately. Env:
 - catalog has its own POM parent (`spring-boot-starter-parent:4.1.0`) and its own Maven
   wrapper, so it builds standalone from `catalog/`. It remains listed in the root
   aggregator, and the root `-pl catalog -am` build stays supported.
-- The Docker build still uses the repository-root context; Task 2 (7.3) of the Phase 7
-  extraction plan moves it to a self-contained `catalog/` context.
+- The Docker build is self-contained: the build context is `catalog/`
+  (`docker build -t catalog:<tag> catalog/`), the image copies the explicit artifact
+  `target/catalog-0.0.1-SNAPSHOT.jar`, and no `-pl catalog -am` is used. The root
+  `Jenkinsfile`'s `-f catalog/Dockerfile .` stage stays incompatible until the Task 5
+  CI cutover (outside `catalog/`).
 - Follow-ups (not blocking, human decision): no checkstyle plugin/config yet (stated PR
   gate); integration tests run under surefire (failsafe unbound); no `application-prod.yml`
   (the `dev` profile is already actuator-hardened: exposure `health,info,prometheus`,
