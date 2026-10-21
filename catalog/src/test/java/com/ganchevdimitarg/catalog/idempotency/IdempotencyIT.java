@@ -1,6 +1,6 @@
 package com.ganchevdimitarg.catalog.idempotency;
 
-import com.ganchevdimitarg.catalog.AbstractIntegrationTest;
+import com.ganchevdimitarg.catalog.RedisIntegrationBase;
 import com.ganchevdimitarg.catalog.event.OutboxEventWriter;
 import com.ganchevdimitarg.catalog.idempotency.IdempotencyStore.ClaimResult;
 import org.junit.jupiter.api.AfterEach;
@@ -13,14 +13,10 @@ import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.junit.jupiter.Container;
 
 import java.util.Objects;
 import java.util.UUID;
@@ -38,7 +34,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @Tag("integration")
 @AutoConfigureMockMvc
-class IdempotencyIT extends AbstractIntegrationTest {
+class IdempotencyIT extends RedisIntegrationBase {
 
     private static final UUID CATEGORY_ID = UUID.fromString("cccccccc-0000-0000-0000-00000000ca11");
     private static final String CATEGORY = "idempotency-cat";
@@ -49,16 +45,6 @@ class IdempotencyIT extends AbstractIntegrationTest {
             {"name":"mouse","description":"Wireless mouse","price":19.99,
              "inStock":true,"characteristics":"black"}
             """;
-
-    @Container
-    static final GenericContainer<?> REDIS =
-            new GenericContainer<>("redis:7").withExposedPorts(6379);
-
-    @DynamicPropertySource
-    static void redisProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.data.redis.host", REDIS::getHost);
-        registry.add("spring.data.redis.port", () -> REDIS.getMappedPort(6379));
-    }
 
     @MockitoBean
     OutboxEventWriter outboxEventWriter;

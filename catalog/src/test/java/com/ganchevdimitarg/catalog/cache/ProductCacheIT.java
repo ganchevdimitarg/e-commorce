@@ -1,6 +1,6 @@
 package com.ganchevdimitarg.catalog.cache;
 
-import com.ganchevdimitarg.catalog.AbstractIntegrationTest;
+import com.ganchevdimitarg.catalog.RedisIntegrationBase;
 import com.ganchevdimitarg.catalog.dto.category.MoveProductCommand;
 import com.ganchevdimitarg.catalog.dto.comment.CommentResponseDto;
 import com.ganchevdimitarg.catalog.dto.comment.CreateCommentCommand;
@@ -27,8 +27,6 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.junit.jupiter.Container;
 
 import java.math.BigDecimal;
 import java.util.Objects;
@@ -43,7 +41,7 @@ import static org.mockito.Mockito.verify;
 
 @Tag("integration")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-class ProductCacheIT extends AbstractIntegrationTest {
+class ProductCacheIT extends RedisIntegrationBase {
 
     private static final UUID CATEGORY_ID = UUID.fromString("aaaaaaaa-0000-0000-0000-00000000ca11");
     private static final UUID CATEGORY_2_ID = UUID.fromString("aaaaaaaa-0000-0000-0000-00000000ca22");
@@ -52,14 +50,9 @@ class ProductCacheIT extends AbstractIntegrationTest {
     private static final String CATEGORY_2_NAME = "cache-test-cat-2";
     private static final String PRODUCT_NAME = "cache-test-product";
 
-    @Container
-    static final GenericContainer<?> REDIS =
-            new GenericContainer<>("redis:7").withExposedPorts(6379);
-
     @DynamicPropertySource
-    static void redisProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.data.redis.host", REDIS::getHost);
-        registry.add("spring.data.redis.port", () -> REDIS.getMappedPort(6379));
+    static void cacheProperties(DynamicPropertyRegistry registry) {
+        // Redis host/port come from the shared RedisIntegrationBase container.
         registry.add("spring.cache.type", () -> "redis");
     }
 
