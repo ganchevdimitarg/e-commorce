@@ -2,11 +2,15 @@ package com.ganchevdimitarg.catalog.product;
 
 
 import com.ganchevdimitarg.catalog.cache.ProductCache;
+import com.ganchevdimitarg.catalog.cursor.ProductCursorCodec;
 import com.ganchevdimitarg.catalog.repository.CategoryRepository;
+import com.ganchevdimitarg.catalog.repository.ProductCursorRepository;
 import com.ganchevdimitarg.catalog.repository.ProductRepository;
 import com.ganchevdimitarg.catalog.domain.Category;
 import com.ganchevdimitarg.catalog.domain.Product;
 import com.ganchevdimitarg.catalog.dto.product.CreateProductCommand;
+import com.ganchevdimitarg.catalog.dto.product.CursorPageResponse;
+import com.ganchevdimitarg.catalog.dto.product.ProductCursor;
 import com.ganchevdimitarg.catalog.dto.product.ProductResponseDto;
 import com.ganchevdimitarg.catalog.dto.product.ProductSearchCriteria;
 import com.ganchevdimitarg.catalog.dto.product.UpdateProductCommand;
@@ -14,9 +18,13 @@ import com.ganchevdimitarg.catalog.event.OutboxEventWriter;
 import com.ganchevdimitarg.catalog.exception.ConflictException;
 import com.ganchevdimitarg.catalog.exception.NotFoundException;
 import com.ganchevdimitarg.catalog.exception.PreconditionFailedException;
+import com.ganchevdimitarg.catalog.exception.ValidationException;
 import com.ganchevdimitarg.catalog.mapper.MapStructMapper;
 import com.ganchevdimitarg.catalog.service.product.ProductService;
 import com.ganchevdimitarg.catalog.service.product.ProductServiceImpl;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -36,6 +44,7 @@ import org.springframework.data.jpa.domain.Specification;
 import com.ganchevdimitarg.catalog.dto.product.ItemRequestDto;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -59,6 +68,7 @@ class ProductServiceImplTest {
     private static final UUID ID_2 = UUID.fromString("55555555-5555-5555-5555-555555555555");
     private static final UUID MISSING = UUID.fromString("66666666-6666-6666-6666-666666666666");
     private static final UUID NONEXISTENT = UUID.fromString("77777777-7777-7777-7777-777777777777");
+    private static final Instant T0 = Instant.parse("2026-10-21T10:00:00Z");
     private static final AuditorAware<String> AUDITOR = () -> Optional.of("alice");
 
     private ProductService testService;
@@ -72,10 +82,18 @@ class ProductServiceImplTest {
     OutboxEventWriter outboxEventWriter;
     @Mock
     ProductCache productCache;
+    @Mock
+    ProductCursorRepository productCursorRepository;
+
+    private final ObjectMapper objectMapper = new ObjectMapper()
+            .registerModule(new JavaTimeModule())
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+    private ProductCursorCodec productCursorCodec;
 
     @BeforeEach
     void setup() {
-        testService = new ProductServiceImpl(productRepository, categoryRepository, mapStructMapper, new SimpleMeterRegistry(), outboxEventWriter, productCache, AUDITOR);
+        productCursorCodec = new ProductCursorCodec(objectMapper);
+        testService = new ProductServiceImpl(productRepository, categoryRepository, mapStructMapper, new SimpleMeterRegistry(), outboxEventWriter, productCache, AUDITOR, productCursorRepository, productCursorCodec);
     }
 
     @Test
@@ -440,6 +458,126 @@ class ProductServiceImplTest {
                 .hasMessage("Products not found: [" + MISSING + "]");
     }
 
+    @Test
+    void should_returnFirstPageWithNullCursor_when_noCursorProvided() {
+        ProductSearchCriteria criteria = new ProductSearchCriteria(null, null, null, null, null);
+        Product first = cursorProduct(ID_1, "p1", T0);
+        Product second = cursorProduct(ID_2, "p2", T0.plusSeconds(1));
+        when(productCursorRepository.findPage(criteria, null, null, "desc", 21))
+                .thenReturn(List.of(first, second));
+
+        CursorPageResponse<ProductResponseDto> result =
+                testService.searchProductsByCursor(criteria, null, 20, "desc");
+
+        assertThat(result.content()).extracting(ProductResponseDto::id)
+                .containsExactly(ID_1, ID_2);
+        assertThat(result.nextCursor()).isNull();
+        verify(productCursorRepository).findPage(criteria, null, null, "desc", 21);
+    }
+
+    @Test
+    void should_returnNextCursorForLastReturnedRow_when_extraRowFetched() {
+        ProductSearchCriteria criteria = new ProductSearchCriteria(null, null, null, null, null);
+        Product first = cursorProduct(ID_1, "p1", T0);
+        Product second = cursorProduct(ID_2, "p2", T0.plusSeconds(1));
+        Product extra = cursorProduct(PROD_123, "p3", T0.plusSeconds(2));
+        when(productCursorRepository.findPage(criteria, null, null, "desc", 3))
+                .thenReturn(List.of(first, second, extra));
+
+        CursorPageResponse<ProductResponseDto> result =
+                testService.searchProductsByCursor(criteria, null, 2, "desc");
+
+        assertThat(result.content()).extracting(ProductResponseDto::id)
+                .containsExactly(ID_1, ID_2);
+        assertThat(result.nextCursor()).isNotNull();
+
+        ProductCursor decoded = productCursorCodec.decode(result.nextCursor(), criteria, "desc");
+        assertThat(decoded.version()).isEqualTo(1);
+        assertThat(decoded.direction()).isEqualTo("desc");
+        assertThat(decoded.id()).isEqualTo(ID_2);
+        assertThat(decoded.createdAt()).isEqualTo(second.getCreatedAt());
+        assertThat(decoded.filterHash()).isEqualTo(productCursorCodec.filterHash(criteria, "desc"));
+    }
+
+    @Test
+    void should_returnNullNextCursor_when_lastPageIsFull() {
+        ProductSearchCriteria criteria = new ProductSearchCriteria(null, null, null, null, null);
+        when(productCursorRepository.findPage(criteria, null, null, "asc", 3))
+                .thenReturn(List.of(
+                        cursorProduct(ID_1, "p1", T0),
+                        cursorProduct(ID_2, "p2", T0.plusSeconds(1))));
+
+        CursorPageResponse<ProductResponseDto> result =
+                testService.searchProductsByCursor(criteria, null, 2, "asc");
+
+        assertThat(result.content()).hasSize(2);
+        assertThat(result.nextCursor()).isNull();
+    }
+
+    @Test
+    void should_returnEmptyPageWithoutCursor_when_nothingMatches() {
+        ProductSearchCriteria criteria = new ProductSearchCriteria(null, null, null, null, null);
+        when(productCursorRepository.findPage(criteria, null, null, "desc", 21))
+                .thenReturn(List.of());
+
+        CursorPageResponse<ProductResponseDto> result =
+                testService.searchProductsByCursor(criteria, null, 20, "desc");
+
+        assertThat(result.content()).isEmpty();
+        assertThat(result.nextCursor()).isNull();
+    }
+
+    @Test
+    void should_throwNotFound_when_cursorSearchCategoryIsUnknown() {
+        when(categoryRepository.findByName("missing")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> testService.searchProductsByCursor(
+                new ProductSearchCriteria(null, null, null, null, "missing"), null, 20, "asc"))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Category not found: missing");
+
+        verifyNoInteractions(productCursorRepository);
+    }
+
+    @Test
+    void should_decodeCursorAndResolveCategory_when_cursorProvided() {
+        Category category = new Category();
+        category.setId(CAT_1);
+        when(categoryRepository.findByName("pc")).thenReturn(Optional.of(category));
+        ProductSearchCriteria criteria = new ProductSearchCriteria(null, null, null, null, "pc");
+        ProductCursor position = new ProductCursor(1, "asc", T0, ID_1,
+                productCursorCodec.filterHash(criteria, "asc"));
+        String encoded = productCursorCodec.encode(position);
+        when(productCursorRepository.findPage(
+                eq(criteria), eq(CAT_1), any(ProductCursor.class), eq("asc"), eq(21)))
+                .thenReturn(List.of());
+
+        CursorPageResponse<ProductResponseDto> result =
+                testService.searchProductsByCursor(criteria, encoded, 20, "ASC");
+
+        assertThat(result.content()).isEmpty();
+        ArgumentCaptor<ProductCursor> captor = ArgumentCaptor.forClass(ProductCursor.class);
+        verify(productCursorRepository).findPage(
+                eq(criteria), eq(CAT_1), captor.capture(), eq("asc"), eq(21));
+        assertThat(captor.getValue()).isEqualTo(position);
+    }
+
+    @Test
+    void should_throwValidation_when_sortDirectionIsUnsupported() {
+        assertThatThrownBy(() -> testService.searchProductsByCursor(
+                new ProductSearchCriteria(null, null, null, null, null), null, 20, "price,asc"))
+                .isInstanceOf(ValidationException.class)
+                .hasMessageContaining("Unsupported sort direction");
+
+        verifyNoInteractions(productCursorRepository);
+    }
+
+    private static Product cursorProduct(UUID id, String name, Instant createdAt) {
+        Product product = product(id, name);
+        product.setCreatedAt(createdAt);
+        return product;
+    }
+
     private static Product product(UUID id, String name) {
         Product product = new Product();
         product.setId(id);
@@ -468,7 +606,7 @@ class ProductServiceImplTest {
     void should_incrementCreatedCounter_when_productCreated() {
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
         ProductServiceImpl service =
-                new ProductServiceImpl(productRepository, categoryRepository, mapStructMapper, registry, outboxEventWriter, productCache, AUDITOR);
+                new ProductServiceImpl(productRepository, categoryRepository, mapStructMapper, registry, outboxEventWriter, productCache, AUDITOR, productCursorRepository, productCursorCodec);
 
         CreateProductCommand cmd = new CreateProductCommand("mouse", "WiFi mouse USB", BigDecimal.ONE, true, "", "PC");
         Category category = new Category();

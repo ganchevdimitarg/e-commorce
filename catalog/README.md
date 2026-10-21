@@ -167,6 +167,7 @@ require `SCOPE_catalog.write` unless the authority column says otherwise.
 |---|---|---|---|---|
 | POST | `/api/v1/catalog/products?categoryName={name}` | `SCOPE_catalog.write` | `ProductRequestDto`: `name`, `description`, `price`, `inStock`, `characteristics` | 201, `Location: /api/v1/catalog/products/{id}`, `ProductResponseDto` |
 | GET | `/api/v1/catalog/products` | `SCOPE_catalog.read` | optional `q`, `minPrice`, `maxPrice`, `inStock`, `categoryName`; `page`, `size` ≤ 100, `sort` | 200, `PageResponse<ProductResponseDto>` |
+| GET | `/api/v1/catalog/products/:cursor` | `SCOPE_catalog.read` | optional `q`, `minPrice`, `maxPrice`, `inStock`, `categoryName`; `cursor`, `limit` 1–100 (default 20), `sort` `createdAt,asc` or `createdAt,desc` (default `createdAt,desc`) | 200, `CursorPageResponse<ProductResponseDto>` |
 | GET | `/api/v1/catalog/products/{id}` | `SCOPE_catalog.read` | UUID path | 200, `ProductResponseDto` (cached) |
 | GET | `/api/v1/catalog/products/by-name/{name}` | `SCOPE_catalog.read` | name path | 200, `ProductResponseDto` |
 | POST | `/api/v1/catalog/products:batch-get` | `SCOPE_catalog.read` | `ItemRequestDto`: 1–100 UUIDs | 200, `List<ProductResponseDto>`; 404 lists every missing id |
@@ -190,6 +191,7 @@ require `SCOPE_catalog.write` unless the authority column says otherwise.
 - `CategoryResponseDto`: `id`, `name`, `productCount`.
 - `CommentResponseDto`: `id`, `title`, `text`, `star`, `author`, `productId`, `productName`.
 - `PageResponse<T>`: `content`, `page`, `size`, `totalElements`, `totalPages`.
+- `CursorPageResponse<T>`: `content`, `nextCursor` (opaque, `null` on the last page).
 
 ### Pagination and sorting
 
@@ -201,6 +203,44 @@ require `SCOPE_catalog.write` unless the authority column says otherwise.
   `VALIDATION_ERROR`.
 - On `GET /api/v1/catalog/products`, `q` is a case-insensitive contains match on the product
   name; `categoryName` is resolved before the query, so an unknown category is a 404.
+
+### Cursor pagination
+
+`GET /api/v1/catalog/products/:cursor` is a keyset alternative for large or frequently
+changing lists: it issues no count query, so deep pages cost the same as the first. The
+offset endpoint `GET /api/v1/catalog/products` is unchanged and remains the default.
+
+- Ordering is `(createdAt, id)` only. `sort` must be exactly `createdAt,asc` or
+  `createdAt,desc` (the direction is case-insensitive); anything else — including
+  `price,asc` — is a 400 `VALIDATION_ERROR`.
+- `limit` is 1–100 (default 20). A page can be shorter than `limit` while `nextCursor` is
+  still present; keep following the cursor until it is `null`.
+- `cursor` is opaque. Do not build or edit it. It embeds a SHA-256 fingerprint of the
+  filters and direction that minted it, so reusing a cursor with different `q`, price
+  bounds, `inStock`, `categoryName` or `sort` returns 400 `VALIDATION_ERROR`, as does a
+  malformed or truncated token.
+- Filters are applied on every page; the token is a position, not a query.
+- The keyset predicate and order are served by the partial index
+  `idx_products_created_at_id` on `products (created_at DESC, id DESC) WHERE deleted_at IS
+  NULL` (`V17__index_product_cursor.sql`); an ascending page uses the same index with a
+  backward scan. Soft-deleted products never enter it.
+
+Two-page flow:
+
+```bash
+# Page 1 — newest first, PC products named like "mouse"
+curl -H "Authorization: Bearer $TOKEN" \
+  "http://localhost:8084/api/v1/catalog/products/:cursor?q=mouse&categoryName=PC&limit=2"
+# {
+#   "content": [ { "id": "…", "name": "mouse", … }, { "id": "…", "name": "mouse pro", … } ],
+#   "nextCursor": "eyJ2ZXJzaW9uIjoxLCJkaXJlY3Rpb24iOiJkZXNjIiwi…"
+# }
+
+# Page 2 — same filters, the token from page 1
+curl -H "Authorization: Bearer $TOKEN" \
+  "http://localhost:8084/api/v1/catalog/products/:cursor?q=mouse&categoryName=PC&limit=2&cursor=eyJ2ZXJzaW9uIjoxLCJkaXJlY3Rpb24iOiJkZXNjIiwi…"
+# { "content": [ … ], "nextCursor": null }   ← last page
+```
 
 ### Idempotency
 

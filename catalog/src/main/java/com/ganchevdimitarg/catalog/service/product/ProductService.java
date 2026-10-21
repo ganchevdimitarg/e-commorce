@@ -1,6 +1,7 @@
 package com.ganchevdimitarg.catalog.service.product;
 
 import com.ganchevdimitarg.catalog.dto.product.CreateProductCommand;
+import com.ganchevdimitarg.catalog.dto.product.CursorPageResponse;
 import com.ganchevdimitarg.catalog.dto.product.ItemRequestDto;
 import com.ganchevdimitarg.catalog.dto.product.ProductResponseDto;
 import com.ganchevdimitarg.catalog.dto.product.ProductSearchCriteria;
@@ -15,6 +16,8 @@ public interface ProductService {
 
     ProductResponseDto createProduct(CreateProductCommand command);
     Page<ProductResponseDto> searchProducts(ProductSearchCriteria criteria, Pageable pageable);
+    CursorPageResponse<ProductResponseDto> searchProductsByCursor(
+            ProductSearchCriteria criteria, String cursor, int limit, String sortDirection);
     ProductResponseDto getProductByName(String name);
     ProductResponseDto getProductById(UUID id);
     /**

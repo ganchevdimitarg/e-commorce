@@ -1,13 +1,17 @@
 package com.ganchevdimitarg.catalog.service.product;
 
 import com.ganchevdimitarg.catalog.cache.ProductCache;
+import com.ganchevdimitarg.catalog.cursor.ProductCursorCodec;
 import com.ganchevdimitarg.catalog.repository.CategoryRepository;
+import com.ganchevdimitarg.catalog.repository.ProductCursorRepository;
 import com.ganchevdimitarg.catalog.repository.ProductRepository;
 import com.ganchevdimitarg.catalog.repository.ProductSpecifications;
 import com.ganchevdimitarg.catalog.domain.Category;
 import com.ganchevdimitarg.catalog.domain.Product;
 import com.ganchevdimitarg.catalog.dto.product.CreateProductCommand;
+import com.ganchevdimitarg.catalog.dto.product.CursorPageResponse;
 import com.ganchevdimitarg.catalog.dto.product.ItemRequestDto;
+import com.ganchevdimitarg.catalog.dto.product.ProductCursor;
 import com.ganchevdimitarg.catalog.dto.product.ProductResponseDto;
 import com.ganchevdimitarg.catalog.dto.product.ProductSearchCriteria;
 import com.ganchevdimitarg.catalog.dto.product.UpdateProductCommand;
@@ -15,6 +19,7 @@ import com.ganchevdimitarg.catalog.event.OutboxEventWriter;
 import com.ganchevdimitarg.catalog.exception.ConflictException;
 import com.ganchevdimitarg.catalog.exception.NotFoundException;
 import com.ganchevdimitarg.catalog.exception.PreconditionFailedException;
+import com.ganchevdimitarg.catalog.exception.ValidationException;
 import com.ganchevdimitarg.catalog.mapper.MapStructMapper;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +34,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
@@ -46,6 +52,8 @@ public class ProductServiceImpl implements ProductService {
     private final OutboxEventWriter outboxEventWriter;
     private final ProductCache productCache;
     private final AuditorAware<String> auditorAware;
+    private final ProductCursorRepository productCursorRepository;
+    private final ProductCursorCodec productCursorCodec;
 
     @Override
     @Transactional
@@ -80,14 +88,38 @@ public class ProductServiceImpl implements ProductService {
     @Transactional(readOnly = true)
     @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
     public Page<ProductResponseDto> searchProducts(ProductSearchCriteria criteria, Pageable pageable) {
-        UUID categoryId = null;
-        if (criteria.categoryName() != null) {
-            categoryId = categoryRepository.findByName(criteria.categoryName())
-                    .orElseThrow(() -> new NotFoundException("Category", criteria.categoryName()))
-                    .getId();
-        }
+        UUID categoryId = resolveCategoryId(criteria);
         return productRepository.findAll(ProductSpecifications.matching(criteria, categoryId), pageable)
                 .map(this::convertProduct);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
+    public CursorPageResponse<ProductResponseDto> searchProductsByCursor(
+            ProductSearchCriteria criteria, String cursor, int limit, String sortDirection) {
+        String direction = normaliseDirection(sortDirection);
+        UUID categoryId = resolveCategoryId(criteria);
+        ProductCursor position = cursor == null
+                ? null
+                : productCursorCodec.decode(cursor, criteria, direction);
+
+        // One row beyond the page tells us whether another page exists without a count query.
+        List<Product> fetched = productCursorRepository.findPage(
+                criteria, categoryId, position, direction, limit + 1);
+        if (fetched.isEmpty()) {
+            return new CursorPageResponse<>(List.of(), null);
+        }
+        boolean hasMore = fetched.size() > limit;
+        List<Product> page = hasMore ? fetched.subList(0, limit) : fetched;
+        String nextCursor = null;
+        if (hasMore) {
+            Product last = page.getLast();
+            nextCursor = productCursorCodec.encode(new ProductCursor(ProductCursor.CURRENT_VERSION,
+                    direction, last.getCreatedAt(), last.getId(),
+                    productCursorCodec.filterHash(criteria, direction)));
+        }
+        return new CursorPageResponse<>(page.stream().map(this::convertProduct).toList(), nextCursor);
     }
 
     @Override
@@ -176,6 +208,34 @@ public class ProductServiceImpl implements ProductService {
                     log.warn("Product with the id: {} does not exist.", id);
                     return new NotFoundException("Product", id);
                 });
+    }
+
+    /**
+     * The category filter is a name in the API and an id in the specification; an unknown
+     * name is a 404 rather than an empty page.
+     */
+    private UUID resolveCategoryId(ProductSearchCriteria criteria) {
+        if (criteria.categoryName() == null) {
+            return null;
+        }
+        return categoryRepository.findByName(criteria.categoryName())
+                .orElseThrow(() -> new NotFoundException("Category", criteria.categoryName()))
+                .getId();
+    }
+
+    /**
+     * Cursor pages accept only {@code asc} or {@code desc}; the controller parses the
+     * {@code createdAt,<direction>} sort into this value before calling the service.
+     */
+    private static String normaliseDirection(String sortDirection) {
+        if (sortDirection != null) {
+            String normalised = sortDirection.trim().toLowerCase(Locale.ROOT);
+            if ("asc".equals(normalised) || "desc".equals(normalised)) {
+                return normalised;
+            }
+        }
+        throw new ValidationException(
+                "Unsupported sort direction: " + sortDirection + "; use asc or desc");
     }
 
     /**

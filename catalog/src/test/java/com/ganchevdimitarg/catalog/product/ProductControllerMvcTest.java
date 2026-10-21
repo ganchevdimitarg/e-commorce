@@ -2,11 +2,13 @@ package com.ganchevdimitarg.catalog.product;
 
 import com.ganchevdimitarg.catalog.config.ResourceServerConfig;
 import com.ganchevdimitarg.catalog.controller.ProductController;
+import com.ganchevdimitarg.catalog.dto.product.CursorPageResponse;
 import com.ganchevdimitarg.catalog.dto.product.ProductResponseDto;
 import com.ganchevdimitarg.catalog.dto.product.ProductSearchCriteria;
 import com.ganchevdimitarg.catalog.dto.product.UpdateProductRequestDto;
 import com.ganchevdimitarg.catalog.exception.ControllerExceptionHandler;
 import com.ganchevdimitarg.catalog.exception.PreconditionFailedException;
+import com.ganchevdimitarg.catalog.exception.ValidationException;
 import com.ganchevdimitarg.catalog.exception.ProblemAccessDeniedHandler;
 import com.ganchevdimitarg.catalog.exception.ProblemAuthenticationEntryPoint;
 import com.ganchevdimitarg.catalog.mapper.MapStructMapper;
@@ -43,6 +45,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
@@ -581,6 +584,102 @@ class ProductControllerMvcTest {
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.code").value("CONFLICT"))
                 .andExpect(jsonPath("$.detail").value("The request conflicts with existing data"));
+    }
+
+    @Test
+    void should_return200WithCursorPage_when_cursorEndpointRequested() throws Exception {
+        ProductResponseDto dto = new ProductResponseDto(
+                P1, "mouse", "WiFi mouse USB", BigDecimal.valueOf(29.99),
+                true, "black", null, List.of(), 0L, 0.0, 0);
+        when(productService.searchProductsByCursor(any(), isNull(), eq(20), eq("desc")))
+                .thenReturn(new CursorPageResponse<>(List.of(dto), "next-token"));
+
+        mockMvc.perform(get("/api/v1/catalog/products/:cursor")
+                        .with(jwt().authorities(() -> "SCOPE_catalog.read")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].name").value("mouse"))
+                .andExpect(jsonPath("$.nextCursor").value("next-token"));
+
+        verify(productService).searchProductsByCursor(any(), isNull(), eq(20), eq("desc"));
+    }
+
+    @Test
+    void should_passAscDirection_when_cursorSortIsCreatedAtAsc() throws Exception {
+        when(productService.searchProductsByCursor(any(), any(), anyInt(), eq("asc")))
+                .thenReturn(new CursorPageResponse<>(List.of(), null));
+
+        mockMvc.perform(get("/api/v1/catalog/products/:cursor")
+                        .param("sort", "createdAt,asc")
+                        .with(jwt().authorities(() -> "SCOPE_catalog.read")))
+                .andExpect(status().isOk());
+
+        verify(productService).searchProductsByCursor(any(), any(), anyInt(), eq("asc"));
+    }
+
+    @Test
+    void should_return400ProblemJson_when_cursorLimitExceeds100() throws Exception {
+        mockMvc.perform(get("/api/v1/catalog/products/:cursor")
+                        .param("limit", "101")
+                        .with(jwt().authorities(() -> "SCOPE_catalog.read")))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.status").value(400));
+
+        verifyNoInteractions(productService);
+    }
+
+    @Test
+    void should_return400ProblemJson_when_cursorSortIsUnsupported() throws Exception {
+        mockMvc.perform(get("/api/v1/catalog/products/:cursor")
+                        .param("sort", "price,asc")
+                        .with(jwt().authorities(() -> "SCOPE_catalog.read")))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+
+        verifyNoInteractions(productService);
+    }
+
+    @Test
+    void should_return400ProblemJson_when_cursorSortHasNoDirection() throws Exception {
+        mockMvc.perform(get("/api/v1/catalog/products/:cursor")
+                        .param("sort", "createdAt")
+                        .with(jwt().authorities(() -> "SCOPE_catalog.read")))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+    }
+
+    @Test
+    void should_return400ProblemJson_when_cursorIsTampered() throws Exception {
+        when(productService.searchProductsByCursor(any(), eq("tampered"), eq(20), eq("desc")))
+                .thenThrow(new ValidationException("Invalid cursor"));
+
+        mockMvc.perform(get("/api/v1/catalog/products/:cursor")
+                        .param("cursor", "tampered")
+                        .with(jwt().authorities(() -> "SCOPE_catalog.read")))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.detail").value("Invalid cursor"));
+    }
+
+    @Test
+    void should_keepOffsetPagination_when_cursorEndpointExists() throws Exception {
+        ProductResponseDto dto = new ProductResponseDto(
+                P1, "mouse", "WiFi mouse USB", BigDecimal.valueOf(29.99),
+                true, "black", null, List.of(), 0L, 0.0, 0);
+        when(productService.searchProducts(any(), any()))
+                .thenReturn(new PageImpl<>(List.of(dto), PageRequest.of(0, 5), 1));
+
+        mockMvc.perform(get("/api/v1/catalog/products")
+                        .param("page", "0")
+                        .param("size", "5")
+                        .with(jwt().authorities(() -> "SCOPE_catalog.read")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].name").value("mouse"))
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.nextCursor").doesNotExist());
     }
 
     @Test
