@@ -95,8 +95,10 @@ docker compose -f compose-standalone.yaml down -v
 Notes:
 
 - One PostgreSQL serves both the writer and the reader pool; production uses a real read
-  replica. Postgres and Redis publish no host ports, so this stack does not clash with
-  the dev data plane in `compose.yaml`.
+  replica. This file declares the Compose project `catalog-standalone`, while `compose.yaml`
+  keeps the directory-derived default `catalog`, so the two stacks do not clash and
+  `down -v` here removes only this stack's containers and volumes. Postgres and Redis also
+  publish no host ports, which keeps the host port map free.
 - The mock issuer is `http://localhost:8090/default`; catalog validates that `iss` string
   but fetches signing keys over the Compose network from
   `http://mock-oauth2:8080/default/jwks`.
@@ -109,8 +111,9 @@ Notes:
 
 | File | Purpose |
 |---|---|
-| `application.yml` | Profile-neutral base: application name, default `dev` profile group, JPA and pagination settings, virtual threads and actuator exposure. |
-| `application-dev.yml` | Dev overlay: datasource, JWT issuer, Redis, Kafka, Eureka, actuator, tracing, springdoc and the optional Vault import (`optional:vault://`, `http://localhost:8200`, token auth, backend `secret`, context `catalog/credentials`). |
+| `application.yml` | Profile-neutral base: application name, default `dev` profile group, JPA and pagination settings, virtual threads, actuator health probes/exposure and Prometheus, springdoc paths and the outbox cadence. |
+| `application-dev.yml` | Dev overlay: datasource credentials and writer/reader URLs, JWT issuer, Redis, Kafka, Eureka, Docker Compose Support (`compose.yaml`), devtools, tracing/OTLP, springdoc and the optional Vault import (`optional:vault://`, `http://localhost:8200`, token auth, backend `secret`, context `catalog/credentials`). |
+| `application-prod.yml` | Production overlay, selected with `SPRING_PROFILES_ACTIVE=prod`: external endpoints are required from the environment with no localhost defaults, there is no Vault import, no Docker Compose support and no devtools, and Swagger is off. |
 | `application-debug.yml` | Opt-in SQL diagnostics, activated with `SPRING_PROFILES_ACTIVE=dev,debug`. |
 
 Catalog owns its Vault KV path `secret/catalog/credentials` (mount `secret`, context

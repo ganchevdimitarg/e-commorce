@@ -5,9 +5,12 @@
 #   docker compose -f compose-standalone.yaml down -v
 #
 # The dev data plane in compose.yaml (writer/reader pair on 5432/5433, Redis 6379,
-# Kafka 9092) is separate: this stack publishes no host ports for Postgres or Redis, so
-# the two can coexist. Only Kafka (29092) and the mock OIDC issuer (8090) are exposed
-# besides catalog itself (8084).
+# Kafka 9092) is a different Compose project: this file names its project
+# (catalog-standalone), while compose.yaml keeps the directory-derived default (catalog).
+# Their containers, networks and volumes therefore never collide, and `down -v` here
+# removes only this stack. Host ports are a separate concern: only Kafka (29092) and the
+# mock OIDC issuer (8090) are exposed besides catalog itself (8084).
+name: catalog-standalone
 services:
   # One PostgreSQL backs both the writer and the reader pool: locally the read-replica
   # router only needs a reachable reader URL, not a streaming replica.

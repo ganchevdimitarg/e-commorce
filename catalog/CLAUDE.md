@@ -13,7 +13,7 @@ read the root file first.
 
 ## Test baseline (recorded 2026-10-21 on `chore/catalog-phase6`)
 
-Run from `catalog/` (Git Bash):
+From the repo root (Git Bash):
 
 ```bash
 cd catalog
@@ -33,7 +33,7 @@ From the repo root, the aggregator form also works:
   `maven-failsafe-plugin` is **not bound**. The unit/full split uses the JUnit
   `unit` / `integration` tags (`-Dgroups=unit`).
 - Unit: `183` run, `0` failures, `0` errors (catalog module).
-- Full verify: `317` run, `0` failures, `0` errors.
+- Full verify: `322` run, `0` failures, `0` errors (317 plus the 5 `ConfigurationProfilesTest` tests).
   - Status: green. JaCoCo gates met (BUNDLE ≥ 90 % line, `service.*` = 100 %).
 
 ## Module specifics
@@ -145,7 +145,7 @@ modules, and an OTLP collector (`:4318`) must be supplied separately. Env:
 
 ## Known migration gaps
 - Source fully migrated to Boot 4.1.0 / Java 25 on the single `com.ganchevdimitarg.catalog`
-  package — no `com.concordeu` remnant. `clean verify` is green (317 tests, JaCoCo 90 %
+  package — no `com.concordeu` remnant. `clean verify` is green (322 tests, JaCoCo 90 %
   bundle / 100 % `service.*`). The reference module.
 - catalog has its own POM parent (`spring-boot-starter-parent:4.1.0`) and its own Maven
   wrapper, so it builds standalone from `catalog/`. It remains listed in the root
