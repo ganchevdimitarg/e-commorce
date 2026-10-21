@@ -35,7 +35,7 @@ import static org.mockito.Mockito.*;
 
 @Tag("unit")
 @ExtendWith(MockitoExtension.class)
-class CommentServerImplTest {
+class CommentServiceImplTest {
 
     private static final UUID PRODUCT_ID = UUID.fromString("0030223b-fdb9-40e2-a4b0-81bdf54479a2");
 

@@ -18,11 +18,7 @@ import java.util.List;
 
 @Mapper(componentModel = "spring")
 public interface MapStructMapper {
-    Product mapProductResponseDtoToProduct(ProductResponseDto productResponseDto);
-    ProductRequestDto mapProductToProductRequestDto(Product product);
     ProductResponseDto mapProductToProductResponseDto(Product product);
-    List<Product> mapProductResponseDtosToProducts(List<ProductResponseDto> productResponseDtos);
-    ProductResponseDto mapProductRequestDtoToProductResponseDto(ProductRequestDto requestDto);
 
     CategorySummaryDto mapCategoryToCategorySummaryDto(Category category);
 
