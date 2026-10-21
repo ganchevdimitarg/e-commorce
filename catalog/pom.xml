@@ -23,6 +23,7 @@
         <springdoc-openapi.version>3.0.3</springdoc-openapi.version>
         <jacoco.version>0.8.13</jacoco.version>
         <otel-logback.version>2.28.0-alpha</otel-logback.version>
+        <archunit.version>1.4.2</archunit.version>
         <!-- Testcontainers reuse for the integration suite; override with -Dtestcontainers.reuse.enable=false. -->
         <testcontainers.reuse.enable>true</testcontainers.reuse.enable>
     </properties>
@@ -221,6 +222,12 @@
         <dependency>
             <groupId>org.springframework.kafka</groupId>
             <artifactId>spring-kafka-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.tngtech.archunit</groupId>
+            <artifactId>archunit-junit5</artifactId>
+            <version>${archunit.version}</version>
             <scope>test</scope>
         </dependency>
 
