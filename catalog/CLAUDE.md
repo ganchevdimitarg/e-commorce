@@ -13,13 +13,16 @@ read the root file first.
 
 ## Test baseline (recorded 2026-10-21 on `chore/catalog-phase6`)
 
-Run from the repo root (Git Bash):
+Run from `catalog/` (Git Bash):
 
 ```bash
+cd catalog
 # Unit tests only — tests tagged "unit"
-./mvnw clean test -pl catalog -am -Dgroups=unit
+./mvnw clean test -Dgroups=unit
 # Full verify — unit + Testcontainers ITs + JaCoCo gates (Docker required)
-./mvnw clean verify -pl catalog -am
+./mvnw clean verify
+# from the repo root, the aggregator form also works:
+./mvnw -pl catalog -am clean verify
 ```
 
 - How tests run: `maven-surefire-plugin` includes `**/*Test.java` and `**/*IT.java`;
@@ -79,9 +82,12 @@ Session rules for the `catalog/TODO.md` hardening list — restated from the roo
 
 ## Local development
 ```bash
-./mvnw spring-boot:run -pl catalog       # run (profile dev, port 8084)
-./mvnw clean verify -pl catalog -am      # build + test
-./mvnw flyway:validate -pl catalog       # migration drift
+cd catalog
+./mvnw clean verify                 # standalone (preferred)
+./mvnw spring-boot:run              # standalone run
+./mvnw flyway:validate              # migration drift
+# from the repo root, still supported:
+./mvnw -pl catalog -am clean verify
 ```
 catalog auto-manages its own data plane (PG writer/reader, Redis, Kafka) via
 `catalog/compose.yaml` on `spring-boot:run` (dev only; tests use Testcontainers). Only
@@ -94,10 +100,12 @@ modules, and an OTLP collector (`:4318`) must be supplied separately. Env:
 - Source fully migrated to Boot 4.1.0 / Java 25 on the single `com.ganchevdimitarg.catalog`
   package — no `com.concordeu` remnant. `clean verify` is green (317 tests, JaCoCo 90 %
   bundle / 100 % `service.*`). The reference module.
-- The root reactor builds green again as of 2026-07-08 (all modules on Boot 4). Building
-  catalog standalone still works: `../mvnw -f catalog/pom.xml clean verify`.
+- catalog has its own POM parent (`spring-boot-starter-parent:4.1.0`) and its own Maven
+  wrapper, so it builds standalone from `catalog/`. It remains listed in the root
+  aggregator, and the root `-pl catalog -am` build stays supported.
+- The Docker context is `catalog/`; making the Dockerfile self-contained is Task 2 (7.3)
+  of the Phase 7 extraction plan.
 - Follow-ups (not blocking, human decision): no checkstyle plugin/config yet (stated PR
-  gate); integration tests run under surefire (failsafe unbound); the catalog Docker build
-  uses `-pl catalog -am` and so also trips the broken root reactor; no `application-prod.yml`
+  gate); integration tests run under surefire (failsafe unbound); no `application-prod.yml`
   (the `dev` profile is already actuator-hardened: exposure `health,info,prometheus`,
   `show-details: when-authorized`, OTLP tracing).
