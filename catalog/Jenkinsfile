@@ -29,7 +29,9 @@ pipeline {
                 dir('catalog') {
                     // `sh ./mvnw` is explicit so a checkout without the executable bit still runs the wrapper.
                     // `clean verify` runs the unit and Testcontainers suites and enforces the JaCoCo gate.
-                    sh 'sh ./mvnw -B clean verify'
+                    // Reuse is off here: Ryuk is disabled on this agent, so reusable Redis/Kafka would
+                    // survive every build and concurrent builds would share one instance.
+                    sh 'sh ./mvnw -B -Dtestcontainers.reuse.enable=false clean verify'
                 }
             }
             post {
