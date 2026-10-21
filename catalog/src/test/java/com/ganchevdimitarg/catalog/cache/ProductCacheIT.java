@@ -147,7 +147,7 @@ class ProductCacheIT extends RedisIntegrationBase {
         // Update product: the refreshed DTO is put into the cache after commit
         UpdateProductCommand updateCmd = new UpdateProductCommand(
                 "Updated description!", BigDecimal.ONE, true, "new-chars");
-        productService.updateProduct(PRODUCT_ID, updateCmd);
+        productService.updateProduct(PRODUCT_ID, updateCmd, null);
 
         // Clear invocation count so we can assert fresh
         clearInvocations(productRepository);
@@ -243,7 +243,7 @@ class ProductCacheIT extends RedisIntegrationBase {
     @WithMockUser(authorities = {"SCOPE_catalog.read", "SCOPE_catalog.write"})
     void should_serveUpdatedProductFromCache_when_readImmediatelyAfterUpdate() {
         productService.updateProduct(PRODUCT_ID, new UpdateProductCommand(
-                "Price update for cache", BigDecimal.valueOf(42), true, "test-chars"));
+                "Price update for cache", BigDecimal.valueOf(42), true, "test-chars"), null);
 
         clearInvocations(productRepository);
 

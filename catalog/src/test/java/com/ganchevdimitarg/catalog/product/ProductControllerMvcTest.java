@@ -6,6 +6,7 @@ import com.ganchevdimitarg.catalog.dto.product.ProductResponseDto;
 import com.ganchevdimitarg.catalog.dto.product.ProductSearchCriteria;
 import com.ganchevdimitarg.catalog.dto.product.UpdateProductRequestDto;
 import com.ganchevdimitarg.catalog.exception.ControllerExceptionHandler;
+import com.ganchevdimitarg.catalog.exception.PreconditionFailedException;
 import com.ganchevdimitarg.catalog.exception.ProblemAccessDeniedHandler;
 import com.ganchevdimitarg.catalog.exception.ProblemAuthenticationEntryPoint;
 import com.ganchevdimitarg.catalog.mapper.MapStructMapper;
@@ -20,6 +21,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -43,9 +45,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
@@ -90,7 +94,7 @@ class ProductControllerMvcTest {
     @Test
     void should_return201AndLocation_when_createProduct() throws Exception {
         ProductResponseDto created = new ProductResponseDto(P1, "mouse", "WiFi mouse USB",
-                BigDecimal.ONE, true, "", null, List.of());
+                BigDecimal.ONE, true, "", null, List.of(), 0L);
         when(productService.createProduct(any())).thenReturn(created);
 
         mockMvc.perform(post("/api/v1/catalog/products?categoryName=PC")
@@ -101,20 +105,22 @@ class ProductControllerMvcTest {
                                 {"name":"mouse","description":"WiFi mouse USB","price":1,"inStock":true,"characteristics":""}
                                 """))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", "/api/v1/catalog/products/" + P1));
+                .andExpect(header().string("Location", "/api/v1/catalog/products/" + P1))
+                .andExpect(header().string(HttpHeaders.ETAG, "\"0\""));
     }
 
     @Test
     void should_return200WithProduct_when_getProductByNameWithReadScope() throws Exception {
         ProductResponseDto response = new ProductResponseDto(
                 P1, "mouse", "WiFi mouse USB", BigDecimal.valueOf(29.99),
-                true, "black", null, List.of());
+                true, "black", null, List.of(), 5L);
         when(productService.getProductByName("mouse")).thenReturn(response);
 
         mockMvc.perform(get("/api/v1/catalog/products/by-name/mouse")
                         .with(jwt().authorities(() -> "SCOPE_catalog.read")))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(header().string(HttpHeaders.ETAG, "\"5\""))
                 .andExpect(jsonPath("$.name").value("mouse"))
                 .andExpect(jsonPath("$.price").value(29.99));
     }
@@ -123,7 +129,7 @@ class ProductControllerMvcTest {
     void should_return200WithProducts_when_getProductsWithReadScope() throws Exception {
         ProductResponseDto dto = new ProductResponseDto(
                 P1, "mouse", "WiFi mouse USB", BigDecimal.valueOf(29.99),
-                true, "black", null, List.of());
+                true, "black", null, List.of(), 0L);
         Page<ProductResponseDto> page = new PageImpl<>(
                 List.of(dto), PageRequest.of(0, 20), 1);
         when(productService.searchProducts(any(), any())).thenReturn(page);
@@ -229,7 +235,7 @@ class ProductControllerMvcTest {
     void should_return200_when_categoryNameProvided() throws Exception {
         ProductResponseDto dto = new ProductResponseDto(
                 P1, "mouse", "WiFi mouse USB", BigDecimal.valueOf(29.99),
-                true, "black", null, List.of());
+                true, "black", null, List.of(), 0L);
         Page<ProductResponseDto> page = new PageImpl<>(
                 List.of(dto), PageRequest.of(0, 20), 1);
         when(productService.searchProducts(any(), any())).thenReturn(page);
@@ -246,23 +252,25 @@ class ProductControllerMvcTest {
     }
 
     @Test
-    void should_return200_when_getProductByIdWithReadScope() throws Exception {
+    void should_returnETag_when_productFetchedById() throws Exception {
         ProductResponseDto response = new ProductResponseDto(
                 PROD_123, "mouse", "WiFi mouse USB", BigDecimal.valueOf(29.99),
-                true, "black", null, List.of());
+                true, "black", null, List.of(), 3L);
         when(productService.getProductById(PROD_123)).thenReturn(response);
 
         mockMvc.perform(get("/api/v1/catalog/products/" + PROD_123)
                         .with(jwt().authorities(() -> "SCOPE_catalog.read")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(PROD_123.toString()));
+                .andExpect(header().string(HttpHeaders.ETAG, "\"3\""))
+                .andExpect(jsonPath("$.id").value(PROD_123.toString()))
+                .andExpect(jsonPath("$.version").value(3));
     }
 
     @Test
     void should_return200_when_getProductsByIdWithReadScope() throws Exception {
         ProductResponseDto dto = new ProductResponseDto(
                 ID_1, "mouse", "WiFi mouse USB", BigDecimal.valueOf(29.99),
-                true, "black", null, List.of());
+                true, "black", null, List.of(), 0L);
         when(productService.getProductsById(any(ItemRequestDto.class))).thenReturn(List.of(dto));
 
         mockMvc.perform(post("/api/v1/catalog/products/:batch-get")
@@ -307,8 +315,8 @@ class ProductControllerMvcTest {
     void should_return200WithUpdatedProduct_when_updateProductWithValidBody() throws Exception {
         ProductResponseDto updated = new ProductResponseDto(
                 PROD_123, "mouse", "WiFi mouse USB v2", BigDecimal.valueOf(19.99),
-                false, "black", null, List.of());
-        when(productService.updateProduct(eq(PROD_123), any())).thenReturn(updated);
+                false, "black", null, List.of(), 2L);
+        when(productService.updateProduct(eq(PROD_123), any(), any())).thenReturn(updated);
 
         mockMvc.perform(put("/api/v1/catalog/products/" + PROD_123)
                         .with(csrf())
@@ -324,14 +332,135 @@ class ProductControllerMvcTest {
                 .andExpect(jsonPath("$.description").value("WiFi mouse USB v2"))
                 .andExpect(jsonPath("$.price").value(19.99));
 
-        verify(productService).updateProduct(eq(PROD_123), any());
+        verify(productService).updateProduct(eq(PROD_123), any(), any());
+    }
+
+    @Test
+    void should_updateProduct_when_ifMatchMatches() throws Exception {
+        ProductResponseDto updated = new ProductResponseDto(
+                PROD_123, "mouse", "WiFi mouse USB v2", BigDecimal.valueOf(19.99),
+                false, "black", null, List.of(), 2L);
+        when(productService.updateProduct(eq(PROD_123), any(), eq(1L))).thenReturn(updated);
+
+        mockMvc.perform(put("/api/v1/catalog/products/" + PROD_123)
+                        .with(csrf())
+                        .with(jwt().authorities(() -> "SCOPE_catalog.write"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header(HttpHeaders.IF_MATCH, "\"1\"")
+                        .header("Idempotency-Key", "k-etag-match")
+                        .content("""
+                                {"description":"WiFi mouse USB v2","price":19.99,"inStock":false,"characteristics":"black"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.ETAG, "\"2\""))
+                .andExpect(jsonPath("$.version").value(2));
+
+        verify(productService).updateProduct(eq(PROD_123), any(), eq(1L));
+    }
+
+    @Test
+    void should_return412_when_ifMatchIsStale() throws Exception {
+        when(productService.updateProduct(eq(PROD_123), any(), eq(2L)))
+                .thenThrow(new PreconditionFailedException("Product", PROD_123));
+
+        mockMvc.perform(put("/api/v1/catalog/products/" + PROD_123)
+                        .with(csrf())
+                        .with(jwt().authorities(() -> "SCOPE_catalog.write"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header(HttpHeaders.IF_MATCH, "\"2\"")
+                        .header("Idempotency-Key", "k-etag-stale")
+                        .content("""
+                                {"description":"WiFi mouse USB v2","price":19.99,"inStock":false,"characteristics":"black"}
+                                """))
+                .andExpect(status().isPreconditionFailed())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.code").value("PRECONDITION_FAILED"));
+    }
+
+    @Test
+    void should_updateProduct_when_ifMatchIsAbsent() throws Exception {
+        ProductResponseDto updated = new ProductResponseDto(
+                PROD_123, "mouse", "WiFi mouse USB v2", BigDecimal.valueOf(19.99),
+                false, "black", null, List.of(), 2L);
+        when(productService.updateProduct(eq(PROD_123), any(), isNull())).thenReturn(updated);
+
+        mockMvc.perform(put("/api/v1/catalog/products/" + PROD_123)
+                        .with(csrf())
+                        .with(jwt().authorities(() -> "SCOPE_catalog.write"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Idempotency-Key", "k-etag-absent")
+                        .content("""
+                                {"description":"WiFi mouse USB v2","price":19.99,"inStock":false,"characteristics":"black"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.ETAG, "\"2\""));
+
+        verify(productService).updateProduct(eq(PROD_123), any(), isNull());
+    }
+
+    @Test
+    void should_return400_when_ifMatchIsMalformed() throws Exception {
+        mockMvc.perform(put("/api/v1/catalog/products/" + PROD_123)
+                        .with(csrf())
+                        .with(jwt().authorities(() -> "SCOPE_catalog.write"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header(HttpHeaders.IF_MATCH, "not-a-tag")
+                        .header("Idempotency-Key", "k-etag-malformed")
+                        .content("""
+                                {"description":"WiFi mouse USB v2","price":19.99,"inStock":false,"characteristics":"black"}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+
+        verifyNoInteractions(productService);
+    }
+
+    @Test
+    void should_acceptWildcardIfMatch_when_productExists() throws Exception {
+        ProductResponseDto updated = new ProductResponseDto(
+                PROD_123, "mouse", "WiFi mouse USB v2", BigDecimal.valueOf(19.99),
+                false, "black", null, List.of(), 2L);
+        when(productService.updateProduct(eq(PROD_123), any(), isNull())).thenReturn(updated);
+
+        mockMvc.perform(put("/api/v1/catalog/products/" + PROD_123)
+                        .with(csrf())
+                        .with(jwt().authorities(() -> "SCOPE_catalog.write"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header(HttpHeaders.IF_MATCH, "*")
+                        .header("Idempotency-Key", "k-etag-wildcard")
+                        .content("""
+                                {"description":"WiFi mouse USB v2","price":19.99,"inStock":false,"characteristics":"black"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.ETAG, "\"2\""));
+
+        verify(productService).updateProduct(eq(PROD_123), any(), isNull());
+    }
+
+    @Test
+    void should_return404_when_wildcardIfMatchTargetsMissingProduct() throws Exception {
+        when(productService.updateProduct(eq(NONEXISTENT), any(), isNull()))
+                .thenThrow(new NotFoundException("Product", NONEXISTENT));
+
+        mockMvc.perform(put("/api/v1/catalog/products/" + NONEXISTENT)
+                        .with(csrf())
+                        .with(jwt().authorities(() -> "SCOPE_catalog.write"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header(HttpHeaders.IF_MATCH, "*")
+                        .header("Idempotency-Key", "k-etag-wildcard-missing")
+                        .content("""
+                                {"description":"WiFi mouse USB v2","price":19.99,"inStock":false,"characteristics":"black"}
+                                """))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"));
     }
 
     @Test
     void should_ignoreName_when_updateRequestIncludesName() throws Exception {
-        when(productService.updateProduct(eq(PROD_123), any())).thenReturn(
+        when(productService.updateProduct(eq(PROD_123), any(), any())).thenReturn(
                 new ProductResponseDto(PROD_123, "mouse", "WiFi mouse USB v2",
-                        BigDecimal.valueOf(19.99), false, "black", null, List.of()));
+                        BigDecimal.valueOf(19.99), false, "black", null, List.of(), 2L));
 
         mockMvc.perform(put("/api/v1/catalog/products/" + PROD_123)
                         .with(csrf())
@@ -351,7 +480,7 @@ class ProductControllerMvcTest {
         assertThat(captured.price()).isEqualByComparingTo("19.99");
         assertThat(captured.inStock()).isFalse();
         assertThat(captured.characteristics()).isEqualTo("black");
-        verify(productService).updateProduct(eq(PROD_123), any());
+        verify(productService).updateProduct(eq(PROD_123), any(), any());
     }
 
     @Test
@@ -412,7 +541,7 @@ class ProductControllerMvcTest {
     @Test
     void should_return403ProblemJson_when_updateProductDenied() throws Exception {
         doThrow(new AccessDeniedException("denied"))
-                .when(productService).updateProduct(eq(PROD_123), any());
+                .when(productService).updateProduct(eq(PROD_123), any(), any());
 
         mockMvc.perform(put("/api/v1/catalog/products/" + PROD_123)
                         .with(csrf())

@@ -14,6 +14,7 @@ import com.ganchevdimitarg.catalog.dto.product.UpdateProductCommand;
 import com.ganchevdimitarg.catalog.event.OutboxEventWriter;
 import com.ganchevdimitarg.catalog.exception.ConflictException;
 import com.ganchevdimitarg.catalog.exception.NotFoundException;
+import com.ganchevdimitarg.catalog.exception.PreconditionFailedException;
 import com.ganchevdimitarg.catalog.mapper.MapStructMapper;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
@@ -110,8 +111,11 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional
     @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
-    public ProductResponseDto updateProduct(UUID id, UpdateProductCommand command) {
+    public ProductResponseDto updateProduct(UUID id, UpdateProductCommand command, Long expectedVersion) {
         Product existing = findProductById(id);
+        if (expectedVersion != null && expectedVersion != existing.getVersion()) {
+            throw new PreconditionFailedException("Product", id);
+        }
 
         int updated = productRepository.updateById(id,
                 command.description(), command.price(), command.characteristics(),
@@ -181,6 +185,7 @@ public class ProductServiceImpl implements ProductService {
                 product.isInStock(),
                 product.getCharacteristics(),
                 mapper.mapCategoryToCategorySummaryDto(product.getCategory()),
-                mapper.mapCommentsToCommentResponseDtos(product.getComments()));
+                mapper.mapCommentsToCommentResponseDtos(product.getComments()),
+                product.getVersion());
     }
 }

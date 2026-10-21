@@ -15,5 +15,6 @@ public record ProductResponseDto(
         boolean inStock,
         String characteristics,
         CategorySummaryDto category,
-        List<CommentResponseDto> comments) {
+        List<CommentResponseDto> comments,
+        long version) {
 }

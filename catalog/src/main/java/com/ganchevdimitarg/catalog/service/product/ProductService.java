@@ -17,7 +17,11 @@ public interface ProductService {
     Page<ProductResponseDto> searchProducts(ProductSearchCriteria criteria, Pageable pageable);
     ProductResponseDto getProductByName(String name);
     ProductResponseDto getProductById(UUID id);
-    ProductResponseDto updateProduct(UUID id, UpdateProductCommand command);
+    /**
+     * @param expectedVersion the version from the client's {@code If-Match} ETag, or
+     *                        {@code null} for no precondition (absent header or {@code *})
+     */
+    ProductResponseDto updateProduct(UUID id, UpdateProductCommand command, Long expectedVersion);
     void deleteProduct(UUID id);
     List<ProductResponseDto> getProductsById(ItemRequestDto items);
 }

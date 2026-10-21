@@ -13,6 +13,7 @@ import com.ganchevdimitarg.catalog.dto.product.UpdateProductCommand;
 import com.ganchevdimitarg.catalog.event.OutboxEventWriter;
 import com.ganchevdimitarg.catalog.exception.ConflictException;
 import com.ganchevdimitarg.catalog.exception.NotFoundException;
+import com.ganchevdimitarg.catalog.exception.PreconditionFailedException;
 import com.ganchevdimitarg.catalog.mapper.MapStructMapper;
 import com.ganchevdimitarg.catalog.service.product.ProductService;
 import com.ganchevdimitarg.catalog.service.product.ProductServiceImpl;
@@ -89,7 +90,7 @@ class ProductServiceImplTest {
         product.setCategory(category);
         when(mapStructMapper.mapCreateCommandToProduct(cmd)).thenReturn(product);
         ProductResponseDto expectedDto = new ProductResponseDto(P1, "mouse", "WiFi mouse USB",
-                BigDecimal.ONE, true, "", null, List.of());
+                BigDecimal.ONE, true, "", null, List.of(), 0L);
         when(mapStructMapper.mapProductToProductResponseDto(product)).thenReturn(expectedDto);
 
         ProductResponseDto result = testService.createProduct(cmd);
@@ -204,16 +205,61 @@ class ProductServiceImplTest {
                 .thenReturn(Optional.of(existing), Optional.of(refreshed));
         when(productRepository.updateById(P1, "aaaaaaaaaaa", BigDecimal.ONE, "", false, 1L)).thenReturn(1);
         ProductResponseDto expectedDto = new ProductResponseDto(P1, "mouse", "aaaaaaaaaaa",
-                BigDecimal.ONE, false, "", null, List.of());
+                BigDecimal.ONE, false, "", null, List.of(), 2L);
         when(mapStructMapper.mapProductToProductResponseDto(refreshed)).thenReturn(expectedDto);
         UpdateProductCommand cmd = new UpdateProductCommand("aaaaaaaaaaa", BigDecimal.ONE, false, "");
 
-        ProductResponseDto result = testService.updateProduct(P1, cmd);
+        ProductResponseDto result = testService.updateProduct(P1, cmd, null);
 
         verify(productRepository).updateById(P1, "aaaaaaaaaaa", BigDecimal.ONE, "", false, 1L);
         verify(outboxEventWriter).writeUpdated(refreshed);
         verify(productCache).put(P1, expectedDto);
         assertThat(result).isEqualTo(expectedDto);
+    }
+
+    @Test
+    void should_update_when_expectedVersionMatches() {
+        Product existing = new Product();
+        existing.setId(P1);
+        existing.setVersion(1L);
+        Product refreshed = new Product();
+        refreshed.setId(P1);
+        refreshed.setName("mouse");
+        refreshed.setDescription("aaaaaaaaaaa");
+        refreshed.setPrice(BigDecimal.ONE);
+        refreshed.setCharacteristics("");
+        refreshed.setInStock(false);
+        refreshed.setCategory(productCategory());
+        refreshed.setVersion(2L);
+        when(productRepository.findById(P1))
+                .thenReturn(Optional.of(existing), Optional.of(refreshed));
+        when(productRepository.updateById(P1, "aaaaaaaaaaa", BigDecimal.ONE, "", false, 1L)).thenReturn(1);
+        ProductResponseDto expectedDto = new ProductResponseDto(P1, "mouse", "aaaaaaaaaaa",
+                BigDecimal.ONE, false, "", null, List.of(), 2L);
+        when(mapStructMapper.mapProductToProductResponseDto(refreshed)).thenReturn(expectedDto);
+        UpdateProductCommand cmd = new UpdateProductCommand("aaaaaaaaaaa", BigDecimal.ONE, false, "");
+
+        ProductResponseDto result = testService.updateProduct(P1, cmd, 1L);
+
+        verify(productRepository).updateById(P1, "aaaaaaaaaaa", BigDecimal.ONE, "", false, 1L);
+        assertThat(result).isEqualTo(expectedDto);
+    }
+
+    @Test
+    void should_throwPreconditionFailed_when_expectedVersionDiffers() {
+        Product existing = new Product();
+        existing.setId(P1);
+        existing.setVersion(1L);
+        when(productRepository.findById(P1)).thenReturn(Optional.of(existing));
+        UpdateProductCommand cmd = new UpdateProductCommand("aaaaaaaaaaa", BigDecimal.ONE, false, "");
+
+        assertThatThrownBy(() -> testService.updateProduct(P1, cmd, 2L))
+                .isInstanceOf(PreconditionFailedException.class)
+                .hasMessageContaining("Product was modified; refresh and retry: " + P1);
+
+        verify(productRepository, never())
+                .updateById(any(), any(), any(), any(), anyBoolean(), anyLong());
+        verify(productCache, never()).put(any(), any());
     }
 
     @Test
@@ -225,7 +271,7 @@ class ProductServiceImplTest {
         when(productRepository.updateById(P1, "aaaaaaaaaaa", BigDecimal.ONE, "", false, 1L)).thenReturn(0);
         UpdateProductCommand cmd = new UpdateProductCommand("aaaaaaaaaaa", BigDecimal.ONE, false, "");
 
-        assertThatThrownBy(() -> testService.updateProduct(P1, cmd))
+        assertThatThrownBy(() -> testService.updateProduct(P1, cmd, null))
                 .isInstanceOf(ObjectOptimisticLockingFailureException.class);
     }
 
@@ -238,7 +284,7 @@ class ProductServiceImplTest {
         when(productRepository.updateById(P1, "aaaaaaaaaaa", BigDecimal.ONE, "", false, 1L)).thenReturn(0);
         UpdateProductCommand cmd = new UpdateProductCommand("aaaaaaaaaaa", BigDecimal.ONE, false, "");
 
-        assertThatThrownBy(() -> testService.updateProduct(P1, cmd))
+        assertThatThrownBy(() -> testService.updateProduct(P1, cmd, null))
                 .isInstanceOf(ObjectOptimisticLockingFailureException.class);
 
         verify(productCache, never()).put(any(), any());
@@ -254,7 +300,7 @@ class ProductServiceImplTest {
         when(productRepository.updateById(P1, "aaaaaaaaaaa", BigDecimal.ONE, "", false, 1L)).thenReturn(1);
         UpdateProductCommand cmd = new UpdateProductCommand("aaaaaaaaaaa", BigDecimal.ONE, false, "");
 
-        assertThatThrownBy(() -> testService.updateProduct(P1, cmd))
+        assertThatThrownBy(() -> testService.updateProduct(P1, cmd, null))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("Product not found: " + P1);
 
@@ -264,7 +310,7 @@ class ProductServiceImplTest {
     @Test
     void should_throwNotFound_when_updateMissingProduct() {
         UpdateProductCommand cmd = new UpdateProductCommand("aaaaaaaaaaa", BigDecimal.ONE, false, "");
-        assertThatThrownBy(() -> testService.updateProduct(MISSING, cmd))
+        assertThatThrownBy(() -> testService.updateProduct(MISSING, cmd, null))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("Product not found: " + MISSING);
     }
@@ -300,7 +346,7 @@ class ProductServiceImplTest {
         Product product = new Product();
         product.setName("mouse");
         when(productRepository.findByName("mouse")).thenReturn(Optional.of(product));
-        ProductResponseDto expectedDto = new ProductResponseDto(P1, "mouse", "", BigDecimal.ZERO, true, "", null, new ArrayList<>());
+        ProductResponseDto expectedDto = new ProductResponseDto(P1, "mouse", "", BigDecimal.ZERO, true, "", null, new ArrayList<>(), 0L);
         when(mapStructMapper.mapProductToProductResponseDto(product)).thenReturn(expectedDto);
 
         ProductResponseDto result = testService.getProductByName("mouse");
@@ -325,7 +371,7 @@ class ProductServiceImplTest {
         Product product = new Product();
         product.setId(PROD_123);
         when(productRepository.findById(PROD_123)).thenReturn(Optional.of(product));
-        ProductResponseDto expectedDto = new ProductResponseDto(PROD_123, "mouse", "", BigDecimal.ZERO, true, "", null, new ArrayList<>());
+        ProductResponseDto expectedDto = new ProductResponseDto(PROD_123, "mouse", "", BigDecimal.ZERO, true, "", null, new ArrayList<>(), 0L);
         when(mapStructMapper.mapProductToProductResponseDto(product)).thenReturn(expectedDto);
 
         ProductResponseDto result = testService.getProductById(PROD_123);
@@ -412,7 +458,7 @@ class ProductServiceImplTest {
     private static ProductResponseDto productDto(Product product) {
         return new ProductResponseDto(
                 product.getId(), product.getName(), product.getDescription(), product.getPrice(),
-                product.isInStock(), product.getCharacteristics(), null, List.of());
+                product.isInStock(), product.getCharacteristics(), null, List.of(), product.getVersion());
     }
 
     @Test
@@ -429,7 +475,7 @@ class ProductServiceImplTest {
         product.setId(P1);
         when(mapStructMapper.mapCreateCommandToProduct(cmd)).thenReturn(product);
         when(mapStructMapper.mapProductToProductResponseDto(product)).thenReturn(
-                new ProductResponseDto(P1, "mouse", "WiFi mouse USB", BigDecimal.ONE, true, "", null, List.of()));
+                new ProductResponseDto(P1, "mouse", "WiFi mouse USB", BigDecimal.ONE, true, "", null, List.of(), 0L));
 
         service.createProduct(cmd);
 

@@ -92,7 +92,7 @@ class CacheFailureIT extends AbstractIntegrationTest {
         UpdateProductCommand command = new UpdateProductCommand(
                 "Updated while the cache is down", BigDecimal.valueOf(42), true, "test-chars");
 
-        ProductResponseDto updated = productService.updateProduct(PRODUCT_ID, command);
+        ProductResponseDto updated = productService.updateProduct(PRODUCT_ID, command, null);
 
         assertThat(updated.price()).isEqualByComparingTo(BigDecimal.valueOf(42));
         BigDecimal storedPrice = jdbc.queryForObject(

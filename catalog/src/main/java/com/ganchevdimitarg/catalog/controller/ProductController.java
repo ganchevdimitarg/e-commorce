@@ -19,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -48,7 +49,9 @@ public class ProductController {
                                                             @RequestParam @NotBlank String categoryName) {
         ProductResponseDto created =
                 productService.createProduct(mapper.mapProductRequestToCreateCommand(requestDto, categoryName));
-        return ResponseEntity.created(URI.create("/api/v1/catalog/products/" + created.id())).body(created);
+        return ResponseEntity.created(URI.create("/api/v1/catalog/products/" + created.id()))
+                .header(HttpHeaders.ETAG, etag(created.version()))
+                .body(created);
     }
 
     @Operation(summary = "List and search products", security = @SecurityRequirement(name = "security_auth"))
@@ -68,14 +71,20 @@ public class ProductController {
 
     @Operation(summary = "Get product by id", security = @SecurityRequirement(name = "security_auth"))
     @GetMapping("/{id}")
-    public ProductResponseDto getProductById(@PathVariable UUID id) {
-        return productService.getProductById(id);
+    public ResponseEntity<ProductResponseDto> getProductById(@PathVariable UUID id) {
+        ProductResponseDto product = productService.getProductById(id);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.ETAG, etag(product.version()))
+                .body(product);
     }
 
     @Operation(summary = "Get product by name", security = @SecurityRequirement(name = "security_auth"))
     @GetMapping("/by-name/{name}")
-    public ProductResponseDto getProductByName(@PathVariable @NotBlank String name) {
-        return productService.getProductByName(name);
+    public ResponseEntity<ProductResponseDto> getProductByName(@PathVariable @NotBlank String name) {
+        ProductResponseDto product = productService.getProductByName(name);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.ETAG, etag(product.version()))
+                .body(product);
     }
 
     @Operation(summary = "Batch get products by id", security = @SecurityRequirement(name = "security_auth"))
@@ -86,10 +95,16 @@ public class ProductController {
 
     @Operation(summary = "Update product", security = @SecurityRequirement(name = "security_auth"))
     @PutMapping("/{id}")
-    public ResponseEntity<ProductResponseDto> updateProduct(@PathVariable UUID id,
-                                                            @RequestBody @Valid UpdateProductRequestDto requestDto) {
-        return ResponseEntity.ok(productService.updateProduct(
-                id, mapper.mapProductRequestToUpdateCommand(requestDto)));
+    public ResponseEntity<ProductResponseDto> updateProduct(
+            @PathVariable UUID id,
+            @RequestBody @Valid UpdateProductRequestDto requestDto,
+            @RequestHeader(value = HttpHeaders.IF_MATCH, required = false) String ifMatch) {
+        ProductResponseDto updated = productService.updateProduct(
+                id, mapper.mapProductRequestToUpdateCommand(requestDto),
+                IfMatchSupport.expectedVersion(ifMatch));
+        return ResponseEntity.ok()
+                .header(HttpHeaders.ETAG, etag(updated.version()))
+                .body(updated);
     }
 
     @Operation(summary = "Delete product", security = @SecurityRequirement(name = "security_auth"))
@@ -97,5 +112,10 @@ public class ProductController {
     public ResponseEntity<Void> deleteProduct(@PathVariable UUID id) {
         productService.deleteProduct(id);
         return ResponseEntity.noContent().build();
+    }
+
+    /** Strong, opaque ETag derived from the optimistic-lock version. */
+    private static String etag(long version) {
+        return "\"" + version + "\"";
     }
 }
