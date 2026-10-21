@@ -21,7 +21,11 @@ cd catalog
 ./mvnw clean test -Dgroups=unit
 # Full verify — unit + Testcontainers ITs + JaCoCo gates (Docker required)
 ./mvnw clean verify
-# from the repo root, the aggregator form also works:
+```
+
+From the repo root, the aggregator form also works:
+
+```bash
 ./mvnw -pl catalog -am clean verify
 ```
 
@@ -85,10 +89,13 @@ Session rules for the `catalog/TODO.md` hardening list — restated from the roo
 cd catalog
 ./mvnw clean verify                 # standalone (preferred)
 ./mvnw spring-boot:run              # standalone run
-./mvnw flyway:validate              # migration drift
 # from the repo root, still supported:
 ./mvnw -pl catalog -am clean verify
 ```
+
+Flyway applies and validates migrations at application startup; there is no
+`flyway-maven-plugin` configured, so `./mvnw flyway:validate` is not available.
+
 catalog auto-manages its own data plane (PG writer/reader, Redis, Kafka) via
 `catalog/compose.yaml` on `spring-boot:run` (dev only; tests use Testcontainers). Only
 shared infrastructure (Vault `:8200` and the other root-compose services) comes from the
@@ -103,8 +110,8 @@ modules, and an OTLP collector (`:4318`) must be supplied separately. Env:
 - catalog has its own POM parent (`spring-boot-starter-parent:4.1.0`) and its own Maven
   wrapper, so it builds standalone from `catalog/`. It remains listed in the root
   aggregator, and the root `-pl catalog -am` build stays supported.
-- The Docker context is `catalog/`; making the Dockerfile self-contained is Task 2 (7.3)
-  of the Phase 7 extraction plan.
+- The Docker build still uses the repository-root context; Task 2 (7.3) of the Phase 7
+  extraction plan moves it to a self-contained `catalog/` context.
 - Follow-ups (not blocking, human decision): no checkstyle plugin/config yet (stated PR
   gate); integration tests run under surefire (failsafe unbound); no `application-prod.yml`
   (the `dev` profile is already actuator-hardened: exposure `health,info,prometheus`,
