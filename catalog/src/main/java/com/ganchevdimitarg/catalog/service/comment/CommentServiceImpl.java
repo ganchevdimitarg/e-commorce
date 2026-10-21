@@ -44,6 +44,9 @@ public class CommentServiceImpl implements CommentService {
         Comment comment = mapper.mapCreateCommentCommandToComment(command);
         comment.setProduct(product);
         commentRepository.saveAndFlush(comment);
+        // The product is managed, so the recalculated rating is written by dirty checking
+        // in this same transaction as the comment insert.
+        refreshProductRating(product);
         productCacheEvictor.evict(product.getId());
         meterRegistry.counter("catalog.comment.created").increment();
         log.info("The comment {} is saved successfully", comment.getTitle());
@@ -89,8 +92,7 @@ public class CommentServiceImpl implements CommentService {
     @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
     public double getAvgStars(String productName) {
         return productRepository.findByName(productName)
-                .map(product -> commentRepository.findAverageStarByProductId(product.getId()))
-                .map(avg -> avg == null ? 0.0 : avg)
+                .map(Product::getAvgStars)
                 .orElse(0.0);
     }
 
@@ -105,13 +107,24 @@ public class CommentServiceImpl implements CommentService {
                     "Only the author or an administrator may delete this comment");
         }
         commentRepository.delete(comment);
+        // The soft-delete SQL must run before the aggregate query, otherwise the deleted
+        // comment would still count towards the product's rating.
+        commentRepository.flush();
         // A soft-deleted product is hidden by @SQLRestriction, so the association can be null.
         Product product = comment.getProduct();
         if (product != null) {
+            refreshProductRating(product);
             productCacheEvictor.evict(product.getId());
         }
         meterRegistry.counter("catalog.comment.deleted").increment();
         log.info("The comment {} is deleted successfully", commentId);
+    }
+
+    private void refreshProductRating(Product product) {
+        CommentRepository.RatingStats stats = commentRepository.findRatingStatsByProductId(product.getId());
+        product.setRatingCount(stats == null ? 0 : (int) stats.getRatingCount());
+        product.setAvgStars(stats == null || stats.getAverageStars() == null
+                ? 0.0 : stats.getAverageStars());
     }
 
     public CommentResponseDto convertComment(Comment comment) {

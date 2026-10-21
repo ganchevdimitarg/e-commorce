@@ -196,6 +196,8 @@ public class ProductServiceImpl implements ProductService {
                 product.getCharacteristics(),
                 mapper.mapCategoryToCategorySummaryDto(product.getCategory()),
                 mapper.mapCommentsToCommentResponseDtos(product.getComments()),
-                product.getVersion());
+                product.getVersion(),
+                product.getAvgStars(),
+                product.getRatingCount());
     }
 }

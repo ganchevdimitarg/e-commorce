@@ -62,6 +62,8 @@ class CommentServiceImplTest {
         product.setId(PRODUCT_ID);
         product.setName("mouse");
         when(productRepository.findByName("mouse")).thenReturn(Optional.of(product));
+        CommentRepository.RatingStats stats = ratingStats(2, 4.0);
+        when(commentRepository.findRatingStatsByProductId(PRODUCT_ID)).thenReturn(stats);
         Comment comment = new Comment();
         comment.setTitle("nice");
         when(mapStructMapper.mapCreateCommentCommandToComment(any())).thenReturn(comment);
@@ -74,7 +76,48 @@ class CommentServiceImplTest {
 
         verify(commentRepository).saveAndFlush(comment);
         verify(productCacheEvictor).evict(PRODUCT_ID);
+        assertThat(product.getRatingCount()).isEqualTo(2);
+        assertThat(product.getAvgStars()).isEqualTo(4.0);
         assertThat(result.title()).isEqualTo("nice");
+    }
+
+    @Test
+    void should_resetRatingToZero_when_ratingStatsAreMissingAfterCreate() {
+        Product product = new Product();
+        product.setId(PRODUCT_ID);
+        product.setName("mouse");
+        product.setRatingCount(7);
+        product.setAvgStars(4.5);
+        when(productRepository.findByName("mouse")).thenReturn(Optional.of(product));
+        when(commentRepository.findRatingStatsByProductId(PRODUCT_ID)).thenReturn(null);
+        when(mapStructMapper.mapCreateCommentCommandToComment(any())).thenReturn(new Comment());
+        when(mapStructMapper.mapCommentToCommentResponseDto(any(Comment.class)))
+                .thenReturn(new CommentResponseDto(UUID.randomUUID(), "nice", "great product!!", 5.0,
+                        "joe", PRODUCT_ID, "mouse"));
+
+        testService.createComment(new CreateCommentCommand("nice", "great product!!", 5.0, "joe", "mouse"));
+
+        assertThat(product.getRatingCount()).isZero();
+        assertThat(product.getAvgStars()).isEqualTo(0.0);
+    }
+
+    @Test
+    void should_setZeroAverage_when_ratingStatsAverageIsNullAfterCreate() {
+        Product product = new Product();
+        product.setId(PRODUCT_ID);
+        product.setName("mouse");
+        when(productRepository.findByName("mouse")).thenReturn(Optional.of(product));
+        CommentRepository.RatingStats stats = ratingStats(1, null);
+        when(commentRepository.findRatingStatsByProductId(PRODUCT_ID)).thenReturn(stats);
+        when(mapStructMapper.mapCreateCommentCommandToComment(any())).thenReturn(new Comment());
+        when(mapStructMapper.mapCommentToCommentResponseDto(any(Comment.class)))
+                .thenReturn(new CommentResponseDto(UUID.randomUUID(), "nice", "great product!!", 5.0,
+                        "joe", PRODUCT_ID, "mouse"));
+
+        testService.createComment(new CreateCommentCommand("nice", "great product!!", 5.0, "joe", "mouse"));
+
+        assertThat(product.getRatingCount()).isEqualTo(1);
+        assertThat(product.getAvgStars()).isEqualTo(0.0);
     }
 
     @Test
@@ -137,26 +180,25 @@ class CommentServiceImplTest {
     }
 
     @Test
-    void should_returnAverageStars_when_productExists() {
+    void should_returnStoredAverageStars_when_productExists() {
         Product product = new Product();
         product.setId(PRODUCT_ID);
         product.setName("mouse");
+        product.setAvgStars(4.0);
         when(productRepository.findByName("mouse")).thenReturn(Optional.of(product));
-        when(commentRepository.findAverageStarByProductId(PRODUCT_ID)).thenReturn(4.0);
 
         double avgStars = testService.getAvgStars("mouse");
 
         assertThat(avgStars).isEqualTo(4.0);
-        verify(commentRepository).findAverageStarByProductId(PRODUCT_ID);
     }
 
     @Test
-    void should_returnZero_when_productHasNoComments() {
+    void should_returnStoredZero_when_productHasNoRating() {
         Product product = new Product();
         product.setId(PRODUCT_ID);
         product.setName("mouse");
+        product.setAvgStars(0.0);
         when(productRepository.findByName("mouse")).thenReturn(Optional.of(product));
-        when(commentRepository.findAverageStarByProductId(PRODUCT_ID)).thenReturn(null);
 
         double avgStars = testService.getAvgStars("mouse");
 
@@ -170,7 +212,6 @@ class CommentServiceImplTest {
         double avgStars = testService.getAvgStars("nonexistent");
 
         assertThat(avgStars).isEqualTo(0.0);
-        verify(commentRepository, never()).findAverageStarByProductId(any());
     }
 
     @Test
@@ -268,6 +309,25 @@ class CommentServiceImplTest {
     }
 
     @Test
+    void should_recalculateRating_when_commentDeleted() {
+        UUID commentId = UUID.randomUUID();
+        Product product = new Product();
+        product.setId(PRODUCT_ID);
+        Comment comment = commentWithAuthor("joe");
+        comment.setProduct(product);
+        when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
+        CommentRepository.RatingStats stats = ratingStats(1, 3.0);
+        when(commentRepository.findRatingStatsByProductId(PRODUCT_ID)).thenReturn(stats);
+
+        testService.deleteComment(commentId, "joe", false);
+
+        // flush() runs the soft-delete SQL before the aggregate query sees the new state
+        verify(commentRepository).flush();
+        assertThat(product.getRatingCount()).isEqualTo(1);
+        assertThat(product.getAvgStars()).isEqualTo(3.0);
+    }
+
+    @Test
     void should_deleteComment_when_productIsSoftDeleted() {
         UUID commentId = UUID.randomUUID();
         Comment comment = commentWithAuthor("joe");
@@ -301,5 +361,12 @@ class CommentServiceImplTest {
         comment.setStar(5.0);
         comment.setAuthor(author);
         return comment;
+    }
+
+    private static CommentRepository.RatingStats ratingStats(long count, Double average) {
+        CommentRepository.RatingStats stats = mock(CommentRepository.RatingStats.class);
+        when(stats.getRatingCount()).thenReturn(count);
+        when(stats.getAverageStars()).thenReturn(average);
+        return stats;
     }
 }

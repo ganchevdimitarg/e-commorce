@@ -28,9 +28,10 @@ public class RedisCacheConfig implements CachingConfigurer {
     public RedisCacheManager cacheManager(RedisConnectionFactory connectionFactory) {
         RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
                 .entryTtl(Duration.ofMinutes(10))
-                // v2: ProductResponseDto gained a version component; a new prefix forces a
-                // miss on pre-upgrade entries instead of serving a stale zero ETag.
-                .prefixCacheNameWith("catalog:v2:")
+                // v3: ProductResponseDto gained avgStars/ratingCount; a new prefix forces a
+                // miss on pre-rating entries instead of serving zero ratings until the TTL.
+                // (v2 introduced the version component that backs ETags.)
+                .prefixCacheNameWith("catalog:v3:")
                 // Uses @class type info — renaming DTOs invalidates cache entries
                 .serializeValuesWith(RedisSerializationContext.SerializationPair
                         .fromSerializer(new GenericJackson2JsonRedisSerializer()));

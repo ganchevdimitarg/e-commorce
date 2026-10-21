@@ -16,5 +16,7 @@ public record ProductResponseDto(
         String characteristics,
         CategorySummaryDto category,
         List<CommentResponseDto> comments,
-        long version) {
+        long version,
+        double avgStars,
+        int ratingCount) {
 }

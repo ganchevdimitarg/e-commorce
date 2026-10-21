@@ -22,6 +22,17 @@ public interface CommentRepository extends JpaRepository<Comment, UUID> {
            countQuery = "select count(c) from Comment c where c.author = :author")
     Page<Comment> findAllByAuthorByPage(@Param("author") String author, Pageable pageable);
 
-    @Query("select avg(c.star) from Comment c where c.product.id = :productId")
-    Double findAverageStarByProductId(@Param("productId") UUID productId);
+    /**
+     * Aggregate backing the denormalised rating on {@code products}. The entity's
+     * {@code @SQLRestriction} excludes soft-deleted comments from both values.
+     */
+    interface RatingStats {
+        long getRatingCount();
+
+        Double getAverageStars();
+    }
+
+    @Query("select count(c) as ratingCount, avg(c.star) as averageStars " +
+           "from Comment c where c.product.id = :productId")
+    RatingStats findRatingStatsByProductId(@Param("productId") UUID productId);
 }

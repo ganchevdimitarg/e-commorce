@@ -92,7 +92,7 @@ class ProductServiceImplTest {
         product.setCategory(category);
         when(mapStructMapper.mapCreateCommandToProduct(cmd)).thenReturn(product);
         ProductResponseDto expectedDto = new ProductResponseDto(P1, "mouse", "WiFi mouse USB",
-                BigDecimal.ONE, true, "", null, List.of(), 0L);
+                BigDecimal.ONE, true, "", null, List.of(), 0L, 0.0, 0);
         when(mapStructMapper.mapProductToProductResponseDto(product)).thenReturn(expectedDto);
 
         ProductResponseDto result = testService.createProduct(cmd);
@@ -207,7 +207,7 @@ class ProductServiceImplTest {
                 .thenReturn(Optional.of(existing), Optional.of(refreshed));
         when(productRepository.updateById(P1, "aaaaaaaaaaa", BigDecimal.ONE, "", false, 1L, "alice")).thenReturn(1);
         ProductResponseDto expectedDto = new ProductResponseDto(P1, "mouse", "aaaaaaaaaaa",
-                BigDecimal.ONE, false, "", null, List.of(), 2L);
+                BigDecimal.ONE, false, "", null, List.of(), 2L, 0.0, 0);
         when(mapStructMapper.mapProductToProductResponseDto(refreshed)).thenReturn(expectedDto);
         UpdateProductCommand cmd = new UpdateProductCommand("aaaaaaaaaaa", BigDecimal.ONE, false, "");
 
@@ -237,7 +237,7 @@ class ProductServiceImplTest {
                 .thenReturn(Optional.of(existing), Optional.of(refreshed));
         when(productRepository.updateById(P1, "aaaaaaaaaaa", BigDecimal.ONE, "", false, 1L, "alice")).thenReturn(1);
         ProductResponseDto expectedDto = new ProductResponseDto(P1, "mouse", "aaaaaaaaaaa",
-                BigDecimal.ONE, false, "", null, List.of(), 2L);
+                BigDecimal.ONE, false, "", null, List.of(), 2L, 0.0, 0);
         when(mapStructMapper.mapProductToProductResponseDto(refreshed)).thenReturn(expectedDto);
         UpdateProductCommand cmd = new UpdateProductCommand("aaaaaaaaaaa", BigDecimal.ONE, false, "");
 
@@ -348,7 +348,7 @@ class ProductServiceImplTest {
         Product product = new Product();
         product.setName("mouse");
         when(productRepository.findByName("mouse")).thenReturn(Optional.of(product));
-        ProductResponseDto expectedDto = new ProductResponseDto(P1, "mouse", "", BigDecimal.ZERO, true, "", null, new ArrayList<>(), 0L);
+        ProductResponseDto expectedDto = new ProductResponseDto(P1, "mouse", "", BigDecimal.ZERO, true, "", null, new ArrayList<>(), 0L, 0.0, 0);
         when(mapStructMapper.mapProductToProductResponseDto(product)).thenReturn(expectedDto);
 
         ProductResponseDto result = testService.getProductByName("mouse");
@@ -373,7 +373,7 @@ class ProductServiceImplTest {
         Product product = new Product();
         product.setId(PROD_123);
         when(productRepository.findById(PROD_123)).thenReturn(Optional.of(product));
-        ProductResponseDto expectedDto = new ProductResponseDto(PROD_123, "mouse", "", BigDecimal.ZERO, true, "", null, new ArrayList<>(), 0L);
+        ProductResponseDto expectedDto = new ProductResponseDto(PROD_123, "mouse", "", BigDecimal.ZERO, true, "", null, new ArrayList<>(), 0L, 0.0, 0);
         when(mapStructMapper.mapProductToProductResponseDto(product)).thenReturn(expectedDto);
 
         ProductResponseDto result = testService.getProductById(PROD_123);
@@ -460,7 +460,8 @@ class ProductServiceImplTest {
     private static ProductResponseDto productDto(Product product) {
         return new ProductResponseDto(
                 product.getId(), product.getName(), product.getDescription(), product.getPrice(),
-                product.isInStock(), product.getCharacteristics(), null, List.of(), product.getVersion());
+                product.isInStock(), product.getCharacteristics(), null, List.of(), product.getVersion(),
+                product.getAvgStars(), product.getRatingCount());
     }
 
     @Test
@@ -477,7 +478,7 @@ class ProductServiceImplTest {
         product.setId(P1);
         when(mapStructMapper.mapCreateCommandToProduct(cmd)).thenReturn(product);
         when(mapStructMapper.mapProductToProductResponseDto(product)).thenReturn(
-                new ProductResponseDto(P1, "mouse", "WiFi mouse USB", BigDecimal.ONE, true, "", null, List.of(), 0L));
+                new ProductResponseDto(P1, "mouse", "WiFi mouse USB", BigDecimal.ONE, true, "", null, List.of(), 0L, 0.0, 0));
 
         service.createProduct(cmd);
 

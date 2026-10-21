@@ -138,6 +138,6 @@ class ProductCacheTest {
 
     private static ProductResponseDto productDto() {
         return new ProductResponseDto(PRODUCT_ID, "mouse", "Wireless mouse", BigDecimal.TEN,
-                true, "test-chars", null, List.of(), 7L);
+                true, "test-chars", null, List.of(), 7L, 0.0, 0);
     }
 }

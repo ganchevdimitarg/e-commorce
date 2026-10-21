@@ -43,6 +43,12 @@ public class Product extends Auditable {
     private BigDecimal price;
     @Column(name = "stock")
     private boolean inStock;
+    // Derived from the product's live comments and refreshed in the comment mutation's
+    // transaction; product writes never set them directly.
+    @Column(name = "rating_count", nullable = false)
+    private int ratingCount;
+    @Column(name = "avg_stars", nullable = false)
+    private double avgStars;
     @Column(name = "characteristics", columnDefinition = "TEXT")
     private String characteristics;
     @ManyToOne
