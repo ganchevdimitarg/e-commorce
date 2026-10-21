@@ -2,6 +2,7 @@ package com.ganchevdimitarg.catalog.architecture;
 
 import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
+import com.tngtech.archunit.junit.ArchTag;
 import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchRule;
 import org.junit.jupiter.api.Tag;
@@ -10,6 +11,7 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static com.tngtech.archunit.library.dependencies.SlicesRuleDefinition.slices;
 
 @Tag("unit")
+@ArchTag("unit") // JUnit's @Tag is invisible to the ArchUnit engine; ArchTag makes -Dgroups=unit select these rules.
 @AnalyzeClasses(packages = "com.ganchevdimitarg.catalog",
         importOptions = ImportOption.DoNotIncludeTests.class)
 class ArchitectureTest {
