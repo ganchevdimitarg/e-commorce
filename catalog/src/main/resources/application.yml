@@ -1,23 +1,86 @@
-# Profile-neutral base config. Replaces the legacy bootstrap context (spring-cloud-starter-bootstrap +
-# bootstrap.yml), which Spring Cloud 2025.1 supersedes with spring.config.import. Secrets are imported
-# from Vault at startup; the dev overlay (application-dev.yml) carries datasource/Redis/Kafka/Eureka.
+# Profile-neutral configuration. Environment-specific endpoints (datasource URLs, JWT issuer,
+# Redis, Kafka, Eureka, OTLP and Vault) live in application-dev.yml for local development and
+# application-prod.yml for deployed environments. Production must set SPRING_PROFILES_ACTIVE=prod.
 spring:
   application:
     name: catalog-service
   profiles:
     group:
+      # Local ergonomics only: an unset profile activates dev.
       default: dev
-  config:
-    import: "optional:vault://"
-  devtools:
-    livereload:
-      port: 35730
+
+  # Spring Cloud 2025.1 only certifies Boot 4.0.x; suppress the verifier on Boot 4.1.x.
   cloud:
-    vault:
-      uri: http://localhost:8200
-      authentication: TOKEN
-      token: ${VAULT_DEV_ROOT_TOKEN_ID}
-      generic:
-        enable: true
-        backend: auth-service
-        default-context: credentials
+    compatibility-verifier:
+      enabled: false
+
+  # Off by default; the dev profile opts in to catalog/compose.yaml.
+  docker:
+    compose:
+      enabled: false
+
+  # JPA properties
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  # Pagination
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+
+  # Cache
+  cache:
+    type: redis
+
+  # Redis connection resilience — endpoints live in the profiles.
+  data:
+    redis:
+      # Bound a stalled Redis: the default Lettuce timeouts let idempotency and
+      # after-commit cache calls block for tens of seconds before failing open.
+      timeout: 1s
+      connect-timeout: 1s
+
+  # Virtual threads
+  threads:
+    virtual:
+      enabled: true
+
+server:
+  port: ${SERVER_PORT:8084}
+
+# Prometheus (and other data loggers)
+management:
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true
+      group:
+        liveness:
+          include: livenessState,ping
+        readiness:
+          include: readinessState,db
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+
+# Spring Doc — the server URL is externalised in OpenAPI3Config.
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    disable-swagger-default-url: true
+
+catalog:
+  # How often the transactional-outbox relay sweeps unsettled events.
+  outbox:
+    relay-interval-ms: 1000

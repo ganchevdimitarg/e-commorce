@@ -1,0 +1,73 @@
+# Production overlay. Every external endpoint is required from the environment; there is
+# no Vault import, no Docker Compose support, no devtools and no Swagger UI.
+spring:
+  cloud:
+    vault:
+      enabled: false
+  docker:
+    compose:
+      enabled: false
+  datasource:
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+  jpa:
+    show-sql: false
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${AUTH_ISSUER_URI}
+          jwk-set-uri: ${AUTH_JWK_SET_URI:${AUTH_ISSUER_URI}/oauth2/jwks}
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT:6379}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+
+eureka:
+  client:
+    enabled: ${EUREKA_CLIENT_ENABLED:false}
+    service-url:
+      defaultZone: ${EUREKA_DEFAULT_ZONE:}
+
+management:
+  tracing:
+    sampling:
+      probability: ${TRACING_SAMPLING_PROBABILITY:0.1}
+    export:
+      # An empty OTLP endpoint still satisfies Boot's @ConditionalOnProperty, so exporting
+      # by default would fail startup with "Invalid endpoint". Opt in with an endpoint.
+      enabled: ${TRACING_EXPORT_ENABLED:false}
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: ${OTLP_TRACES_ENDPOINT:}
+    logging:
+      export:
+        otlp:
+          endpoint: ${OTLP_LOGGING_ENDPOINT:}
+  # Log export defaults off so an unset endpoint cannot create a retrying exporter.
+  logging:
+    export:
+      otlp:
+        enabled: ${OTLP_LOGGING_EXPORT_ENABLED:false}
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+kafka:
+  bootstrapAddress: ${KAFKA_BOOTSTRAP_SERVERS}
+
+catalog:
+  openapi:
+    server-url: ${CATALOG_OPENAPI_SERVER_URL:}
+  datasource:
+    writer:
+      url: ${CATALOG_DB_WRITER_URL}
+    reader:
+      url: ${CATALOG_DB_READER_URL}

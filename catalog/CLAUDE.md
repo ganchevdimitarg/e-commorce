@@ -93,6 +93,31 @@ cd catalog
 ./mvnw -pl catalog -am clean verify
 ```
 
+Runtime configuration is environment-driven. The `dev` profile (`application-dev.yml`)
+supplies localhost defaults and is active when no profile is set; the `prod` profile
+(`application-prod.yml`) requires the external endpoints from the environment, disables
+Vault, Docker Compose, devtools and Swagger, and must be selected with
+`SPRING_PROFILES_ACTIVE=prod`.
+
+Environment variables (dev defaults in brackets): `POSTGRES_USER` and `POSTGRES_PASSWORD`
+(required), `SERVER_PORT` [8084], `AUTH_ISSUER_URI` [http://localhost:8082],
+`AUTH_JWK_SET_URI` [http://localhost:8082/oauth2/jwks], `REDIS_HOST` [localhost],
+`REDIS_PORT` [6379], `KAFKA_BOOTSTRAP_SERVERS` [localhost:9092], `EUREKA_CLIENT_ENABLED`
+[true], `EUREKA_DEFAULT_ZONE` [http://localhost:8761/eureka], `SPRING_CLOUD_VAULT_ENABLED`
+[true], `VAULT_URI` [http://localhost:8200], `VAULT_BACKEND` [secret],
+`VAULT_DEFAULT_CONTEXT` [catalog/credentials], `OTLP_TRACES_ENDPOINT`
+[http://localhost:4318/v1/traces], `CATALOG_DB_WRITER_URL`
+[jdbc:postgresql://localhost:5432/catalog] and `CATALOG_DB_READER_URL`
+[jdbc:postgresql://localhost:5433/catalog]`.
+
+Vault is optional in dev (`spring.config.import: optional:vault://`, `fail-fast: false`)
+and catalog owns its KV path `secret/catalog/credentials` (mount `secret`, context
+`catalog/credentials`). Seed it with:
+
+```bash
+vault kv put secret/catalog/credentials POSTGRES_USER=catalog POSTGRES_PASSWORD=catalog
+```
+
 Flyway applies and validates migrations at application startup; there is no
 `flyway-maven-plugin` configured, so `./mvnw flyway:validate` is not available.
 
@@ -122,6 +147,6 @@ modules, and an OTLP collector (`:4318`) must be supplied separately. Env:
   `Jenkinsfile`'s `-f catalog/Dockerfile .` stage stays incompatible until the Task 5
   CI cutover (outside `catalog/`).
 - Follow-ups (not blocking, human decision): no checkstyle plugin/config yet (stated PR
-  gate); integration tests run under surefire (failsafe unbound); no `application-prod.yml`
-  (the `dev` profile is already actuator-hardened: exposure `health,info,prometheus`,
-  `show-details: when-authorized`, OTLP tracing).
+  gate); integration tests run under surefire (failsafe unbound). The `prod` profile added
+  with TODO 7.4 is actuator-hardened: exposure `health,info,prometheus`,
+  `show-details: when-authorized`, OTLP tracing.

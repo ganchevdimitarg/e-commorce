@@ -8,7 +8,7 @@ import io.swagger.v3.oas.annotations.security.*;
 import io.swagger.v3.oas.annotations.servers.Server;
 
 @OpenAPIDefinition(
-        servers = {@Server(url = "https://localhost:8081")},
+        servers = {@Server(url = "${catalog.openapi.server-url:http://localhost:8084}")},
         info = @Info(
                 title = "Catalog Service APIs",
                 description = "This lists all the Catalog Service API Calls. The Calls are OAuth2 secured, so please use your client ID and Secret to test them out.",
