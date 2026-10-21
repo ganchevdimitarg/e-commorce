@@ -113,7 +113,7 @@ class ProductControllerMvcTest {
     void should_return200WithProduct_when_getProductByNameWithReadScope() throws Exception {
         ProductResponseDto response = new ProductResponseDto(
                 P1, "mouse", "WiFi mouse USB", BigDecimal.valueOf(29.99),
-                true, "black", null, List.of(), 5L, 0.0, 0);
+                true, "black", null, List.of(), 5L, 4.0, 2);
         when(productService.getProductByName("mouse")).thenReturn(response);
 
         mockMvc.perform(get("/api/v1/catalog/products/by-name/mouse")
@@ -122,7 +122,9 @@ class ProductControllerMvcTest {
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(header().string(HttpHeaders.ETAG, "\"5\""))
                 .andExpect(jsonPath("$.name").value("mouse"))
-                .andExpect(jsonPath("$.price").value(29.99));
+                .andExpect(jsonPath("$.price").value(29.99))
+                .andExpect(jsonPath("$.avgStars").value(4.0))
+                .andExpect(jsonPath("$.ratingCount").value(2));
     }
 
     @Test

@@ -120,8 +120,16 @@ public class CommentServiceImpl implements CommentService {
         log.info("The comment {} is deleted successfully", commentId);
     }
 
+    /**
+     * Recalculates the product's denormalised rating inside the comment transaction. The
+     * product is dirty-checked, so two overlapping comment mutations for the same product
+     * contend on its {@code @Version}: the losing transaction rolls back, including its
+     * comment write, and surfaces as a retryable 409. Accepted trade-off — see
+     * {@code catalog/docs/decisions.md}.
+     */
     private void refreshProductRating(Product product) {
         CommentRepository.RatingStats stats = commentRepository.findRatingStatsByProductId(product.getId());
+        // A scalar aggregate always returns one row; the null guards are defensive only.
         product.setRatingCount(stats == null ? 0 : (int) stats.getRatingCount());
         product.setAvgStars(stats == null || stats.getAverageStars() == null
                 ? 0.0 : stats.getAverageStars());
