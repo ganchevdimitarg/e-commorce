@@ -11,23 +11,23 @@ Shared conventions, stack rules, hooks, skills and pattern docs live at the **re
 `../CLAUDE.md` and `../docs/context/`. This file records only catalog-specific deltas —
 read the root file first.
 
-## Test baseline (recorded 2026-10-19 on `catalog-hardening`)
+## Test baseline (recorded 2026-10-21 on `chore/catalog-phase6`)
 
 Run from the repo root (Git Bash):
 
 ```bash
-# Unit tests only — surefire runs everything, so exclude *IT by name
-./mvnw test -pl catalog -am -Dtest='!*IT' -Dsurefire.failIfNoSpecifiedTests=false
+# Unit tests only — tests tagged "unit"
+./mvnw clean test -pl catalog -am -Dgroups=unit
 # Full verify — unit + Testcontainers ITs + JaCoCo gates (Docker required)
 ./mvnw clean verify -pl catalog -am
 ```
 
 - How tests run: `maven-surefire-plugin` includes `**/*Test.java` and `**/*IT.java`;
-  `maven-failsafe-plugin` is **not bound** — there is no `integration` tag. The
-  unit/full split is by class-name exclusion only.
-- Unit: `127` run, `0` failures, `0` errors (catalog module).
-- Full verify: `136` run, `0` failures, `0` errors.
-  - Status: green. JaCoCo gates met (BUNDLE ≥ 85 % line, `service.*` = 100 %).
+  `maven-failsafe-plugin` is **not bound**. The unit/full split uses the JUnit
+  `unit` / `integration` tags (`-Dgroups=unit`).
+- Unit: `180` run, `0` failures, `0` errors (catalog module).
+- Full verify: `313` run, `0` failures, `0` errors.
+  - Status: green. JaCoCo gates met (BUNDLE ≥ 90 % line, `service.*` = 100 %).
 
 ## Module specifics
 - Web stack: WebMVC (records for DTOs/commands/responses); MapStruct (`MapStructMapper`)
@@ -88,8 +88,8 @@ root `docker-compose`. Env: `POSTGRES_USER`, `POSTGRES_PASSWORD`, `VAULT_DEV_ROO
 
 ## Known migration gaps
 - Source fully migrated to Boot 4.1.0 / Java 25 on the single `com.ganchevdimitarg.catalog`
-  package — no `com.concordeu` remnant. `clean verify` is green (136 tests, JaCoCo 85%
-  bundle / 100% `service.*`). The reference module.
+  package — no `com.concordeu` remnant. `clean verify` is green (313 tests, JaCoCo 90 %
+  bundle / 100 % `service.*`). The reference module.
 - The root reactor builds green again as of 2026-07-08 (all modules on Boot 4). Building
   catalog standalone still works: `../mvnw -f catalog/pom.xml clean verify` — catalog
   depends on the `client` module, so install it once first:

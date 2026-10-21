@@ -1,541 +1,304 @@
 # Catalog Service
 
-The Catalog Service manages the product catalog, inventory, categories, and product-related information for the e-commerce platform.
+Catalog owns the product catalogue of the e-commerce platform: products, the categories
+that group them, and customer comments on products. Orders, payments, profiles and
+notifications belong to sibling services.
 
-## Overview
+- Service name: `catalog-service`
+- Port: `8084`
+- Base path: `/api/v1/catalog`
+- Package: `com.ganchevdimitarg.catalog`
 
-This service handles:
-- Product management (CRUD operations)
-- Category management
-- Inventory tracking
-- Product search and filtering
-- Product pricing
-- Product images and media
-- Stock management
+## Technology stack
 
-## Technology Stack
+| Concern | Choice |
+|---|---|
+| Language and runtime | Java 25 — virtual threads enabled |
+| Framework | Spring Boot 4.1.0, Spring WebMVC |
+| Persistence | PostgreSQL 16, Spring Data JPA / Hibernate, Flyway migrations |
+| Cache | Redis (Lettuce, Jackson JSON serialisation) |
+| Messaging | Kafka through a transactional outbox |
+| Discovery and config | Eureka client, Spring Cloud Vault |
+| Observability | Spring Boot Actuator, Micrometer → Prometheus, OpenTelemetry (OTLP) |
+| API documentation | springdoc-openapi + Swagger UI (OAuth2 PKCE) |
 
-- **Framework**: Spring Boot
-- **Database**: PostgreSQL/MySQL
-- **Caching**: Redis (optional)
-- **Search**: Elasticsearch (optional)
-- **Service Discovery**: Eureka Client
-- **Configuration**: Spring Cloud Config Client
+Stock is the boolean `inStock` field on a product; there is no separate stock-keeping
+model.
 
-## API Endpoints
+## Running locally
 
-### Products
+Run from the repository root:
 
-#### Get All Products
-```http
-GET /api/products?page=0&size=20&sort=name,asc
+```bash
+./mvnw spring-boot:run -pl catalog
 ```
 
-**Response:**
-```json
-{
-  "content": [
-    {
-      "id": "uuid",
-      "name": "Product Name",
-      "description": "Product description",
-      "price": 99.99,
-      "categoryId": "category-uuid",
-      "sku": "PROD-001",
-      "stockQuantity": 100,
-      "imageUrl": "https://example.com/image.jpg",
-      "active": true,
-      "createdAt": "2024-01-01T00:00:00Z",
-      "updatedAt": "2024-01-01T00:00:00Z"
-    }
-  ],
-  "totalElements": 100,
-  "totalPages": 5,
-  "size": 20,
-  "number": 0
-}
+The default profile group maps to `dev` (`spring.profiles.group.default: dev`), which
+serves the API on port **8084**. On `spring-boot:run`, the dev profile starts catalog's own
+data plane from `catalog/compose.yaml`: PostgreSQL writer (`:5432`), PostgreSQL reader
+(`:5433`), Redis (`:6379`) and Kafka (`:9092`). Vault (`:8200`) and the other shared
+infrastructure come from the root `docker-compose.yml`. Eureka (`:8761`) and the auth
+service (`:8082`) are not defined there: start them from their modules with
+`./mvnw spring-boot:run -pl eureka-server` and
+`./mvnw spring-boot:run -pl authentication`. An OTLP collector at `:4318` must be provided
+separately for tracing.
+
+Prerequisites: Docker, and `POSTGRES_USER`, `POSTGRES_PASSWORD`,
+`VAULT_DEV_ROOT_TOKEN_ID` and `GATEWAY_CLIENT_SECRET` in the environment. The last one is
+used by Swagger UI's OAuth2 PKCE client.
+
+SQL diagnostics are opt-in; the default dev profile stays quiet:
+
+```bash
+SPRING_PROFILES_ACTIVE=dev,debug ./mvnw spring-boot:run -pl catalog
 ```
 
-#### Get Product by ID
-```http
-GET /api/products/{id}
-```
-
-#### Create Product
-```http
-POST /api/products
-Authorization: Bearer {admin_token}
-Content-Type: application/json
-
-{
-  "name": "New Product",
-  "description": "Product description",
-  "price": 49.99,
-  "categoryId": "category-uuid",
-  "sku": "PROD-002",
-  "stockQuantity": 50,
-  "imageUrl": "https://example.com/image.jpg"
-}
-```
-
-#### Update Product
-```http
-PUT /api/products/{id}
-Authorization: Bearer {admin_token}
-Content-Type: application/json
-
-{
-  "name": "Updated Product Name",
-  "price": 54.99,
-  "stockQuantity": 45
-}
-```
-
-#### Delete Product
-```http
-DELETE /api/products/{id}
-Authorization: Bearer {admin_token}
-```
-
-#### Search Products
-```http
-GET /api/products/search?q=laptop&category=electronics&minPrice=500&maxPrice=2000
-```
-
-### Categories
-
-#### Get All Categories
-```http
-GET /api/categories
-```
-
-**Response:**
-```json
-[
-  {
-    "id": "uuid",
-    "name": "Electronics",
-    "description": "Electronic devices and accessories",
-    "parentId": null,
-    "imageUrl": "https://example.com/electronics.jpg",
-    "active": true,
-    "productCount": 150
-  }
-]
-```
-
-#### Get Category by ID
-```http
-GET /api/categories/{id}
-```
-
-#### Create Category
-```http
-POST /api/categories
-Authorization: Bearer {admin_token}
-Content-Type: application/json
-
-{
-  "name": "Laptops",
-  "description": "Laptop computers",
-  "parentId": "electronics-uuid",
-  "imageUrl": "https://example.com/laptops.jpg"
-}
-```
-
-#### Get Products by Category
-```http
-GET /api/categories/{id}/products?page=0&size=20
-```
-
-### Inventory
-
-#### Check Stock
-```http
-GET /api/inventory/{productId}
-```
-
-**Response:**
-```json
-{
-  "productId": "uuid",
-  "quantity": 100,
-  "reserved": 5,
-  "available": 95,
-  "lastUpdated": "2024-01-15T10:30:00Z"
-}
-```
-
-#### Update Stock
-```http
-PUT /api/inventory/{productId}
-Authorization: Bearer {admin_token}
-Content-Type: application/json
-
-{
-  "quantity": 150,
-  "operation": "SET" // or "ADD", "SUBTRACT"
-}
-```
-
-#### Reserve Stock (for orders)
-```http
-POST /api/inventory/reserve
-Authorization: Bearer {service_token}
-Content-Type: application/json
-
-{
-  "items": [
-    {
-      "productId": "uuid",
-      "quantity": 2
-    }
-  ],
-  "orderId": "order-uuid"
-}
-```
-
-#### Release Reserved Stock
-```http
-POST /api/inventory/release
-Authorization: Bearer {service_token}
-Content-Type: application/json
-
-{
-  "orderId": "order-uuid"
-}
-```
-
-### Product Reviews (Optional)
-
-#### Get Product Reviews
-```http
-GET /api/products/{productId}/reviews?page=0&size=10
-```
-
-#### Add Review
-```http
-POST /api/products/{productId}/reviews
-Authorization: Bearer {user_token}
-Content-Type: application/json
-
-{
-  "rating": 5,
-  "comment": "Great product!",
-  "title": "Excellent quality"
-}
-```
+`application-debug.yml` enables `show-sql`, `format_sql`, Hibernate `SQL: DEBUG` and
+`org.hibernate.type.descriptor: TRACE`.
 
 ## Configuration
 
-### application.yml
-```yaml
-server:
-  port: 8082
+| File | Purpose |
+|---|---|
+| `application.yml` | Profile-neutral base: application name, default `dev` profile group, `spring.config.import: optional:vault://` and the Vault connection (`http://localhost:8200`, token auth, generic backend `auth-service`, context `credentials`). |
+| `application-dev.yml` | Dev overlay: datasource, JWT issuer, Redis, Kafka, Eureka, actuator, tracing and springdoc. |
+| `application-debug.yml` | Opt-in SQL diagnostics, activated with `SPRING_PROFILES_ACTIVE=dev,debug`. |
 
-spring:
-  application:
-    name: catalog-service
-  datasource:
-    url: jdbc:postgresql://localhost:5432/catalog_db
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    show-sql: false
-  redis:
-    host: localhost
-    port: 6379
-    enabled: ${REDIS_ENABLED:false}
+Vault still serves catalog from the auth service's `auth-service/credentials` generic path;
+TODO 7.4 gives catalog its own path. Secrets are always referenced as `${ENV_VAR}` — never
+inlined.
 
-elasticsearch:
-  enabled: ${ELASTICSEARCH_ENABLED:false}
-  host: localhost
-  port: 9200
+Configuration keys that matter locally:
 
-eureka:
-  client:
-    service-url:
-      defaultZone: http://localhost:8761/eureka/
+| Property | Value / purpose |
+|---|---|
+| `catalog.datasource.writer.url` | Primary datasource, `jdbc:postgresql://localhost:5432/catalog` |
+| `catalog.datasource.reader.url` | Read-replica datasource, `jdbc:postgresql://localhost:5433/catalog` |
+| `spring.security.oauth2.resourceserver.jwt.issuer-uri` | `http://localhost:8082` (auth service) |
+| `catalog.outbox.relay-interval-ms` | Outbox relay cadence, default `1000` |
+| `catalog.outbox.batch-size` | Rows claimed per relay run, default `20` |
+| `catalog.outbox.send-timeout` | Broker acknowledgement timeout per row, default `5s` |
+| `spring.kafka.bootstrap-servers` | Spring Kafka bootstrap servers, `localhost:9092` |
+| `kafka.bootstrapAddress` | Bootstrap address of the outbox producer, `localhost:9092` |
 
-cache:
-  product:
-    ttl: 3600 # 1 hour
-  category:
-    ttl: 7200 # 2 hours
+## Security
+
+Catalog is a stateless OAuth2 **resource server** that accepts only JWTs issued by the auth
+service.
+
+- Issuer: `http://localhost:8082`; JWKS: `http://localhost:8082/oauth2/jwks`.
+- Authorities come from the token's `scope` claim: `catalog.read` becomes
+  `SCOPE_catalog.read` and `catalog.write` becomes `SCOPE_catalog.write`. `ROLE_*` values in
+  the same claim are preserved verbatim (for example `ROLE_ADMIN`).
+- Identity — comment authorship and comment-owner checks — comes from the JWT subject
+  (`Authentication.getName()`). The gateway's `X-User-Id` / `X-User-Roles` headers are not
+  trusted, because catalog is reachable directly on port 8084.
+- Social opaque tokens are not accepted: they terminate at auth/gateway, and a social login
+  must be exchanged for an auth-service JWT before catalog is called.
+- `/v3/api-docs/**`, `/swagger-ui/**`, `/swagger-ui.html`, `/actuator/health`,
+  `/actuator/info` and `/actuator/prometheus` are public; every other request needs a bearer
+  token. Authentication and authorisation failures are rendered as
+  `application/problem+json` (401 `UNAUTHENTICATED`, 403 `ACCESS_DENIED`).
+
+## API
+
+Every endpoint is under `/api/v1/catalog`. Reads require `SCOPE_catalog.read` and writes
+require `SCOPE_catalog.write` unless the authority column says otherwise.
+
+| Method | Path | Authority | Request | Success |
+|---|---|---|---|---|
+| POST | `/api/v1/catalog/products?categoryName={name}` | `SCOPE_catalog.write` | `ProductRequestDto`: `name`, `description`, `price`, `inStock`, `characteristics` | 201, `Location: /api/v1/catalog/products/{id}`, `ProductResponseDto` |
+| GET | `/api/v1/catalog/products` | `SCOPE_catalog.read` | optional `q`, `minPrice`, `maxPrice`, `inStock`, `categoryName`; `page`, `size` ≤ 100, `sort` | 200, `PageResponse<ProductResponseDto>` |
+| GET | `/api/v1/catalog/products/{id}` | `SCOPE_catalog.read` | UUID path | 200, `ProductResponseDto` (cached) |
+| GET | `/api/v1/catalog/products/by-name/{name}` | `SCOPE_catalog.read` | name path | 200, `ProductResponseDto` |
+| POST | `/api/v1/catalog/products:batch-get` | `SCOPE_catalog.read` | `ItemRequestDto`: 1–100 UUIDs | 200, `List<ProductResponseDto>`; 404 lists every missing id |
+| PUT | `/api/v1/catalog/products/{id}` | `SCOPE_catalog.write` | `UpdateProductRequestDto`: `description`, `price`, `inStock`, `characteristics` | 200, updated `ProductResponseDto` |
+| DELETE | `/api/v1/catalog/products/{id}` | `SCOPE_catalog.write` | — | 204 |
+| POST | `/api/v1/catalog/categories` | `SCOPE_catalog.write` | `CategoryRequestDto`: `name` | 201, `Location: /api/v1/catalog/categories/{name}`, `CategoryResponseDto` |
+| GET | `/api/v1/catalog/categories` | `SCOPE_catalog.read` | pagination | 200, `PageResponse<CategoryResponseDto>` |
+| DELETE | `/api/v1/catalog/categories/{name}` | `SCOPE_catalog.write` | — | 204; 409 if products remain |
+| POST | `/api/v1/catalog/categories/{from}/products/{productName}:move?to={to}` | `SCOPE_catalog.write` | — | 200 |
+| POST | `/api/v1/catalog/categories/{from}/products:move-all?to={to}` | `SCOPE_catalog.write` | — | 200 |
+| POST | `/api/v1/catalog/products/{productName}/comments` | `SCOPE_catalog.write` | `CommentRequestDto`: `title`, `text`, `star` 1–5; author from the JWT | 201, `Location: /api/v1/catalog/comments/{id}`, `CommentResponseDto` |
+| GET | `/api/v1/catalog/products/{productName}/comments` | `SCOPE_catalog.read` | pagination | 200, `PageResponse<CommentResponseDto>` |
+| GET | `/api/v1/catalog/comments/by-author/{author}` | `SCOPE_catalog.read` | pagination | 200, `PageResponse<CommentResponseDto>` |
+| GET | `/api/v1/catalog/products/{productName}/comments/avg-stars` | `SCOPE_catalog.read` | — | 200, average `star` as a number |
+| DELETE | `/api/v1/catalog/comments/{id}` | `SCOPE_catalog.write` or `ROLE_ADMIN` | — | 204; 403 if the caller is neither the author nor an admin |
+
+### Response shapes
+
+- `ProductResponseDto`: `id`, `name`, `description`, `price`, `inStock`, `characteristics`,
+  `category` (`{id, name}`) and `comments` (`CommentResponseDto[]`).
+- `CategoryResponseDto`: `id`, `name`, `productCount`.
+- `CommentResponseDto`: `id`, `title`, `text`, `star`, `author`, `productId`, `productName`.
+- `PageResponse<T>`: `content`, `page`, `size`, `totalElements`, `totalPages`.
+
+### Pagination and sorting
+
+- Default page size is 20; the maximum is 100. A larger `size` returns 400
+  `VALIDATION_ERROR` rather than being silently clamped.
+- `sort` is whitelisted per resource. Products: `name`, `price`, `inStock`, `createdAt`,
+  `updatedAt`. Categories: `name`, `createdAt`, `updatedAt`. Comments: `star`, `title`,
+  `author`, `createdAt`, `updatedAt`. Any other sort property returns 400
+  `VALIDATION_ERROR`.
+- On `GET /api/v1/catalog/products`, `q` is a case-insensitive contains match on the product
+  name; `categoryName` is resolved before the query, so an unknown category is a 404.
+
+### Idempotency
+
+Every `POST`, `PUT` and `DELETE` under `/api/v1/catalog/**` — except
+`POST /api/v1/catalog/products:batch-get`, which is a read expressed as POST — requires an
+`Idempotency-Key` header. A missing header is a 400 `VALIDATION_ERROR`. The stored key is
+scoped by JWT subject, HTTP method, request path and the client key (SHA-256, prefix
+`catalog:idempotency:`, 24-hour TTL):
+
+- a completed duplicate replays the stored status, `Content-Type`, `Location` and body;
+- an in-progress duplicate returns 409 — the first request is still running;
+- a Redis outage fails open: the request proceeds without protection (ADR-006).
+
+### Comments
+
+- Creation takes the author from the JWT subject and returns
+  `Location: /api/v1/catalog/comments/{id}`.
+- Deletion is allowed for the comment's author or a caller holding `ROLE_ADMIN`; everyone
+  else receives 403.
+
+## Error model
+
+Errors raised by catalog — domain failures and the request guards — use
+`application/problem+json` (RFC 9457) with `status`, `title`, `detail`, `code` and
+`timestamp`:
+
+```json
+{
+  "type": "about:blank",
+  "title": "Not Found",
+  "status": 404,
+  "detail": "Product not found: 3f1c2b34-5d6e-4f70-8a91-b2c3d4e5f601",
+  "code": "NOT_FOUND",
+  "timestamp": "2026-10-21T10:15:30.123456Z"
+}
 ```
 
-### Environment Variables
+| Status | `code` | Typical cause |
+|---|---|---|
+| 400 | `VALIDATION_ERROR` | Request-parameter validation (`ConstraintViolationException`), page size above 100, sort property outside the whitelist, missing `Idempotency-Key` |
+| 401 | `UNAUTHENTICATED` | Missing, expired or invalid JWT |
+| 403 | `ACCESS_DENIED` | Missing scope, or deleting someone else's comment without `ROLE_ADMIN` |
+| 404 | `NOT_FOUND` | Unknown product, category, comment or category name in a product search |
+| 409 | `CONFLICT` | Duplicate product/category name, category still holding products, in-progress idempotent request, optimistic-lock clash |
+| 500 | `INTERNAL_ERROR` | Unexpected failure; the detail is generic and the cause is logged |
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `DB_USERNAME` | Database username | `catalog_user` |
-| `DB_PASSWORD` | Database password | `secure_password` |
-| `REDIS_ENABLED` | Enable Redis caching | `true` |
-| `ELASTICSEARCH_ENABLED` | Enable Elasticsearch search | `true` |
+Framework-handled 400s — `@RequestBody @Valid` failures and unreadable or malformed bodies —
+also return `application/problem+json`, but in the standard framework shape: `status`,
+`title` and `detail` only. They carry no catalog `code`, `timestamp` or field-level `errors`
+list.
 
-## Database Schema
+## Events
 
-### Products Table
-```sql
-CREATE TABLE products (
-    id UUID PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    description TEXT,
-    price DECIMAL(10, 2) NOT NULL,
-    category_id UUID REFERENCES categories(id),
-    sku VARCHAR(100) UNIQUE NOT NULL,
-    stock_quantity INTEGER DEFAULT 0,
-    image_url VARCHAR(500),
-    active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    created_by VARCHAR(100),
-    updated_by VARCHAR(100)
-);
+Product changes are published through a **transactional outbox**: `OutboxEventWriter`
+inserts an `outbox_events` row in the same transaction as the product change, so an event
+exists if and only if the change committed. `OutboxRelay` then:
 
-CREATE INDEX idx_products_category ON products(category_id);
-CREATE INDEX idx_products_sku ON products(sku);
-CREATE INDEX idx_products_active ON products(active);
-```
+- runs every 1000 ms (`catalog.outbox.relay-interval-ms`) from `OutboxScheduler`;
+- claims a batch (default 20, oldest first) where `sent_at IS NULL` and
+  `next_attempt_at <= now()`, using `SELECT … FOR UPDATE SKIP LOCKED`;
+- sends the stored JSON bytes through the outbox `KafkaTemplate` (`acks=all`, idempotent
+  producer) and marks the row sent only after the broker acknowledges.
 
-### Categories Table
-```sql
-CREATE TABLE categories (
-    id UUID PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    description TEXT,
-    parent_id UUID REFERENCES categories(id),
-    image_url VARCHAR(500),
-    active BOOLEAN DEFAULT TRUE,
-    display_order INTEGER DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+Delivery is **at-least-once**; consumers must deduplicate on the payload's `eventId`.
 
-CREATE INDEX idx_categories_parent ON categories(parent_id);
-```
+| Topic | Event |
+|---|---|
+| `catalog.product.created` | `ProductCreated` |
+| `catalog.product.updated` | `ProductUpdated` |
+| `catalog.product.deleted` | `ProductDeleted` |
+| `catalog.product.category-changed` | `ProductCategoryChanged` |
 
-### Inventory Table
-```sql
-CREATE TABLE inventory (
-    id UUID PRIMARY KEY,
-    product_id UUID REFERENCES products(id) UNIQUE,
-    quantity INTEGER NOT NULL DEFAULT 0,
-    reserved INTEGER NOT NULL DEFAULT 0,
-    available INTEGER GENERATED ALWAYS AS (quantity - reserved) STORED,
-    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT positive_quantity CHECK (quantity >= 0),
-    CONSTRAINT positive_reserved CHECK (reserved >= 0),
-    CONSTRAINT valid_reservation CHECK (reserved <= quantity)
-);
+Payloads carry `eventId`, `productId`, `productName`, `price`, `inStock`, `categoryName`,
+`version`, `schemaVersion` and `occurredAt`; `ProductCategoryChanged` also carries
+`previousCategoryName`. Record headers carry `eventType`, `correlationId` (the event's
+`eventId`) and `traceId`.
 
-CREATE INDEX idx_inventory_product ON inventory(product_id);
-```
+Tuning and failure behaviour:
 
-### Product Images Table (Optional)
-```sql
-CREATE TABLE product_images (
-    id UUID PRIMARY KEY,
-    product_id UUID REFERENCES products(id),
-    url VARCHAR(500) NOT NULL,
-    alt_text VARCHAR(255),
-    display_order INTEGER DEFAULT 0,
-    is_primary BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
+- `catalog.outbox.enabled` (default `true`) gates scheduled runs only — `relayOnce()` always
+  delivers, so tests and operators can drive a run directly;
+- `catalog.outbox.batch-size` (default `20`) and `catalog.outbox.send-timeout` (default
+  `5s`) bound each run;
+- a failed send increments `attempts`, stores `last_error`, schedules the next attempt with
+  exponential backoff (1, 2, 4, 8, 16, 32, then 60 seconds) and stops the batch;
+- there is no dead-letter topic in v1. See ADR-007.
 
-### Reviews Table (Optional)
-```sql
-CREATE TABLE product_reviews (
-    id UUID PRIMARY KEY,
-    product_id UUID REFERENCES products(id),
-    user_id UUID NOT NULL,
-    rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
-    title VARCHAR(255),
-    comment TEXT,
-    verified_purchase BOOLEAN DEFAULT FALSE,
-    helpful_count INTEGER DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+## Caching and read replica
 
-CREATE INDEX idx_reviews_product ON product_reviews(product_id);
-CREATE INDEX idx_reviews_user ON product_reviews(user_id);
-```
+**Cache.** There is one Redis cache, `product`, with a 10-minute TTL, the `catalog:` key
+prefix (`catalog:product::<uuid>`) and Jackson JSON values.
 
-## Business Logic
+- `getProductById` is `@Cacheable(cacheNames = "product", key = "#id")`.
+- `createProduct` and `updateProduct` build the response DTO inside the write transaction
+  and call `ProductCache.put(...)`, which registers an `afterCommit` synchronisation — a
+  rolled-back write never populates the cache.
+- `deleteProduct`, comment creation/deletion and a single-product category move call
+  `ProductCache.evict(...)`; category deletion and move-all call `ProductCache.evictAll()`.
+- Catalog has no `@CacheEvict` annotation. Cache-provider failures are logged and treated as
+  cache misses, so a Redis outage degrades latency but not request success.
 
-### Stock Management
+**Read replica.** `DataSourceRouter` sends `@Transactional(readOnly = true)` work to the
+PostgreSQL replica (`:5433`); writes and Flyway migrations always use the primary (`:5432`).
+A shared `ReplicaHealthProbe` caches an `isValid(1)` check for 2 seconds; while the replica
+is unreachable, the router falls back to the writer. Browse reads (`searchProducts`,
+`getProductByName`, batch-get) are eventually consistent; `getProductById` after a
+create/update is read-your-writes because the cache is populated after commit. See ADR-005.
 
-#### Reserve Stock Flow
-1. Order Service requests stock reservation
-2. Catalog Service validates product availability
-3. If available, update inventory reserved count
-4. Return reservation confirmation
-5. If order is cancelled, release reserved stock
+## Observability
 
-#### Low Stock Alerts
-- Trigger alert when stock falls below threshold (e.g., 10 units)
-- Notify inventory management team
-- Optionally disable product if out of stock
+| Endpoint | Contents |
+|---|---|
+| `/actuator/health` | Aggregate health, including the `replica` component |
+| `/actuator/health/liveness` | `livenessState`, `ping` |
+| `/actuator/health/readiness` | `readinessState`, `db` |
+| `/actuator/prometheus` | Micrometer metrics in Prometheus format |
+| `/actuator/info` | Application info |
 
-### Product Pricing
-- Support for multiple price types (regular, sale, promotional)
-- Price history tracking
-- Currency support (if multi-currency)
+Health details are shown to authorised callers (`management.endpoint.health.show-details:
+when-authorized`). The `replica` component is always `UP`; its `reader`
+(`reachable`/`unreachable`) and `route` (`reader`/`writer`) details show whether reads are
+served by the replica or have degraded to the writer. Redis and the replica are deliberately
+not part of the readiness group: cache failures are misses and a replica outage degrades to
+the primary, so neither should make a pod unready.
 
-## Running the Service
+Tracing is exported over OTLP/HTTP to `http://localhost:4318/v1/traces` with a 0.1 sampling
+probability. Business metrics follow `catalog.<entity>.<action>`:
 
-### Local Development
-```bash
-cd catalog
-mvn spring-boot:run
-```
-
-### With Docker
-```bash
-docker build -t catalog-service .
-docker run -p 8082:8082 catalog-service
-```
-
-### With Docker Compose
-```bash
-docker-compose up catalog
-```
+- `catalog.product.created`, `catalog.product.updated`, `catalog.product.deleted`;
+- `catalog.category.created`, `catalog.category.deleted`, `catalog.category.moved`;
+- `catalog.comment.created`, `catalog.comment.deleted`;
+- `catalog.outbox.published` and `catalog.outbox.failed` counters, plus the
+  `catalog.outbox.pending` gauge.
 
 ## Testing
 
-### Unit Tests
+Run from the repository root:
+
 ```bash
-mvn test
+# Unit suite — tests tagged "unit"
+./mvnw clean test -pl catalog -am -Dgroups=unit
+
+# Unit + Testcontainers integration tests + JaCoCo gates
+./mvnw clean verify -pl catalog -am
 ```
 
-### Integration Tests
-```bash
-mvn verify
-```
+Integration tests extend `AbstractIntegrationTest` / `RedisKafkaIntegrationBase` and use
+Testcontainers, so Docker must be running for the full `verify`. JaCoCo enforces 90 % line
+coverage for the bundle and 100 % for `com.ganchevdimitarg.catalog.service.*`.
 
-### Manual Testing with cURL
+## Project references
 
-**Get Products:**
-```bash
-curl http://localhost:8082/api/products
-```
-
-**Create Product:**
-```bash
-curl -X POST http://localhost:8082/api/products \
-  -H "Authorization: Bearer ${ADMIN_TOKEN}" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Test Product",
-    "description": "Test description",
-    "price": 29.99,
-    "sku": "TEST-001",
-    "stockQuantity": 100
-  }'
-```
-
-**Search Products:**
-```bash
-curl "http://localhost:8082/api/products/search?q=laptop&minPrice=500"
-```
-
-## Caching Strategy
-
-### Cached Entities
-- Product details (1 hour TTL)
-- Category tree (2 hours TTL)
-- Product search results (15 minutes TTL)
-
-### Cache Invalidation
-- On product update/delete
-- On category changes
-- On stock updates (for availability)
-
-## Event Publishing
-
-The Catalog Service publishes events for:
-- `ProductCreated`
-- `ProductUpdated`
-- `ProductDeleted`
-- `StockUpdated`
-- `LowStockAlert`
-
-These events are consumed by other services (Order, Notification, etc.)
-
-## Performance Optimization
-
-1. **Database Indexing** - Indexes on frequently queried columns
-2. **Pagination** - All list endpoints support pagination
-3. **Caching** - Redis caching for frequently accessed data
-4. **Search Optimization** - Elasticsearch for advanced search
-5. **Image CDN** - Product images served from CDN
-6. **Query Optimization** - N+1 query prevention with JPA fetch strategies
-
-## Monitoring
-
-### Metrics to Monitor
-- Product search response time
-- Cache hit/miss ratio
-- Database connection pool usage
-- Stock update frequency
-- API endpoint response times
-
-### Health Checks
-```http
-GET /actuator/health
-```
-
-## Troubleshooting
-
-### Common Issues
-
-**Issue: "Product not found"**
-- Solution: Verify product ID and ensure product exists in database
-
-**Issue: "Insufficient stock"**
-- Solution: Check inventory table for actual available quantity
-
-**Issue: "Slow search queries"**
-- Solution: Enable Elasticsearch or add database indexes
-
-**Issue: "Cache not updating"**
-- Solution: Check Redis connection and cache invalidation logic
-
-## Best Practices
-
-1. **Always validate stock** before confirming orders
-2. **Use transactions** for inventory updates
-3. **Implement optimistic locking** to prevent concurrent update issues
-4. **Version product data** for audit trails
-5. **Soft delete products** instead of hard deletes
-6. **Validate SKU uniqueness** before creating products
-7. **Use DTOs** to prevent over-fetching data
-
-## Dependencies
-
-Key Maven dependencies:
-```xml
-<dependencies>
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-data-jpa</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-data-redis</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>org.springframework.cloud</groupId>
-        <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
-    </dependency>
-</dependencies>
-```
-
-## License
-
-This service is part of the e-commerce microservices platform and follows the same license as the parent project.
+- Architecture decision records: `docs/adr/` — ADR-005 read-replica staleness, ADR-006
+  idempotency, ADR-007 transactional outbox, ADR-008 JWT-only resource server.
+- Decision log: `docs/decisions.md`.
+- Schema: `src/main/resources/db/migration/`, latest `V13__widen_products_name.sql`.
+  Flyway owns every schema change (`ddl-auto: validate`); committed migrations are never
+  edited.
+- Module guidance: `CLAUDE.md`.
