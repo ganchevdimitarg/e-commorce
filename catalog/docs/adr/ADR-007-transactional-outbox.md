@@ -64,6 +64,10 @@ There is **no dead-letter topic in v1**. A poison message retries every 60 secon
 indefinitely; its `last_error` and `attempts` are visible in the table for an operator to
 inspect. A DLT is a Phase 5+ concern once consumers and topics are versioned (TODO 4.5).
 
+> **Update (2026-10-21):** ADR-009 supersedes the "retries indefinitely" statement above
+> for non-retryable (poison) failures. Those rows are now dead-lettered in the database;
+> only retryable broker, network and timeout failures keep retrying with this backoff.
+
 ## Consequences
 
 - **Duplicates are possible.** A crash after the broker acknowledgement but before the

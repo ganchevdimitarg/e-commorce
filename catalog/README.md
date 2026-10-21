@@ -300,8 +300,9 @@ inserts an `outbox_events` row in the same transaction as the product change, so
 exists if and only if the change committed. `OutboxRelay` then:
 
 - runs every 1000 ms (`catalog.outbox.relay-interval-ms`) from `OutboxScheduler`;
-- claims a batch (default 20, oldest first) where `sent_at IS NULL` and
-  `next_attempt_at <= now()`, using `SELECT … FOR UPDATE SKIP LOCKED`;
+- claims a batch (default 20, oldest first) where `sent_at IS NULL`,
+  `dead_lettered_at IS NULL` and `next_attempt_at <= now()`, using
+  `SELECT … FOR UPDATE SKIP LOCKED`;
 - sends the stored JSON bytes through the outbox `KafkaTemplate` (`acks=all`, idempotent
   producer) and marks the row sent only after the broker acknowledges.
 
@@ -325,9 +326,14 @@ Tuning and failure behaviour:
   delivers, so tests and operators can drive a run directly;
 - `catalog.outbox.batch-size` (default `20`) and `catalog.outbox.send-timeout` (default
   `5s`) bound each run;
-- a failed send increments `attempts`, stores `last_error`, schedules the next attempt with
-  exponential backoff (1, 2, 4, 8, 16, 32, then 60 seconds) and stops the batch;
-- there is no dead-letter topic in v1. See ADR-007.
+- a retryable failed send (broker, network or timeout) increments `attempts`, stores
+  `last_error`, schedules the next attempt with exponential backoff (1, 2, 4, 8, 16, 32,
+  then 60 seconds) and stops the batch;
+- a non-retryable ("poison") failure — a serialisation, oversized-record or invalid-record
+  error — parks the row instead: it sets `dead_lettered_at` and `dead_letter_reason`,
+  increments `catalog.outbox.dead_lettered` and excludes the row from future claims. There
+  is no `.DLT` topic because a payload that cannot be serialised cannot be published. See
+  ADR-009.
 
 ## Caching and read replica
 
@@ -399,8 +405,8 @@ probability. Business metrics follow `catalog.<entity>.<action>`:
 - `catalog.product.created`, `catalog.product.updated`, `catalog.product.deleted`;
 - `catalog.category.created`, `catalog.category.deleted`, `catalog.category.moved`;
 - `catalog.comment.created`, `catalog.comment.deleted`;
-- `catalog.outbox.published` and `catalog.outbox.failed` counters, plus the
-  `catalog.outbox.pending` gauge;
+- `catalog.outbox.published`, `catalog.outbox.failed` and
+  `catalog.outbox.dead_lettered` counters, plus the `catalog.outbox.pending` gauge;
 - `catalog.retention.purged`, tagged `entity` (`comments`, `products`, `categories`).
 
 ## Testing

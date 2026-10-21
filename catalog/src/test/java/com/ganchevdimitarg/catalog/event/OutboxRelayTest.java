@@ -171,6 +171,24 @@ class OutboxRelayTest {
     }
 
     @Test
+    void should_deadLetter_when_sendFutureFailsWithSerialization() {
+        OutboxEvent event = event();
+        when(repository.lockUnsentBatch(20)).thenReturn(List.of(event));
+        when(kafkaTemplate.send(any(ProducerRecord.class)))
+                .thenReturn(CompletableFuture.failedFuture(
+                        new SerializationException("payload cannot be serialised")));
+
+        assertThat(newRelay().relayOnce()).isZero();
+
+        // get(timeout, unit) wraps the poison in an ExecutionException; isPoison walks it.
+        assertThat(event.getDeadLetteredAt()).isNotNull();
+        assertThat(event.getDeadLetterReason()).contains("payload cannot be serialised");
+        assertThat(event.getSentAt()).isNull();
+        assertThat(meterRegistry.counter(OutboxRelay.DEAD_LETTER_METRIC).count()).isEqualTo(1.0);
+        assertThat(meterRegistry.counter(OutboxRelay.FAILED_METRIC).count()).isZero();
+    }
+
+    @Test
     void should_notDeadLetter_when_brokerTimesOut() {
         OutboxEvent event = event();
         when(repository.lockUnsentBatch(20)).thenReturn(List.of(event));

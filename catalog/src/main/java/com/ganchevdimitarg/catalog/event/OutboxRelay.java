@@ -24,16 +24,16 @@ import java.util.concurrent.atomic.AtomicLong;
  * Relays transactional-outbox rows to Kafka.
  *
  * <p>Each run claims a batch of due rows inside a transaction and marks a row sent only once
- * the broker has acknowledged the record. A failed send records the attempt and stops the
- * batch; the row is retried after an exponential backoff capped at 60 seconds. Delivery is
- * at-least-once: a crash between the broker acknowledgement and the commit resends the row,
- * and consumers deduplicate on the event's {@code eventId}.
+ * the broker has acknowledged the record. A retryable failed send records the attempt and
+ * stops the batch; the row is retried after an exponential backoff capped at 60 seconds.
+ * Delivery is at-least-once: a crash between the broker acknowledgement and the commit
+ * resends the row, and consumers deduplicate on the event's {@code eventId}.
  *
  * <p>Non-retryable ("poison") failures — a payload that cannot be serialised, an oversized
- * record, an invalid record — are dead-lettered in the database instead: the row keeps its
- * attempt count and error, gains {@code dead_lettered_at}/{@code dead_letter_reason}, and is
- * excluded from future claims. Broker and network failures always retry, so an outage never
- * dead-letters healthy events.
+ * record, an invalid record — are dead-lettered in the database instead: the row still
+ * records the attempt and its error, gains {@code dead_lettered_at}/{@code
+ * dead_letter_reason}, and is excluded from future claims. Broker and network failures
+ * always retry, so an outage never dead-letters healthy events.
  */
 @Slf4j
 @Component

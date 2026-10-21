@@ -6,6 +6,7 @@ import com.ganchevdimitarg.catalog.repository.OutboxEventRepository;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.KafkaException;
+import org.apache.kafka.common.errors.SerializationException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -15,6 +16,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
@@ -113,6 +115,28 @@ class OutboxRelayFailureIT extends AbstractIntegrationTest {
                 .isEqualTo(repository.countBySentAtIsNullAndDeadLetteredAtIsNull());
     }
 
+    @Test
+    void should_parkRowOnce_when_payloadCannotBeSerialised() {
+        seedRow();
+        Timestamp nextAttemptBefore = queryTimestamp("next_attempt_at");
+        when(kafkaTemplate.send(any(ProducerRecord.class)))
+                .thenReturn(CompletableFuture.failedFuture(
+                        new SerializationException("poison payload")));
+
+        assertThat(relay.relayOnce()).isZero();
+
+        assertThat(isUnsent()).isTrue();
+        assertThat(queryInt("attempts")).isEqualTo(1);
+        assertThat(queryTimestamp("dead_lettered_at")).isNotNull();
+        assertThat(queryString("dead_letter_reason")).isNotBlank();
+        assertThat(queryTimestamp("next_attempt_at")).isEqualTo(nextAttemptBefore);
+
+        // The claim query excludes the parked row, so a second run must not retry it.
+        assertThat(relay.relayOnce()).isZero();
+        assertThat(queryInt("attempts")).isEqualTo(1);
+        verify(kafkaTemplate, times(1)).send(any(ProducerRecord.class));
+    }
+
     private void seedRow() {
         OutboxEvent event = new OutboxEvent();
         event.setAggregateType("Product");
@@ -151,5 +175,11 @@ class OutboxRelayFailureIT extends AbstractIntegrationTest {
         return jdbc.queryForObject(
                 "SELECT " + column + " FROM outbox_events WHERE aggregate_id = ?",
                 String.class, aggregateId);
+    }
+
+    private Timestamp queryTimestamp(String column) {
+        return jdbc.queryForObject(
+                "SELECT " + column + " FROM outbox_events WHERE aggregate_id = ?",
+                Timestamp.class, aggregateId);
     }
 }
