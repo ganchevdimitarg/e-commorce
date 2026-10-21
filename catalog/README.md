@@ -95,10 +95,12 @@ service.
   trusted, because catalog is reachable directly on port 8084.
 - Social opaque tokens are not accepted: they terminate at auth/gateway, and a social login
   must be exchanged for an auth-service JWT before catalog is called.
-- `/v3/api-docs/**`, `/swagger-ui/**`, `/swagger-ui.html`, `/actuator/health`,
-  `/actuator/info` and `/actuator/prometheus` are public; every other request needs a bearer
-  token. Authentication and authorisation failures are rendered as
-  `application/problem+json` (401 `UNAUTHENTICATED`, 403 `ACCESS_DENIED`).
+- `/v3/api-docs/**`, `/swagger-ui/**`, `/swagger-ui.html`, `/actuator/health` and its group
+  subpaths `/actuator/health/liveness` and `/actuator/health/readiness` (matcher
+  `/actuator/health/**`), plus `/actuator/info` and `/actuator/prometheus`, are public;
+  every other request needs a bearer token. Health details still require authorisation
+  (`show-details: when-authorized`). Authentication and authorisation failures are rendered
+  as `application/problem+json` (401 `UNAUTHENTICATED`, 403 `ACCESS_DENIED`).
 
 ## API
 
@@ -166,8 +168,8 @@ scoped by JWT subject, HTTP method, request path and the client key (SHA-256, pr
 ## Error model
 
 Errors raised by catalog — domain failures and the request guards — use
-`application/problem+json` (RFC 9457) with `status`, `title`, `detail`, `code` and
-`timestamp`:
+`application/problem+json` (RFC 9457) with `type`, `title`, `status`, `detail`, `code`
+and `timestamp`:
 
 ```json
 {
@@ -190,9 +192,9 @@ Errors raised by catalog — domain failures and the request guards — use
 | 500 | `INTERNAL_ERROR` | Unexpected failure; the detail is generic and the cause is logged |
 
 Framework-handled 400s — `@RequestBody @Valid` failures and unreadable or malformed bodies —
-also return `application/problem+json`, but in the standard framework shape: `status`,
-`title` and `detail` only. They carry no catalog `code`, `timestamp` or field-level `errors`
-list.
+also return `application/problem+json`, but in the standard framework shape: `type`,
+`title`, `status` and `detail` only. They carry no catalog `code`, `timestamp` or field-level
+`errors` list.
 
 ## Events
 

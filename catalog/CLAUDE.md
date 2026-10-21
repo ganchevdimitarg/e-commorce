@@ -25,8 +25,8 @@ Run from the repo root (Git Bash):
 - How tests run: `maven-surefire-plugin` includes `**/*Test.java` and `**/*IT.java`;
   `maven-failsafe-plugin` is **not bound**. The unit/full split uses the JUnit
   `unit` / `integration` tags (`-Dgroups=unit`).
-- Unit: `180` run, `0` failures, `0` errors (catalog module).
-- Full verify: `313` run, `0` failures, `0` errors.
+- Unit: `183` run, `0` failures, `0` errors (catalog module).
+- Full verify: `317` run, `0` failures, `0` errors.
   - Status: green. JaCoCo gates met (BUNDLE ≥ 90 % line, `service.*` = 100 %).
 
 ## Module specifics
@@ -47,7 +47,7 @@ Session rules for the `catalog/TODO.md` hardening list — restated from the roo
 - **Scope**: stay inside `catalog/` — never edit other modules. Base package:
   `catalog/src/main/java/com/ganchevdimitarg/catalog`.
 - **Flyway**: migrations only under `src/main/resources/db/migration/`; never edit a
-  committed migration — add the next free version (currently V11); `IF [NOT] EXISTS`
+  committed migration — add the next free version (currently V14); `IF [NOT] EXISTS`
   guards; `ddl-auto=validate`; Flyway owns the schema.
 - **Tests**: JUnit 5 + AssertJ, names `should_<expected>_when_<condition>`; write the
   failing test first, then the fix; ITs extend `AbstractIntegrationTest` /
@@ -59,11 +59,13 @@ Session rules for the `catalog/TODO.md` hardening list — restated from the roo
 
 ## Catalog-specific infrastructure (load the doc on demand)
 - **Redis** — `Idempotency-Key` guard (`catalog:idempotency:<key>`, 24h TTL, duplicate → 409)
-  and product read cache. NB catalog uses Spring `@Cacheable`/`@CacheEvict` (10-min TTL,
-  namespace `catalog:`), a deliberate deviation from the root cache-aside rule.
+  and product read cache. NB catalog uses Spring `@Cacheable` on `getProductById` plus
+  after-commit `ProductCache.put`/`evict`/`evictAll` (10-min TTL, namespace `catalog:`), a
+  deliberate deviation from the root cache-aside rule; it declares no `@CacheEvict`.
   → `../docs/context/caching.md`
-- **Kafka** — product events on `catalog.product.{created,updated,deleted}`, **JSON** via
-  `JsonSerializer` (no schema registry), published in `afterCommit()`; sealed `ProductEvent`
+- **Kafka** — product events on the four topics `catalog.product.created`, `.updated`,
+  `.deleted` and `.category-changed`, **JSON** via `JsonSerializer` (no schema registry),
+  written to a transactional outbox and relayed asynchronously; sealed `ProductEvent`
   record subtypes; acks=all + idempotence. → `../docs/context/kafka-patterns.md`
 - **Read replica** — `DataSourceRouter extends AbstractRoutingDataSource`, routes on
   `isCurrentTransactionReadOnly()`; writer (:5432) / reader (:5433) pools,
@@ -82,18 +84,18 @@ Session rules for the `catalog/TODO.md` hardening list — restated from the roo
 ./mvnw flyway:validate -pl catalog       # migration drift
 ```
 catalog auto-manages its own data plane (PG writer/reader, Redis, Kafka) via
-`catalog/compose.yaml` on `spring-boot:run` (dev only; tests use Testcontainers). Shared
-platform services (Vault `:8200`, Eureka `:8761`, auth `:8082`, OTLP `:4318`) come from the
-root `docker-compose`. Env: `POSTGRES_USER`, `POSTGRES_PASSWORD`, `VAULT_DEV_ROOT_TOKEN_ID`.
+`catalog/compose.yaml` on `spring-boot:run` (dev only; tests use Testcontainers). Only
+shared infrastructure (Vault `:8200` and the other root-compose services) comes from the
+root `docker-compose.yml`; Eureka (`:8761`) and auth (`:8082`) are started from their own
+modules, and an OTLP collector (`:4318`) must be supplied separately. Env:
+`POSTGRES_USER`, `POSTGRES_PASSWORD`, `VAULT_DEV_ROOT_TOKEN_ID`.
 
 ## Known migration gaps
 - Source fully migrated to Boot 4.1.0 / Java 25 on the single `com.ganchevdimitarg.catalog`
-  package — no `com.concordeu` remnant. `clean verify` is green (313 tests, JaCoCo 90 %
+  package — no `com.concordeu` remnant. `clean verify` is green (317 tests, JaCoCo 90 %
   bundle / 100 % `service.*`). The reference module.
 - The root reactor builds green again as of 2026-07-08 (all modules on Boot 4). Building
-  catalog standalone still works: `../mvnw -f catalog/pom.xml clean verify` — catalog
-  depends on the `client` module, so install it once first:
-  `../mvnw -f client/pom.xml install -DskipTests`.
+  catalog standalone still works: `../mvnw -f catalog/pom.xml clean verify`.
 - Follow-ups (not blocking, human decision): no checkstyle plugin/config yet (stated PR
   gate); integration tests run under surefire (failsafe unbound); the catalog Docker build
   uses `-pl catalog -am` and so also trips the broken root reactor; no `application-prod.yml`

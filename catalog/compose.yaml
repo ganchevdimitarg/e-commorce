@@ -1,7 +1,8 @@
 # Catalog-scoped local-dev infra for Spring Boot Docker Compose Support.
 # Started/stopped automatically on `./mvnw spring-boot:run` (dev profile).
-# Shared platform services (Vault, Eureka, auth server, OTLP collector) live in the
-# monorepo root docker-compose.yaml — NOT here.
+# Only shared infrastructure (Vault and the other root-compose services) lives in the
+# monorepo root docker-compose.yml — NOT here. Eureka and the auth server are started from
+# their own modules, and an OTLP collector must be supplied separately.
 # NOTE: postgres-reader is a plain second instance, not a configured streaming replica;
 # local dev only needs a reachable :5433 so the read-replica router does not fall back to
 # the writer for every read. Replication staleness is not reproduced locally.

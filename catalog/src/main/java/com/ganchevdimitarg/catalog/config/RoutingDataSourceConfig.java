@@ -5,6 +5,8 @@ import com.zaxxer.hikari.HikariDataSource;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.flyway.autoconfigure.FlywayDataSource;
+import org.springframework.boot.health.contributor.HealthContributor;
+import org.springframework.boot.jdbc.health.DataSourceHealthIndicator;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -42,6 +44,21 @@ public class RoutingDataSourceConfig {
     public ReplicaHealthProbe replicaHealthProbe(
             @Qualifier("readerDataSource") DataSource readerDataSource) {
         return new ReplicaHealthProbe(readerDataSource);
+    }
+
+    /**
+     * Writer-only {@code db} health contributor.
+     *
+     * <p>Overrides Boot's auto-configured contributor by bean name. Without it, the
+     * auto-configuration resolves every {@link DataSource} bean (writer, reader and the
+     * routing proxy) and builds a composite, so an unreachable replica would drive the
+     * readiness {@code db} component {@code DOWN} even though reads degrade to the
+     * writer. Readiness must follow the writer only.
+     */
+    @Bean
+    public HealthContributor dbHealthContributor(
+            @Qualifier("writerDataSource") DataSource writerDataSource) {
+        return new DataSourceHealthIndicator(writerDataSource);
     }
 
     @Bean

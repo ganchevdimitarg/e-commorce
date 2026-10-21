@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import javax.sql.DataSource;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BooleanSupplier;
+import java.util.function.LongSupplier;
 
 /**
  * TTL-cached health probe for the read replica.
@@ -26,18 +27,31 @@ public final class ReplicaHealthProbe implements BooleanSupplier {
     static final long TTL_MS = 2_000;
 
     private final DataSource readerDataSource;
+    private final LongSupplier clockMillis;
     private final ReentrantLock probeLock = new ReentrantLock();
 
     private volatile long lastCheckTime;
     private volatile boolean lastResult = true;
 
     public ReplicaHealthProbe(DataSource readerDataSource) {
+        this(readerDataSource, System::currentTimeMillis);
+    }
+
+    /**
+     * Creates a probe with an injectable clock so the TTL cache can be tested without
+     * waiting for the wall clock.
+     *
+     * @param readerDataSource the replica to probe
+     * @param clockMillis supplies the current time in milliseconds
+     */
+    ReplicaHealthProbe(DataSource readerDataSource, LongSupplier clockMillis) {
         this.readerDataSource = readerDataSource;
+        this.clockMillis = clockMillis;
     }
 
     @Override
     public boolean getAsBoolean() {
-        long now = System.currentTimeMillis();
+        long now = clockMillis.getAsLong();
         if (now - lastCheckTime >= TTL_MS) {
             if (probeLock.tryLock()) {
                 try {
