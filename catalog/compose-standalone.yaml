@@ -1,0 +1,139 @@
+# Standalone catalog stack: the service plus everything it needs to answer authenticated
+# requests, with no sibling module running. From catalog/:
+#   cp .env.example .env
+#   docker compose -f compose-standalone.yaml up -d --build
+#   docker compose -f compose-standalone.yaml down -v
+#
+# The dev data plane in compose.yaml (writer/reader pair on 5432/5433, Redis 6379,
+# Kafka 9092) is separate: this stack publishes no host ports for Postgres or Redis, so
+# the two can coexist. Only Kafka (29092) and the mock OIDC issuer (8090) are exposed
+# besides catalog itself (8084).
+services:
+  # One PostgreSQL backs both the writer and the reader pool: locally the read-replica
+  # router only needs a reachable reader URL, not a streaming replica.
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: catalog
+      POSTGRES_USER: ${POSTGRES_USER:-catalog}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-catalog}
+    volumes:
+      - catalog-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-catalog} -d catalog"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Single-node KRaft broker. Catalog uses the internal PLAINTEXT listener (kafka:9092);
+  # the EXTERNAL listener on 29092 is for host-side debugging only.
+  kafka:
+    image: apache/kafka:3.8.1
+    ports:
+      - "29092:29092"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093,EXTERNAL://0.0.0.0:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 20s
+
+  # Mock OIDC issuer. Tokens are requested from the host at
+  # http://localhost:8090/default, so the JWT `iss` is http://localhost:8090/default;
+  # catalog validates that issuer string but fetches signing keys over the Compose network
+  # from http://mock-oauth2:8080/default/jwks.
+  mock-oauth2:
+    image: ghcr.io/navikt/mock-oauth2-server:6.1.1
+    ports:
+      - "8090:8080"
+    environment:
+      JSON_CONFIG: |
+        {
+          "interactiveLogin": false,
+          "tokenCallbacks": [{
+            "issuerId": "default",
+            "tokenExpiry": 3600,
+            "requestMappings": [{
+              "requestParam": "grant_type",
+              "match": "client_credentials",
+              "claims": {
+                "sub": "$${clientId}",
+                "scope": "catalog.read catalog.write"
+              }
+            }]
+          }]
+        }
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8080/isalive || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  catalog:
+    image: catalog:standalone
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8084:8084"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      mock-oauth2:
+        condition: service_healthy
+    environment:
+      # Dev profile: console logs and the environment-driven defaults from
+      # application-dev.yml. Its infra integrations are switched off by the env below.
+      SPRING_PROFILES_ACTIVE: dev
+      SERVER_PORT: 8084
+      POSTGRES_USER: ${POSTGRES_USER:-catalog}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-catalog}
+      CATALOG_DB_WRITER_URL: jdbc:postgresql://postgres:5432/catalog
+      CATALOG_DB_READER_URL: jdbc:postgresql://postgres:5432/catalog
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      AUTH_ISSUER_URI: http://localhost:8090/default
+      AUTH_JWK_SET_URI: http://mock-oauth2:8080/default/jwks
+      EUREKA_CLIENT_ENABLED: "false"
+      SPRING_CLOUD_VAULT_ENABLED: "false"
+      SPRING_DOCKER_COMPOSE_ENABLED: "false"
+      SPRINGDOC_API_DOCS_ENABLED: "false"
+      SPRINGDOC_SWAGGER_UI_ENABLED: "false"
+      GATEWAY_CLIENT_SECRET: unused
+      TRACING_EXPORT_ENABLED: "false"
+      OTLP_LOGGING_EXPORT_ENABLED: "false"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8084/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+
+volumes:
+  catalog-pgdata:

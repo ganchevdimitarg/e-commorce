@@ -56,16 +56,66 @@ SPRING_PROFILES_ACTIVE=dev,debug ./mvnw spring-boot:run -pl catalog
 `application-debug.yml` enables `show-sql`, `format_sql`, Hibernate `SQL: DEBUG` and
 `org.hibernate.type.descriptor: TRACE`.
 
+### Standalone Compose stack
+
+`compose-standalone.yaml`, run from `catalog/`, starts catalog with everything it needs —
+PostgreSQL, Redis, Kafka and a mock OIDC issuer — without any sibling module:
+
+```bash
+cp .env.example .env
+docker compose -f compose-standalone.yaml up -d --build
+```
+
+Prerequisites: Docker Desktop with Compose v2, and nothing else bound to host ports
+**8084** (catalog), **8090** (mock issuer) or **29092** (Kafka's external listener).
+
+Verify the stack:
+
+```bash
+# Aggregate health, including the database
+curl -fsS http://localhost:8084/actuator/health
+
+# A JWT from the mock issuer; copy access_token from the response
+curl -s -X POST http://localhost:8090/default/token \
+  -H 'Content-Type: application/x-www-form-urlencoded' \
+  -d 'grant_type=client_credentials&client_id=dev&client_secret=dev'
+
+# A secured read (SCOPE_catalog.read); expect 200
+TOKEN="<paste access_token>"
+curl -H "Authorization: Bearer $TOKEN" \
+  "http://localhost:8084/api/v1/catalog/products?page=0&size=20"
+```
+
+Teardown, deleting the database volume:
+
+```bash
+docker compose -f compose-standalone.yaml down -v
+```
+
+Notes:
+
+- One PostgreSQL serves both the writer and the reader pool; production uses a real read
+  replica. Postgres and Redis publish no host ports, so this stack does not clash with
+  the dev data plane in `compose.yaml`.
+- The mock issuer is `http://localhost:8090/default`; catalog validates that `iss` string
+  but fetches signing keys over the Compose network from
+  `http://mock-oauth2:8080/default/jwks`.
+- Request tokens from `localhost`, not `127.0.0.1`: the `iss` claim embeds the host, and a
+  `127.0.0.1` token fails issuer validation with 401.
+- Swagger, Vault, Eureka and OTLP export are disabled in this stack. Logs go to the
+  console: `docker compose -f compose-standalone.yaml logs catalog`.
+
 ## Configuration
 
 | File | Purpose |
 |---|---|
-| `application.yml` | Profile-neutral base: application name, default `dev` profile group, `spring.config.import: optional:vault://` and the Vault connection (`http://localhost:8200`, token auth, generic backend `auth-service`, context `credentials`). |
-| `application-dev.yml` | Dev overlay: datasource, JWT issuer, Redis, Kafka, Eureka, actuator, tracing and springdoc. |
+| `application.yml` | Profile-neutral base: application name, default `dev` profile group, JPA and pagination settings, virtual threads and actuator exposure. |
+| `application-dev.yml` | Dev overlay: datasource, JWT issuer, Redis, Kafka, Eureka, actuator, tracing, springdoc and the optional Vault import (`optional:vault://`, `http://localhost:8200`, token auth, backend `secret`, context `catalog/credentials`). |
 | `application-debug.yml` | Opt-in SQL diagnostics, activated with `SPRING_PROFILES_ACTIVE=dev,debug`. |
 
-Vault still serves catalog from the auth service's `auth-service/credentials` generic path;
-TODO 7.4 gives catalog its own path. Secrets are always referenced as `${ENV_VAR}` — never
+Catalog owns its Vault KV path `secret/catalog/credentials` (mount `secret`, context
+`catalog/credentials`), and the import is optional in dev (`fail-fast: false`), so the
+service starts without Vault. Secrets are always referenced as `${ENV_VAR}` — never
 inlined.
 
 Configuration keys that matter locally:

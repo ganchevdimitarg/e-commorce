@@ -93,6 +93,14 @@ cd catalog
 ./mvnw -pl catalog -am clean verify
 ```
 
+The full stack also runs without any sibling module:
+
+```bash
+cp .env.example .env
+docker compose -f compose-standalone.yaml up -d --build   # catalog :8084, mock OIDC :8090, Kafka :29092
+docker compose -f compose-standalone.yaml down -v         # teardown, drops the database volume
+```
+
 Runtime configuration is environment-driven. The `dev` profile (`application-dev.yml`)
 supplies localhost defaults and is active when no profile is set; the `prod` profile
 (`application-prod.yml`) requires the external endpoints from the environment, disables
