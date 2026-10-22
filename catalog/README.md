@@ -214,8 +214,9 @@ that loses the optimistic-lock race is a 409 `CONFLICT`.
 ### Response shapes
 
 - `ProductResponseDto`: `id`, `name`, `description`, `price`, `inStock`, `characteristics`,
-  `category` (`{id, name}`), `comments` (`CommentResponseDto[]`), `version` (optimistic-lock
-  version, also the `ETag`), `avgStars` and `ratingCount`.
+  `category` (`{id, name}`), `version` (optimistic-lock version, also the `ETag`), `avgStars`
+  and `ratingCount`. Reviews are not embedded; use `GET /products/{name}/comments` for the
+  paginated collection, and `avgStars` / `ratingCount` for the summary.
 - `CategoryResponseDto`: `id`, `name`, `productCount`.
 - `CommentResponseDto`: `id`, `title`, `text`, `star`, `author`, `productId`, `productName`.
 - `PageResponse<T>`: `content`, `page`, `size`, `totalElements`, `totalPages`.
@@ -386,10 +387,11 @@ Tuning and failure behaviour:
 
 ## Caching and read replica
 
-**Cache.** There is one Redis cache, `product`, with a 10-minute TTL, the `catalog:v4:` key
-prefix (`catalog:v4:product::<uuid>`) and Jackson JSON values serialized by the typed
+**Cache.** There is one Redis cache, `product`, with a 10-minute TTL, the `catalog:v5:` key
+prefix (`catalog:v5:product::<uuid>`) and Jackson JSON values serialized by the typed
 `JacksonJsonRedisSerializer<ProductResponseDto>`. Values carry no `@class` type metadata; the
-prefix bump means v3 entries, which do, are never read as the typed DTO.
+prefix bump means v3 entries (which contain `@class`) and v4 entries (which contain a
+`comments` property) are never read as the new record.
 
 - `getProductById` is `@Cacheable(cacheNames = "product", key = "#id")`.
 - `createProduct` and `updateProduct` build the response DTO inside the write transaction

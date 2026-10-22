@@ -29,9 +29,10 @@ public class RedisCacheConfig implements CachingConfigurer {
     public RedisCacheManager cacheManager(RedisConnectionFactory connectionFactory) {
         RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
                 .entryTtl(Duration.ofMinutes(10))
-                // v4: the value serializer is typed to ProductResponseDto and writes no type
-                // metadata; a new prefix forces a miss on v3 entries, which contain @class.
-                .prefixCacheNameWith("catalog:v4:")
+                // v5: ProductResponseDto no longer carries comments; a v4 entry still contains
+                // the "comments" property, so a new prefix forces a miss rather than binding
+                // stale JSON to the new record.
+                .prefixCacheNameWith("catalog:v5:")
                 .serializeValuesWith(RedisSerializationContext.SerializationPair
                         .fromSerializer(new JacksonJsonRedisSerializer<>(ProductResponseDto.class)));
 

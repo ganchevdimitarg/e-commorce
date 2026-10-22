@@ -185,9 +185,9 @@ public class ProductServiceImpl implements ProductService {
     @Transactional(readOnly = true)
     @PreAuthorize("hasAuthority('" + CatalogAuthorities.SCOPE_READ + "')")
     public List<ProductResponseDto> getProductsById(ItemRequestDto product) {
-        // One query for the whole batch; the transaction keeps the lazy comments collection
-        // and the category association usable while mapping, and findAllById order is
-        // unspecified so the response is rebuilt in request order.
+        // One query for the whole batch; the transaction keeps the category association
+        // usable while mapping, and findAllById order is unspecified so the response is
+        // rebuilt in request order.
         List<UUID> requested = product.items();
         Map<UUID, Product> found = productRepository.findAllById(requested).stream()
                 .collect(Collectors.toMap(Product::getId, Function.identity()));
@@ -256,7 +256,6 @@ public class ProductServiceImpl implements ProductService {
                 product.isInStock(),
                 product.getCharacteristics(),
                 mapper.mapCategoryToCategorySummaryDto(product.getCategory()),
-                mapper.mapCommentsToCommentResponseDtos(product.getComments()),
                 product.getVersion(),
                 product.getAvgStars(),
                 product.getRatingCount());

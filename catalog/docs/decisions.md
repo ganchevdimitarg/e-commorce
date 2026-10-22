@@ -69,3 +69,9 @@ Reference with `@docs/decisions.md` in prompts when Claude re-raises settled que
   `catalog:v4:` so v3 entries are never deserialized as the typed DTO. Prod Redis auth/TLS is
   environment-backed (`REDIS_PASSWORD`, `REDIS_SSL_ENABLED`). Rejected: Jackson 2's typed
   serializer, which is deprecated for removal in Spring Data Redis 4.1.
+- 2026-10-22 — Catalog product responses no longer embed the comment collection:
+  `ProductResponseDto.comments` and `Product.comments` are removed; `avgStars` and
+  `ratingCount` carry the summary and `GET /products/{name}/comments` serves the
+  paginated reviews. The cache prefix moves to `catalog:v5:` so v4 entries containing a
+  `comments` property are never bound to the new record. Rejected: a capped comments
+  array (still unbounded per product and duplicates the paginated endpoint).

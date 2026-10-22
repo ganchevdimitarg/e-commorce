@@ -48,7 +48,7 @@ seed copy and the bind mount. `grep` in step 2 is Git Bash; in PowerShell use
 ```bash
 # 1. Start the stack with the perf override.
 docker compose -f compose-standalone.yaml -f perf/compose.perf.yaml up -d --build
-curl.exe --retry 30 --retry-delay 2 --retry-connrefused -fsS http://localhost:8084/actuator/health
+curl.exe --retry 30 --retry-delay 2 --retry-connrefused -fsS http://localhost:8088/actuator/health
 
 # 2. Confirm the override reached the container.
 docker compose -f compose-standalone.yaml -f perf/compose.perf.yaml \
@@ -137,3 +137,25 @@ docker compose -f compose-standalone.yaml -f perf/compose.perf.yaml down
   that task 2.1 fixes.
 - Numbers are comparable only with the same host, Docker resources, seed and script.
   Record the environment above and use the same procedure when re-running for 2.1/2.2.
+
+## After task 2.1
+
+Measured 2026-10-22 on `catalog-hardening-2` (working tree with embedded comments removed,
+image rebuilt from the same tree), same host, seed, script and procedure as the baseline;
+the health probe is now on the management port (8088). Values are the median of three 45 s
+runs, each preceded by `FLUSHDB`.
+
+| Endpoint | Request | p50 (ms) | p95 (ms) | p99 (ms) | Median response (bytes) | Failed |
+|---|---|---|---|---|---|---|
+| by-id, hot product | `GET /api/v1/catalog/products/00000000-0000-0000-0000-000000000001` | 5.56 | 18.65 | 26.17 | 348 | 0% |
+| search | `GET /api/v1/catalog/products?q=Phone&size=20&sort=createdAt,desc` | 22.49 | 45.54 | 96.09 | 7,033 | 0% |
+| cursor | `GET /api/v1/catalog/products/:cursor?limit=20&sort=createdAt,desc` | 7.84 | 16.22 | 28.48 | 7,255 | 0% |
+
+Per-run spread: by-id p50 4.81–8.94 ms, p99 19.61–104.46 ms; search p50 20.59–25.58 ms,
+p99 68.59–230.56 ms; cursor p50 6.86–11.36 ms, p99 22.53–105.64 ms. The first run is the
+slowest (warm-up), which the medians above absorb.
+
+The payload collapse is the point: products 1-3 no longer embed 2,000 comments, so the
+by-id response drops from 485,040 to 348 bytes and search/cursor from ~1.46 MB to ~7 KB.
+Latency falls with the payload; comparisons remain order-of-magnitude given the single-run
+caveat above.

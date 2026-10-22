@@ -27,7 +27,6 @@ import org.springframework.test.web.servlet.ResultActions;
 
 import java.math.BigDecimal;
 import java.time.Duration;
-import java.util.List;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -207,7 +206,7 @@ class ProductValidationTest {
 
     private void assertAccepted(String body, String idempotencyKey) throws Exception {
         when(productService.createProduct(any())).thenReturn(new ProductResponseDto(
-                PRODUCT_ID, VALID_NAME, VALID_DESCRIPTION, BigDecimal.ONE, true, "black", null, List.of(), 0L,
+                PRODUCT_ID, VALID_NAME, VALID_DESCRIPTION, BigDecimal.ONE, true, "black", null, 0L,
                 0.0, 0));
 
         postProduct(body, idempotencyKey).andExpect(status().isCreated());

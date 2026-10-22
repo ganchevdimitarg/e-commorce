@@ -15,7 +15,6 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.math.BigDecimal;
-import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -138,6 +137,6 @@ class ProductCacheTest {
 
     private static ProductResponseDto productDto() {
         return new ProductResponseDto(PRODUCT_ID, "mouse", "Wireless mouse", BigDecimal.TEN,
-                true, "test-chars", null, List.of(), 7L, 0.0, 0);
+                true, "test-chars", null, 7L, 0.0, 0);
     }
 }

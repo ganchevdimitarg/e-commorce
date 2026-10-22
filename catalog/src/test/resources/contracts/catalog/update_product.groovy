@@ -37,7 +37,6 @@ Contract.make {
                         id: '22222222-2222-2222-2222-222222222222',
                         name: 'PC'
                 ],
-                comments: [],
                 version: 4,
                 avgStars: 4.5d,
                 ratingCount: 2

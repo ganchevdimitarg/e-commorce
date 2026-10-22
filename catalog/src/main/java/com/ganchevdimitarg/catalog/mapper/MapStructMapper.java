@@ -14,8 +14,6 @@ import com.ganchevdimitarg.catalog.dto.product.UpdateProductRequestDto;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-import java.util.List;
-
 @Mapper(componentModel = "spring")
 public interface MapStructMapper {
     ProductResponseDto mapProductToProductResponseDto(Product product);
@@ -25,14 +23,12 @@ public interface MapStructMapper {
     @Mapping(source = "product.id", target = "productId")
     @Mapping(source = "product.name", target = "productName")
     CommentResponseDto mapCommentToCommentResponseDto(Comment comment);
-    List<CommentResponseDto> mapCommentsToCommentResponseDtos(List<Comment> comments);
 
     CreateProductCommand mapProductRequestToCreateCommand(ProductRequestDto dto, String categoryName);
     UpdateProductCommand mapProductRequestToUpdateCommand(UpdateProductRequestDto dto);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "category", ignore = true)
-    @Mapping(target = "comments", ignore = true)
     Product mapCreateCommandToProduct(CreateProductCommand cmd);
 
     @Mapping(target = "id", ignore = true)

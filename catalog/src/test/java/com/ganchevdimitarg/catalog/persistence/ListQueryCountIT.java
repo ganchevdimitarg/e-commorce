@@ -102,7 +102,9 @@ class ListQueryCountIT extends AbstractIntegrationTest {
         productService.searchProducts(new ProductSearchCriteria(null, null, null, null, null),
                 PageRequest.of(0, 20));
 
-        assertThat(stats.getPrepareStatementCount()).isLessThanOrEqualTo(4);
+        assertThat(stats.getPrepareStatementCount())
+                .as("count + page select; the comments batch is gone")
+                .isLessThanOrEqualTo(2);
     }
 
     @Test
@@ -112,7 +114,10 @@ class ListQueryCountIT extends AbstractIntegrationTest {
         productService.searchProducts(new ProductSearchCriteria(null, null, null, null, categoryName),
                 PageRequest.of(0, 20));
 
-        assertThat(stats.getPrepareStatementCount()).isLessThanOrEqualTo(5);
+        assertThat(stats.getPrepareStatementCount())
+                .as("category lookup + page select; the page is not full, so no count query, "
+                        + "and the comments batch is gone")
+                .isLessThanOrEqualTo(2);
     }
 
     @Test

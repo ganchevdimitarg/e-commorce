@@ -283,7 +283,7 @@ class ProductCacheIT extends RedisIntegrationBase {
         productService.getProductById(PRODUCT_ID);
 
         String raw = stringRedisTemplate.opsForValue()
-                .get("catalog:v4:product::" + PRODUCT_ID);
+                .get("catalog:v5:product::" + PRODUCT_ID);
 
         assertThat(raw)
                 .isNotNull()
