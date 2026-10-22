@@ -71,9 +71,11 @@ Session rules for the `catalog/TODO.md` hardening list — restated from the roo
   deliberate deviation from the root cache-aside rule; it declares no `@CacheEvict`.
   → `../docs/context/caching.md`
 - **Kafka** — product events on the four topics `catalog.product.created`, `.updated`,
-  `.deleted` and `.category-changed`, **JSON** via `JsonSerializer` (no schema registry),
-  written to a transactional outbox and relayed asynchronously; sealed `ProductEvent`
-  record subtypes; acks=all + idempotence. → `../docs/context/kafka-patterns.md`
+  `.deleted` and `.category-changed`, **JSON** via `StringSerializer` over pre-serialised
+  payloads (no external registry; version-dispatched JSON Schemas with a BACKWARD
+  compatibility gate), written to a transactional outbox and relayed asynchronously;
+  sealed `ProductEvent` record subtypes; acks=all + idempotence.
+  → `../docs/context/kafka-patterns.md`
 - **Read replica** — `DataSourceRouter extends AbstractRoutingDataSource`, routes on
   `isCurrentTransactionReadOnly()`; writer (:5432) / reader (:5433) pools,
   `LazyConnectionDataSourceProxy`, 2s health probe, graceful fallback.
