@@ -17,6 +17,7 @@
     <properties>
         <java.version>25</java.version>
         <spring-cloud-version>2025.1.1</spring-cloud-version>
+        <spring-cloud-contract.version>5.0.2</spring-cloud-contract.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <lombok.mapstruct.binding.version>0.2.0</lombok.mapstruct.binding.version>
         <mapstruct.version>1.6.3</mapstruct.version>
@@ -250,6 +251,12 @@
             <version>${archunit.version}</version>
             <scope>test</scope>
         </dependency>
+        <!--   Producer contract tests: verifier runtime for the SCC-generated tests   -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-contract-verifier</artifactId>
+            <scope>test</scope>
+        </dependency>
 
         <!--    Migration Database     -->
         <dependency>
@@ -364,6 +371,17 @@
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-contract-maven-plugin</artifactId>
+                <version>${spring-cloud-contract.version}</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <testFramework>JUNIT5</testFramework>
+                    <baseClassForTests>com.ganchevdimitarg.catalog.contract.ContractVerifierBase</baseClassForTests>
+                </configuration>
             </plugin>
 
             <plugin>

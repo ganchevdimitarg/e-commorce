@@ -170,7 +170,7 @@ require `SCOPE_catalog.write` unless the authority column says otherwise.
 | GET | `/api/v1/catalog/products/:cursor` | `SCOPE_catalog.read` | optional `q`, `minPrice`, `maxPrice`, `inStock`, `categoryName`; `cursor`, `limit` 1–100 (default 20), `sort` `createdAt,asc` or `createdAt,desc` (default `createdAt,desc`) | 200, `CursorPageResponse<ProductResponseDto>` |
 | GET | `/api/v1/catalog/products/{id}` | `SCOPE_catalog.read` | UUID path | 200, `ProductResponseDto` (cached) |
 | GET | `/api/v1/catalog/products/by-name/{name}` | `SCOPE_catalog.read` | name path | 200, `ProductResponseDto` |
-| POST | `/api/v1/catalog/products:batch-get` | `SCOPE_catalog.read` | `ItemRequestDto`: 1–100 UUIDs | 200, `List<ProductResponseDto>`; 404 lists every missing id |
+| POST | `/api/v1/catalog/products/:batch-get` | `SCOPE_catalog.read` | `ItemRequestDto`: 1–100 UUIDs | 200, `List<ProductResponseDto>`; 404 lists every missing id |
 | PUT | `/api/v1/catalog/products/{id}` | `SCOPE_catalog.write` | `UpdateProductRequestDto`: `description`, `price`, `inStock`, `characteristics` | 200, updated `ProductResponseDto` |
 | DELETE | `/api/v1/catalog/products/{id}` | `SCOPE_catalog.write` | — | 204 |
 | POST | `/api/v1/catalog/categories` | `SCOPE_catalog.write` | `CategoryRequestDto`: `name` | 201, `Location: /api/v1/catalog/categories/{name}`, `CategoryResponseDto` |
@@ -246,7 +246,7 @@ curl -H "Authorization: Bearer $TOKEN" \
 ### Idempotency
 
 Every `POST`, `PUT` and `DELETE` under `/api/v1/catalog/**` — except
-`POST /api/v1/catalog/products:batch-get`, which is a read expressed as POST — requires an
+`POST /api/v1/catalog/products/:batch-get`, which is a read expressed as POST — requires an
 `Idempotency-Key` header. A missing header is a 400 `VALIDATION_ERROR`. The stored key is
 scoped by JWT subject, HTTP method, request path and the client key (SHA-256, prefix
 `catalog:idempotency:`, 24-hour TTL):
@@ -424,6 +424,26 @@ Run from the repository root:
 Integration tests extend `AbstractIntegrationTest` / `RedisKafkaIntegrationBase` and use
 Testcontainers, so Docker must be running for the full `verify`. JaCoCo enforces 90 % line
 coverage for the bundle and 100 % for `com.ganchevdimitarg.catalog.service.*`.
+
+### Contract tests (producer)
+
+Catalog publishes producer-side Spring Cloud Contract stubs for its REST API. The contracts
+live in `src/test/resources/contracts/catalog/`; the `spring-cloud-contract-maven-plugin`
+generates JUnit 5 tests into `target/generated-test-sources/contracts` during
+`generate-test-sources`, and they run with the rest of the suite in `./mvnw clean verify`.
+The stubs jar is `target/catalog-0.0.1-SNAPSHOT-stubs.jar`.
+
+The generated tests drive a standalone MockMvc wired with the real `ProductController` and
+`ControllerExceptionHandler`; only `ProductService` is mocked (`ContractVerifierBase`), so
+no Spring context, database or container is needed. Covered: get by id, list, create,
+update (`If-Match`/`ETag`), batch-get and cursor pagination, including the `version`,
+`avgStars` and `ratingCount` fields.
+
+Stubs are for future consumers. The `order` module is the only in-repo consumer today, but
+the path it configures — `/catalog/product/get-products-id` — does not exist; the real
+batch-get contract is `POST /api/v1/catalog/products/:batch-get`, and fixing `order` is a
+separate cross-module change. No in-repo module consumes catalog events, so event
+contracts stay with the JSON Schema files (ADR-010).
 
 ## Continuous integration
 
