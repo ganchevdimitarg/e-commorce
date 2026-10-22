@@ -17,9 +17,15 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Proves the name-contains predicate can be index-scanned. The query mirrors what
- * {@code ProductSpecifications.matching} plus Product's {@code @SQLRestriction} emit:
- * lower(name) LIKE '%q%' ESCAPE '\' AND deleted_at IS NULL.
+ * Proves the trigram index can serve the name-contains predicate. The {@code EXPLAIN}
+ * mirrors the SQL that {@code ProductSpecifications.matching} plus Product's
+ * {@code @SQLRestriction} emit — {@code lower(name) LIKE '%q%' ESCAPE '\' AND
+ * deleted_at IS NULL} — with the pattern inlined.
+ *
+ * <p>It does not exercise Hibernate's bound-parameter statement. With a bind parameter
+ * PostgreSQL may choose a generic plan, which cannot use a trigram index, so the runtime
+ * plan for {@code GET /products?q=} is not asserted here; see {@code docs/decisions.md}
+ * for the operational mitigation if measurements show search falling back to a scan.
  */
 @Tag("integration")
 class ProductNameTrigramIndexIT extends AbstractIntegrationTest {

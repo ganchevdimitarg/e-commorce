@@ -81,4 +81,16 @@ Reference with `@docs/decisions.md` in prompts when Claude re-raises settled que
   PostgreSQL 13+ treats it as trusted, but a restricted database user may need a DBA to
   create the extension once. Rejected: a B-tree index (cannot serve a leading-wildcard
   LIKE), full-text search (changes match semantics from substring to lexeme), and an
-  in-memory filter (unbounded read).
+  in-memory filter (unbounded read). Two limits are accepted:
+  (a) `V20` uses a non-concurrent `CREATE INDEX`, so Flyway's startup migration holds a
+  `SHARE` lock on `products` for the GIN build and briefly blocks writes from older
+  instances during a rolling deploy; this is accepted for the current catalogue size, and
+  a future growth point should switch to a non-transactional `CREATE INDEX CONCURRENTLY`
+  migration plus a manual repair step for an invalid index, because `IF NOT EXISTS`
+  would skip the retry;
+  (b) `ProductNameTrigramIndexIT` inlines the pattern and so proves index usability, not
+  the runtime plan of the bound-parameter query; pgjdbc prepares statements after five
+  executions and PostgreSQL may then choose a generic plan that cannot use a trigram
+  index, so if measurements show search falling back to a scan, set
+  `plan_cache_mode=force_custom_plan` (or pgjdbc `prepareThreshold=0`) on the catalog
+  datasources.
