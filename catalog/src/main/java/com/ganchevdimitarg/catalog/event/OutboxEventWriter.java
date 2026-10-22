@@ -28,6 +28,7 @@ public class OutboxEventWriter {
 
     private final OutboxEventRepository repository;
     private final ObjectMapper objectMapper;
+    private final EventSchemaValidator schemaValidator;
 
     public void writeCreated(Product product) {
         write(product, ProductTopics.PRODUCT_CREATED, "created",
@@ -68,6 +69,10 @@ public class OutboxEventWriter {
     }
 
     private void write(Product product, String topic, String eventType, ProductEvent event) {
+        // Fail closed before touching the outbox: a payload that violates its schema must
+        // roll back the caller's business transaction, not be stored for the relay to send.
+        schemaValidator.validate(topic, event);
+
         Instant now = Instant.now();
         String productId = productId(product);
 

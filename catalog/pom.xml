@@ -25,6 +25,7 @@
         <otel-logback.version>2.28.0-alpha</otel-logback.version>
         <archunit.version>1.4.2</archunit.version>
         <resilience4j.version>2.4.0</resilience4j.version>
+        <json-schema-validator.version>3.0.8</json-schema-validator.version>
         <!-- Testcontainers reuse for the integration suite; override with -Dtestcontainers.reuse.enable=false. -->
         <testcontainers.reuse.enable>true</testcontainers.reuse.enable>
     </properties>
@@ -138,6 +139,13 @@
         <dependency>
             <groupId>org.springframework.kafka</groupId>
             <artifactId>spring-kafka</artifactId>
+        </dependency>
+
+        <!--   JSON Schema validation of outbound event payloads (ADR-010)   -->
+        <dependency>
+            <groupId>com.networknt</groupId>
+            <artifactId>json-schema-validator</artifactId>
+            <version>${json-schema-validator.version}</version>
         </dependency>
 
         <!--   Tracing (OTLP) — starter provides Tracer auto-config + bridge + exporter   -->

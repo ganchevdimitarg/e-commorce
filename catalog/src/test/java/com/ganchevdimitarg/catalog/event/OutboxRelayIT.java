@@ -43,6 +43,7 @@ import static org.awaitility.Awaitility.await;
 class OutboxRelayIT extends RedisKafkaIntegrationBase {
 
     private static final String PRODUCT_NAME = "relay-mouse";
+    private static final BigDecimal PRICE = BigDecimal.valueOf(19.99);
     private static final String DESCRIPTION = "Relay integration test product";
     private static final String CATEGORY_NAME = "relay-peripherals";
 
@@ -135,6 +136,8 @@ class OutboxRelayIT extends RedisKafkaIntegrationBase {
         Product product = new Product();
         product.setId(productId);
         product.setName(PRODUCT_NAME);
+        // A real product always has a price; the JSON Schema contract requires it (ADR-010).
+        product.setPrice(PRICE);
         txTemplate.executeWithoutResult(status -> writer.writeCreated(product));
     }
 

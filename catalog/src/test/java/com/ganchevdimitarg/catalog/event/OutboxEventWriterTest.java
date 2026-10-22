@@ -21,7 +21,13 @@ import java.time.Instant;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 @Tag("unit")
 @ExtendWith(MockitoExtension.class)
@@ -37,11 +43,14 @@ class OutboxEventWriterTest {
             .registerModule(new JavaTimeModule())
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
+    /** The real validator, so every fixture here also proves the payload matches its schema. */
+    private static final EventSchemaValidator VALIDATOR = new EventSchemaValidator(MAPPER);
+
     @Mock
     OutboxEventRepository repository;
 
     private OutboxEventWriter newWriter() {
-        return new OutboxEventWriter(repository, MAPPER);
+        return new OutboxEventWriter(repository, MAPPER, VALIDATOR);
     }
 
     private OutboxEvent captureSaved() {
@@ -77,6 +86,31 @@ class OutboxEventWriterTest {
                 .containsEntry("eventType", "created")
                 .containsKey("correlationId")
                 .containsKey("traceId");
+    }
+
+    @Test
+    void should_notWriteRow_when_schemaValidationFails() {
+        EventSchemaValidator validator = mock(EventSchemaValidator.class);
+        doThrow(new IllegalStateException("Event violates its JSON Schema"))
+                .when(validator).validate(eq(ProductTopics.PRODUCT_CREATED), any());
+        OutboxEventWriter writer = new OutboxEventWriter(repository, MAPPER, validator);
+
+        assertThatThrownBy(() -> writer.writeCreated(product()))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("violates");
+
+        verifyNoInteractions(repository);
+    }
+
+    @Test
+    void should_validateAgainstTheTopicSchema_when_writingAnEvent() {
+        EventSchemaValidator validator = mock(EventSchemaValidator.class);
+        OutboxEventWriter writer = new OutboxEventWriter(repository, MAPPER, validator);
+
+        writer.writeCategoryChanged(product(), "storage", CATEGORY_NAME);
+
+        verify(validator).validate(eq(ProductTopics.PRODUCT_CATEGORY_CHANGED), any(ProductEvent.class));
+        verify(repository).save(any(OutboxEvent.class));
     }
 
     @Test
