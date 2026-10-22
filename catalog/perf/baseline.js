@@ -48,7 +48,7 @@ export default function (data) {
 
   get(`${BASE_URL}/api/v1/catalog/products/${HOT_PRODUCT_ID}`,
       headers, byIdDuration, byIdSize);
-  get(`${BASE_URL}/api/v1/catalog/products?q=Phone&size=20`,
+  get(`${BASE_URL}/api/v1/catalog/products?q=Phone&size=20&sort=createdAt,desc`,
       headers, searchDuration, searchSize);
   get(`${BASE_URL}/api/v1/catalog/products/:cursor?limit=20&sort=createdAt,desc`,
       headers, cursorDuration, cursorSize);

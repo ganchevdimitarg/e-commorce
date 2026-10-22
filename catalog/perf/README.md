@@ -21,9 +21,9 @@ procedure unchanged to measure those tasks.
 
 | Endpoint | Request | p50 (ms) | p95 (ms) | p99 (ms) | Median response (bytes) | Failed |
 |---|---|---|---|---|---|---|
-| by-id, hot product | `GET /api/v1/catalog/products/00000000-0000-0000-0000-000000000001` | 46.67 | 174.40 | 363.12 | 485,040 | 0% |
-| search | `GET /api/v1/catalog/products?q=Phone&size=20` | 168.01 | 557.73 | 685.58 | 1,461,347 | 0% |
-| cursor | `GET /api/v1/catalog/products/:cursor?limit=20&sort=createdAt,desc` | 144.18 | 374.99 | 586.02 | 1,461,569 | 0% |
+| by-id, hot product | `GET /api/v1/catalog/products/00000000-0000-0000-0000-000000000001` | 43.95 | 208.52 | 517.42 | 485,040 | 0% |
+| search | `GET /api/v1/catalog/products?q=Phone&size=20&sort=createdAt,desc` | 182.08 | 694.43 | 1,210 | 1,461,347 | 0% |
+| cursor | `GET /api/v1/catalog/products/:cursor?limit=20&sort=createdAt,desc` | 152.97 | 485.37 | 1,730 | 1,461,569 | 0% |
 
 ## Procedure
 
@@ -63,8 +63,9 @@ docker compose -f compose-standalone.yaml -f perf/compose.perf.yaml down
 - `getProductById` is `@Cacheable("product")`; after the first request the by-id
   latency is the Redis path. The response size still includes all 2,000 comments.
   Redis is flushed before the measured run so run-to-run numbers are comparable.
-- Products 1-3 are the newest rows, so the search and cursor pages include them on
-  page 1. That is intentional: it exposes the embedded-comments payload problem
+- Products 1-3 are the newest rows. The search request is sorted explicitly by
+  `createdAt,desc` (as is the cursor request), so those three products are guaranteed
+  on page 1. That is intentional: it exposes the embedded-comments payload problem
   that task 2.1 fixes.
 - Numbers are comparable only with the same host, Docker resources, seed and script.
   Record the environment above and use the same procedure when re-running for 2.1/2.2.
