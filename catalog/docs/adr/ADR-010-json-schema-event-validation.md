@@ -84,7 +84,8 @@ the reference the Avro schemas are generated or migrated from.
   storage). Product mutations are low-frequency; the cost is accepted for validating
   exactly what is stored.
 - **Consumers still need their own validation.** Catalog controls only what it produces;
-  consumer-side contract tests remain Tasks 11–12.
+  consumer-side validation remains outside catalog; Tasks 11–12 cover producer REST
+  contracts and mutation testing.
 
 ## Alternatives rejected
 
