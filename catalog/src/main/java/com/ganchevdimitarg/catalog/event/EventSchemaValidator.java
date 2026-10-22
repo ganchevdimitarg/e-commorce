@@ -1,68 +1,57 @@
 package com.ganchevdimitarg.catalog.event;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.Error;
 import com.networknt.schema.InputFormat;
 import com.networknt.schema.Schema;
-import com.networknt.schema.SchemaRegistry;
-import com.networknt.schema.SpecificationVersion;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.core.io.Resource;
-import org.springframework.stereotype.Component;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Validates product event payloads against the versioned JSON Schemas in
  * {@code classpath:event-schemas} before they are written to the outbox.
  *
- * <p>This is a producer contract, not a schema registry: the schemas ship with the artifact
- * and the {@code schemaVersion} carried by each event selects the file suffix ({@code v1}
- * today). Loading happens in the constructor, so a missing schema fails application startup
- * rather than the first event write. See ADR-010.
+ * <p>The event's own {@code schemaVersion} selects the schema, so adding
+ * {@code <topic>.v2.json} is enough to evolve the contract without changing this class.
+ * Loading happens in the constructor, so a missing, duplicate or inconsistent schema fails
+ * application startup rather than the first event write. This is a registry-ready producer
+ * contract, not an external registry; see ADR-010.
  */
-@Component
 public class EventSchemaValidator {
 
     private static final String SCHEMA_BASE_PATH = "event-schemas";
-    private static final String SCHEMA_VERSION_SUFFIX = ".v1.json";
-    private static final List<String> TOPICS = List.of(
-            ProductTopics.PRODUCT_CREATED,
-            ProductTopics.PRODUCT_UPDATED,
-            ProductTopics.PRODUCT_DELETED,
-            ProductTopics.PRODUCT_CATEGORY_CHANGED);
 
     private final ObjectMapper objectMapper;
-    private final Map<String, Schema> schemas;
+    private final EventSchemaCatalog catalog;
 
     public EventSchemaValidator(ObjectMapper objectMapper) {
+        this(objectMapper, new EventSchemaCatalog(objectMapper, SCHEMA_BASE_PATH, ProductTopics.ALL));
+    }
+
+    public EventSchemaValidator(ObjectMapper objectMapper, EventSchemaCatalog catalog) {
         this.objectMapper = objectMapper;
-        this.schemas = loadSchemas(SCHEMA_BASE_PATH);
+        this.catalog = catalog;
     }
 
     /**
-     * Validates {@code event} against the schema registered for {@code topic}.
+     * Validates {@code event} against the schema selected by its {@code schemaVersion}.
      *
-     * @throws IllegalStateException if the topic has no schema or the payload violates one;
-     *                               the caller's transaction must roll back rather than write
-     *                               an outbox row no consumer can rely on
+     * @throws IllegalStateException if the topic/version has no schema or the payload
+     *                               violates it; the caller's transaction must roll back
+     *                               rather than write an outbox row no consumer can rely on
      */
     public void validate(String topic, Object event) {
-        Schema schema = schemas.get(topic);
-        if (schema == null) {
-            throw new IllegalStateException(
-                    "No JSON Schema is registered for product event topic " + topic);
-        }
+        String json = toJson(event);
+        int version = schemaVersion(json, topic);
+        Schema schema = catalog.schemaFor(topic, version);
 
-        List<Error> errors = schema.validate(toJson(event), InputFormat.JSON);
+        List<Error> errors = schema.validate(json, InputFormat.JSON);
         if (!errors.isEmpty()) {
             throw new IllegalStateException(
-                    "Event for " + topic + " violates its JSON Schema: " + errors);
+                    "Event for " + topic + " version " + version
+                            + " violates its JSON Schema: " + errors);
         }
     }
 
@@ -78,27 +67,17 @@ public class EventSchemaValidator {
         }
     }
 
-    /**
-     * Loads one schema per product topic. Package-private so tests can point at a base path
-     * that does not exist and prove that a missing schema fails startup.
-     */
-    static Map<String, Schema> loadSchemas(String basePath) {
-        SchemaRegistry registry = SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_2020_12);
-        Map<String, Schema> loaded = new LinkedHashMap<>();
-        for (String topic : TOPICS) {
-            String location = basePath + "/" + topic + SCHEMA_VERSION_SUFFIX;
-            Resource resource = new ClassPathResource(location);
-            if (!resource.exists()) {
+    private int schemaVersion(String json, String topic) {
+        try {
+            JsonNode version = objectMapper.readTree(json).path("schemaVersion");
+            if (!version.isInt()) {
                 throw new IllegalStateException(
-                        "Missing JSON Schema for product event topic " + topic + ": " + location);
+                        "Event for " + topic + " has no integer schemaVersion");
             }
-            try (InputStream schemaStream = resource.getInputStream()) {
-                loaded.put(topic, registry.getSchema(schemaStream));
-            } catch (IOException e) {
-                throw new IllegalStateException(
-                        "Failed to read JSON Schema for product event topic " + topic + ": " + location, e);
-            }
+            return version.intValue();
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException(
+                    "Failed to read schemaVersion for event on " + topic, e);
         }
-        return Map.copyOf(loaded);
     }
 }

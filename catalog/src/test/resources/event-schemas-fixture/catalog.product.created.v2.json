@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:catalog:event:catalog.product.created:v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["eventId", "productId", "productName", "price", "inStock",
+               "version", "schemaVersion", "occurredAt"],
+  "properties": {
+    "eventId": {"type": "string", "format": "uuid"},
+    "productId": {"type": "string", "format": "uuid"},
+    "productName": {"type": "string", "minLength": 3, "maxLength": 200},
+    "price": {"type": "number", "minimum": 0},
+    "inStock": {"type": "boolean"},
+    "categoryName": {"type": ["string", "null"], "maxLength": 200},
+    "color": {"type": ["string", "null"], "maxLength": 50},
+    "version": {"type": "integer", "minimum": 0},
+    "schemaVersion": {"const": 2},
+    "occurredAt": {"type": "string", "format": "date-time"}
+  }
+}

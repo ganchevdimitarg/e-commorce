@@ -116,11 +116,25 @@ class EventSchemaValidatorTest {
     }
 
     @Test
-    void should_rejectEvent_when_schemaVersionIsNotCurrent() {
+    void should_rejectEvent_when_schemaVersionHasNoSchema() {
         Map<String, Object> payload = payload(createdEvent());
-        payload.put("schemaVersion", 2);
+        payload.put("schemaVersion", 99);
 
-        assertViolation(ProductTopics.PRODUCT_CREATED, payload, "schemaVersion");
+        assertThatThrownBy(() -> validator.validate(ProductTopics.PRODUCT_CREATED, payload))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("version 99");
+    }
+
+    @Test
+    void should_validateAgainstMatchingVersion_when_eventCarriesSchemaVersionTwo() {
+        EventSchemaCatalog catalog = new EventSchemaCatalog(MAPPER, "event-schemas-fixture",
+                List.of(ProductTopics.PRODUCT_CREATED));
+        EventSchemaValidator versioned = new EventSchemaValidator(MAPPER, catalog);
+        ProductEvent.ProductCreated versionTwo = new ProductEvent.ProductCreated(EVENT_ID,
+                PRODUCT_ID, PRODUCT_NAME, PRICE, true, CATEGORY_NAME, VERSION, 2, OCCURRED_AT);
+
+        assertThatCode(() -> versioned.validate(ProductTopics.PRODUCT_CREATED, versionTwo))
+                .doesNotThrowAnyException();
     }
 
     @Test
@@ -140,18 +154,18 @@ class EventSchemaValidatorTest {
 
     @Test
     void should_failToLoad_when_aSchemaResourceIsMissing() {
-        assertThatThrownBy(() -> EventSchemaValidator.loadSchemas("missing-event-schemas"))
+        assertThatThrownBy(() -> new EventSchemaCatalog(MAPPER, "missing-event-schemas",
+                ProductTopics.ALL))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("missing-event-schemas");
     }
 
     @Test
     void should_loadSchemaForEveryProductTopic() {
-        Map<String, ?> schemas = EventSchemaValidator.loadSchemas("event-schemas");
+        EventSchemaCatalog catalog = new EventSchemaCatalog(MAPPER, "event-schemas", ProductTopics.ALL);
 
-        List<String> topics = List.of(ProductTopics.PRODUCT_CREATED, ProductTopics.PRODUCT_UPDATED,
-                ProductTopics.PRODUCT_DELETED, ProductTopics.PRODUCT_CATEGORY_CHANGED);
-        assertThat(schemas).containsOnlyKeys(topics);
+        assertThat(ProductTopics.ALL).allSatisfy(topic ->
+                assertThat(catalog.versionsFor(topic)).containsExactly(1));
     }
 
     private void assertViolation(String topic, Object payload, String offendingField) {
