@@ -1,12 +1,14 @@
 package com.ganchevdimitarg.catalog.repository;
 
 import com.ganchevdimitarg.catalog.domain.Product;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -19,6 +21,17 @@ import java.util.UUID;
 
 public interface ProductRepository extends JpaRepository<Product, UUID>, JpaSpecificationExecutor<Product> {
     Optional<Product> findByName(String productName);
+
+    // Rating recalculation reads and writes the product row, so comment mutations take a
+    // row lock before touching either aggregate. @SQLRestriction still applies: a
+    // soft-deleted product is intentionally not lockable.
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select p from Product p where p.name = :name")
+    Optional<Product> findByNameForUpdate(@Param("name") String name);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select p from Product p where p.id = :id")
+    Optional<Product> findByIdForUpdate(@Param("id") UUID id);
     Optional<Product> findByNameAndCategoryId(String name, UUID categoryId);
     boolean existsByCategory_Id(UUID categoryId);
     List<Product> findAllByCategory_Id(UUID categoryId);

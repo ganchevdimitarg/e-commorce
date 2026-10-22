@@ -36,7 +36,9 @@ public class CommentServiceImpl implements CommentService {
     @Transactional
     @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
     public CommentResponseDto createComment(CreateCommentCommand command) {
-        Product product = productRepository.findByName(command.productName())
+        // The row lock serialises comment mutations for this product, so the aggregate
+        // below sees every comment committed by a preceding writer.
+        Product product = productRepository.findByNameForUpdate(command.productName())
                 .orElseThrow(() -> {
                     logMessage(command.productName());
                     return new NotFoundException("Product", command.productName());
@@ -106,15 +108,21 @@ public class CommentServiceImpl implements CommentService {
             throw new AccessDeniedException(
                     "Only the author or an administrator may delete this comment");
         }
+        // Capture the association before the delete: a soft-deleted product is hidden by
+        // @SQLRestriction, so it can be null.
+        Product product = comment.getProduct();
+        UUID productId = product == null ? null : product.getId();
         commentRepository.delete(comment);
         // The soft-delete SQL must run before the aggregate query, otherwise the deleted
         // comment would still count towards the product's rating.
         commentRepository.flush();
-        // A soft-deleted product is hidden by @SQLRestriction, so the association can be null.
-        Product product = comment.getProduct();
-        if (product != null) {
-            refreshProductRating(product);
-            productCacheEvictor.evict(product.getId());
+        if (productId != null) {
+            // Locked read: concurrent comment mutations serialise here rather than failing
+            // each other on the product's @Version.
+            productRepository.findByIdForUpdate(productId).ifPresent(lockedProduct -> {
+                refreshProductRating(lockedProduct);
+                productCacheEvictor.evict(lockedProduct.getId());
+            });
         }
         meterRegistry.counter("catalog.comment.deleted").increment();
         log.info("The comment {} is deleted successfully", commentId);
@@ -122,10 +130,11 @@ public class CommentServiceImpl implements CommentService {
 
     /**
      * Recalculates the product's denormalised rating inside the comment transaction. The
-     * product is dirty-checked, so two overlapping comment mutations for the same product
-     * contend on its {@code @Version}: the losing transaction rolls back, including its
-     * comment write, and surfaces as a retryable 409. Accepted trade-off — see
-     * {@code catalog/docs/decisions.md}.
+     * caller holds a pessimistic row lock on the product, so overlapping comment mutations
+     * for the same product queue instead of contending on {@code @Version}; the product is
+     * still dirty-checked, which bumps its version and therefore its ETag. Product edits
+     * keep their optimistic predicate and can still surface a 409 against a comment
+     * mutation — see {@code catalog/docs/decisions.md}.
      */
     private void refreshProductRating(Product product) {
         CommentRepository.RatingStats stats = commentRepository.findRatingStatsByProductId(product.getId());

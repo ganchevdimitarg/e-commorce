@@ -61,7 +61,7 @@ class CommentServiceImplTest {
         Product product = new Product();
         product.setId(PRODUCT_ID);
         product.setName("mouse");
-        when(productRepository.findByName("mouse")).thenReturn(Optional.of(product));
+        when(productRepository.findByNameForUpdate("mouse")).thenReturn(Optional.of(product));
         CommentRepository.RatingStats stats = ratingStats(2, 4.0);
         when(commentRepository.findRatingStatsByProductId(PRODUCT_ID)).thenReturn(stats);
         Comment comment = new Comment();
@@ -88,7 +88,7 @@ class CommentServiceImplTest {
         product.setName("mouse");
         product.setRatingCount(7);
         product.setAvgStars(4.5);
-        when(productRepository.findByName("mouse")).thenReturn(Optional.of(product));
+        when(productRepository.findByNameForUpdate("mouse")).thenReturn(Optional.of(product));
         when(commentRepository.findRatingStatsByProductId(PRODUCT_ID)).thenReturn(null);
         when(mapStructMapper.mapCreateCommentCommandToComment(any())).thenReturn(new Comment());
         when(mapStructMapper.mapCommentToCommentResponseDto(any(Comment.class)))
@@ -106,7 +106,7 @@ class CommentServiceImplTest {
         Product product = new Product();
         product.setId(PRODUCT_ID);
         product.setName("mouse");
-        when(productRepository.findByName("mouse")).thenReturn(Optional.of(product));
+        when(productRepository.findByNameForUpdate("mouse")).thenReturn(Optional.of(product));
         CommentRepository.RatingStats stats = ratingStats(1, null);
         when(commentRepository.findRatingStatsByProductId(PRODUCT_ID)).thenReturn(stats);
         when(mapStructMapper.mapCreateCommentCommandToComment(any())).thenReturn(new Comment());
@@ -223,7 +223,7 @@ class CommentServiceImplTest {
 
         Product product = new Product();
         product.setName("aaa");
-        when(productRepository.findByName("aaa")).thenReturn(Optional.of(product));
+        when(productRepository.findByNameForUpdate("aaa")).thenReturn(Optional.of(product));
 
         Comment comment = new Comment();
         when(mapStructMapper.mapCreateCommentCommandToComment(any())).thenReturn(comment);
@@ -302,6 +302,7 @@ class CommentServiceImplTest {
         Comment comment = commentWithAuthor("joe");
         comment.setProduct(product);
         when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
+        when(productRepository.findByIdForUpdate(PRODUCT_ID)).thenReturn(Optional.of(product));
 
         testService.deleteComment(commentId, "joe", false);
 
@@ -316,6 +317,7 @@ class CommentServiceImplTest {
         Comment comment = commentWithAuthor("joe");
         comment.setProduct(product);
         when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
+        when(productRepository.findByIdForUpdate(PRODUCT_ID)).thenReturn(Optional.of(product));
         CommentRepository.RatingStats stats = ratingStats(1, 3.0);
         when(commentRepository.findRatingStatsByProductId(PRODUCT_ID)).thenReturn(stats);
 
@@ -323,6 +325,7 @@ class CommentServiceImplTest {
 
         // flush() runs the soft-delete SQL before the aggregate query sees the new state
         verify(commentRepository).flush();
+        verify(productRepository).findByIdForUpdate(PRODUCT_ID);
         assertThat(product.getRatingCount()).isEqualTo(1);
         assertThat(product.getAvgStars()).isEqualTo(3.0);
     }
@@ -338,6 +341,7 @@ class CommentServiceImplTest {
 
         verify(commentRepository).delete(comment);
         verify(productCacheEvictor, never()).evict(any());
+        verify(productRepository, never()).findByIdForUpdate(any());
     }
 
     @Test

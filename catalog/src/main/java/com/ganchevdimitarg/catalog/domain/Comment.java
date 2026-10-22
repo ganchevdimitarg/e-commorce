@@ -33,7 +33,7 @@ public class Comment extends Auditable {
     private double star;
     @Column(name = "author", length = 200)
     private String author;
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id", referencedColumnName = "id")
     private Product product;
 }
