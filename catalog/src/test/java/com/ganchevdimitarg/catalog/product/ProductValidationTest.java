@@ -80,7 +80,7 @@ class ProductValidationTest {
         mockMvc.perform(post("/api/v1/catalog/products")
                         .param("categoryName", "PC")
                         .with(csrf())
-                        .with(jwt().authorities(() -> "SCOPE_catalog.write"))
+                        .with(jwt().authorities(() -> "SCOPE_catalog.manage"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("Idempotency-Key", "k-val-1")
                         .content("""
@@ -190,7 +190,7 @@ class ProductValidationTest {
         return mockMvc.perform(post("/api/v1/catalog/products")
                 .param("categoryName", "PC")
                 .with(csrf())
-                .with(jwt().authorities(() -> "SCOPE_catalog.write"))
+                .with(jwt().authorities(() -> "SCOPE_catalog.manage"))
                 .contentType(MediaType.APPLICATION_JSON)
                 .header("Idempotency-Key", idempotencyKey)
                 .content(body));

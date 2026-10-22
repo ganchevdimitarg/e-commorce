@@ -31,10 +31,13 @@ class JwtAuthorityConverterTest {
 
     @Test
     void should_mapScopesToScopePrefixedAuthorities_when_scopeClaimPresent() {
-        Jwt jwt = jwtBuilder().claim("scope", List.of("catalog.read", "catalog.write")).build();
+        Jwt jwt = jwtBuilder()
+                .claim("scope", List.of("catalog.read", "catalog.review", "catalog.manage"))
+                .build();
 
         assertThat(authoritiesFor(jwt))
-                .containsExactlyInAnyOrder("SCOPE_catalog.read", "SCOPE_catalog.write");
+                .containsExactlyInAnyOrder(
+                        "SCOPE_catalog.read", "SCOPE_catalog.review", "SCOPE_catalog.manage");
     }
 
     @Test

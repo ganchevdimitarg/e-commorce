@@ -102,7 +102,8 @@ springdoc:
       scopes:
         - openid
         - catalog.read
-        - catalog.write
+        - catalog.review
+        - catalog.manage
       use-pkce-with-authorization-code-grant: true
   oAuthFlow:
     authorizationUrl: ${AUTH_AUTHORIZATION_URL:http://localhost:8082/oauth2/authorize}

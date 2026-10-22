@@ -149,8 +149,13 @@ service.
 
 - Issuer: `http://localhost:8082`; JWKS: `http://localhost:8082/oauth2/jwks`.
 - Authorities come from the token's `scope` claim: `catalog.read` becomes
-  `SCOPE_catalog.read` and `catalog.write` becomes `SCOPE_catalog.write`. `ROLE_*` values in
-  the same claim are preserved verbatim (for example `ROLE_ADMIN`).
+  `SCOPE_catalog.read`, `catalog.review` becomes `SCOPE_catalog.review` and
+  `catalog.manage` becomes `SCOPE_catalog.manage`. `ROLE_*` values in the same claim are
+  preserved verbatim (for example `ROLE_ADMIN`).
+- `catalog.read` allows reads; `catalog.review` allows comment creation and deletion;
+  `catalog.manage` allows product and category creation, updates, deletes and moves.
+  `catalog.write` no longer exists and is not aliased: a comment moderator must not be able
+  to reprice or delete products.
 - Identity — comment authorship and comment-owner checks — comes from the JWT subject
   (`Authentication.getName()`). The gateway's `X-User-Id` / `X-User-Roles` headers are not
   trusted, because catalog is reachable directly on port 8084.
@@ -165,29 +170,30 @@ service.
 
 ## API
 
-Every endpoint is under `/api/v1/catalog`. Reads require `SCOPE_catalog.read` and writes
-require `SCOPE_catalog.write` unless the authority column says otherwise.
+Every endpoint is under `/api/v1/catalog`. Reads require `SCOPE_catalog.read`, comment
+creation and deletion require `SCOPE_catalog.review`, and product/category mutations require
+`SCOPE_catalog.manage`, unless the authority column says otherwise.
 
 | Method | Path | Authority | Request | Success |
 |---|---|---|---|---|
-| POST | `/api/v1/catalog/products?categoryName={name}` | `SCOPE_catalog.write` | `ProductRequestDto`: `name`, `description`, `price`, `inStock`, `characteristics` | 201, `Location: /api/v1/catalog/products/{id}`, `ProductResponseDto` |
+| POST | `/api/v1/catalog/products?categoryName={name}` | `SCOPE_catalog.manage` | `ProductRequestDto`: `name`, `description`, `price`, `inStock`, `characteristics` | 201, `Location: /api/v1/catalog/products/{id}`, `ProductResponseDto` |
 | GET | `/api/v1/catalog/products` | `SCOPE_catalog.read` | optional `q`, `minPrice`, `maxPrice`, `inStock`, `categoryName`; `page`, `size` ≤ 100, `sort` | 200, `PageResponse<ProductResponseDto>` |
 | GET | `/api/v1/catalog/products/:cursor` | `SCOPE_catalog.read` | optional `q`, `minPrice`, `maxPrice`, `inStock`, `categoryName`; `cursor`, `limit` 1–100 (default 20), `sort` `createdAt,asc` or `createdAt,desc` (default `createdAt,desc`) | 200, `CursorPageResponse<ProductResponseDto>` |
 | GET | `/api/v1/catalog/products/{id}` | `SCOPE_catalog.read` | UUID path | 200, `ProductResponseDto` (cached), `ETag` |
 | GET | `/api/v1/catalog/products/by-name/{name}` | `SCOPE_catalog.read` | name path | 200, `ProductResponseDto`, `ETag` |
 | POST | `/api/v1/catalog/products/:batch-get` | `SCOPE_catalog.read` | `ItemRequestDto`: 1–100 UUIDs | 200, `List<ProductResponseDto>`; 404 lists every missing id |
-| PUT | `/api/v1/catalog/products/{id}` | `SCOPE_catalog.write` | `UpdateProductRequestDto`: `description`, `price`, `inStock`, `characteristics`; optional `If-Match` header | 200, updated `ProductResponseDto`, `ETag` |
-| DELETE | `/api/v1/catalog/products/{id}` | `SCOPE_catalog.write` | — | 204 |
-| POST | `/api/v1/catalog/categories` | `SCOPE_catalog.write` | `CategoryRequestDto`: `name` | 201, `Location: /api/v1/catalog/categories/{name}`, `CategoryResponseDto` |
+| PUT | `/api/v1/catalog/products/{id}` | `SCOPE_catalog.manage` | `UpdateProductRequestDto`: `description`, `price`, `inStock`, `characteristics`; optional `If-Match` header | 200, updated `ProductResponseDto`, `ETag` |
+| DELETE | `/api/v1/catalog/products/{id}` | `SCOPE_catalog.manage` | — | 204 |
+| POST | `/api/v1/catalog/categories` | `SCOPE_catalog.manage` | `CategoryRequestDto`: `name` | 201, `Location: /api/v1/catalog/categories/{name}`, `CategoryResponseDto` |
 | GET | `/api/v1/catalog/categories` | `SCOPE_catalog.read` | pagination | 200, `PageResponse<CategoryResponseDto>` |
-| DELETE | `/api/v1/catalog/categories/{name}` | `SCOPE_catalog.write` | — | 204; 409 if products remain |
-| POST | `/api/v1/catalog/categories/{from}/products/{productName}:move?to={to}` | `SCOPE_catalog.write` | — | 200 |
-| POST | `/api/v1/catalog/categories/{from}/products:move-all?to={to}` | `SCOPE_catalog.write` | — | 200 |
-| POST | `/api/v1/catalog/products/{productName}/comments` | `SCOPE_catalog.write` | `CommentRequestDto`: `title`, `text`, `star` 1–5; author from the JWT | 201, `Location: /api/v1/catalog/comments/{id}`, `CommentResponseDto` |
+| DELETE | `/api/v1/catalog/categories/{name}` | `SCOPE_catalog.manage` | — | 204; 409 if products remain |
+| POST | `/api/v1/catalog/categories/{from}/products/{productName}:move?to={to}` | `SCOPE_catalog.manage` | — | 200 |
+| POST | `/api/v1/catalog/categories/{from}/products:move-all?to={to}` | `SCOPE_catalog.manage` | — | 200 |
+| POST | `/api/v1/catalog/products/{productName}/comments` | `SCOPE_catalog.review` | `CommentRequestDto`: `title`, `text`, `star` 1–5; author from the JWT | 201, `Location: /api/v1/catalog/comments/{id}`, `CommentResponseDto` |
 | GET | `/api/v1/catalog/products/{productName}/comments` | `SCOPE_catalog.read` | pagination | 200, `PageResponse<CommentResponseDto>` |
 | GET | `/api/v1/catalog/comments/by-author/{author}` | `SCOPE_catalog.read` | pagination | 200, `PageResponse<CommentResponseDto>` |
 | GET | `/api/v1/catalog/products/{productName}/comments/avg-stars` | `SCOPE_catalog.read` | — | 200, average `star` as a number |
-| DELETE | `/api/v1/catalog/comments/{id}` | `SCOPE_catalog.write` or `ROLE_ADMIN` | — | 204; 403 if the caller is neither the author nor an admin |
+| DELETE | `/api/v1/catalog/comments/{id}` | `SCOPE_catalog.review` or `ROLE_ADMIN` | — | 204; 403 if the caller is neither the author nor an admin |
 
 `GET` by id and by name return a strong `ETag` derived from the product's optimistic-lock
 `version`. `PUT` accepts an optional `If-Match`: absent, blank or `*` means no precondition,
@@ -283,7 +289,8 @@ returns 429 `RATE_LIMIT_EXCEEDED` with a `Retry-After` header.
 ### Comments
 
 - Creation takes the author from the JWT subject and returns
-  `Location: /api/v1/catalog/comments/{id}`.
+  `Location: /api/v1/catalog/comments/{id}`. Creation and deletion require
+  `catalog.review`.
 - Deletion is allowed for the comment's author or a caller holding `ROLE_ADMIN`; everyone
   else receives 403.
 
@@ -308,7 +315,7 @@ and `timestamp`:
 |---|---|---|
 | 400 | `VALIDATION_ERROR` | Request-parameter validation (`ConstraintViolationException`), page size above 100, sort property outside the whitelist, missing `Idempotency-Key`, malformed `If-Match` |
 | 401 | `UNAUTHENTICATED` | Missing, expired or invalid JWT |
-| 403 | `ACCESS_DENIED` | Missing scope, or deleting someone else's comment without `ROLE_ADMIN` |
+| 403 | `ACCESS_DENIED` | Missing scope, deleting someone else's comment without `ROLE_ADMIN`, or listing another user's comments without `ROLE_ADMIN` |
 | 404 | `NOT_FOUND` | Unknown product, category, comment or category name in a product search |
 | 409 | `CONFLICT` | Duplicate product/category name, category still holding products, in-progress idempotent request, optimistic-lock clash |
 | 412 | `PRECONDITION_FAILED` | `If-Match` does not match the product's current `version` |

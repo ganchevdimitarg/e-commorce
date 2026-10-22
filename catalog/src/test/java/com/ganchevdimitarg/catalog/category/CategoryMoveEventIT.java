@@ -76,7 +76,7 @@ class CategoryMoveEventIT extends AbstractIntegrationTest {
     }
 
     @Test
-    @WithMockUser(authorities = "SCOPE_catalog.write")
+    @WithMockUser(authorities = "SCOPE_catalog.manage")
     void should_writeOneCategoryChangedEvent_when_oneProductMoves() {
         txTemplate.executeWithoutResult(status -> categoryService.moveOneProduct(
                 new MoveProductCommand(SOURCE_CATEGORY, TARGET_CATEGORY, MOUSE)));
@@ -98,7 +98,7 @@ class CategoryMoveEventIT extends AbstractIntegrationTest {
     }
 
     @Test
-    @WithMockUser(authorities = "SCOPE_catalog.write")
+    @WithMockUser(authorities = "SCOPE_catalog.manage")
     void should_writeOneCategoryChangedEventPerProduct_when_allProductsMove() {
         txTemplate.executeWithoutResult(
                 status -> categoryService.moveAllProducts(SOURCE_CATEGORY, TARGET_CATEGORY));
@@ -120,7 +120,7 @@ class CategoryMoveEventIT extends AbstractIntegrationTest {
     }
 
     @Test
-    @WithMockUser(authorities = "SCOPE_catalog.write")
+    @WithMockUser(authorities = "SCOPE_catalog.manage")
     void should_writeNoEvents_when_sourceCategoryIsEmpty() {
         jdbc.update("DELETE FROM products WHERE id IN (?, ?)", mouseId, keyboardId);
 

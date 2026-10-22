@@ -46,7 +46,7 @@ class IdempotencyInterceptorTest {
     void setUp() {
         interceptor = new IdempotencyInterceptor(store);
         SecurityContextHolder.getContext().setAuthentication(
-                new TestingAuthenticationToken("alice", "n/a", "SCOPE_catalog.write"));
+                new TestingAuthenticationToken("alice", "n/a", "SCOPE_catalog.manage"));
     }
 
     @AfterEach

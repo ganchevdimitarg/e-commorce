@@ -87,7 +87,7 @@ class CacheFailureIT extends AbstractIntegrationTest {
     }
 
     @Test
-    @WithMockUser(authorities = {"SCOPE_catalog.read", "SCOPE_catalog.write"})
+    @WithMockUser(authorities = {"SCOPE_catalog.read", "SCOPE_catalog.manage"})
     void should_commitUpdate_when_redisIsDown() {
         UpdateProductCommand command = new UpdateProductCommand(
                 "Updated while the cache is down", BigDecimal.valueOf(42), true, "test-chars");
@@ -101,7 +101,7 @@ class CacheFailureIT extends AbstractIntegrationTest {
     }
 
     @Test
-    @WithMockUser(authorities = {"SCOPE_catalog.read", "SCOPE_catalog.write"})
+    @WithMockUser(authorities = {"SCOPE_catalog.read", "SCOPE_catalog.manage"})
     void should_commitDelete_when_redisIsDown() {
         productService.deleteProduct(PRODUCT_ID);
 

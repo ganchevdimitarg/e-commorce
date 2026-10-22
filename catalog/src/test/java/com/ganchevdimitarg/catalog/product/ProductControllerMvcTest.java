@@ -108,7 +108,7 @@ class ProductControllerMvcTest {
         when(productService.createProduct(any())).thenReturn(created);
 
         mockMvc.perform(post("/api/v1/catalog/products?categoryName=PC")
-                        .with(jwt().authorities(() -> "SCOPE_catalog.write"))
+                        .with(jwt().authorities(() -> "SCOPE_catalog.manage"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("Idempotency-Key", "k-1")
                         .content("""
@@ -332,7 +332,7 @@ class ProductControllerMvcTest {
 
         mockMvc.perform(put("/api/v1/catalog/products/" + PROD_123)
                         .with(csrf())
-                        .with(jwt().authorities(() -> "SCOPE_catalog.write"))
+                        .with(jwt().authorities(() -> "SCOPE_catalog.manage"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("Idempotency-Key", "k-2")
                         .content("""
@@ -356,7 +356,7 @@ class ProductControllerMvcTest {
 
         mockMvc.perform(put("/api/v1/catalog/products/" + PROD_123)
                         .with(csrf())
-                        .with(jwt().authorities(() -> "SCOPE_catalog.write"))
+                        .with(jwt().authorities(() -> "SCOPE_catalog.manage"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .header(HttpHeaders.IF_MATCH, "\"1\"")
                         .header("Idempotency-Key", "k-etag-match")
@@ -377,7 +377,7 @@ class ProductControllerMvcTest {
 
         mockMvc.perform(put("/api/v1/catalog/products/" + PROD_123)
                         .with(csrf())
-                        .with(jwt().authorities(() -> "SCOPE_catalog.write"))
+                        .with(jwt().authorities(() -> "SCOPE_catalog.manage"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .header(HttpHeaders.IF_MATCH, "\"2\"")
                         .header("Idempotency-Key", "k-etag-stale")
@@ -398,7 +398,7 @@ class ProductControllerMvcTest {
 
         mockMvc.perform(put("/api/v1/catalog/products/" + PROD_123)
                         .with(csrf())
-                        .with(jwt().authorities(() -> "SCOPE_catalog.write"))
+                        .with(jwt().authorities(() -> "SCOPE_catalog.manage"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("Idempotency-Key", "k-etag-absent")
                         .content("""
@@ -414,7 +414,7 @@ class ProductControllerMvcTest {
     void should_return400_when_ifMatchIsMalformed() throws Exception {
         mockMvc.perform(put("/api/v1/catalog/products/" + PROD_123)
                         .with(csrf())
-                        .with(jwt().authorities(() -> "SCOPE_catalog.write"))
+                        .with(jwt().authorities(() -> "SCOPE_catalog.manage"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .header(HttpHeaders.IF_MATCH, "not-a-tag")
                         .header("Idempotency-Key", "k-etag-malformed")
@@ -437,7 +437,7 @@ class ProductControllerMvcTest {
 
         mockMvc.perform(put("/api/v1/catalog/products/" + PROD_123)
                         .with(csrf())
-                        .with(jwt().authorities(() -> "SCOPE_catalog.write"))
+                        .with(jwt().authorities(() -> "SCOPE_catalog.manage"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .header(HttpHeaders.IF_MATCH, "*")
                         .header("Idempotency-Key", "k-etag-wildcard")
@@ -457,7 +457,7 @@ class ProductControllerMvcTest {
 
         mockMvc.perform(put("/api/v1/catalog/products/" + NONEXISTENT)
                         .with(csrf())
-                        .with(jwt().authorities(() -> "SCOPE_catalog.write"))
+                        .with(jwt().authorities(() -> "SCOPE_catalog.manage"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .header(HttpHeaders.IF_MATCH, "*")
                         .header("Idempotency-Key", "k-etag-wildcard-missing")
@@ -476,7 +476,7 @@ class ProductControllerMvcTest {
 
         mockMvc.perform(put("/api/v1/catalog/products/" + PROD_123)
                         .with(csrf())
-                        .with(jwt().authorities(() -> "SCOPE_catalog.write"))
+                        .with(jwt().authorities(() -> "SCOPE_catalog.manage"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("Idempotency-Key", "k-2b")
                         .content("""
@@ -496,10 +496,10 @@ class ProductControllerMvcTest {
     }
 
     @Test
-    void should_return204_when_deleteProductWithWriteScope() throws Exception {
+    void should_return204_when_deleteProductWithManageScope() throws Exception {
         mockMvc.perform(delete("/api/v1/catalog/products/" + PROD_123)
                         .with(csrf())
-                        .with(jwt().authorities(() -> "SCOPE_catalog.write"))
+                        .with(jwt().authorities(() -> "SCOPE_catalog.manage"))
                         .header("Idempotency-Key", "k-3"))
                 .andExpect(status().isNoContent());
 
@@ -511,7 +511,7 @@ class ProductControllerMvcTest {
         mockMvc.perform(post("/api/v1/catalog/products")
                         .param("categoryName", "PC")
                         .with(csrf())
-                        .with(jwt().authorities(() -> "SCOPE_catalog.write"))
+                        .with(jwt().authorities(() -> "SCOPE_catalog.manage"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("Idempotency-Key", "k-4")
                         .content("""
@@ -533,7 +533,7 @@ class ProductControllerMvcTest {
         mockMvc.perform(post("/api/v1/catalog/products")
                         .param("categoryName", "PC")
                         .with(csrf())
-                        .with(jwt().authorities(() -> "SCOPE_catalog.write"))
+                        .with(jwt().authorities(() -> "SCOPE_catalog.manage"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"name":"mouse","description":"WiFi mouse USB","price":1,"inStock":true,"characteristics":""}
@@ -557,7 +557,7 @@ class ProductControllerMvcTest {
 
         mockMvc.perform(put("/api/v1/catalog/products/" + PROD_123)
                         .with(csrf())
-                        .with(jwt().authorities(() -> "SCOPE_catalog.write"))
+                        .with(jwt().authorities(() -> "SCOPE_catalog.manage"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("Idempotency-Key", "k-denied")
                         .content("""
@@ -581,7 +581,7 @@ class ProductControllerMvcTest {
 
         mockMvc.perform(post("/api/v1/catalog/products?categoryName=PC")
                         .with(csrf())
-                        .with(jwt().authorities(() -> "SCOPE_catalog.write"))
+                        .with(jwt().authorities(() -> "SCOPE_catalog.manage"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("Idempotency-Key", "k-conflict")
                         .content("""

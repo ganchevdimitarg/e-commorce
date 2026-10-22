@@ -1,6 +1,7 @@
 package com.ganchevdimitarg.catalog.service.comment;
 
 import com.ganchevdimitarg.catalog.cache.ProductCache;
+import com.ganchevdimitarg.catalog.config.CatalogAuthorities;
 import com.ganchevdimitarg.catalog.repository.CommentRepository;
 import com.ganchevdimitarg.catalog.repository.ProductRepository;
 import com.ganchevdimitarg.catalog.domain.Comment;
@@ -34,7 +35,7 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     @Transactional
-    @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
+    @PreAuthorize("hasAuthority('" + CatalogAuthorities.SCOPE_REVIEW + "')")
     public CommentResponseDto createComment(CreateCommentCommand command) {
         // The row lock serialises comment mutations for this product, so the aggregate
         // below sees every comment committed by a preceding writer.
@@ -57,7 +58,7 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     @Transactional(readOnly = true)
-    @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
+    @PreAuthorize("hasAuthority('" + CatalogAuthorities.SCOPE_READ + "')")
     public Page<CommentResponseDto> findAllByProductNameByPage(String productName, Pageable pageable) {
         Product product = productRepository.findByName(productName).orElseThrow(() -> {
             logMessage(productName);
@@ -79,7 +80,7 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     @Transactional(readOnly = true)
-    @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
+    @PreAuthorize("hasAuthority('" + CatalogAuthorities.SCOPE_READ + "')")
     public Page<CommentResponseDto> findAllByAuthorByPage(String author, Pageable pageable) {
         Page<CommentResponseDto> comments = commentRepository
                 .findAllByAuthorByPage(author, pageable)
@@ -91,7 +92,7 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     @Transactional(readOnly = true)
-    @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
+    @PreAuthorize("hasAuthority('" + CatalogAuthorities.SCOPE_READ + "')")
     public double getAvgStars(String productName) {
         return productRepository.findByName(productName)
                 .map(Product::getAvgStars)
@@ -100,7 +101,8 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     @Transactional
-    @PreAuthorize("hasAnyAuthority('SCOPE_catalog.write','ROLE_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('" + CatalogAuthorities.SCOPE_REVIEW + "','"
+            + CatalogAuthorities.ROLE_ADMIN + "')")
     public void deleteComment(UUID commentId, String requester, boolean admin) {
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new NotFoundException("Comment", commentId));

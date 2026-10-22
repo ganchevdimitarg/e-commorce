@@ -83,14 +83,14 @@ class CommentControllerMvcTest {
     }
 
     @Test
-    void should_return201AndCommentLocation_when_createCommentWithWriteScope() throws Exception {
+    void should_return201AndCommentLocation_when_createCommentWithReviewScope() throws Exception {
         CommentResponseDto response = new CommentResponseDto(
                 COMMENT_ID, "Great product", "This is a thorough review text", 5, "john",
                 PRODUCT_ID, "mouse");
         when(commentService.createComment(any(CreateCommentCommand.class))).thenReturn(response);
 
         mockMvc.perform(post("/api/v1/catalog/products/mouse/comments")
-                        .with(jwt().authorities(() -> "SCOPE_catalog.write"))
+                        .with(jwt().authorities(() -> "SCOPE_catalog.review"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("Idempotency-Key", "k-c1")
                         .content("""
@@ -110,10 +110,10 @@ class CommentControllerMvcTest {
     }
 
     @Test
-    void should_return204_when_deleteCommentWithWriteScope() throws Exception {
+    void should_return204_when_deleteCommentWithReviewScope() throws Exception {
         mockMvc.perform(delete("/api/v1/catalog/comments/{id}", COMMENT_ID)
                         .with(jwt().jwt(token -> token.subject("user-123"))
-                                .authorities(() -> "SCOPE_catalog.write"))
+                                .authorities(() -> "SCOPE_catalog.review"))
                         .header("Idempotency-Key", "k-del-1"))
                 .andExpect(status().isNoContent());
 
@@ -124,7 +124,7 @@ class CommentControllerMvcTest {
     void should_return400ProblemJson_when_deleteCommentWithoutIdempotencyKey() throws Exception {
         mockMvc.perform(delete("/api/v1/catalog/comments/{id}", COMMENT_ID)
                         .with(jwt().jwt(token -> token.subject("user-123"))
-                                .authorities(() -> "SCOPE_catalog.write")))
+                                .authorities(() -> "SCOPE_catalog.review")))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON));
     }
@@ -136,7 +136,7 @@ class CommentControllerMvcTest {
 
         mockMvc.perform(delete("/api/v1/catalog/comments/{id}", COMMENT_ID)
                         .with(jwt().jwt(token -> token.subject("user-123"))
-                                .authorities(() -> "SCOPE_catalog.write"))
+                                .authorities(() -> "SCOPE_catalog.review"))
                         .header("Idempotency-Key", "k-del-denied"))
                 .andExpect(status().isForbidden())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
@@ -147,7 +147,7 @@ class CommentControllerMvcTest {
     void should_return204_when_adminDeletesComment() throws Exception {
         mockMvc.perform(delete("/api/v1/catalog/comments/{id}", COMMENT_ID)
                         .with(jwt().jwt(token -> token.subject("admin-1"))
-                                .authorities(() -> "SCOPE_catalog.write", () -> "ROLE_ADMIN"))
+                                .authorities(() -> "SCOPE_catalog.review", () -> "ROLE_ADMIN"))
                         .header("Idempotency-Key", "k-del-admin"))
                 .andExpect(status().isNoContent());
 
@@ -203,7 +203,7 @@ class CommentControllerMvcTest {
     @Test
     void should_return400ProblemJson_when_createCommentWithInvalidBody() throws Exception {
         mockMvc.perform(post("/api/v1/catalog/products/mouse/comments")
-                        .with(jwt().authorities(() -> "SCOPE_catalog.write"))
+                        .with(jwt().authorities(() -> "SCOPE_catalog.review"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("Idempotency-Key", "k-c2")
                         .content("""
@@ -222,7 +222,7 @@ class CommentControllerMvcTest {
     @Test
     void should_return400ProblemJson_when_createCommentWithoutIdempotencyKey() throws Exception {
         mockMvc.perform(post("/api/v1/catalog/products/mouse/comments")
-                        .with(jwt().authorities(() -> "SCOPE_catalog.write"))
+                        .with(jwt().authorities(() -> "SCOPE_catalog.review"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -239,7 +239,7 @@ class CommentControllerMvcTest {
     @Test
     void should_return400ProblemJson_when_starAboveRange() throws Exception {
         mockMvc.perform(post("/api/v1/catalog/products/mouse/comments")
-                        .with(jwt().authorities(() -> "SCOPE_catalog.write"))
+                        .with(jwt().authorities(() -> "SCOPE_catalog.review"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("Idempotency-Key", "k-star-high")
                         .content("""
@@ -258,7 +258,7 @@ class CommentControllerMvcTest {
     @Test
     void should_return400ProblemJson_when_starBelowRange() throws Exception {
         mockMvc.perform(post("/api/v1/catalog/products/mouse/comments")
-                        .with(jwt().authorities(() -> "SCOPE_catalog.write"))
+                        .with(jwt().authorities(() -> "SCOPE_catalog.review"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("Idempotency-Key", "k-star-low")
                         .content("""
@@ -282,7 +282,7 @@ class CommentControllerMvcTest {
         when(commentService.createComment(any(CreateCommentCommand.class))).thenReturn(response);
 
         mockMvc.perform(post("/api/v1/catalog/products/mouse/comments")
-                        .with(jwt().authorities(() -> "SCOPE_catalog.write"))
+                        .with(jwt().authorities(() -> "SCOPE_catalog.review"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("Idempotency-Key", "k-star-fractional")
                         .content("""
@@ -319,7 +319,7 @@ class CommentControllerMvcTest {
 
         mockMvc.perform(post("/api/v1/catalog/products/mouse/comments")
                         .with(jwt().jwt(token -> token.subject("user-123"))
-                                .authorities(() -> "SCOPE_catalog.write"))
+                                .authorities(() -> "SCOPE_catalog.review"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("Idempotency-Key", "k-author-spoof")
                         .content("""
@@ -347,7 +347,7 @@ class CommentControllerMvcTest {
 
         mockMvc.perform(post("/api/v1/catalog/products/mouse/comments")
                         .with(jwt().jwt(token -> token.subject("user-456"))
-                                .authorities(() -> "SCOPE_catalog.write"))
+                                .authorities(() -> "SCOPE_catalog.review"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("Idempotency-Key", "k-author-omitted")
                         .content("""

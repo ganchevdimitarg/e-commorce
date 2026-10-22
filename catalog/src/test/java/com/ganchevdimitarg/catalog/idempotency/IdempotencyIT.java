@@ -166,11 +166,11 @@ class IdempotencyIT extends RedisIntegrationBase {
     }
 
     private static RequestPostProcessor alice() {
-        return jwt().jwt(token -> token.subject("alice")).authorities(() -> "SCOPE_catalog.write");
+        return jwt().jwt(token -> token.subject("alice")).authorities(() -> "SCOPE_catalog.manage");
     }
 
     private static RequestPostProcessor bob() {
-        return jwt().jwt(token -> token.subject("bob")).authorities(() -> "SCOPE_catalog.write");
+        return jwt().jwt(token -> token.subject("bob")).authorities(() -> "SCOPE_catalog.manage");
     }
 
     private int countProducts(String name) {

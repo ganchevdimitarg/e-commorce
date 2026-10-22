@@ -1,6 +1,7 @@
 package com.ganchevdimitarg.catalog.service.product;
 
 import com.ganchevdimitarg.catalog.cache.ProductCache;
+import com.ganchevdimitarg.catalog.config.CatalogAuthorities;
 import com.ganchevdimitarg.catalog.cursor.ProductCursorCodec;
 import com.ganchevdimitarg.catalog.repository.CategoryRepository;
 import com.ganchevdimitarg.catalog.repository.ProductCursorRepository;
@@ -57,7 +58,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional
-    @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
+    @PreAuthorize("hasAuthority('" + CatalogAuthorities.SCOPE_MANAGE + "')")
     public ProductResponseDto createProduct(CreateProductCommand command) {
         Category category = categoryRepository.findByName(command.categoryName())
                 .orElseThrow(() -> {
@@ -86,7 +87,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional(readOnly = true)
-    @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
+    @PreAuthorize("hasAuthority('" + CatalogAuthorities.SCOPE_READ + "')")
     public Page<ProductResponseDto> searchProducts(ProductSearchCriteria criteria, Pageable pageable) {
         UUID categoryId = resolveCategoryId(criteria);
         return productRepository.findAll(ProductSpecifications.matching(criteria, categoryId), pageable)
@@ -95,7 +96,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional(readOnly = true)
-    @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
+    @PreAuthorize("hasAuthority('" + CatalogAuthorities.SCOPE_READ + "')")
     public CursorPageResponse<ProductResponseDto> searchProductsByCursor(
             ProductSearchCriteria criteria, String cursor, int limit, String sortDirection) {
         String direction = normaliseDirection(sortDirection);
@@ -124,7 +125,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional(readOnly = true)
-    @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
+    @PreAuthorize("hasAuthority('" + CatalogAuthorities.SCOPE_READ + "')")
     public ProductResponseDto getProductByName(String name) {
         Product product = productRepository.findByName(name)
                 .orElseThrow(() -> new NotFoundException("Product", name));
@@ -133,7 +134,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional(readOnly = true)
-    @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
+    @PreAuthorize("hasAuthority('" + CatalogAuthorities.SCOPE_READ + "')")
     @Cacheable(cacheNames = "product", key = "#id")
     public ProductResponseDto getProductById(UUID id) {
         Product product = productRepository.findById(id)
@@ -144,7 +145,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional
-    @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
+    @PreAuthorize("hasAuthority('" + CatalogAuthorities.SCOPE_MANAGE + "')")
     public ProductResponseDto updateProduct(UUID id, UpdateProductCommand command, Long expectedVersion) {
         Product existing = findProductById(id);
         if (expectedVersion != null && expectedVersion != existing.getVersion()) {
@@ -171,7 +172,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional
-    @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
+    @PreAuthorize("hasAuthority('" + CatalogAuthorities.SCOPE_MANAGE + "')")
     public void deleteProduct(UUID id) {
         Product existing = findProductById(id);
         productRepository.delete(existing);   // honours @SQLDelete soft-delete
@@ -182,7 +183,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional(readOnly = true)
-    @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
+    @PreAuthorize("hasAuthority('" + CatalogAuthorities.SCOPE_READ + "')")
     public List<ProductResponseDto> getProductsById(ItemRequestDto product) {
         // One query for the whole batch; the transaction keeps the lazy comments collection
         // and the category association usable while mapping, and findAllById order is

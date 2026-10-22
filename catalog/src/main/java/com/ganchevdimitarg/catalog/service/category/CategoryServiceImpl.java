@@ -1,6 +1,7 @@
 package com.ganchevdimitarg.catalog.service.category;
 
 import com.ganchevdimitarg.catalog.cache.ProductCache;
+import com.ganchevdimitarg.catalog.config.CatalogAuthorities;
 import com.ganchevdimitarg.catalog.repository.CategoryRepository;
 import com.ganchevdimitarg.catalog.repository.ProductRepository;
 import com.ganchevdimitarg.catalog.domain.Category;
@@ -42,7 +43,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     @Transactional
-    @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
+    @PreAuthorize("hasAuthority('" + CatalogAuthorities.SCOPE_MANAGE + "')")
     public CategoryResponseDto createCategory(CreateCategoryCommand command) {
         if (categoryRepository.findByName(command.name()).isPresent()) {
             log.warn("Category with the name: {} already exist.", command.name());
@@ -57,7 +58,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     @Transactional(readOnly = true)
-    @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
+    @PreAuthorize("hasAuthority('" + CatalogAuthorities.SCOPE_READ + "')")
     public CategoryResponseDto getCategory(String categoryName) {
         Category category = requireCategory(categoryName);
         return convertCategory(category);
@@ -65,7 +66,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     @Transactional
-    @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
+    @PreAuthorize("hasAuthority('" + CatalogAuthorities.SCOPE_MANAGE + "')")
     public void deleteCategory(String categoryName) {
         Category category = requireCategory(categoryName);
         if (productRepository.existsByCategory_Id(category.getId())) {
@@ -80,7 +81,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     @Transactional
-    @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
+    @PreAuthorize("hasAuthority('" + CatalogAuthorities.SCOPE_MANAGE + "')")
     public void moveOneProduct(MoveProductCommand command) {
         Category from = requireCategory(command.categoryNameFrom());
         Category to = requireCategory(command.categoryNameTo());
@@ -104,7 +105,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     @Transactional
-    @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
+    @PreAuthorize("hasAuthority('" + CatalogAuthorities.SCOPE_MANAGE + "')")
     public void moveAllProducts(String categoryNameFrom, String categoryNameTo) {
         Category from = requireCategory(categoryNameFrom);
         Category to = requireCategory(categoryNameTo);
@@ -123,7 +124,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     @Transactional(readOnly = true)
-    @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
+    @PreAuthorize("hasAuthority('" + CatalogAuthorities.SCOPE_READ + "')")
     public Page<CategoryResponseDto> getCategoriesByPage(Pageable pageable) {
         Page<Category> categories = categoryRepository.findAll(pageable);
         if (categories.isEmpty()) {

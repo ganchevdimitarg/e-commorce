@@ -187,7 +187,7 @@ class CommentRatingConcurrencyIT extends AbstractIntegrationTest {
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(AUTHOR, "n/a",
                         List.of(new SimpleGrantedAuthority("SCOPE_catalog.read"),
-                                new SimpleGrantedAuthority("SCOPE_catalog.write"))));
+                                new SimpleGrantedAuthority("SCOPE_catalog.review"))));
     }
 
     private Rating ratingOf(UUID productId) {

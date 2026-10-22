@@ -60,7 +60,7 @@ class IdempotencyKeysTest {
     @Test
     void should_returnPrincipalName_when_authenticated() {
         SecurityContextHolder.getContext().setAuthentication(
-                new TestingAuthenticationToken("alice", "n/a", "SCOPE_catalog.write"));
+                new TestingAuthenticationToken("alice", "n/a", "SCOPE_catalog.manage"));
 
         assertThat(IdempotencyKeys.principalName()).isEqualTo("alice");
     }

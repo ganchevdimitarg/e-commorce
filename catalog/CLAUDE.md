@@ -41,7 +41,7 @@ From the repo root, the aggregator form also works:
   for entity↔DTO; springdoc-openapi + Swagger UI (OAuth2 PKCE).
 - Security: resource server validating **JWTs** issued by the auth service (issuer `:8082`);
   social opaque tokens terminate at auth/gateway. Authorise on
-  `SCOPE_catalog.read` / `SCOPE_catalog.write`.
+  `SCOPE_catalog.read` / `SCOPE_catalog.review` / `SCOPE_catalog.manage`.
 - API: `/api/v1/catalog/...`. Secrets from Vault as `${ENV_VAR}` — never inline.
 - Pagination max-100 enforced by `PageableSupport.capped()` (oversized → 400).
 - **No MongoDB, no Avro / schema registry** in catalog — do not scaffold them here.

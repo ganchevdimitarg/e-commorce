@@ -82,7 +82,7 @@ services:
               "match": "client_credentials",
               "claims": {
                 "sub": "$${clientId}",
-                "scope": "catalog.read catalog.write"
+                "scope": "catalog.read catalog.review catalog.manage"
               }
             }]
           }]
