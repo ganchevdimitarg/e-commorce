@@ -255,7 +255,7 @@ class ProductCacheIT extends RedisIntegrationBase {
 
     @Test
     @Order(9)
-    @WithMockUser(authorities = {"SCOPE_catalog.read", "SCOPE_catalog.review"})
+    @WithMockUser(username = "joe", authorities = {"SCOPE_catalog.read", "SCOPE_catalog.review"})
     void should_evictProduct_when_commentDeleted() {
         CommentResponseDto created = commentService.createComment(new CreateCommentCommand(
                 "great", "thorough review text", 5.0, "joe", PRODUCT_NAME));
@@ -263,7 +263,7 @@ class ProductCacheIT extends RedisIntegrationBase {
         productService.getProductById(PRODUCT_ID);
         assertThat(cacheManager.getCache("product").get(PRODUCT_ID)).isNotNull();
 
-        commentService.deleteComment(created.id(), "joe", false);
+        commentService.deleteComment(created.id());
 
         assertThat(cacheManager.getCache("product").get(PRODUCT_ID)).isNull();
     }

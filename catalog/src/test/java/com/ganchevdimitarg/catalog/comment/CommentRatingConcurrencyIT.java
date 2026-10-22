@@ -123,7 +123,7 @@ class CommentRatingConcurrencyIT extends AbstractIntegrationTest {
                 .map(comment -> (Callable<Void>) () -> {
                     authenticate();
                     try {
-                        commentService.deleteComment(comment.id(), AUTHOR, false);
+                        commentService.deleteComment(comment.id());
                     } finally {
                         SecurityContextHolder.clearContext();
                     }

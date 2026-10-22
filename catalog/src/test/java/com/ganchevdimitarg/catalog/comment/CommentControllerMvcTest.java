@@ -117,7 +117,7 @@ class CommentControllerMvcTest {
                         .header("Idempotency-Key", "k-del-1"))
                 .andExpect(status().isNoContent());
 
-        verify(commentService).deleteComment(COMMENT_ID, "user-123", false);
+        verify(commentService).deleteComment(COMMENT_ID);
     }
 
     @Test
@@ -132,7 +132,7 @@ class CommentControllerMvcTest {
     @Test
     void should_return403ProblemJson_when_deleteCommentIsDenied() throws Exception {
         doThrow(new AccessDeniedException("not the author"))
-                .when(commentService).deleteComment(COMMENT_ID, "user-123", false);
+                .when(commentService).deleteComment(COMMENT_ID);
 
         mockMvc.perform(delete("/api/v1/catalog/comments/{id}", COMMENT_ID)
                         .with(jwt().jwt(token -> token.subject("user-123"))
@@ -141,17 +141,6 @@ class CommentControllerMvcTest {
                 .andExpect(status().isForbidden())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
-    }
-
-    @Test
-    void should_return204_when_adminDeletesComment() throws Exception {
-        mockMvc.perform(delete("/api/v1/catalog/comments/{id}", COMMENT_ID)
-                        .with(jwt().jwt(token -> token.subject("admin-1"))
-                                .authorities(() -> "SCOPE_catalog.review", () -> "ROLE_ADMIN"))
-                        .header("Idempotency-Key", "k-del-admin"))
-                .andExpect(status().isNoContent());
-
-        verify(commentService).deleteComment(COMMENT_ID, "admin-1", true);
     }
 
     @Test

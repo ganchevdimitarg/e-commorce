@@ -100,7 +100,7 @@ class CommentRatingIT extends AbstractIntegrationTest {
         commentService.createComment(commentCommand(product, 3.0));
         productRepository.flush();
 
-        commentService.deleteComment(fiveStars.id(), AUTHOR, false);
+        commentService.deleteComment(fiveStars.id());
         productRepository.flush();
 
         assertThat(ratingOf(product.getId())).isEqualTo(new Rating(1, 3.0));
@@ -124,7 +124,7 @@ class CommentRatingIT extends AbstractIntegrationTest {
         assertThat(stats.getAverageStars()).isEqualTo(4.0);
 
         // A later mutation recalculates from live rows only: 5 remains after deleting 3.
-        commentService.deleteComment(threeStars.id(), AUTHOR, false);
+        commentService.deleteComment(threeStars.id());
         productRepository.flush();
 
         assertThat(ratingOf(product.getId())).isEqualTo(new Rating(1, 5.0));
@@ -150,7 +150,7 @@ class CommentRatingIT extends AbstractIntegrationTest {
         CommentResponseDto onlyComment = commentService.createComment(commentCommand(product, 4.0));
         productRepository.flush();
 
-        commentService.deleteComment(onlyComment.id(), AUTHOR, false);
+        commentService.deleteComment(onlyComment.id());
         productRepository.flush();
 
         // The aggregate returns count 0 with a null average; the service stores 0.0.
@@ -167,7 +167,7 @@ class CommentRatingIT extends AbstractIntegrationTest {
 
         verify(productCache).evict(product.getId());
 
-        commentService.deleteComment(comment.id(), AUTHOR, false);
+        commentService.deleteComment(comment.id());
 
         verify(productCache, times(2)).evict(product.getId());
     }

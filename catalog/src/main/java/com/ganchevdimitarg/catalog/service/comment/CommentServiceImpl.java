@@ -17,6 +17,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -103,10 +105,14 @@ public class CommentServiceImpl implements CommentService {
     @Transactional
     @PreAuthorize("hasAnyAuthority('" + CatalogAuthorities.SCOPE_REVIEW + "','"
             + CatalogAuthorities.ROLE_ADMIN + "')")
-    public void deleteComment(UUID commentId, String requester, boolean admin) {
+    public void deleteComment(UUID commentId) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String requester = authentication == null ? null : authentication.getName();
+        boolean admin = authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(authority -> CatalogAuthorities.ROLE_ADMIN.equals(authority.getAuthority()));
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new NotFoundException("Comment", commentId));
-        if (!admin && !requester.equals(comment.getAuthor())) {
+        if (!admin && (requester == null || !requester.equals(comment.getAuthor()))) {
             throw new AccessDeniedException(
                     "Only the author or an administrator may delete this comment");
         }

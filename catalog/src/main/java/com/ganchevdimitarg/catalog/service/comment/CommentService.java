@@ -12,5 +12,5 @@ public interface CommentService {
     Page<CommentResponseDto> findAllByProductNameByPage(String productName, Pageable pageable);
     Page<CommentResponseDto> findAllByAuthorByPage(String author, Pageable pageable);
     double getAvgStars(String productName);
-    void deleteComment(UUID commentId, String requester, boolean admin);
+    void deleteComment(UUID commentId);
 }
