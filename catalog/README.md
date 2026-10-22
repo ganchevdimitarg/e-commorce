@@ -425,6 +425,21 @@ Integration tests extend `AbstractIntegrationTest` / `RedisKafkaIntegrationBase`
 Testcontainers, so Docker must be running for the full `verify`. JaCoCo enforces 90 % line
 coverage for the bundle and 100 % for `com.ganchevdimitarg.catalog.service.*`.
 
+### Mutation testing (opt-in)
+
+PIT mutation-tests the `service.*` implementations and the `idempotency.*` classes using
+unit tests only. The `pitest` profile is opt-in and is not bound to `verify`, so the normal
+build never runs it:
+
+```bash
+./mvnw -Ppitest test-compile org.pitest:pitest-maven:mutationCoverage
+```
+
+Reports are written to `target/pit-reports/index.html` (HTML and XML, with no timestamped
+directories). The mutation threshold is 85 %; the recorded baseline is 88 % (141/160
+mutants killed). `*IT` classes are deliberately not selected, so PIT needs no Docker and
+never starts Testcontainers.
+
 ### Contract tests (producer)
 
 Catalog publishes producer-side Spring Cloud Contract stubs for its REST API. The contracts

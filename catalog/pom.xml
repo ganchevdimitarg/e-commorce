@@ -27,6 +27,10 @@
         <archunit.version>1.4.2</archunit.version>
         <resilience4j.version>2.4.0</resilience4j.version>
         <json-schema-validator.version>3.0.8</json-schema-validator.version>
+        <!-- Mutation testing (opt-in `pitest` profile only). 1.30.1 is required for Java 25
+             class files (major 69); the plan's 1.16.1 bundles an ASM too old to read them. -->
+        <pitest.version>1.30.1</pitest.version>
+        <pitest-junit5-plugin.version>1.2.3</pitest-junit5-plugin.version>
         <!-- Testcontainers reuse for the integration suite; override with -Dtestcontainers.reuse.enable=false. -->
         <testcontainers.reuse.enable>true</testcontainers.reuse.enable>
     </properties>
@@ -413,5 +417,54 @@
         </plugins>
     </build>
 
+    <!--
+        Opt-in mutation testing. Not active by default and deliberately not bound to any
+        lifecycle phase, so `verify` (and CI) never runs PIT. Invoke explicitly:
+
+            ./mvnw -Ppitest test-compile org.pitest:pitest-maven:mutationCoverage
+    -->
+    <profiles>
+        <profile>
+            <id>pitest</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.pitest</groupId>
+                        <artifactId>pitest-maven</artifactId>
+                        <version>${pitest.version}</version>
+                        <configuration>
+                            <targetClasses>
+                                <param>com.ganchevdimitarg.catalog.service.*</param>
+                                <param>com.ganchevdimitarg.catalog.idempotency.*</param>
+                            </targetClasses>
+                            <!-- Unit tests only: the service impl tests live in the entity
+                                 packages, and `*IT` classes must never be matched. -->
+                            <targetTests>
+                                <param>com.ganchevdimitarg.catalog.product.ProductServiceImplTest</param>
+                                <param>com.ganchevdimitarg.catalog.category.CategoryServiceImplTest</param>
+                                <param>com.ganchevdimitarg.catalog.comment.CommentServiceImplTest</param>
+                                <param>com.ganchevdimitarg.catalog.idempotency.*Test</param>
+                            </targetTests>
+                            <outputFormats>
+                                <param>HTML</param>
+                                <param>XML</param>
+                            </outputFormats>
+                            <timestampedReports>false</timestampedReports>
+                            <!-- Measured baseline on 2026-10-22: 141/160 mutants killed (88 %),
+                                 rounded down to the nearest 5. See docs/decisions.md. -->
+                            <mutationThreshold>85</mutationThreshold>
+                        </configuration>
+                        <dependencies>
+                            <dependency>
+                                <groupId>org.pitest</groupId>
+                                <artifactId>pitest-junit5-plugin</artifactId>
+                                <version>${pitest-junit5-plugin.version}</version>
+                            </dependency>
+                        </dependencies>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 
 </project>
