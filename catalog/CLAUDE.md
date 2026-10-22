@@ -148,8 +148,8 @@ modules, and an OTLP collector (`:4318`) must be supplied separately. Env:
 
 ## Known migration gaps
 - Source fully migrated to Boot 4.1.0 / Java 25 on the single `com.ganchevdimitarg.catalog`
-  package — no `com.concordeu` remnant. `clean verify` is green (322 tests, JaCoCo 90 %
-  bundle / 100 % `service.*`). The reference module.
+  package — no `com.concordeu` remnant. `clean verify` is green (current counts in the
+  test baseline block above; JaCoCo 90 % bundle / 100 % `service.*`). The reference module.
 - catalog has its own POM parent (`spring-boot-starter-parent:4.1.0`) and its own Maven
   wrapper, so it builds standalone from `catalog/`. It remains listed in the root
   aggregator, and the root `-pl catalog -am` build stays supported.
