@@ -1,0 +1,9 @@
+# Layered on compose-standalone.yaml for perf runs only. Two deliberate differences:
+# - disables catalog's 60/min search limit so the run measures latency, not 429s;
+# - pins the expected issuer to the in-network mock URL, because k6 requests tokens
+#   over the Compose network (the base stack expects host-issued localhost tokens).
+services:
+  catalog:
+    environment:
+      AUTH_ISSUER_URI: http://mock-oauth2:8080/default
+      CATALOG_RATE_LIMIT_ENABLED: "false"
