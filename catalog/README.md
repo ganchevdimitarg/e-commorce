@@ -148,10 +148,13 @@ Catalog is a stateless OAuth2 **resource server** that accepts only JWTs issued 
 service.
 
 - Issuer: `http://localhost:8082`; JWKS: `http://localhost:8082/oauth2/jwks`.
-- Authorities come from the token's `scope` claim: `catalog.read` becomes
+- Scopes come from the token's `scope` claim: `catalog.read` becomes
   `SCOPE_catalog.read`, `catalog.review` becomes `SCOPE_catalog.review` and
-  `catalog.manage` becomes `SCOPE_catalog.manage`. `ROLE_*` values in the same claim are
-  preserved verbatim (for example `ROLE_ADMIN`).
+  `catalog.manage` becomes `SCOPE_catalog.manage`.
+- Roles come from a dedicated `roles` claim, supplied as a collection or a space-delimited
+  string; the `ROLE_` prefix is added when the issuer omits it (`ADMIN` → `ROLE_ADMIN`).
+  `ROLE_*` values in the `scope` claim are still accepted as a deprecated compatibility path
+  for tokens issued before the `roles` claim existed.
 - `catalog.read` allows reads; `catalog.review` allows comment creation and deletion;
   `catalog.manage` allows product and category creation, updates, deletes and moves.
   `catalog.write` no longer exists and is not aliased: a comment moderator must not be able

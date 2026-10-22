@@ -62,4 +62,35 @@ class JwtAuthorityConverterTest {
         assertThat(authoritiesFor(jwt))
                 .contains("SCOPE_catalog.read", "ROLE_ADMIN");
     }
+
+    @Test
+    void should_mapRolesCollectionToRoleAuthorities_when_rolesClaimPresent() {
+        Jwt jwt = jwtBuilder().claim("roles", List.of("ADMIN", "AUDITOR")).build();
+
+        assertThat(authoritiesFor(jwt)).containsExactlyInAnyOrder("ROLE_ADMIN", "ROLE_AUDITOR");
+    }
+
+    @Test
+    void should_mapSpaceDelimitedRolesString_when_rolesClaimPresent() {
+        Jwt jwt = jwtBuilder().claim("roles", "ADMIN AUDITOR").build();
+
+        assertThat(authoritiesFor(jwt)).containsExactlyInAnyOrder("ROLE_ADMIN", "ROLE_AUDITOR");
+    }
+
+    @Test
+    void should_notDoublePrefixRoleValue_when_rolesClaimAlreadyHasRolePrefix() {
+        Jwt jwt = jwtBuilder().claim("roles", List.of("ROLE_ADMIN")).build();
+
+        assertThat(authoritiesFor(jwt)).contains("ROLE_ADMIN");
+    }
+
+    @Test
+    void should_notDuplicateAuthority_whenScopeAndRolesBothCarryAdmin() {
+        Jwt jwt = jwtBuilder()
+                .claim("scope", List.of("catalog.read", "ROLE_ADMIN"))
+                .claim("roles", List.of("ADMIN"))
+                .build();
+
+        assertThat(authoritiesFor(jwt)).containsOnlyOnce("ROLE_ADMIN");
+    }
 }

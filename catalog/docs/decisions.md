@@ -50,3 +50,7 @@ Reference with `@docs/decisions.md` in prompts when Claude re-raises settled que
   not aliased. The auth service owns the scope seed and must add the two new scopes to the gateway
   client and any API client; until it does, review-only and manage-only tokens are rejected as
   designed. Rationale: comment moderation no longer confers repricing or deletion rights.
+- 2026-10-22 — Catalog reads roles from a dedicated `roles` claim (collection or
+  space-delimited string); a value without the `ROLE_` prefix is prefixed once. `ROLE_*`
+  values in the `scope` claim remain accepted through a deprecated compatibility path for
+  existing tokens.
