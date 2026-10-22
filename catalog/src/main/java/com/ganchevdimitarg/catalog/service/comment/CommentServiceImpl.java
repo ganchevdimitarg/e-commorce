@@ -91,6 +91,13 @@ public class CommentServiceImpl implements CommentService {
     @Transactional(readOnly = true)
     @PreAuthorize("hasAuthority('" + CatalogAuthorities.SCOPE_READ + "')")
     public Page<CommentResponseDto> findAllByAuthorByPage(String author, Pageable pageable) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        boolean admin = authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(authority -> CatalogAuthorities.ROLE_ADMIN.equals(authority.getAuthority()));
+        if (!admin && (authentication == null || !author.equals(authentication.getName()))) {
+            throw new AccessDeniedException(
+                    "Only the author or an administrator may list these comments");
+        }
         Page<CommentResponseDto> comments = commentRepository
                 .findAllByAuthorByPage(author, pageable)
                 .map(this::convertComment);

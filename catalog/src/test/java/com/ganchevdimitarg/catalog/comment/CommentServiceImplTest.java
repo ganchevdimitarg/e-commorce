@@ -193,6 +193,7 @@ class CommentServiceImplTest {
         List<Comment> comments = Arrays.asList(new Comment(), new Comment());
         Page<Comment> page = new PageImpl<>(comments, pageRequest, comments.size());
         String author = "aaaa";
+        authenticate(author, "SCOPE_catalog.read");
 
         when(commentRepository.findAllByAuthorByPage(author, pageRequest)).thenReturn(page);
         when(mapStructMapper.mapCommentToCommentResponseDto(any(Comment.class)))
@@ -203,6 +204,16 @@ class CommentServiceImplTest {
 
         verify(commentRepository).findAllByAuthorByPage(any(String.class), any(PageRequest.class));
         assertThat(result.getContent()).hasSize(2);
+    }
+
+    @Test
+    void should_throwAccessDenied_when_authorDiffersFromCaller() {
+        authenticate("bob", "SCOPE_catalog.read");
+
+        assertThatThrownBy(() -> testService.findAllByAuthorByPage("alice", PageRequest.of(0, 20)))
+                .isInstanceOf(AccessDeniedException.class);
+
+        verify(commentRepository, never()).findAllByAuthorByPage(anyString(), any());
     }
 
     @Test

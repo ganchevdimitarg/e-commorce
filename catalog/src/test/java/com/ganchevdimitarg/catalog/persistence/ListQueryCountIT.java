@@ -22,7 +22,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Tag("integration")
-@WithMockUser(authorities = "SCOPE_catalog.read")
+@WithMockUser(username = "qc-author", authorities = "SCOPE_catalog.read")
 class ListQueryCountIT extends AbstractIntegrationTest {
 
     @Autowired
@@ -47,7 +47,9 @@ class ListQueryCountIT extends AbstractIntegrationTest {
     @BeforeEach
     void seedCatalogue() {
         String run = UUID.randomUUID().toString().substring(0, 8);
-        author = "qc-author-" + run;
+        // The service guard only lets the author (or an admin) list their comments, so the
+        // seeded author must match the @WithMockUser principal.
+        author = "qc-author";
         categoryName = null;
         productName = null;
         for (int c = 0; c < 5; c++) {

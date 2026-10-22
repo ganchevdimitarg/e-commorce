@@ -194,7 +194,7 @@ creation and deletion require `SCOPE_catalog.review`, and product/category mutat
 | POST | `/api/v1/catalog/categories/{from}/products:move-all?to={to}` | `SCOPE_catalog.manage` | — | 200 |
 | POST | `/api/v1/catalog/products/{productName}/comments` | `SCOPE_catalog.review` | `CommentRequestDto`: `title`, `text`, `star` 1–5; author from the JWT | 201, `Location: /api/v1/catalog/comments/{id}`, `CommentResponseDto` |
 | GET | `/api/v1/catalog/products/{productName}/comments` | `SCOPE_catalog.read` | pagination | 200, `PageResponse<CommentResponseDto>` |
-| GET | `/api/v1/catalog/comments/by-author/{author}` | `SCOPE_catalog.read` | pagination | 200, `PageResponse<CommentResponseDto>` |
+| GET | `/api/v1/catalog/comments/by-author/{author}` | `SCOPE_catalog.read`; `{author}` must be the caller or the caller must hold `ROLE_ADMIN` | pagination | 200, `PageResponse<CommentResponseDto>`; 403 `ACCESS_DENIED` otherwise |
 | GET | `/api/v1/catalog/products/{productName}/comments/avg-stars` | `SCOPE_catalog.read` | — | 200, average `star` as a number |
 | DELETE | `/api/v1/catalog/comments/{id}` | `SCOPE_catalog.review` or `ROLE_ADMIN` | — | 204; 403 if the caller is neither the author nor an admin |
 
@@ -296,6 +296,9 @@ returns 429 `RATE_LIMIT_EXCEEDED` with a `Retry-After` header.
   `catalog.review`.
 - Deletion is allowed for the comment's author or a caller holding `ROLE_ADMIN`; everyone
   else receives 403.
+- `GET /api/v1/catalog/comments/by-author/{author}` is allowed only when `{author}` is the
+  caller's JWT subject or the caller holds `ROLE_ADMIN`; every other caller receives 403
+  `ACCESS_DENIED`, so a read scope alone cannot enumerate another user's comments.
 
 ## Error model
 
