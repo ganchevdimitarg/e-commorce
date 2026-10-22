@@ -84,6 +84,13 @@ class ConfigurationProfilesTest {
     }
 
     @Test
+    void should_configure_redis_auth_and_tls_from_environment_when_prod_config_is_read() {
+        assertThat(load("application-prod.yml"))
+                .containsEntry("spring.data.redis.password", "${REDIS_PASSWORD:}")
+                .containsEntry("spring.data.redis.ssl.enabled", "${REDIS_SSL_ENABLED:false}");
+    }
+
+    @Test
     void should_serve_actuator_on_the_management_port_when_dev_config_is_read() {
         assertThat(load("application-dev.yml"))
                 .containsEntry("management.server.port", "${MANAGEMENT_PORT:8088}");

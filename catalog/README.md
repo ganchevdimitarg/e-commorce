@@ -141,6 +141,8 @@ Configuration keys that matter locally:
 | `catalog.rate-limit.enabled` | Per-principal rate limiting on product reads, default `true` |
 | `catalog.rate-limit.search.permits` | Search requests per minute per principal, default `60` |
 | `catalog.rate-limit.batch-get.permits` | Batch-get requests per minute per principal, default `10` |
+| `spring.data.redis.password` | Prod Redis password, `REDIS_PASSWORD`, empty by default (unauthenticated Redis) |
+| `spring.data.redis.ssl.enabled` | Prod Redis TLS, `REDIS_SSL_ENABLED`, default `false` |
 | `spring.kafka.bootstrap-servers` | Spring Kafka bootstrap servers, `localhost:9092` |
 | `kafka.bootstrapAddress` | Bootstrap address of the outbox producer, `localhost:9092` |
 
@@ -384,8 +386,10 @@ Tuning and failure behaviour:
 
 ## Caching and read replica
 
-**Cache.** There is one Redis cache, `product`, with a 10-minute TTL, the `catalog:v3:` key
-prefix (`catalog:v3:product::<uuid>`) and Jackson JSON values.
+**Cache.** There is one Redis cache, `product`, with a 10-minute TTL, the `catalog:v4:` key
+prefix (`catalog:v4:product::<uuid>`) and Jackson JSON values serialized by the typed
+`JacksonJsonRedisSerializer<ProductResponseDto>`. Values carry no `@class` type metadata; the
+prefix bump means v3 entries, which do, are never read as the typed DTO.
 
 - `getProductById` is `@Cacheable(cacheNames = "product", key = "#id")`.
 - `createProduct` and `updateProduct` build the response DTO inside the write transaction

@@ -21,6 +21,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.CacheManager;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -76,6 +77,9 @@ class ProductCacheIT extends RedisIntegrationBase {
 
     @Autowired
     RedisConnectionFactory redisConnectionFactory;
+
+    @Autowired
+    StringRedisTemplate stringRedisTemplate;
 
     @Autowired
     JdbcTemplate jdbc;
@@ -270,5 +274,20 @@ class ProductCacheIT extends RedisIntegrationBase {
         commentService.deleteComment(created.id());
 
         assertThat(cacheManager.getCache("product").get(PRODUCT_ID)).isNull();
+    }
+
+    @Test
+    @Order(10)
+    @WithMockUser(authorities = "SCOPE_catalog.read")
+    void should_storeCacheValueWithoutTypeMetadata_when_productRead() {
+        productService.getProductById(PRODUCT_ID);
+
+        String raw = stringRedisTemplate.opsForValue()
+                .get("catalog:v4:product::" + PRODUCT_ID);
+
+        assertThat(raw)
+                .isNotNull()
+                .contains("\"name\":\"" + PRODUCT_NAME + "\"")
+                .doesNotContain("@class");
     }
 }

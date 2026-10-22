@@ -68,7 +68,7 @@ Session rules for the `catalog/TODO.md` hardening list — restated from the roo
 ## Catalog-specific infrastructure (load the doc on demand)
 - **Redis** — `Idempotency-Key` guard (`catalog:idempotency:<key>`, 24h TTL, duplicate → 409)
   and product read cache. NB catalog uses Spring `@Cacheable` on `getProductById` plus
-  after-commit `ProductCache.put`/`evict`/`evictAll` (10-min TTL, namespace `catalog:v3:`), a
+  after-commit `ProductCache.put`/`evict`/`evictAll` (10-min TTL, namespace `catalog:v4:`), a
   deliberate deviation from the root cache-aside rule; it declares no `@CacheEvict`.
   → `../docs/context/caching.md`
 - **Kafka** — product events on the four topics `catalog.product.created`, `.updated`,
@@ -116,7 +116,8 @@ Environment variables (dev defaults in brackets): `POSTGRES_USER` and `POSTGRES_
 (required), `SERVER_PORT` [8084], `MANAGEMENT_PORT` [8088],
 `AUTH_ISSUER_URI` [http://localhost:8082],
 `AUTH_JWK_SET_URI` [http://localhost:8082/oauth2/jwks], `REDIS_HOST` [localhost],
-`REDIS_PORT` [6379], `KAFKA_BOOTSTRAP_SERVERS` [localhost:9092], `EUREKA_CLIENT_ENABLED`
+`REDIS_PORT` [6379], `REDIS_PASSWORD` (unset; prod only), `REDIS_SSL_ENABLED` [false],
+`KAFKA_BOOTSTRAP_SERVERS` [localhost:9092], `EUREKA_CLIENT_ENABLED`
 [true], `EUREKA_DEFAULT_ZONE` [http://localhost:8761/eureka], `SPRING_CLOUD_VAULT_ENABLED`
 [true], `VAULT_URI` [http://localhost:8200], `VAULT_BACKEND` [secret],
 `VAULT_DEFAULT_CONTEXT` [catalog/credentials], `OTLP_TRACES_ENDPOINT`

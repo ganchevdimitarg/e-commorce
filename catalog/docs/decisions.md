@@ -63,3 +63,9 @@ Reference with `@docs/decisions.md` in prompts when Claude re-raises settled que
   app-port token protection (every Prometheus scraper would need a JWT). If app-level
   protection on 8088 is required, add a `ManagementContextConfiguration` with its own
   `SecurityFilterChain`.
+- 2026-10-22 — Catalog's Redis `product` cache uses the typed
+  `JacksonJsonRedisSerializer<ProductResponseDto>` (Jackson 3), not the polymorphic
+  `GenericJackson2JsonRedisSerializer`; values carry no `@class` type metadata. The prefix is
+  `catalog:v4:` so v3 entries are never deserialized as the typed DTO. Prod Redis auth/TLS is
+  environment-backed (`REDIS_PASSWORD`, `REDIS_SSL_ENABLED`). Rejected: Jackson 2's typed
+  serializer, which is deprecated for removal in Spring Data Redis 4.1.
