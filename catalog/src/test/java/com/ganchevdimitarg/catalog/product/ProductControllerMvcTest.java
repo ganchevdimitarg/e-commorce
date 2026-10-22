@@ -104,7 +104,7 @@ class ProductControllerMvcTest {
     @Test
     void should_return201AndLocation_when_createProduct() throws Exception {
         ProductResponseDto created = new ProductResponseDto(P1, "mouse", "WiFi mouse USB",
-                BigDecimal.ONE, true, "", null,0L, 0.0, 0);
+                BigDecimal.ONE, true, "", null, 0L, 0.0, 0);
         when(productService.createProduct(any())).thenReturn(created);
 
         mockMvc.perform(post("/api/v1/catalog/products?categoryName=PC")
@@ -123,7 +123,7 @@ class ProductControllerMvcTest {
     void should_return200WithProduct_when_getProductByNameWithReadScope() throws Exception {
         ProductResponseDto response = new ProductResponseDto(
                 P1, "mouse", "WiFi mouse USB", BigDecimal.valueOf(29.99),
-                true, "black", null,5L, 4.0, 2);
+                true, "black", null, 5L, 4.0, 2);
         when(productService.getProductByName("mouse")).thenReturn(response);
 
         mockMvc.perform(get("/api/v1/catalog/products/by-name/mouse")
@@ -143,7 +143,7 @@ class ProductControllerMvcTest {
     void should_return200WithProducts_when_getProductsWithReadScope() throws Exception {
         ProductResponseDto dto = new ProductResponseDto(
                 P1, "mouse", "WiFi mouse USB", BigDecimal.valueOf(29.99),
-                true, "black", null,0L, 0.0, 0);
+                true, "black", null, 0L, 0.0, 0);
         Page<ProductResponseDto> page = new PageImpl<>(
                 List.of(dto), PageRequest.of(0, 20), 1);
         when(productService.searchProducts(any(), any())).thenReturn(page);
@@ -249,7 +249,7 @@ class ProductControllerMvcTest {
     void should_return200_when_categoryNameProvided() throws Exception {
         ProductResponseDto dto = new ProductResponseDto(
                 P1, "mouse", "WiFi mouse USB", BigDecimal.valueOf(29.99),
-                true, "black", null,0L, 0.0, 0);
+                true, "black", null, 0L, 0.0, 0);
         Page<ProductResponseDto> page = new PageImpl<>(
                 List.of(dto), PageRequest.of(0, 20), 1);
         when(productService.searchProducts(any(), any())).thenReturn(page);
@@ -269,7 +269,7 @@ class ProductControllerMvcTest {
     void should_returnETag_when_productFetchedById() throws Exception {
         ProductResponseDto response = new ProductResponseDto(
                 PROD_123, "mouse", "WiFi mouse USB", BigDecimal.valueOf(29.99),
-                true, "black", null,3L, 0.0, 0);
+                true, "black", null, 3L, 0.0, 0);
         when(productService.getProductById(PROD_123)).thenReturn(response);
 
         mockMvc.perform(get("/api/v1/catalog/products/" + PROD_123)
@@ -284,7 +284,7 @@ class ProductControllerMvcTest {
     void should_return200_when_getProductsByIdWithReadScope() throws Exception {
         ProductResponseDto dto = new ProductResponseDto(
                 ID_1, "mouse", "WiFi mouse USB", BigDecimal.valueOf(29.99),
-                true, "black", null,0L, 0.0, 0);
+                true, "black", null, 0L, 0.0, 0);
         when(productService.getProductsById(any(ItemRequestDto.class))).thenReturn(List.of(dto));
 
         mockMvc.perform(post("/api/v1/catalog/products/:batch-get")
@@ -329,7 +329,7 @@ class ProductControllerMvcTest {
     void should_return200WithUpdatedProduct_when_updateProductWithValidBody() throws Exception {
         ProductResponseDto updated = new ProductResponseDto(
                 PROD_123, "mouse", "WiFi mouse USB v2", BigDecimal.valueOf(19.99),
-                false, "black", null,2L, 0.0, 0);
+                false, "black", null, 2L, 0.0, 0);
         when(productService.updateProduct(eq(PROD_123), any(), any())).thenReturn(updated);
 
         mockMvc.perform(put("/api/v1/catalog/products/" + PROD_123)
@@ -353,7 +353,7 @@ class ProductControllerMvcTest {
     void should_updateProduct_when_ifMatchMatches() throws Exception {
         ProductResponseDto updated = new ProductResponseDto(
                 PROD_123, "mouse", "WiFi mouse USB v2", BigDecimal.valueOf(19.99),
-                false, "black", null,2L, 0.0, 0);
+                false, "black", null, 2L, 0.0, 0);
         when(productService.updateProduct(eq(PROD_123), any(), eq(1L))).thenReturn(updated);
 
         mockMvc.perform(put("/api/v1/catalog/products/" + PROD_123)
@@ -395,7 +395,7 @@ class ProductControllerMvcTest {
     void should_updateProduct_when_ifMatchIsAbsent() throws Exception {
         ProductResponseDto updated = new ProductResponseDto(
                 PROD_123, "mouse", "WiFi mouse USB v2", BigDecimal.valueOf(19.99),
-                false, "black", null,2L, 0.0, 0);
+                false, "black", null, 2L, 0.0, 0);
         when(productService.updateProduct(eq(PROD_123), any(), isNull())).thenReturn(updated);
 
         mockMvc.perform(put("/api/v1/catalog/products/" + PROD_123)
@@ -434,7 +434,7 @@ class ProductControllerMvcTest {
     void should_acceptWildcardIfMatch_when_productExists() throws Exception {
         ProductResponseDto updated = new ProductResponseDto(
                 PROD_123, "mouse", "WiFi mouse USB v2", BigDecimal.valueOf(19.99),
-                false, "black", null,2L, 0.0, 0);
+                false, "black", null, 2L, 0.0, 0);
         when(productService.updateProduct(eq(PROD_123), any(), isNull())).thenReturn(updated);
 
         mockMvc.perform(put("/api/v1/catalog/products/" + PROD_123)
@@ -474,7 +474,7 @@ class ProductControllerMvcTest {
     void should_ignoreName_when_updateRequestIncludesName() throws Exception {
         when(productService.updateProduct(eq(PROD_123), any(), any())).thenReturn(
                 new ProductResponseDto(PROD_123, "mouse", "WiFi mouse USB v2",
-                        BigDecimal.valueOf(19.99), false, "black", null,2L, 0.0, 0));
+                        BigDecimal.valueOf(19.99), false, "black", null, 2L, 0.0, 0));
 
         mockMvc.perform(put("/api/v1/catalog/products/" + PROD_123)
                         .with(csrf())
@@ -599,7 +599,7 @@ class ProductControllerMvcTest {
     void should_return200WithCursorPage_when_cursorEndpointRequested() throws Exception {
         ProductResponseDto dto = new ProductResponseDto(
                 P1, "mouse", "WiFi mouse USB", BigDecimal.valueOf(29.99),
-                true, "black", null,0L, 0.0, 0);
+                true, "black", null, 0L, 0.0, 0);
         when(productService.searchProductsByCursor(any(), isNull(), eq(20), eq("desc")))
                 .thenReturn(new CursorPageResponse<>(List.of(dto), "next-token"));
 
@@ -677,7 +677,7 @@ class ProductControllerMvcTest {
     void should_keepOffsetPagination_when_cursorEndpointExists() throws Exception {
         ProductResponseDto dto = new ProductResponseDto(
                 P1, "mouse", "WiFi mouse USB", BigDecimal.valueOf(29.99),
-                true, "black", null,0L, 0.0, 0);
+                true, "black", null, 0L, 0.0, 0);
         when(productService.searchProducts(any(), any()))
                 .thenReturn(new PageImpl<>(List.of(dto), PageRequest.of(0, 5), 1));
 

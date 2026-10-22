@@ -36,15 +36,13 @@ public interface ProductRepository extends JpaRepository<Product, UUID>, JpaSpec
     boolean existsByCategory_Id(UUID categoryId);
     List<Product> findAllByCategory_Id(UUID categoryId);
 
-    // One query for the whole batch; category is joined, comments stay lazy
-    // (@BatchSize) so a collection fetch join cannot duplicate rows.
+    // One query for the whole batch; the category is joined so mapping issues no
+    // per-row select.
     @Override
     @EntityGraph(attributePaths = "category")
     List<Product> findAllById(Iterable<UUID> ids);
 
-    // category is join-fetched to avoid a select per row on page reads; comments stay
-    // lazy (@BatchSize on the entity) because a collection fetch join cannot paginate
-    // in SQL.
+    // category is join-fetched to avoid a select per row on page reads.
     @Override
     @EntityGraph(attributePaths = "category")
     Page<Product> findAll(Pageable pageable);

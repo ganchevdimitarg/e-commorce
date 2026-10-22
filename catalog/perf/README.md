@@ -129,8 +129,9 @@ docker compose -f compose-standalone.yaml -f perf/compose.perf.yaml down
 - `seed.sql` is destructive: it truncates `comments`, `products` and `categories`
   in the standalone stack.
 - `getProductById` is `@Cacheable("product")`; after the first request the by-id
-  latency is the Redis path. The response size still includes all 2,000 comments.
-  Redis is flushed before the measured run so run-to-run numbers are comparable.
+  latency is the Redis path. The baseline response size included all 2,000 comments;
+  the "After task 2.1" section records the post-removal numbers. Redis is flushed
+  before the measured run so run-to-run numbers are comparable.
 - Products 1-3 are the newest rows. The search request is sorted explicitly by
   `createdAt,desc` (as is the cursor request), so those three products are guaranteed
   on page 1. That is intentional: it exposes the embedded-comments payload problem

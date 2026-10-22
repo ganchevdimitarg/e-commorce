@@ -84,12 +84,12 @@ public abstract class ContractVerifierBase {
     private static ProductResponseDto product(long version, double avgStars, int ratingCount) {
         return new ProductResponseDto(
                 PRODUCT_ID, PRODUCT_NAME, PRODUCT_DESCRIPTION, new BigDecimal("29.99"), true, "black",
-                new CategorySummaryDto(CATEGORY_ID, CATEGORY_NAME),version, avgStars, ratingCount);
+                new CategorySummaryDto(CATEGORY_ID, CATEGORY_NAME), version, avgStars, ratingCount);
     }
 
     private static ProductResponseDto updatedProduct() {
         return new ProductResponseDto(
                 PRODUCT_ID, PRODUCT_NAME, "WiFi mouse USB v2", new BigDecimal("19.99"), false, "black",
-                new CategorySummaryDto(CATEGORY_ID, CATEGORY_NAME),4L, 4.5, 2);
+                new CategorySummaryDto(CATEGORY_ID, CATEGORY_NAME), 4L, 4.5, 2);
     }
 }
