@@ -68,7 +68,7 @@ Session rules for the `catalog/TODO.md` hardening list — restated from the roo
 ## Catalog-specific infrastructure (load the doc on demand)
 - **Redis** — `Idempotency-Key` guard (`catalog:idempotency:<key>`, 24h TTL, duplicate → 409)
   and product read cache. NB catalog uses Spring `@Cacheable` on `getProductById` plus
-  after-commit `ProductCache.put`/`evict`/`evictAll` (10-min TTL, namespace `catalog:`), a
+  after-commit `ProductCache.put`/`evict`/`evictAll` (10-min TTL, namespace `catalog:v3:`), a
   deliberate deviation from the root cache-aside rule; it declares no `@CacheEvict`.
   → `../docs/context/caching.md`
 - **Kafka** — product events on the four topics `catalog.product.created`, `.updated`,

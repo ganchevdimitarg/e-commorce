@@ -43,9 +43,9 @@ service (`:8082`) are not defined there: start them from their modules with
 `./mvnw spring-boot:run -pl authentication`. An OTLP collector at `:4318` must be provided
 separately for tracing.
 
-Prerequisites: Docker, and `POSTGRES_USER`, `POSTGRES_PASSWORD`,
-`VAULT_DEV_ROOT_TOKEN_ID` and `GATEWAY_CLIENT_SECRET` in the environment. The last one is
-used by Swagger UI's OAuth2 PKCE client.
+Prerequisites: Docker, and `POSTGRES_USER`, `POSTGRES_PASSWORD` and
+`VAULT_DEV_ROOT_TOKEN_ID` in the environment. `GATEWAY_CLIENT_SECRET` is optional (it has
+an empty default) and is only needed for Swagger UI's OAuth2 PKCE login.
 
 SQL diagnostics are opt-in; the default dev profile stays quiet:
 
@@ -111,7 +111,7 @@ Notes:
 
 | File | Purpose |
 |---|---|
-| `application.yml` | Profile-neutral base: application name, default `dev` profile group, JPA and pagination settings, virtual threads, actuator health probes/exposure and Prometheus, springdoc paths and the outbox cadence. |
+| `application.yml` | Profile-neutral base: application name, default `dev` profile group, JPA settings, Spring MVC path matching, virtual threads, actuator health probes/exposure and Prometheus, springdoc paths, the outbox cadence and rate-limit defaults. |
 | `application-dev.yml` | Dev overlay: datasource credentials and writer/reader URLs, JWT issuer, Redis, Kafka, Eureka, Docker Compose Support (`compose.yaml`), devtools, tracing/OTLP, springdoc and the optional Vault import (`optional:vault://`, `http://localhost:8200`, token auth, backend `secret`, context `catalog/credentials`). |
 | `application-prod.yml` | Production overlay, selected with `SPRING_PROFILES_ACTIVE=prod`: external endpoints are required from the environment with no localhost defaults, there is no Vault import, no Docker Compose support and no devtools, and Swagger is off. |
 | `application-debug.yml` | Opt-in SQL diagnostics, activated with `SPRING_PROFILES_ACTIVE=dev,debug`. |
@@ -134,6 +134,11 @@ Configuration keys that matter locally:
 | `catalog.retention.purge-enabled` | Opt-in purge of expired soft-deleted rows, default `false` |
 | `catalog.retention.retention` | Age after which a soft-deleted row is purged, default `90d` |
 | `catalog.retention.cron` | Purge schedule, default `0 0 3 * * *` (nightly at 03:00) |
+| `catalog.retention.batch-size` | Rows selected per purge batch, default `500` |
+| `catalog.retention.max-batches-per-run` | Purge batches per run, default `100` |
+| `catalog.rate-limit.enabled` | Per-principal rate limiting on product reads, default `true` |
+| `catalog.rate-limit.search.permits` | Search requests per minute per principal, default `60` |
+| `catalog.rate-limit.batch-get.permits` | Batch-get requests per minute per principal, default `10` |
 | `spring.kafka.bootstrap-servers` | Spring Kafka bootstrap servers, `localhost:9092` |
 | `kafka.bootstrapAddress` | Bootstrap address of the outbox producer, `localhost:9092` |
 
@@ -168,10 +173,10 @@ require `SCOPE_catalog.write` unless the authority column says otherwise.
 | POST | `/api/v1/catalog/products?categoryName={name}` | `SCOPE_catalog.write` | `ProductRequestDto`: `name`, `description`, `price`, `inStock`, `characteristics` | 201, `Location: /api/v1/catalog/products/{id}`, `ProductResponseDto` |
 | GET | `/api/v1/catalog/products` | `SCOPE_catalog.read` | optional `q`, `minPrice`, `maxPrice`, `inStock`, `categoryName`; `page`, `size` ≤ 100, `sort` | 200, `PageResponse<ProductResponseDto>` |
 | GET | `/api/v1/catalog/products/:cursor` | `SCOPE_catalog.read` | optional `q`, `minPrice`, `maxPrice`, `inStock`, `categoryName`; `cursor`, `limit` 1–100 (default 20), `sort` `createdAt,asc` or `createdAt,desc` (default `createdAt,desc`) | 200, `CursorPageResponse<ProductResponseDto>` |
-| GET | `/api/v1/catalog/products/{id}` | `SCOPE_catalog.read` | UUID path | 200, `ProductResponseDto` (cached) |
-| GET | `/api/v1/catalog/products/by-name/{name}` | `SCOPE_catalog.read` | name path | 200, `ProductResponseDto` |
+| GET | `/api/v1/catalog/products/{id}` | `SCOPE_catalog.read` | UUID path | 200, `ProductResponseDto` (cached), `ETag` |
+| GET | `/api/v1/catalog/products/by-name/{name}` | `SCOPE_catalog.read` | name path | 200, `ProductResponseDto`, `ETag` |
 | POST | `/api/v1/catalog/products/:batch-get` | `SCOPE_catalog.read` | `ItemRequestDto`: 1–100 UUIDs | 200, `List<ProductResponseDto>`; 404 lists every missing id |
-| PUT | `/api/v1/catalog/products/{id}` | `SCOPE_catalog.write` | `UpdateProductRequestDto`: `description`, `price`, `inStock`, `characteristics` | 200, updated `ProductResponseDto` |
+| PUT | `/api/v1/catalog/products/{id}` | `SCOPE_catalog.write` | `UpdateProductRequestDto`: `description`, `price`, `inStock`, `characteristics`; optional `If-Match` header | 200, updated `ProductResponseDto`, `ETag` |
 | DELETE | `/api/v1/catalog/products/{id}` | `SCOPE_catalog.write` | — | 204 |
 | POST | `/api/v1/catalog/categories` | `SCOPE_catalog.write` | `CategoryRequestDto`: `name` | 201, `Location: /api/v1/catalog/categories/{name}`, `CategoryResponseDto` |
 | GET | `/api/v1/catalog/categories` | `SCOPE_catalog.read` | pagination | 200, `PageResponse<CategoryResponseDto>` |
@@ -184,10 +189,17 @@ require `SCOPE_catalog.write` unless the authority column says otherwise.
 | GET | `/api/v1/catalog/products/{productName}/comments/avg-stars` | `SCOPE_catalog.read` | — | 200, average `star` as a number |
 | DELETE | `/api/v1/catalog/comments/{id}` | `SCOPE_catalog.write` or `ROLE_ADMIN` | — | 204; 403 if the caller is neither the author nor an admin |
 
+`GET` by id and by name return a strong `ETag` derived from the product's optimistic-lock
+`version`. `PUT` accepts an optional `If-Match`: absent, blank or `*` means no precondition,
+a single strong tag (`"<version>"`) is enforced, and a weak, list-valued or non-numeric tag
+is a 400 `VALIDATION_ERROR`. A stale tag is a 412 `PRECONDITION_FAILED`; a concurrent update
+that loses the optimistic-lock race is a 409 `CONFLICT`.
+
 ### Response shapes
 
 - `ProductResponseDto`: `id`, `name`, `description`, `price`, `inStock`, `characteristics`,
-  `category` (`{id, name}`) and `comments` (`CommentResponseDto[]`).
+  `category` (`{id, name}`), `comments` (`CommentResponseDto[]`), `version` (optimistic-lock
+  version, also the `ETag`), `avgStars` and `ratingCount`.
 - `CategoryResponseDto`: `id`, `name`, `productCount`.
 - `CommentResponseDto`: `id`, `title`, `text`, `star`, `author`, `productId`, `productName`.
 - `PageResponse<T>`: `content`, `page`, `size`, `totalElements`, `totalPages`.
@@ -255,6 +267,19 @@ scoped by JWT subject, HTTP method, request path and the client key (SHA-256, pr
 - an in-progress duplicate returns 409 — the first request is still running;
 - a Redis outage fails open: the request proceeds without protection (ADR-006).
 
+### Rate limiting
+
+The read-heavy product endpoints are throttled per principal with Resilience4j, in two
+independent buckets, as defence in depth behind the gateway's edge limit:
+
+| Bucket | Endpoints | Default |
+|---|---|---|
+| search | `GET /api/v1/catalog/products`, `GET /api/v1/catalog/products/:cursor` | 60 requests/minute |
+| batch-get | `POST /api/v1/catalog/products/:batch-get` | 10 requests/minute |
+
+`catalog.rate-limit.enabled` (default `true`) toggles enforcement. A throttled request
+returns 429 `RATE_LIMIT_EXCEEDED` with a `Retry-After` header.
+
 ### Comments
 
 - Creation takes the author from the JWT subject and returns
@@ -281,11 +306,13 @@ and `timestamp`:
 
 | Status | `code` | Typical cause |
 |---|---|---|
-| 400 | `VALIDATION_ERROR` | Request-parameter validation (`ConstraintViolationException`), page size above 100, sort property outside the whitelist, missing `Idempotency-Key` |
+| 400 | `VALIDATION_ERROR` | Request-parameter validation (`ConstraintViolationException`), page size above 100, sort property outside the whitelist, missing `Idempotency-Key`, malformed `If-Match` |
 | 401 | `UNAUTHENTICATED` | Missing, expired or invalid JWT |
 | 403 | `ACCESS_DENIED` | Missing scope, or deleting someone else's comment without `ROLE_ADMIN` |
 | 404 | `NOT_FOUND` | Unknown product, category, comment or category name in a product search |
 | 409 | `CONFLICT` | Duplicate product/category name, category still holding products, in-progress idempotent request, optimistic-lock clash |
+| 412 | `PRECONDITION_FAILED` | `If-Match` does not match the product's current `version` |
+| 429 | `RATE_LIMIT_EXCEEDED` | Search or batch-get rate limit exhausted for the principal |
 | 500 | `INTERNAL_ERROR` | Unexpected failure; the detail is generic and the cause is logged |
 
 Framework-handled 400s — `@RequestBody @Valid` failures and unreadable or malformed bodies —
@@ -296,8 +323,10 @@ also return `application/problem+json`, but in the standard framework shape: `ty
 ## Events
 
 Product changes are published through a **transactional outbox**: `OutboxEventWriter`
-inserts an `outbox_events` row in the same transaction as the product change, so an event
-exists if and only if the change committed. `OutboxRelay` then:
+validates the payload against the topic's versioned JSON Schema
+(`classpath:event-schemas/<topic>.v<schemaVersion>.json`; ADR-010) and inserts an
+`outbox_events` row in the same transaction as the product change, so an event exists if
+and only if the change committed. `OutboxRelay` then:
 
 - runs every 1000 ms (`catalog.outbox.relay-interval-ms`) from `OutboxScheduler`;
 - claims a batch (default 20, oldest first) where `sent_at IS NULL`,
@@ -337,8 +366,8 @@ Tuning and failure behaviour:
 
 ## Caching and read replica
 
-**Cache.** There is one Redis cache, `product`, with a 10-minute TTL, the `catalog:` key
-prefix (`catalog:product::<uuid>`) and Jackson JSON values.
+**Cache.** There is one Redis cache, `product`, with a 10-minute TTL, the `catalog:v3:` key
+prefix (`catalog:v3:product::<uuid>`) and Jackson JSON values.
 
 - `getProductById` is `@Cacheable(cacheNames = "product", key = "#id")`.
 - `createProduct` and `updateProduct` build the response DTO inside the write transaction
@@ -390,7 +419,7 @@ retention rows in the configuration table above.
 | `/actuator/health/liveness` | `livenessState`, `ping` |
 | `/actuator/health/readiness` | `readinessState`, `db` |
 | `/actuator/prometheus` | Micrometer metrics in Prometheus format |
-| `/actuator/info` | Application info |
+| `/actuator/info` | Info endpoint; empty unless info contributors are configured |
 
 Health details are shown to authorised callers (`management.endpoint.health.show-details:
 when-authorized`). The `replica` component is always `UP`; its `reader`
@@ -421,9 +450,11 @@ Run from the repository root:
 ./mvnw clean verify -pl catalog -am
 ```
 
-Integration tests extend `AbstractIntegrationTest` / `RedisKafkaIntegrationBase` and use
-Testcontainers, so Docker must be running for the full `verify`. JaCoCo enforces 90 % line
-coverage for the bundle and 100 % for `com.ganchevdimitarg.catalog.service.*`.
+Testcontainers-backed integration tests extend `AbstractIntegrationTest` /
+`RedisKafkaIntegrationBase`; the `@WebMvcTest` web-slice tests and
+`RatingBackfillMigrationIT` are also tagged `integration` but start no containers. Docker
+must be running for the full `verify`. JaCoCo enforces 90 % line coverage for the bundle
+and 100 % for `com.ganchevdimitarg.catalog.service.*`.
 
 ### Mutation testing (opt-in)
 
