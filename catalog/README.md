@@ -231,7 +231,8 @@ that loses the optimistic-lock race is a 409 `CONFLICT`.
   `author`, `createdAt`, `updatedAt`. Any other sort property returns 400
   `VALIDATION_ERROR`.
 - On `GET /api/v1/catalog/products`, `q` is a case-insensitive contains match on the product
-  name; `categoryName` is resolved before the query, so an unknown category is a 404.
+  name; `categoryName` is resolved before the query, so an unknown category is a 404. The `q`
+  filter is backed by a `pg_trgm` GIN index on `lower(name)`.
 
 ### Cursor pagination
 

@@ -75,3 +75,10 @@ Reference with `@docs/decisions.md` in prompts when Claude re-raises settled que
   paginated reviews. The cache prefix moves to `catalog:v5:` so v4 entries containing a
   `comments` property are never bound to the new record. Rejected: a capped comments
   array (still unbounded per product and duplicates the paginated endpoint).
+- 2026-10-22 — Catalog indexes product-name search with a `pg_trgm` GIN index on
+  `lower(name)` (`idx_products_name_trgm`, partial `WHERE deleted_at IS NULL`) so the
+  contains predicate can be index-scanned. `pg_trgm` is a deployment prerequisite;
+  PostgreSQL 13+ treats it as trusted, but a restricted database user may need a DBA to
+  create the extension once. Rejected: a B-tree index (cannot serve a leading-wildcard
+  LIKE), full-text search (changes match semantics from substring to lexeme), and an
+  in-memory filter (unbounded read).
