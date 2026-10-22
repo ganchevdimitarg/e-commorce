@@ -7,6 +7,7 @@ import com.ganchevdimitarg.catalog.domain.Comment;
 import com.ganchevdimitarg.catalog.domain.Product;
 import com.ganchevdimitarg.catalog.dto.comment.CommentResponseDto;
 import com.ganchevdimitarg.catalog.dto.comment.CreateCommentCommand;
+import com.ganchevdimitarg.catalog.exception.ConflictException;
 import com.ganchevdimitarg.catalog.exception.NotFoundException;
 import com.ganchevdimitarg.catalog.mapper.MapStructMapper;
 import com.ganchevdimitarg.catalog.service.comment.CommentService;
@@ -137,6 +138,21 @@ class CommentServiceImplTest {
                 new CreateCommentCommand("nice", "great product!!", 5.0, "joe", productName)))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("Product not found: " + productName);
+
+        verify(commentRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void should_throwConflict_when_authorAlreadyReviewedProduct() {
+        Product product = new Product();
+        product.setId(PRODUCT_ID);
+        product.setName("mouse");
+        when(productRepository.findByNameForUpdate("mouse")).thenReturn(Optional.of(product));
+        when(commentRepository.existsByProduct_IdAndAuthor(PRODUCT_ID, "joe")).thenReturn(true);
+
+        assertThatThrownBy(() -> testService.createComment(
+                new CreateCommentCommand("nice", "great product!!", 5.0, "joe", "mouse")))
+                .isInstanceOf(ConflictException.class);
 
         verify(commentRepository, never()).saveAndFlush(any());
     }

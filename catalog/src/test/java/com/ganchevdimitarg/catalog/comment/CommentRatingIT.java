@@ -46,6 +46,8 @@ import static org.mockito.Mockito.verify;
 class CommentRatingIT extends AbstractIntegrationTest {
 
     private static final String AUTHOR = "joe";
+    private static final String OTHER_AUTHOR = "jane";
+    private static final String THIRD_AUTHOR = "bob";
     private static final String COMMENT_TITLE = "great";
     private static final String COMMENT_TEXT = "thorough review text";
 
@@ -80,8 +82,8 @@ class CommentRatingIT extends AbstractIntegrationTest {
         authenticate();
         Product product = seedProduct("rating-two-comments");
 
-        commentService.createComment(commentCommand(product, 5.0));
-        commentService.createComment(commentCommand(product, 3.0));
+        commentService.createComment(commentCommand(product, 5.0, AUTHOR));
+        commentService.createComment(commentCommand(product, 3.0, OTHER_AUTHOR));
         productRepository.flush();
 
         assertThat(ratingOf(product.getId())).isEqualTo(new Rating(2, 4.0));
@@ -96,10 +98,12 @@ class CommentRatingIT extends AbstractIntegrationTest {
     void should_recalculate_when_commentDeleted() {
         authenticate();
         Product product = seedProduct("rating-after-delete");
-        CommentResponseDto fiveStars = commentService.createComment(commentCommand(product, 5.0));
-        commentService.createComment(commentCommand(product, 3.0));
+        CommentResponseDto fiveStars = commentService.createComment(
+                commentCommand(product, 5.0, AUTHOR));
+        commentService.createComment(commentCommand(product, 3.0, OTHER_AUTHOR));
         productRepository.flush();
 
+        authenticate(fiveStars.author());
         commentService.deleteComment(fiveStars.id());
         productRepository.flush();
 
@@ -111,9 +115,11 @@ class CommentRatingIT extends AbstractIntegrationTest {
     void should_excludeSoftDeletedComment_when_statsAreRecalculated() {
         authenticate();
         Product product = seedProduct("rating-soft-deleted");
-        commentService.createComment(commentCommand(product, 5.0));
-        CommentResponseDto threeStars = commentService.createComment(commentCommand(product, 3.0));
-        CommentResponseDto oneStar = commentService.createComment(commentCommand(product, 1.0));
+        commentService.createComment(commentCommand(product, 5.0, AUTHOR));
+        CommentResponseDto threeStars = commentService.createComment(
+                commentCommand(product, 3.0, OTHER_AUTHOR));
+        CommentResponseDto oneStar = commentService.createComment(
+                commentCommand(product, 1.0, THIRD_AUTHOR));
         productRepository.flush();
 
         // Bypass the service to prove the aggregate itself ignores the @SQLRestriction row.
@@ -124,6 +130,7 @@ class CommentRatingIT extends AbstractIntegrationTest {
         assertThat(stats.getAverageStars()).isEqualTo(4.0);
 
         // A later mutation recalculates from live rows only: 5 remains after deleting 3.
+        authenticate(threeStars.author());
         commentService.deleteComment(threeStars.id());
         productRepository.flush();
 
@@ -147,9 +154,11 @@ class CommentRatingIT extends AbstractIntegrationTest {
     void should_resetRatingToZero_when_lastCommentDeleted() {
         authenticate();
         Product product = seedProduct("rating-last-deleted");
-        CommentResponseDto onlyComment = commentService.createComment(commentCommand(product, 4.0));
+        CommentResponseDto onlyComment = commentService.createComment(
+                commentCommand(product, 4.0, AUTHOR));
         productRepository.flush();
 
+        authenticate(onlyComment.author());
         commentService.deleteComment(onlyComment.id());
         productRepository.flush();
 
@@ -163,18 +172,24 @@ class CommentRatingIT extends AbstractIntegrationTest {
         authenticate();
         Product product = seedProduct("rating-cache");
 
-        CommentResponseDto comment = commentService.createComment(commentCommand(product, 5.0));
+        CommentResponseDto comment = commentService.createComment(
+                commentCommand(product, 5.0, AUTHOR));
 
         verify(productCache).evict(product.getId());
 
+        authenticate(comment.author());
         commentService.deleteComment(comment.id());
 
         verify(productCache, times(2)).evict(product.getId());
     }
 
     private static void authenticate() {
+        authenticate(AUTHOR);
+    }
+
+    private static void authenticate(String username) {
         SecurityContextHolder.getContext().setAuthentication(
-                new UsernamePasswordAuthenticationToken(AUTHOR, "n/a",
+                new UsernamePasswordAuthenticationToken(username, "n/a",
                         List.of(new SimpleGrantedAuthority("SCOPE_catalog.read"),
                                 new SimpleGrantedAuthority("SCOPE_catalog.review"))));
     }
@@ -194,8 +209,8 @@ class CommentRatingIT extends AbstractIntegrationTest {
         return productRepository.saveAndFlush(product);
     }
 
-    private static CreateCommentCommand commentCommand(Product product, double star) {
-        return new CreateCommentCommand(COMMENT_TITLE, COMMENT_TEXT, star, AUTHOR, product.getName());
+    private static CreateCommentCommand commentCommand(Product product, double star, String author) {
+        return new CreateCommentCommand(COMMENT_TITLE, COMMENT_TEXT, star, author, product.getName());
     }
 
     private Rating ratingOf(UUID productId) {

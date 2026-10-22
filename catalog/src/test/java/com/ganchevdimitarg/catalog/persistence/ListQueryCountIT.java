@@ -70,11 +70,14 @@ class ListQueryCountIT extends AbstractIntegrationTest {
                         """, productId, name, "Seeded product for query counts",
                         BigDecimal.TEN, true, categoryId);
                 for (int i = 0; i < 2; i++) {
+                    // At most one live comment per (product, author): the second seed uses
+                    // a different author so the unique index is not violated.
+                    String commentAuthor = i == 0 ? author : author + "-alt";
                     jdbcTemplate.update("""
                             insert into comments (id, title, text, star, author, product_id, version)
                             values (?, ?, ?, ?, ?, ?, 0)
                             """, UUID.randomUUID(), "qc title", "Seeded comment text", 5.0,
-                            author, productId);
+                            commentAuthor, productId);
                 }
             }
         }

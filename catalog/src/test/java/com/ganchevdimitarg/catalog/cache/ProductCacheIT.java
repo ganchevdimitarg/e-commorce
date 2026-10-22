@@ -98,6 +98,10 @@ class ProductCacheIT extends RedisIntegrationBase {
                 ON CONFLICT (id) DO NOTHING
                 """, CATEGORY_2_ID, CATEGORY_2_NAME);
 
+        // Comments carry a live (product_id, author) unique index; clear any review left by
+        // an earlier ordered test so a rerun and Order 9 start from a clean slate.
+        jdbc.update("DELETE FROM comments WHERE product_id = ?", PRODUCT_ID);
+
         // Ensure the product exists (undo any soft-delete or move from a prior test)
         jdbc.update("""
                 INSERT INTO products (id, name, description, price, stock, characteristics,

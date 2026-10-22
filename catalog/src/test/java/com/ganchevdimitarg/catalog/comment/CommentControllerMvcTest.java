@@ -4,6 +4,7 @@ import com.ganchevdimitarg.catalog.config.ResourceServerConfig;
 import com.ganchevdimitarg.catalog.controller.CommentController;
 import com.ganchevdimitarg.catalog.dto.comment.CommentResponseDto;
 import com.ganchevdimitarg.catalog.dto.comment.CreateCommentCommand;
+import com.ganchevdimitarg.catalog.exception.ConflictException;
 import com.ganchevdimitarg.catalog.exception.ControllerExceptionHandler;
 import com.ganchevdimitarg.catalog.exception.NotFoundException;
 import com.ganchevdimitarg.catalog.exception.ProblemAccessDeniedHandler;
@@ -107,6 +108,23 @@ class CommentControllerMvcTest {
                 .andExpect(jsonPath("$.title").value("Great product"))
                 .andExpect(jsonPath("$.productId").value(PRODUCT_ID.toString()))
                 .andExpect(jsonPath("$.productName").value("mouse"));
+    }
+
+    @Test
+    void should_return409ProblemJson_when_serviceRejectsDuplicateReview() throws Exception {
+        doThrow(new ConflictException("duplicate review"))
+                .when(commentService).createComment(any(CreateCommentCommand.class));
+
+        mockMvc.perform(post("/api/v1/catalog/products/mouse/comments")
+                        .with(jwt().authorities(() -> "SCOPE_catalog.review"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Idempotency-Key", "k-duplicate-review")
+                        .content("""
+                                {"title":"Great product","text":"This is a thorough review text","star":5}
+                                """))
+                .andExpect(status().isConflict())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.code").value("CONFLICT"));
     }
 
     @Test

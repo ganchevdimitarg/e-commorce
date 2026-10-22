@@ -8,6 +8,7 @@ import com.ganchevdimitarg.catalog.domain.Comment;
 import com.ganchevdimitarg.catalog.domain.Product;
 import com.ganchevdimitarg.catalog.dto.comment.CommentResponseDto;
 import com.ganchevdimitarg.catalog.dto.comment.CreateCommentCommand;
+import com.ganchevdimitarg.catalog.exception.ConflictException;
 import com.ganchevdimitarg.catalog.exception.NotFoundException;
 import com.ganchevdimitarg.catalog.mapper.MapStructMapper;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -46,6 +47,12 @@ public class CommentServiceImpl implements CommentService {
                     logMessage(command.productName());
                     return new NotFoundException("Product", command.productName());
                 });
+        // The product row lock serialises same-product comment creates, so two concurrent
+        // requests cannot both pass this pre-check; the partial unique index is the backstop.
+        if (commentRepository.existsByProduct_IdAndAuthor(product.getId(), command.author())) {
+            throw new ConflictException("A review by " + command.author()
+                    + " already exists for product " + command.productName());
+        }
         Comment comment = mapper.mapCreateCommentCommandToComment(command);
         comment.setProduct(product);
         commentRepository.saveAndFlush(comment);

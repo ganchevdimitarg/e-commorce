@@ -89,10 +89,11 @@ class CommentRatingConcurrencyIT extends AbstractIntegrationTest {
         for (int i = 0; i < CONCURRENT_WRITERS; i++) {
             // Four comments per star value: the exact mean is 3.0.
             double star = (i % 5) + 1;
+            String author = "joe-" + i;
             tasks.add(() -> {
                 authenticate();
                 try {
-                    commentService.createComment(commentCommand(product, star));
+                    commentService.createComment(commentCommand(product, star, author));
                 } finally {
                     SecurityContextHolder.clearContext();
                 }
@@ -114,14 +115,14 @@ class CommentRatingConcurrencyIT extends AbstractIntegrationTest {
         List<CommentResponseDto> comments = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
             double star = i % 2 == 0 ? 1.0 : 5.0;
-            comments.add(commentService.createComment(commentCommand(product, star)));
+            comments.add(commentService.createComment(commentCommand(product, star, "joe-" + i)));
         }
         assertThat(ratingOf(product.getId())).isEqualTo(new Rating(10, 3.0));
 
         List<Callable<Void>> tasks = comments.stream()
                 .filter(comment -> comment.star() == 1.0)
                 .map(comment -> (Callable<Void>) () -> {
-                    authenticate();
+                    authenticate(comment.author());
                     try {
                         commentService.deleteComment(comment.id());
                     } finally {
@@ -179,13 +180,17 @@ class CommentRatingConcurrencyIT extends AbstractIntegrationTest {
         return saved;
     }
 
-    private static CreateCommentCommand commentCommand(Product product, double star) {
-        return new CreateCommentCommand(COMMENT_TITLE, COMMENT_TEXT, star, AUTHOR, product.getName());
+    private static CreateCommentCommand commentCommand(Product product, double star, String author) {
+        return new CreateCommentCommand(COMMENT_TITLE, COMMENT_TEXT, star, author, product.getName());
     }
 
     private static void authenticate() {
+        authenticate(AUTHOR);
+    }
+
+    private static void authenticate(String username) {
         SecurityContextHolder.getContext().setAuthentication(
-                new UsernamePasswordAuthenticationToken(AUTHOR, "n/a",
+                new UsernamePasswordAuthenticationToken(username, "n/a",
                         List.of(new SimpleGrantedAuthority("SCOPE_catalog.read"),
                                 new SimpleGrantedAuthority("SCOPE_catalog.review"))));
     }
