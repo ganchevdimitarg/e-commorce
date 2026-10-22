@@ -437,7 +437,11 @@ The generated tests drive a standalone MockMvc wired with the real `ProductContr
 `ControllerExceptionHandler`; only `ProductService` is mocked (`ContractVerifierBase`), so
 no Spring context, database or container is needed. Covered: get by id, list, create,
 update (`If-Match`/`ETag`), batch-get and cursor pagination, including the `version`,
-`avgStars` and `ratingCount` fields.
+`avgStars` and `ratingCount` fields. No interceptors or method security are installed in
+this harness, so idempotency enforcement, rate limiting and `@PreAuthorize` checks are
+outside these tests; the mutation contracts still send the `Idempotency-Key` header the
+real service requires, and enforcement is covered by the dedicated idempotency, rate-limit
+and security tests.
 
 Stubs are for future consumers. The `order` module is the only in-repo consumer today, but
 the path it configures — `/catalog/product/get-products-id` — does not exist; the real

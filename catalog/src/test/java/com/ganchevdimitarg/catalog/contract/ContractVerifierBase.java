@@ -41,6 +41,13 @@ import static org.mockito.Mockito.when;
  * The pageable resolver is registered explicitly because {@code StandaloneMockMvcBuilder}
  * does not install Spring Data's argument resolvers, and the list contract binds a
  * {@code Pageable}.
+ *
+ * <p>The harness is deliberately narrower than the running service: no idempotency
+ * interceptor, rate limiter or method security is installed, so the contracts verify the
+ * controller's request/response contract only. The mutation contracts still send the
+ * {@code Idempotency-Key} header that the real service requires, so the published stubs
+ * stay accurate; consumers must keep sending it. Enforcement itself is covered by the
+ * dedicated idempotency, rate-limit and security tests.
  */
 public abstract class ContractVerifierBase {
 

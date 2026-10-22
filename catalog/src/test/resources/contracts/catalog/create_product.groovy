@@ -12,6 +12,7 @@ Contract.make {
         }
         headers {
             contentType(applicationJson())
+            header('Idempotency-Key', '11111111-1111-1111-1111-111111111111')
         }
         body(
                 name: 'mouse',

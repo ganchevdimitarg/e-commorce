@@ -9,6 +9,7 @@ Contract.make {
         headers {
             contentType(applicationJson())
             header('If-Match', '"3"')
+            header('Idempotency-Key', '11111111-1111-1111-1111-111111111111')
         }
         body(
                 description: 'WiFi mouse USB v2',
