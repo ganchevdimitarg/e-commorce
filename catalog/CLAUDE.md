@@ -11,7 +11,7 @@ Shared conventions, stack rules, hooks, skills and pattern docs live at the **re
 `../CLAUDE.md` and `../docs/context/`. This file records only catalog-specific deltas —
 read the root file first.
 
-## Test baseline (recorded 2026-10-21 on `chore/catalog-phase6`)
+## Test baseline (recorded 2026-10-22 on `catalog-hardening-2`)
 
 From the repo root (Git Bash):
 
@@ -32,8 +32,8 @@ From the repo root, the aggregator form also works:
 - How tests run: `maven-surefire-plugin` includes `**/*Test.java` and `**/*IT.java`;
   `maven-failsafe-plugin` is **not bound**. The unit/full split uses the JUnit
   `unit` / `integration` tags (`-Dgroups=unit`).
-- Unit: `183` run, `0` failures, `0` errors (catalog module).
-- Full verify: `322` run, `0` failures, `0` errors (317 plus the 5 `ConfigurationProfilesTest` tests).
+- Unit: `281` run, `0` failures, `0` errors (catalog module).
+- Full verify: `460` run, `0` failures, `0` errors.
   - Status: green. JaCoCo gates met (BUNDLE ≥ 90 % line, `service.*` = 100 %).
 
 ## Module specifics
