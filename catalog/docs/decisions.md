@@ -100,3 +100,10 @@ Reference with `@docs/decisions.md` in prompts when Claude re-raises settled que
   event needs, and writes the outbox rows with `saveAll`. Rejected: chunked processing
   with a transaction per chunk, which loses all-or-nothing and leaves a partially moved
   category after a failure.
+  The cap is re-checked against the projected rows, so a concurrent insert between the
+  count and the projection cannot push the move past it. A product inserted after the
+  projection is still moved by the bulk update without an event, and a concurrent update
+  in that window leaves the event's version one behind — both pre-existing races accepted
+  for the current catalogue size. `saveAll` is used per the task's prescription; without
+  `hibernate.jdbc.batch_size` it is not a JDBC batch, so a full-cap move issues one insert
+  per row inside the single transaction.

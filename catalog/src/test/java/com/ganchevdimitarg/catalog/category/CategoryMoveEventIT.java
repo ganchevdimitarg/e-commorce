@@ -142,6 +142,18 @@ class CategoryMoveEventIT extends AbstractIntegrationTest {
                     WHERE topic = ? AND payload ->> 'previousCategoryName' = ?
                     """, Integer.class, ProductTopics.PRODUCT_CATEGORY_CHANGED, sourceName);
             assertThat(events).isEqualTo(30);
+            assertThat(jdbc.queryForObject("""
+                    SELECT count(DISTINCT payload ->> 'productId') FROM outbox_events
+                    WHERE topic = ? AND payload ->> 'previousCategoryName' = ?
+                    """, Integer.class, ProductTopics.PRODUCT_CATEGORY_CHANGED, sourceName))
+                    .isEqualTo(30);
+            // One event per row, each carrying the pre-update version (0) plus one.
+            assertThat(jdbc.queryForObject("""
+                    SELECT count(*) FROM outbox_events
+                    WHERE topic = ? AND payload ->> 'previousCategoryName' = ?
+                      AND ((payload ->> 'version')::int <> 1 OR payload ->> 'categoryName' <> ?)
+                    """, Integer.class, ProductTopics.PRODUCT_CATEGORY_CHANGED, sourceName, targetName))
+                    .isZero();
             assertThat(jdbc.queryForObject(
                     "SELECT count(*) FROM products WHERE category_id = ?", Integer.class, targetId))
                     .isEqualTo(30);

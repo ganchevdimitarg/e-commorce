@@ -412,6 +412,34 @@ class CategoryServiceImplTest {
     }
 
     @Test
+    void should_throwConflictAndSkipMove_when_projectionExceedsCap() {
+        Category from = new Category();
+        from.setId(FROM_ID);
+        from.setName("PC");
+        Category to = new Category();
+        to.setId(TO_ID);
+        to.setName("Laptop");
+        when(categoryRepository.findByName("PC")).thenReturn(Optional.of(from));
+        when(categoryRepository.findByName("Laptop")).thenReturn(Optional.of(to));
+        // The count passed the cap, but a concurrent insert landed before the projection.
+        when(productRepository.countByCategory_Id(FROM_ID)).thenReturn(2L);
+        when(productRepository.findCategoryMoveRowsByCategoryId(FROM_ID))
+                .thenReturn(List.of(moveRow(), moveRow(), moveRow()));
+
+        CategoryServiceImpl capped = new CategoryServiceImpl(categoryRepository, productRepository,
+                new SimpleMeterRegistry(), productCacheEvictor, outboxEventWriter, AUDITOR, 2);
+
+        assertThatThrownBy(() -> capped.moveAllProducts("PC", "Laptop"))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("3")
+                .hasMessageContaining("2");
+
+        verify(productRepository, never()).moveAllProductsToCategory(any(), any(), anyString());
+        verify(productCacheEvictor, never()).evictAll();
+        verifyNoInteractions(outboxEventWriter);
+    }
+
+    @Test
     void should_incrementCreatedCounter_when_categoryCreated() {
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
         CategoryServiceImpl service =

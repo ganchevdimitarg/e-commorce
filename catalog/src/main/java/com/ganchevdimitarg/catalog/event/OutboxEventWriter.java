@@ -71,9 +71,9 @@ public class OutboxEventWriter {
     }
 
     /**
-     * Writes one category-changed event per moved product and saves the rows in one batch.
-     * The projection carries only the fields the event needs, so a large category never
-     * loads full entities into the persistence context.
+     * Writes one category-changed event per moved product and persists the rows with one
+     * {@code saveAll} call. The projection carries only the fields the event needs, so a
+     * large category never loads full entities into the persistence context.
      */
     public void writeCategoryChanged(List<ProductRepository.CategoryMoveRow> rows,
                                      String previousCategoryName, String newCategoryName) {

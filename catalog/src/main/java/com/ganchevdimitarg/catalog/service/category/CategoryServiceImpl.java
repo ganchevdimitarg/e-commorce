@@ -137,6 +137,12 @@ public class CategoryServiceImpl implements CategoryService {
         // afterwards.
         List<ProductRepository.CategoryMoveRow> affected =
                 productRepository.findCategoryMoveRowsByCategoryId(from.getId());
+        // Re-check against the rows about to be moved: a concurrent insert between the
+        // count and the projection must not push the move past the cap.
+        if (affected.size() > moveAllMax) {
+            throw new ConflictException("Category " + categoryNameFrom + " has " + affected.size()
+                    + " products; a category-wide move is limited to " + moveAllMax);
+        }
         int moved = productRepository.moveAllProductsToCategory(
                 from.getId(), to.getId(), currentAuditor());
         productCacheEvictor.evictAll();
