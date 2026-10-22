@@ -32,6 +32,8 @@ eureka:
       defaultZone: ${EUREKA_DEFAULT_ZONE:}
 
 management:
+  server:
+    port: ${MANAGEMENT_PORT:8088}
   tracing:
     sampling:
       probability: ${TRACING_SAMPLING_PROBABILITY:0.1}

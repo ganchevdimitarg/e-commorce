@@ -82,7 +82,8 @@ Session rules for the `catalog/TODO.md` hardening list — restated from the roo
   `LazyConnectionDataSourceProxy`, 2s health probe, graceful fallback.
   → `../docs/context/read-replica-patterns.md`
 - **Observability** — Micrometer → Prometheus; metrics `catalog.<entity>.<action>`; OTLP
-  tracing + log export; actuator exposure narrowed to `health,info,prometheus`.
+  tracing + log export; actuator exposure narrowed to `health,info,prometheus` and served on
+  the management port (`MANAGEMENT_PORT`, default 8088), not the app port.
   → `../docs/context/otlp-patterns.md`
 - **CI/CD** — Jenkins declarative pipeline in `catalog/Jenkinsfile` (job Script Path,
   `changeset "catalog/**"` gates, wrapper build, `catalog/` Docker context); images
@@ -112,7 +113,8 @@ Vault, Docker Compose, devtools and Swagger, and must be selected with
 `SPRING_PROFILES_ACTIVE=prod`.
 
 Environment variables (dev defaults in brackets): `POSTGRES_USER` and `POSTGRES_PASSWORD`
-(required), `SERVER_PORT` [8084], `AUTH_ISSUER_URI` [http://localhost:8082],
+(required), `SERVER_PORT` [8084], `MANAGEMENT_PORT` [8088],
+`AUTH_ISSUER_URI` [http://localhost:8082],
 `AUTH_JWK_SET_URI` [http://localhost:8082/oauth2/jwks], `REDIS_HOST` [localhost],
 `REDIS_PORT` [6379], `KAFKA_BOOTSTRAP_SERVERS` [localhost:9092], `EUREKA_CLIENT_ENABLED`
 [true], `EUREKA_DEFAULT_ZONE` [http://localhost:8761/eureka], `SPRING_CLOUD_VAULT_ENABLED`

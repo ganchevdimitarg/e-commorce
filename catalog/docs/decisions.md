@@ -54,3 +54,12 @@ Reference with `@docs/decisions.md` in prompts when Claude re-raises settled que
   space-delimited string); a value without the `ROLE_` prefix is prefixed once. `ROLE_*`
   values in the `scope` claim remain accepted through a deprecated compatibility path for
   existing tokens.
+- 2026-10-22 — Catalog serves actuator `info` and `prometheus` only on the separate management
+  port 8088 (`MANAGEMENT_PORT`), not the app port 8084; `/actuator/health/**` stays public.
+  Boot applies the single application `SecurityFilterChain` to the separate management server,
+  so `ResourceServerConfig` permits requests arriving on the management port while the app port
+  still rejects info and prometheus. The management port is unauthenticated by design and must
+  be reachable only from the monitoring network. Rejected: 8085 (owned by notification) and
+  app-port token protection (every Prometheus scraper would need a JWT). If app-level
+  protection on 8088 is required, add a `ManagementContextConfiguration` with its own
+  `SecurityFilterChain`.

@@ -67,13 +67,14 @@ docker compose -f compose-standalone.yaml up -d --build
 ```
 
 Prerequisites: Docker Desktop with Compose v2, and nothing else bound to host ports
-**8084** (catalog), **8090** (mock issuer) or **29092** (Kafka's external listener).
+**8084** (catalog), **8088** (management), **8090** (mock issuer) or **29092** (Kafka's
+external listener).
 
 Verify the stack:
 
 ```bash
 # Aggregate health, including the database
-curl -fsS http://localhost:8084/actuator/health
+curl -fsS http://localhost:8088/actuator/health
 
 # A JWT from the mock issuer; copy access_token from the response
 curl -s -X POST http://localhost:8090/default/token \
@@ -128,6 +129,7 @@ Configuration keys that matter locally:
 | `catalog.datasource.writer.url` | Primary datasource, `jdbc:postgresql://localhost:5432/catalog` |
 | `catalog.datasource.reader.url` | Read-replica datasource, `jdbc:postgresql://localhost:5433/catalog` |
 | `spring.security.oauth2.resourceserver.jwt.issuer-uri` | `http://localhost:8082` (auth service) |
+| `management.server.port` | Management endpoints (health, info, prometheus) port, `MANAGEMENT_PORT`, default `8088`; the app port serves none of them |
 | `catalog.outbox.relay-interval-ms` | Outbox relay cadence, default `1000` |
 | `catalog.outbox.batch-size` | Rows claimed per relay run, default `20` |
 | `catalog.outbox.send-timeout` | Broker acknowledgement timeout per row, default `5s` |
@@ -164,12 +166,15 @@ service.
   trusted, because catalog is reachable directly on port 8084.
 - Social opaque tokens are not accepted: they terminate at auth/gateway, and a social login
   must be exchanged for an auth-service JWT before catalog is called.
-- `/v3/api-docs/**`, `/swagger-ui/**`, `/swagger-ui.html`, `/actuator/health` and its group
-  subpaths `/actuator/health/liveness` and `/actuator/health/readiness` (matcher
-  `/actuator/health/**`), plus `/actuator/info` and `/actuator/prometheus`, are public;
-  every other request needs a bearer token. Health details still require authorisation
-  (`show-details: when-authorized`). Authentication and authorisation failures are rendered
-  as `application/problem+json` (401 `UNAUTHENTICATED`, 403 `ACCESS_DENIED`).
+- On the app port, `/v3/api-docs/**`, `/swagger-ui/**`, `/swagger-ui.html`, `/actuator/health`
+  and its group subpaths `/actuator/health/liveness` and `/actuator/health/readiness` (matcher
+  `/actuator/health/**`) are public; every other request needs a bearer token.
+  `/actuator/info` and `/actuator/prometheus` are served only on the separate management port
+  (`MANAGEMENT_PORT`, default **8088**), which is unauthenticated for monitoring scrapers and
+  must not be published outside the monitoring network; on the app port those paths return
+  401. Health details still require authorisation (`show-details: when-authorized`).
+  Authentication and authorisation failures are rendered as `application/problem+json`
+  (401 `UNAUTHENTICATED`, 403 `ACCESS_DENIED`).
 
 ## API
 
@@ -426,7 +431,10 @@ retention rows in the configuration table above.
 
 ## Observability
 
-| Endpoint | Contents |
+All endpoints below are served on the management port (`MANAGEMENT_PORT`, default **8088**),
+never on the app port.
+
+| Endpoint (management port 8088) | Contents |
 |---|---|
 | `/actuator/health` | Aggregate health, including the `replica` component |
 | `/actuator/health/liveness` | `livenessState`, `ping` |
