@@ -492,7 +492,7 @@ change a file outside `catalog/`.
 - Architecture decision records: `docs/adr/` — ADR-005 read-replica staleness, ADR-006
   idempotency, ADR-007 transactional outbox, ADR-008 JWT-only resource server.
 - Decision log: `docs/decisions.md`.
-- Schema: `src/main/resources/db/migration/`, latest `V15__index_soft_deleted_rows.sql`.
+- Schema: `src/main/resources/db/migration/` (the highest `V<n>` there is the latest).
   Flyway owns every schema change (`ddl-auto: validate`); committed migrations are never
   edited.
 - Module guidance: `CLAUDE.md`.
