@@ -14,8 +14,8 @@ import com.ganchevdimitarg.catalog.exception.ConflictException;
 import com.ganchevdimitarg.catalog.exception.NotFoundException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import io.micrometer.core.instrument.MeterRegistry;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.AuditorAware;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -30,7 +30,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class CategoryServiceImpl implements CategoryService {
 
@@ -40,6 +39,23 @@ public class CategoryServiceImpl implements CategoryService {
     private final ProductCache productCacheEvictor;
     private final OutboxEventWriter outboxEventWriter;
     private final AuditorAware<String> auditorAware;
+    private final int moveAllMax;
+
+    public CategoryServiceImpl(CategoryRepository categoryRepository,
+                               ProductRepository productRepository,
+                               MeterRegistry meterRegistry,
+                               ProductCache productCacheEvictor,
+                               OutboxEventWriter outboxEventWriter,
+                               AuditorAware<String> auditorAware,
+                               @Value("${catalog.category.move-all-max:5000}") int moveAllMax) {
+        this.categoryRepository = categoryRepository;
+        this.productRepository = productRepository;
+        this.meterRegistry = meterRegistry;
+        this.productCacheEvictor = productCacheEvictor;
+        this.outboxEventWriter = outboxEventWriter;
+        this.auditorAware = auditorAware;
+        this.moveAllMax = moveAllMax;
+    }
 
     @Override
     @Transactional
@@ -110,14 +126,21 @@ public class CategoryServiceImpl implements CategoryService {
         Category from = requireCategory(categoryNameFrom);
         Category to = requireCategory(categoryNameTo);
 
-        // Read the affected rows before the bulk update: it clears the persistence context,
-        // but one category-changed event is written per moved product afterwards.
-        List<Product> affected = productRepository.findAllByCategory_Id(from.getId());
+        long affectedCount = productRepository.countByCategory_Id(from.getId());
+        if (affectedCount > moveAllMax) {
+            throw new ConflictException("Category " + categoryNameFrom + " has " + affectedCount
+                    + " products; a category-wide move is limited to " + moveAllMax);
+        }
+
+        // Read only the fields the event needs before the bulk update: it clears the
+        // persistence context, but one category-changed event is written per moved product
+        // afterwards.
+        List<ProductRepository.CategoryMoveRow> affected =
+                productRepository.findCategoryMoveRowsByCategoryId(from.getId());
         int moved = productRepository.moveAllProductsToCategory(
                 from.getId(), to.getId(), currentAuditor());
         productCacheEvictor.evictAll();
-        affected.forEach(product ->
-                outboxEventWriter.writeCategoryChanged(product, from.getName(), to.getName()));
+        outboxEventWriter.writeCategoryChanged(affected, from.getName(), to.getName());
         meterRegistry.counter("catalog.category.moved").increment(moved);
         log.info("Moved {} products from {} to {}", moved, categoryNameFrom, categoryNameTo);
     }

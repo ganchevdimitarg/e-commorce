@@ -121,7 +121,7 @@ Environment variables (dev defaults in brackets): `POSTGRES_USER` and `POSTGRES_
 [true], `EUREKA_DEFAULT_ZONE` [http://localhost:8761/eureka], `SPRING_CLOUD_VAULT_ENABLED`
 [true], `VAULT_URI` [http://localhost:8200], `VAULT_BACKEND` [secret],
 `VAULT_DEFAULT_CONTEXT` [catalog/credentials], `OTLP_TRACES_ENDPOINT`
-[http://localhost:4318/v1/traces], `CATALOG_DB_WRITER_URL`
+[http://localhost:4318/v1/traces], `CATALOG_MOVE_ALL_MAX` [5000], `CATALOG_DB_WRITER_URL`
 [jdbc:postgresql://localhost:5432/catalog] and `CATALOG_DB_READER_URL`
 [jdbc:postgresql://localhost:5433/catalog]`.
 

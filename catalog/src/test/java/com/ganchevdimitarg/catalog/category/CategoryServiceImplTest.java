@@ -42,6 +42,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.*;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @Tag("unit")
@@ -70,7 +71,7 @@ class CategoryServiceImplTest {
     @BeforeEach
     void setUp() {
         testService = new CategoryServiceImpl(categoryRepository, productRepository,
-                new SimpleMeterRegistry(), productCacheEvictor, outboxEventWriter, AUDITOR);
+                new SimpleMeterRegistry(), productCacheEvictor, outboxEventWriter, AUDITOR, 5_000);
         categoryName = "bbbbb";
     }
 
@@ -214,7 +215,7 @@ class CategoryServiceImplTest {
                 .isInstanceOf(ObjectOptimisticLockingFailureException.class);
 
         verify(productCacheEvictor, never()).evict(any());
-        verify(outboxEventWriter, never()).writeCategoryChanged(any(), any(), any());
+        verify(outboxEventWriter, never()).writeCategoryChanged(any(Product.class), any(), any());
     }
 
     @Test
@@ -369,11 +370,13 @@ class CategoryServiceImplTest {
         Category to = new Category();
         to.setId(TO_ID);
         to.setName("Laptop");
-        Product mouse = moveProduct(PRODUCT_ID, "mouse", 2L);
-        Product keyboard = moveProduct(UUID.fromString("55555555-5555-5555-5555-555555555555"), "keyboard", 0L);
+        ProductRepository.CategoryMoveRow mouse = moveRow();
+        ProductRepository.CategoryMoveRow keyboard = moveRow();
         when(categoryRepository.findByName("PC")).thenReturn(Optional.of(from));
         when(categoryRepository.findByName("Laptop")).thenReturn(Optional.of(to));
-        when(productRepository.findAllByCategory_Id(FROM_ID)).thenReturn(List.of(mouse, keyboard));
+        when(productRepository.countByCategory_Id(FROM_ID)).thenReturn(2L);
+        when(productRepository.findCategoryMoveRowsByCategoryId(FROM_ID))
+                .thenReturn(List.of(mouse, keyboard));
         when(productRepository.moveAllProductsToCategory(FROM_ID, TO_ID, "alice")).thenReturn(2);
 
         testService.moveAllProducts("PC", "Laptop");
@@ -381,8 +384,31 @@ class CategoryServiceImplTest {
         verify(productRepository, times(1)).moveAllProductsToCategory(FROM_ID, TO_ID, "alice");
         verify(productRepository, never()).changeCategory(anyString(), any(UUID.class), anyLong(), anyString());
         verify(productCacheEvictor).evictAll();
-        verify(outboxEventWriter).writeCategoryChanged(mouse, "PC", "Laptop");
-        verify(outboxEventWriter).writeCategoryChanged(keyboard, "PC", "Laptop");
+        verify(outboxEventWriter).writeCategoryChanged(List.of(mouse, keyboard), "PC", "Laptop");
+    }
+
+    @Test
+    void should_throwConflictAndChangeNothing_when_categoryExceedsMoveAllCap() {
+        Category from = new Category();
+        from.setId(FROM_ID);
+        from.setName("PC");
+        Category to = new Category();
+        to.setId(TO_ID);
+        to.setName("Laptop");
+        when(categoryRepository.findByName("PC")).thenReturn(Optional.of(from));
+        when(categoryRepository.findByName("Laptop")).thenReturn(Optional.of(to));
+        when(productRepository.countByCategory_Id(FROM_ID)).thenReturn(3L);
+
+        CategoryServiceImpl capped = new CategoryServiceImpl(categoryRepository, productRepository,
+                new SimpleMeterRegistry(), productCacheEvictor, outboxEventWriter, AUDITOR, 2);
+
+        assertThatThrownBy(() -> capped.moveAllProducts("PC", "Laptop"))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("3")
+                .hasMessageContaining("2");
+
+        verify(productRepository, never()).findCategoryMoveRowsByCategoryId(any());
+        verify(productRepository, never()).moveAllProductsToCategory(any(), any(), anyString());
     }
 
     @Test
@@ -390,7 +416,7 @@ class CategoryServiceImplTest {
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
         CategoryServiceImpl service =
                 new CategoryServiceImpl(categoryRepository, productRepository, registry,
-                        productCacheEvictor, outboxEventWriter, AUDITOR);
+                        productCacheEvictor, outboxEventWriter, AUDITOR, 5_000);
 
         when(categoryRepository.findByName(categoryName)).thenReturn(Optional.empty());
         Category saved = new Category();
@@ -402,14 +428,11 @@ class CategoryServiceImplTest {
         assertThat(registry.get("catalog.category.created").counter().count()).isEqualTo(1.0);
     }
 
-    private static Product moveProduct(UUID id, String name, long version) {
-        Product product = new Product();
-        product.setId(id);
-        product.setName(name);
-        product.setPrice(BigDecimal.valueOf(19.99));
-        product.setInStock(true);
-        product.setVersion(version);
-        return product;
+    private static ProductRepository.CategoryMoveRow moveRow() {
+        // No stubbing: the service only passes the rows to the mocked writer, and strict
+        // stubs would fail on the unused getters. CategoryMoveEventIT exercises the real
+        // projection fields.
+        return mock(ProductRepository.CategoryMoveRow.class);
     }
 
     private static ProductRepository.CategoryProductCount categoryProductCount(UUID categoryId, long count) {

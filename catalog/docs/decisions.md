@@ -94,3 +94,9 @@ Reference with `@docs/decisions.md` in prompts when Claude re-raises settled que
   index, so if measurements show search falling back to a scan, set
   `plan_cache_mode=force_custom_plan` (or pgjdbc `prepareThreshold=0`) on the catalog
   datasources.
+- 2026-10-22 — `moveAllProducts` is bounded by `catalog.category.move-all-max` (default
+  5,000). Above the cap it returns 409 `CONFLICT` and changes nothing; the move stays one
+  transaction, loads only the id, name, price, stock and version the `category-changed`
+  event needs, and writes the outbox rows with `saveAll`. Rejected: chunked processing
+  with a transaction per chunk, which loses all-or-nothing and leaves a partially moved
+  category after a failure.

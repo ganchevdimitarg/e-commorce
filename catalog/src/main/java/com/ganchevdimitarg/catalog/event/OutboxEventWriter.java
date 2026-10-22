@@ -5,11 +5,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ganchevdimitarg.catalog.domain.OutboxEvent;
 import com.ganchevdimitarg.catalog.domain.Product;
 import com.ganchevdimitarg.catalog.repository.OutboxEventRepository;
+import com.ganchevdimitarg.catalog.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.MDC;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -68,13 +70,37 @@ public class OutboxEventWriter {
                         product.getVersion() + 1, ProductEvent.SCHEMA_VERSION, Instant.now()));
     }
 
+    /**
+     * Writes one category-changed event per moved product and saves the rows in one batch.
+     * The projection carries only the fields the event needs, so a large category never
+     * loads full entities into the persistence context.
+     */
+    public void writeCategoryChanged(List<ProductRepository.CategoryMoveRow> rows,
+                                     String previousCategoryName, String newCategoryName) {
+        Instant now = Instant.now();
+        List<OutboxEvent> outboxRows = rows.stream()
+                .map(row -> buildRow(ProductTopics.PRODUCT_CATEGORY_CHANGED, "category-changed",
+                        new ProductEvent.ProductCategoryChanged(newEventId(), row.getId().toString(),
+                                row.getName(), row.getPrice(), row.isInStock(), newCategoryName,
+                                previousCategoryName, row.getVersion() + 1,
+                                ProductEvent.SCHEMA_VERSION, now)))
+                .toList();
+        repository.saveAll(outboxRows);
+    }
+
     private void write(Product product, String topic, String eventType, ProductEvent event) {
+        repository.save(buildRow(topic, eventType, event));
+    }
+
+    private OutboxEvent buildRow(String topic, String eventType, ProductEvent event) {
         // Fail closed before touching the outbox: a payload that violates its schema must
         // roll back the caller's business transaction, not be stored for the relay to send.
         schemaValidator.validate(topic, event);
 
+        // ProductEvent declares productId(), so the bulk and single-product writers share
+        // this construction path.
+        String productId = event.productId();
         Instant now = Instant.now();
-        String productId = productId(product);
 
         OutboxEvent row = new OutboxEvent();
         row.setAggregateType(AGGREGATE_TYPE);
@@ -91,8 +117,7 @@ public class OutboxEventWriter {
         row.setCreatedAt(now);
         row.setNextAttemptAt(now);
         row.setSentAt(null);
-
-        repository.save(row);
+        return row;
     }
 
     /**

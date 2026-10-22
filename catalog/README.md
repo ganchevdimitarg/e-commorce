@@ -133,6 +133,7 @@ Configuration keys that matter locally:
 | `catalog.outbox.relay-interval-ms` | Outbox relay cadence, default `1000` |
 | `catalog.outbox.batch-size` | Rows claimed per relay run, default `20` |
 | `catalog.outbox.send-timeout` | Broker acknowledgement timeout per row, default `5s` |
+| `catalog.category.move-all-max` | Maximum products a category-wide move processes; above it the request is a 409, default `5000` |
 | `catalog.retention.purge-enabled` | Opt-in purge of expired soft-deleted rows, default `false` |
 | `catalog.retention.retention` | Age after which a soft-deleted row is purged, default `90d` |
 | `catalog.retention.cron` | Purge schedule, default `0 0 3 * * *` (nightly at 03:00) |
@@ -198,7 +199,7 @@ creation and deletion require `SCOPE_catalog.review`, and product/category mutat
 | GET | `/api/v1/catalog/categories` | `SCOPE_catalog.read` | pagination | 200, `PageResponse<CategoryResponseDto>` |
 | DELETE | `/api/v1/catalog/categories/{name}` | `SCOPE_catalog.manage` | — | 204; 409 if products remain |
 | POST | `/api/v1/catalog/categories/{from}/products/{productName}:move?to={to}` | `SCOPE_catalog.manage` | — | 200 |
-| POST | `/api/v1/catalog/categories/{from}/products:move-all?to={to}` | `SCOPE_catalog.manage` | — | 200 |
+| POST | `/api/v1/catalog/categories/{from}/products:move-all?to={to}` | `SCOPE_catalog.manage` | — | 200; 409 `CONFLICT` above the move cap |
 | POST | `/api/v1/catalog/products/{productName}/comments` | `SCOPE_catalog.review` | `CommentRequestDto`: `title`, `text`, `star` 1–5; author from the JWT | 201, `Location: /api/v1/catalog/comments/{id}`, `CommentResponseDto` |
 | GET | `/api/v1/catalog/products/{productName}/comments` | `SCOPE_catalog.read` | pagination | 200, `PageResponse<CommentResponseDto>` |
 | GET | `/api/v1/catalog/comments/by-author/{author}` | `SCOPE_catalog.read`; `{author}` must be the caller or the caller must hold `ROLE_ADMIN` | pagination | 200, `PageResponse<CommentResponseDto>`; 403 `ACCESS_DENIED` otherwise |
@@ -210,6 +211,9 @@ creation and deletion require `SCOPE_catalog.review`, and product/category mutat
 a single strong tag (`"<version>"`) is enforced, and a weak, list-valued or non-numeric tag
 is a 400 `VALIDATION_ERROR`. A stale tag is a 412 `PRECONDITION_FAILED`; a concurrent update
 that loses the optimistic-lock race is a 409 `CONFLICT`.
+
+A category-wide move is one atomic transaction bounded by `catalog.category.move-all-max`
+(default 5,000 products); above the cap it returns 409 `CONFLICT` and changes nothing.
 
 ### Response shapes
 
