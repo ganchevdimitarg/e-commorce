@@ -429,7 +429,8 @@ coverage for the bundle and 100 % for `com.ganchevdimitarg.catalog.service.*`.
 
 PIT mutation-tests the `service.*` implementations and the `idempotency.*` classes using
 unit tests only. The `pitest` profile is opt-in and is not bound to `verify`, so the normal
-build never runs it:
+build never runs it. Run from `catalog/` — the profile lives in the catalog POM, so the
+root-level `-pl catalog -am` form used above does not activate it:
 
 ```bash
 ./mvnw -Ppitest test-compile org.pitest:pitest-maven:mutationCoverage
