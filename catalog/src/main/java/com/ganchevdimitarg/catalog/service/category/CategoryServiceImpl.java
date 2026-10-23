@@ -12,8 +12,8 @@ import com.ganchevdimitarg.catalog.dto.category.MoveProductCommand;
 import com.ganchevdimitarg.catalog.event.OutboxEventWriter;
 import com.ganchevdimitarg.catalog.exception.ConflictException;
 import com.ganchevdimitarg.catalog.exception.NotFoundException;
+import com.ganchevdimitarg.catalog.metrics.AfterCommitMetrics;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
-import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.AuditorAware;
@@ -35,7 +35,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     private final CategoryRepository categoryRepository;
     private final ProductRepository productRepository;
-    private final MeterRegistry meterRegistry;
+    private final AfterCommitMetrics metrics;
     private final ProductCache productCacheEvictor;
     private final OutboxEventWriter outboxEventWriter;
     private final AuditorAware<String> auditorAware;
@@ -43,14 +43,14 @@ public class CategoryServiceImpl implements CategoryService {
 
     public CategoryServiceImpl(CategoryRepository categoryRepository,
                                ProductRepository productRepository,
-                               MeterRegistry meterRegistry,
+                               AfterCommitMetrics metrics,
                                ProductCache productCacheEvictor,
                                OutboxEventWriter outboxEventWriter,
                                AuditorAware<String> auditorAware,
                                @Value("${catalog.category.move-all-max:5000}") int moveAllMax) {
         this.categoryRepository = categoryRepository;
         this.productRepository = productRepository;
-        this.meterRegistry = meterRegistry;
+        this.metrics = metrics;
         this.productCacheEvictor = productCacheEvictor;
         this.outboxEventWriter = outboxEventWriter;
         this.auditorAware = auditorAware;
@@ -68,7 +68,7 @@ public class CategoryServiceImpl implements CategoryService {
         Category category = new Category();
         category.setName(command.name());
         category = categoryRepository.saveAndFlush(category);
-        meterRegistry.counter("catalog.category.created").increment();
+        metrics.increment("catalog.category.created");
         return convertCategory(category);
     }
 
@@ -92,7 +92,7 @@ public class CategoryServiceImpl implements CategoryService {
         // A category with products cannot be deleted (guard above), so no product events are emitted
         categoryRepository.delete(category);
         productCacheEvictor.evictAll();
-        meterRegistry.counter("catalog.category.deleted").increment();
+        metrics.increment("catalog.category.deleted");
     }
 
     @Override
@@ -116,7 +116,7 @@ public class CategoryServiceImpl implements CategoryService {
         }
         productCacheEvictor.evict(product.getId());
         outboxEventWriter.writeCategoryChanged(product, from.getName(), to.getName());
-        meterRegistry.counter("catalog.category.moved").increment();
+        metrics.increment("catalog.category.moved");
     }
 
     @Override
@@ -147,7 +147,7 @@ public class CategoryServiceImpl implements CategoryService {
                 from.getId(), to.getId(), currentAuditor());
         productCacheEvictor.evictAll();
         outboxEventWriter.writeCategoryChanged(affected, from.getName(), to.getName());
-        meterRegistry.counter("catalog.category.moved").increment(moved);
+        metrics.incrementBy("catalog.category.moved", moved);
         log.info("Moved {} products from {} to {}", moved, categoryNameFrom, categoryNameTo);
     }
 

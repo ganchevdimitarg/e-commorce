@@ -22,7 +22,7 @@ import com.ganchevdimitarg.catalog.exception.NotFoundException;
 import com.ganchevdimitarg.catalog.exception.PreconditionFailedException;
 import com.ganchevdimitarg.catalog.exception.ValidationException;
 import com.ganchevdimitarg.catalog.mapper.MapStructMapper;
-import io.micrometer.core.instrument.MeterRegistry;
+import com.ganchevdimitarg.catalog.metrics.AfterCommitMetrics;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -49,7 +49,7 @@ public class ProductServiceImpl implements ProductService {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private final MapStructMapper mapper;
-    private final MeterRegistry meterRegistry;
+    private final AfterCommitMetrics metrics;
     private final OutboxEventWriter outboxEventWriter;
     private final ProductCache productCache;
     private final AuditorAware<String> auditorAware;
@@ -78,7 +78,7 @@ public class ProductServiceImpl implements ProductService {
         // Written in the same transaction as the product row: the outbox commits or rolls back with it
         outboxEventWriter.writeCreated(product);
         log.info("The product {} is save successful", product.getName());
-        meterRegistry.counter("catalog.product.created").increment();
+        metrics.increment("catalog.product.created");
 
         ProductResponseDto dto = mapper.mapProductToProductResponseDto(product);
         productCache.put(product.getId(), dto);
@@ -158,7 +158,7 @@ public class ProductServiceImpl implements ProductService {
         if (updated == 0) {
             throw new ObjectOptimisticLockingFailureException(Product.class.getSimpleName(), id);
         }
-        meterRegistry.counter("catalog.product.updated").increment();
+        metrics.increment("catalog.product.updated");
 
         // Primary read inside the write transaction: the after-commit put caches the new state
         Product refreshed = productRepository.findById(id)
@@ -178,7 +178,7 @@ public class ProductServiceImpl implements ProductService {
         productRepository.delete(existing);   // honours @SQLDelete soft-delete
         outboxEventWriter.writeDeleted(existing);
         productCache.evict(id);
-        meterRegistry.counter("catalog.product.deleted").increment();
+        metrics.increment("catalog.product.deleted");
     }
 
     @Override

@@ -11,6 +11,7 @@ import com.ganchevdimitarg.catalog.dto.category.MoveProductCommand;
 import com.ganchevdimitarg.catalog.event.OutboxEventWriter;
 import com.ganchevdimitarg.catalog.exception.ConflictException;
 import com.ganchevdimitarg.catalog.exception.NotFoundException;
+import com.ganchevdimitarg.catalog.metrics.AfterCommitMetrics;
 import com.ganchevdimitarg.catalog.service.category.CategoryService;
 import com.ganchevdimitarg.catalog.service.category.CategoryServiceImpl;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -71,7 +72,8 @@ class CategoryServiceImplTest {
     @BeforeEach
     void setUp() {
         testService = new CategoryServiceImpl(categoryRepository, productRepository,
-                new SimpleMeterRegistry(), productCacheEvictor, outboxEventWriter, AUDITOR, 5_000);
+                new AfterCommitMetrics(new SimpleMeterRegistry()), productCacheEvictor,
+                outboxEventWriter, AUDITOR, 5_000);
         categoryName = "bbbbb";
     }
 
@@ -400,7 +402,8 @@ class CategoryServiceImplTest {
         when(productRepository.countByCategory_Id(FROM_ID)).thenReturn(3L);
 
         CategoryServiceImpl capped = new CategoryServiceImpl(categoryRepository, productRepository,
-                new SimpleMeterRegistry(), productCacheEvictor, outboxEventWriter, AUDITOR, 2);
+                new AfterCommitMetrics(new SimpleMeterRegistry()), productCacheEvictor,
+                outboxEventWriter, AUDITOR, 2);
 
         assertThatThrownBy(() -> capped.moveAllProducts("PC", "Laptop"))
                 .isInstanceOf(ConflictException.class)
@@ -427,7 +430,8 @@ class CategoryServiceImplTest {
                 .thenReturn(List.of(moveRow(), moveRow(), moveRow()));
 
         CategoryServiceImpl capped = new CategoryServiceImpl(categoryRepository, productRepository,
-                new SimpleMeterRegistry(), productCacheEvictor, outboxEventWriter, AUDITOR, 2);
+                new AfterCommitMetrics(new SimpleMeterRegistry()), productCacheEvictor,
+                outboxEventWriter, AUDITOR, 2);
 
         assertThatThrownBy(() -> capped.moveAllProducts("PC", "Laptop"))
                 .isInstanceOf(ConflictException.class)
@@ -443,8 +447,9 @@ class CategoryServiceImplTest {
     void should_incrementCreatedCounter_when_categoryCreated() {
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
         CategoryServiceImpl service =
-                new CategoryServiceImpl(categoryRepository, productRepository, registry,
-                        productCacheEvictor, outboxEventWriter, AUDITOR, 5_000);
+                new CategoryServiceImpl(categoryRepository, productRepository,
+                        new AfterCommitMetrics(registry), productCacheEvictor, outboxEventWriter,
+                        AUDITOR, 5_000);
 
         when(categoryRepository.findByName(categoryName)).thenReturn(Optional.empty());
         Category saved = new Category();

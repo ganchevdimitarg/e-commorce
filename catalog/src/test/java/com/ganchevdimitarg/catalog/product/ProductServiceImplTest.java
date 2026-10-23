@@ -20,6 +20,7 @@ import com.ganchevdimitarg.catalog.exception.NotFoundException;
 import com.ganchevdimitarg.catalog.exception.PreconditionFailedException;
 import com.ganchevdimitarg.catalog.exception.ValidationException;
 import com.ganchevdimitarg.catalog.mapper.MapStructMapper;
+import com.ganchevdimitarg.catalog.metrics.AfterCommitMetrics;
 import com.ganchevdimitarg.catalog.service.product.ProductService;
 import com.ganchevdimitarg.catalog.service.product.ProductServiceImpl;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -40,6 +41,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import com.ganchevdimitarg.catalog.dto.product.ItemRequestDto;
 
@@ -92,7 +94,7 @@ class ProductServiceImplTest {
     @BeforeEach
     void setup() {
         productCursorCodec = new ProductCursorCodec(objectMapper);
-        testService = new ProductServiceImpl(productRepository, categoryRepository, mapStructMapper, new SimpleMeterRegistry(), outboxEventWriter, productCache, AUDITOR, productCursorRepository, productCursorCodec);
+        testService = new ProductServiceImpl(productRepository, categoryRepository, mapStructMapper, new AfterCommitMetrics(new SimpleMeterRegistry()), outboxEventWriter, productCache, AUDITOR, productCursorRepository, productCursorCodec);
     }
 
     @Test
@@ -605,7 +607,7 @@ class ProductServiceImplTest {
     void should_incrementCreatedCounter_when_productCreated() {
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
         ProductServiceImpl service =
-                new ProductServiceImpl(productRepository, categoryRepository, mapStructMapper, registry, outboxEventWriter, productCache, AUDITOR, productCursorRepository, productCursorCodec);
+                new ProductServiceImpl(productRepository, categoryRepository, mapStructMapper, new AfterCommitMetrics(registry), outboxEventWriter, productCache, AUDITOR, productCursorRepository, productCursorCodec);
 
         CreateProductCommand cmd = new CreateProductCommand("mouse", "WiFi mouse USB", BigDecimal.ONE, true, "", "PC");
         Category category = new Category();
@@ -620,5 +622,36 @@ class ProductServiceImplTest {
         service.createProduct(cmd);
 
         assertThat(registry.get("catalog.product.created").counter().count()).isEqualTo(1.0);
+    }
+
+    @Test
+    void should_notIncrementCreatedCounter_when_transactionDoesNotCommit() {
+        SimpleMeterRegistry registry = new SimpleMeterRegistry();
+        ProductServiceImpl service = new ProductServiceImpl(productRepository, categoryRepository,
+                mapStructMapper, new AfterCommitMetrics(registry), outboxEventWriter, productCache,
+                AUDITOR, productCursorRepository, productCursorCodec);
+
+        CreateProductCommand cmd = new CreateProductCommand("mouse", "WiFi mouse USB",
+                BigDecimal.ONE, true, "", "PC");
+        Category category = new Category();
+        category.setName("PC");
+        when(categoryRepository.findByName("PC")).thenReturn(Optional.of(category));
+        Product product = new Product();
+        product.setId(P1);
+        when(mapStructMapper.mapCreateCommandToProduct(cmd)).thenReturn(product);
+        when(mapStructMapper.mapProductToProductResponseDto(product)).thenReturn(
+                new ProductResponseDto(P1, "mouse", "WiFi mouse USB", BigDecimal.ONE, true, "", null,
+                        0L, 0.0, 0));
+
+        TransactionSynchronizationManager.initSynchronization();
+        try {
+            service.createProduct(cmd);
+        } finally {
+            // A rollback discards the registered synchronisations without invoking
+            // afterCommit, so the deferred increment never runs.
+            TransactionSynchronizationManager.clearSynchronization();
+        }
+
+        assertThat(registry.find("catalog.product.created").counter()).isNull();
     }
 }

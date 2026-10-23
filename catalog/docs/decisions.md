@@ -126,3 +126,10 @@ Reference with `@docs/decisions.md` in prompts when Claude re-raises settled que
   on `eventId`. Rejected: holding the transaction during sends (the current design),
   keying rows to partition owners (adds a rebalancing protocol), and at-most-once
   marking before the broker acknowledges (loses events).
+- 2026-10-23 — Business counters (`catalog.product.*`, `catalog.category.*`,
+  `catalog.comment.*`) are incremented in a `TransactionSynchronization.afterCommit`
+  callback through a single `AfterCommitMetrics` helper, so a rolled-back write is never
+  counted. Outside a transaction the increment runs immediately, which keeps unit tests
+  and non-transactional callers correct. Rejected: incrementing inside the service method
+  (counts rolled-back requests), and an `ApplicationEvent` listener with
+  `@TransactionalEventListener(AFTER_COMMIT)` (more moving parts for the same effect).

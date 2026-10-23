@@ -10,6 +10,7 @@ import com.ganchevdimitarg.catalog.dto.comment.CreateCommentCommand;
 import com.ganchevdimitarg.catalog.exception.ConflictException;
 import com.ganchevdimitarg.catalog.exception.NotFoundException;
 import com.ganchevdimitarg.catalog.mapper.MapStructMapper;
+import com.ganchevdimitarg.catalog.metrics.AfterCommitMetrics;
 import com.ganchevdimitarg.catalog.service.comment.CommentService;
 import com.ganchevdimitarg.catalog.service.comment.CommentServiceImpl;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -58,7 +59,7 @@ class CommentServiceImplTest {
     @BeforeEach
     void setUp() {
         testService = new CommentServiceImpl(commentRepository, productRepository, mapStructMapper,
-                new SimpleMeterRegistry(), productCacheEvictor);
+                new AfterCommitMetrics(new SimpleMeterRegistry()), productCacheEvictor);
         authenticate("joe", "SCOPE_catalog.review");
     }
 
@@ -255,8 +256,8 @@ class CommentServiceImplTest {
     void should_incrementCreatedCounter_when_commentCreated() {
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
         CommentServiceImpl service =
-                new CommentServiceImpl(commentRepository, productRepository, mapStructMapper, registry,
-                        productCacheEvictor);
+                new CommentServiceImpl(commentRepository, productRepository, mapStructMapper,
+                        new AfterCommitMetrics(registry), productCacheEvictor);
 
         Product product = new Product();
         product.setName("aaa");
@@ -401,8 +402,8 @@ class CommentServiceImplTest {
     void should_incrementDeletedCounter_when_commentDeleted() {
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
         CommentServiceImpl service =
-                new CommentServiceImpl(commentRepository, productRepository, mapStructMapper, registry,
-                        productCacheEvictor);
+                new CommentServiceImpl(commentRepository, productRepository, mapStructMapper,
+                        new AfterCommitMetrics(registry), productCacheEvictor);
         UUID commentId = UUID.randomUUID();
         when(commentRepository.findById(commentId)).thenReturn(Optional.of(commentWithAuthor("joe")));
 

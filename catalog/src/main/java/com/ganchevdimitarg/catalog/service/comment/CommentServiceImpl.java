@@ -11,7 +11,7 @@ import com.ganchevdimitarg.catalog.dto.comment.CreateCommentCommand;
 import com.ganchevdimitarg.catalog.exception.ConflictException;
 import com.ganchevdimitarg.catalog.exception.NotFoundException;
 import com.ganchevdimitarg.catalog.mapper.MapStructMapper;
-import io.micrometer.core.instrument.MeterRegistry;
+import com.ganchevdimitarg.catalog.metrics.AfterCommitMetrics;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -33,7 +33,7 @@ public class CommentServiceImpl implements CommentService {
     private final CommentRepository commentRepository;
     private final ProductRepository productRepository;
     private final MapStructMapper mapper;
-    private final MeterRegistry meterRegistry;
+    private final AfterCommitMetrics metrics;
     private final ProductCache productCacheEvictor;
 
     @Override
@@ -60,7 +60,7 @@ public class CommentServiceImpl implements CommentService {
         // in this same transaction as the comment insert.
         refreshProductRating(product);
         productCacheEvictor.evict(product.getId());
-        meterRegistry.counter("catalog.comment.created").increment();
+        metrics.increment("catalog.comment.created");
         log.info("The comment {} is saved successfully", comment.getTitle());
         return mapper.mapCommentToCommentResponseDto(comment);
     }
@@ -146,7 +146,7 @@ public class CommentServiceImpl implements CommentService {
                 productCacheEvictor.evict(lockedProduct.getId());
             });
         }
-        meterRegistry.counter("catalog.comment.deleted").increment();
+        metrics.increment("catalog.comment.deleted");
         log.info("The comment {} is deleted successfully", commentId);
     }
 

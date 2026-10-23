@@ -499,6 +499,9 @@ probability. Business metrics follow `catalog.<entity>.<action>`:
 - `catalog.retention.purged`, tagged `entity` (`comments`, `products`, `categories`,
   `outbox_events`).
 
+Business counters are registered for `afterCommit`, so a rolled-back request never
+increments them.
+
 ## Testing
 
 Run from the repository root:
