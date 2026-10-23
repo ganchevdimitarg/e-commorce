@@ -405,6 +405,9 @@ Tuning and failure behaviour:
   is no `.DLT` topic because a payload that cannot be serialised cannot be published. See
   ADR-009.
 
+See [`docs/context/outbox-runbook.md`](docs/context/outbox-runbook.md) for listing,
+diagnosing and replaying dead-lettered rows.
+
 ## Caching and read replica
 
 **Cache.** There is one Redis cache, `product`, with a 10-minute TTL, the `catalog:v5:` key
