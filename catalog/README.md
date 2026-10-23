@@ -133,6 +133,7 @@ Configuration keys that matter locally:
 | `catalog.outbox.relay-interval-ms` | Outbox relay cadence, default `1000` |
 | `catalog.outbox.batch-size` | Rows claimed per relay run, default `20` |
 | `catalog.outbox.send-timeout` | Broker acknowledgement timeout per row, default `5s` |
+| `catalog.outbox.retention` | Delivered rows are purged by the retention job after this window, default `7d` |
 | `catalog.category.move-all-max` | Maximum products a category-wide move processes; above it the request is a 409, default `5000` |
 | `catalog.retention.purge-enabled` | Opt-in purge of expired soft-deleted rows, default `false` |
 | `catalog.retention.retention` | Age after which a soft-deleted row is purged, default `90d` |
@@ -362,6 +363,8 @@ and only if the change committed. `OutboxRelay` then:
   producer) and marks the row sent only after the broker acknowledges.
 
 Delivery is **at-least-once**; consumers must deduplicate on the payload's `eventId`.
+The retention job removes delivered rows after `catalog.outbox.retention` (default 7 days);
+unsent and dead-lettered rows are never removed by it.
 
 | Topic | Event |
 |---|---|
@@ -428,17 +431,30 @@ nothing or `catalog.retention.max-batches-per-run` is reached:
 1. comments soft-deleted before the cutoff;
 2. products soft-deleted before the cutoff, together with **all** their comments (live or
    soft-deleted);
-3. categories soft-deleted before the cutoff that no longer hold any product row.
+3. categories soft-deleted before the cutoff that no longer hold any product row;
+4. delivered outbox rows sent before `now() - catalog.outbox.retention` (default 7 days).
+
+The outbox window is independent of the 90-day soft-delete window. Unsent and
+dead-lettered rows have no `sent_at`, so neither is ever selected; dead-lettered rows are
+kept for inspection and replay.
 
 The delete statements use native SQL (JPA's `@SQLRestriction` hides soft-deleted rows).
-Each selection — expired comments, expired products, empty expired categories — is limited
-to `catalog.retention.batch-size`, default `500`, so a large backlog is purged over several
-batches and committed batch by batch. A selected product's comments are all deleted with
-it, so the total number of deleted rows is not itself capped by `batch-size`. Each batch
-that deletes something adds its counts to the `catalog.retention.purged` counter (tagged
-`entity=comments|products|categories`) and emits one structured INFO line; a batch that
-deletes nothing logs at DEBUG, so a multi-batch run logs one line per batch. See the
-retention rows in the configuration table above.
+Each selection — expired comments, expired products, empty expired categories, delivered
+outbox rows — is limited to `catalog.retention.batch-size`, default `500`, so a large
+backlog is purged over several batches and committed batch by batch. A selected product's
+comments are all deleted with it, so the total number of deleted rows is not itself capped
+by `batch-size`. Each batch that deletes something adds its counts to the
+`catalog.retention.purged` counter (tagged `entity=comments|products|categories|outbox_events`)
+and emits one structured INFO line; a batch that deletes nothing logs at DEBUG, so a
+multi-batch run logs one line per batch. See the retention rows in the configuration table
+above.
+
+Catch-up is bounded by `catalog.retention.batch-size` ×
+`catalog.retention.max-batches-per-run` per run (50,000 rows by default), so enabling the
+job on a long-lived table drains a large backlog gradually. `V21`'s index on
+`outbox_events.sent_at` is built non-concurrently: the startup migration briefly holds a
+`SHARE` lock and blocks outbox inserts during a rolling deploy — the accepted trade-off
+recorded in `docs/decisions.md`.
 
 ## Observability
 
@@ -468,7 +484,8 @@ probability. Business metrics follow `catalog.<entity>.<action>`:
 - `catalog.comment.created`, `catalog.comment.deleted`;
 - `catalog.outbox.published`, `catalog.outbox.failed` and
   `catalog.outbox.dead_lettered` counters, plus the `catalog.outbox.pending` gauge;
-- `catalog.retention.purged`, tagged `entity` (`comments`, `products`, `categories`).
+- `catalog.retention.purged`, tagged `entity` (`comments`, `products`, `categories`,
+  `outbox_events`).
 
 ## Testing
 

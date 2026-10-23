@@ -53,7 +53,8 @@ class OutboxRelayTest {
 
     private OutboxRelay newRelay() {
         return new OutboxRelay(repository, kafkaTemplate,
-                new OutboxProperties(true, 20, Duration.ofSeconds(5)), meterRegistry);
+                new OutboxProperties(true, 20, Duration.ofSeconds(5), Duration.ofDays(7)),
+                meterRegistry);
     }
 
     private static OutboxEvent event() {

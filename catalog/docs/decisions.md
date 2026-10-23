@@ -107,3 +107,13 @@ Reference with `@docs/decisions.md` in prompts when Claude re-raises settled que
   for the current catalogue size. `saveAll` is used per the task's prescription; without
   `hibernate.jdbc.batch_size` it is not a JDBC batch, so a full-cap move issues one insert
   per row inside the single transaction.
+- 2026-10-23 — The retention job purges delivered outbox rows after
+  `catalog.outbox.retention` (default 7 days) using a partial index on `sent_at`.
+  Unsent rows and dead-lettered rows are never selected; the latter stay for inspection
+  and replay. The outbox window is independent of the 90-day soft-delete window, and the
+  purge only runs when `catalog.retention.purge-enabled=true`. Rejected: an unbounded
+  `delete` (long lock and a huge transaction), and deleting all rows older than the
+  window regardless of state (would discard undelivered events). `V21` builds the index
+  non-concurrently, so the startup migration briefly holds a `SHARE` lock on
+  `outbox_events` and blocks inserts; this is the same trade-off accepted for `V20`, and
+  the same growth point should switch both to `CREATE INDEX CONCURRENTLY`.

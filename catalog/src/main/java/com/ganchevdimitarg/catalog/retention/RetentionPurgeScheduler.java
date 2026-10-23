@@ -1,5 +1,6 @@
 package com.ganchevdimitarg.catalog.retention;
 
+import com.ganchevdimitarg.catalog.event.OutboxProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -12,6 +13,10 @@ import java.time.Instant;
 /**
  * Runs the retention purge on the configured cron, batching until the cap is reached or a
  * batch deletes nothing.
+ *
+ * <p>Two independent windows are applied: soft-deleted rows older than
+ * {@code catalog.retention.retention}, and delivered outbox rows sent before
+ * {@code catalog.outbox.retention}.
  *
  * <p>The bean exists only when {@code catalog.retention.purge-enabled=true}, so the default
  * configuration schedules no purge at all. Each iteration calls the proxied
@@ -27,21 +32,23 @@ public class RetentionPurgeScheduler {
 
     private final RetentionPurgeService service;
     private final RetentionProperties properties;
+    private final OutboxProperties outboxProperties;
     private final Clock clock;
 
     @Scheduled(cron = "${catalog.retention.cron:0 0 3 * * *}")
     public void purge() {
         Instant cutoff = clock.instant().minus(properties.retention());
+        Instant outboxCutoff = clock.instant().minus(outboxProperties.retention());
         try {
             for (int batch = 0; batch < properties.maxBatchesPerRun(); batch++) {
-                if (service.purgeBatch(cutoff).isEmpty()) {
+                if (service.purgeBatch(cutoff, outboxCutoff).isEmpty()) {
                     return;
                 }
             }
             log.warn("Retention purge reached the {} batch cap; more expired rows may remain",
                     properties.maxBatchesPerRun());
         } catch (RuntimeException e) {
-            log.error("Retention purge run failed at cutoff {}", cutoff, e);
+            log.error("Retention purge run failed at cutoff {} (outbox {})", cutoff, outboxCutoff, e);
         }
     }
 }

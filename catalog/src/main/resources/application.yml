@@ -91,6 +91,9 @@ catalog:
   # How often the transactional-outbox relay sweeps unsettled events.
   outbox:
     relay-interval-ms: 1000
+    # Delivered rows are purged by the retention job after this window. Unsent and
+    # dead-lettered rows are never selected.
+    retention: ${CATALOG_OUTBOX_RETENTION:7d}
   category:
     # A category-wide move materialises one outbox row per product in one transaction;
     # above this many products it is rejected rather than growing without bound.

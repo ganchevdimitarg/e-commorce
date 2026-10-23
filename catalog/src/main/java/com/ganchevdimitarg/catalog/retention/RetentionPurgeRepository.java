@@ -14,7 +14,8 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Hard-deletes soft-deleted rows with native SQL.
+ * Hard-deletes expired rows with native SQL: soft-deleted business rows and delivered
+ * outbox rows.
  *
  * <p>JPA cannot do this: every entity carries {@code @SQLRestriction("deleted_at IS NULL")},
  * so JPQL and derived deletes never see the expired rows. Deletes run in foreign-key order —
@@ -81,6 +82,19 @@ public class RetentionPurgeRepository {
                     where c2.deleted_at is not null and c2.deleted_at < ?
                       and not exists (select 1 from products p where p.category_id = c2.id)
                     order by c2.deleted_at limit ?)
+                """, timestamp(cutoff), limit);
+    }
+
+    /**
+     * Deletes a batch of delivered outbox rows that were sent before the cutoff.
+     * Dead-lettered rows keep {@code sent_at} NULL and are therefore never selected.
+     */
+    public int deleteSentOutboxEvents(Instant cutoff, int limit) {
+        return jdbcTemplate.update("""
+                delete from outbox_events where id in (
+                    select id from outbox_events
+                    where sent_at is not null and sent_at < ?
+                    order by sent_at limit ?)
                 """, timestamp(cutoff), limit);
     }
 
