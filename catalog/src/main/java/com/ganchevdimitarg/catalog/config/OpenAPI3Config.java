@@ -25,8 +25,9 @@ import io.swagger.v3.oas.annotations.servers.Server;
                         tokenUrl = "${springdoc.oAuthFlow.tokenUrl}",
                         scopes = {
                                 @OAuthScope(name = "openid", description = "openid scope"),
-                                @OAuthScope(name = "catalog.read", description = "with this scope, the user can access every get request"),
-                                @OAuthScope(name = "catalog.write", description = "with this scope, the user can access every post, put and delete request")
+                                @OAuthScope(name = "catalog.read", description = "read products, categories and comments"),
+                                @OAuthScope(name = "catalog.review", description = "create and delete comments"),
+                                @OAuthScope(name = "catalog.manage", description = "create, update and delete products and categories")
                         }
                 )
         )

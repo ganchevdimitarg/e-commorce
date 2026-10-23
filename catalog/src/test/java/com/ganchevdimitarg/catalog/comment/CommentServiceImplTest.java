@@ -7,11 +7,14 @@ import com.ganchevdimitarg.catalog.domain.Comment;
 import com.ganchevdimitarg.catalog.domain.Product;
 import com.ganchevdimitarg.catalog.dto.comment.CommentResponseDto;
 import com.ganchevdimitarg.catalog.dto.comment.CreateCommentCommand;
+import com.ganchevdimitarg.catalog.exception.ConflictException;
 import com.ganchevdimitarg.catalog.exception.NotFoundException;
 import com.ganchevdimitarg.catalog.mapper.MapStructMapper;
+import com.ganchevdimitarg.catalog.metrics.AfterCommitMetrics;
 import com.ganchevdimitarg.catalog.service.comment.CommentService;
 import com.ganchevdimitarg.catalog.service.comment.CommentServiceImpl;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -22,6 +25,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.Arrays;
 import java.util.List;
@@ -53,7 +59,13 @@ class CommentServiceImplTest {
     @BeforeEach
     void setUp() {
         testService = new CommentServiceImpl(commentRepository, productRepository, mapStructMapper,
-                new SimpleMeterRegistry(), productCacheEvictor);
+                new AfterCommitMetrics(new SimpleMeterRegistry()), productCacheEvictor);
+        authenticate("joe", "SCOPE_catalog.review");
+    }
+
+    @AfterEach
+    void clearSecurityContext() {
+        SecurityContextHolder.clearContext();
     }
 
     @Test
@@ -132,6 +144,21 @@ class CommentServiceImplTest {
     }
 
     @Test
+    void should_throwConflict_when_authorAlreadyReviewedProduct() {
+        Product product = new Product();
+        product.setId(PRODUCT_ID);
+        product.setName("mouse");
+        when(productRepository.findByNameForUpdate("mouse")).thenReturn(Optional.of(product));
+        when(commentRepository.existsByProduct_IdAndAuthor(PRODUCT_ID, "joe")).thenReturn(true);
+
+        assertThatThrownBy(() -> testService.createComment(
+                new CreateCommentCommand("nice", "great product!!", 5.0, "joe", "mouse")))
+                .isInstanceOf(ConflictException.class);
+
+        verify(commentRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
     void should_returnComments_when_productExists() {
         PageRequest pageRequest = PageRequest.of(1, 5);
         List<Comment> comments = Arrays.asList(new Comment(), new Comment());
@@ -167,6 +194,7 @@ class CommentServiceImplTest {
         List<Comment> comments = Arrays.asList(new Comment(), new Comment());
         Page<Comment> page = new PageImpl<>(comments, pageRequest, comments.size());
         String author = "aaaa";
+        authenticate(author, "SCOPE_catalog.read");
 
         when(commentRepository.findAllByAuthorByPage(author, pageRequest)).thenReturn(page);
         when(mapStructMapper.mapCommentToCommentResponseDto(any(Comment.class)))
@@ -177,6 +205,16 @@ class CommentServiceImplTest {
 
         verify(commentRepository).findAllByAuthorByPage(any(String.class), any(PageRequest.class));
         assertThat(result.getContent()).hasSize(2);
+    }
+
+    @Test
+    void should_throwAccessDenied_when_authorDiffersFromCaller() {
+        authenticate("bob", "SCOPE_catalog.read");
+
+        assertThatThrownBy(() -> testService.findAllByAuthorByPage("alice", PageRequest.of(0, 20)))
+                .isInstanceOf(AccessDeniedException.class);
+
+        verify(commentRepository, never()).findAllByAuthorByPage(anyString(), any());
     }
 
     @Test
@@ -218,8 +256,8 @@ class CommentServiceImplTest {
     void should_incrementCreatedCounter_when_commentCreated() {
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
         CommentServiceImpl service =
-                new CommentServiceImpl(commentRepository, productRepository, mapStructMapper, registry,
-                        productCacheEvictor);
+                new CommentServiceImpl(commentRepository, productRepository, mapStructMapper,
+                        new AfterCommitMetrics(registry), productCacheEvictor);
 
         Product product = new Product();
         product.setName("aaa");
@@ -241,7 +279,7 @@ class CommentServiceImplTest {
         Comment comment = commentWithAuthor("joe");
         when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
 
-        testService.deleteComment(commentId, "joe", false);
+        testService.deleteComment(commentId);
 
         verify(commentRepository).delete(comment);
     }
@@ -251,8 +289,9 @@ class CommentServiceImplTest {
         UUID commentId = UUID.randomUUID();
         Comment comment = commentWithAuthor("joe");
         when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
+        authenticate("admin-1", "SCOPE_catalog.review", "ROLE_ADMIN");
 
-        testService.deleteComment(commentId, "admin-1", true);
+        testService.deleteComment(commentId);
 
         verify(commentRepository).delete(comment);
     }
@@ -262,8 +301,9 @@ class CommentServiceImplTest {
         UUID commentId = UUID.randomUUID();
         Comment comment = commentWithAuthor("joe");
         when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
+        authenticate("mallory", "SCOPE_catalog.review");
 
-        assertThatThrownBy(() -> testService.deleteComment(commentId, "mallory", false))
+        assertThatThrownBy(() -> testService.deleteComment(commentId))
                 .isInstanceOf(AccessDeniedException.class)
                 .hasMessage("Only the author or an administrator may delete this comment");
 
@@ -275,8 +315,22 @@ class CommentServiceImplTest {
         UUID commentId = UUID.randomUUID();
         Comment comment = commentWithAuthor(null);
         when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
+        authenticate("mallory", "SCOPE_catalog.review");
 
-        assertThatThrownBy(() -> testService.deleteComment(commentId, "mallory", false))
+        assertThatThrownBy(() -> testService.deleteComment(commentId))
+                .isInstanceOf(AccessDeniedException.class);
+
+        verify(commentRepository, never()).delete(any());
+    }
+
+    @Test
+    void should_throwAccessDenied_when_noAuthenticationIsPresent() {
+        UUID commentId = UUID.randomUUID();
+        Comment comment = commentWithAuthor("joe");
+        when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
+        SecurityContextHolder.clearContext();
+
+        assertThatThrownBy(() -> testService.deleteComment(commentId))
                 .isInstanceOf(AccessDeniedException.class);
 
         verify(commentRepository, never()).delete(any());
@@ -287,7 +341,7 @@ class CommentServiceImplTest {
         UUID commentId = UUID.randomUUID();
         when(commentRepository.findById(commentId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> testService.deleteComment(commentId, "joe", false))
+        assertThatThrownBy(() -> testService.deleteComment(commentId))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("Comment not found: " + commentId);
 
@@ -304,7 +358,7 @@ class CommentServiceImplTest {
         when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
         when(productRepository.findByIdForUpdate(PRODUCT_ID)).thenReturn(Optional.of(product));
 
-        testService.deleteComment(commentId, "joe", false);
+        testService.deleteComment(commentId);
 
         verify(productCacheEvictor).evict(PRODUCT_ID);
     }
@@ -321,7 +375,7 @@ class CommentServiceImplTest {
         CommentRepository.RatingStats stats = ratingStats(1, 3.0);
         when(commentRepository.findRatingStatsByProductId(PRODUCT_ID)).thenReturn(stats);
 
-        testService.deleteComment(commentId, "joe", false);
+        testService.deleteComment(commentId);
 
         // flush() runs the soft-delete SQL before the aggregate query sees the new state
         verify(commentRepository).flush();
@@ -337,7 +391,7 @@ class CommentServiceImplTest {
         comment.setProduct(null);
         when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
 
-        testService.deleteComment(commentId, "joe", false);
+        testService.deleteComment(commentId);
 
         verify(commentRepository).delete(comment);
         verify(productCacheEvictor, never()).evict(any());
@@ -348,14 +402,20 @@ class CommentServiceImplTest {
     void should_incrementDeletedCounter_when_commentDeleted() {
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
         CommentServiceImpl service =
-                new CommentServiceImpl(commentRepository, productRepository, mapStructMapper, registry,
-                        productCacheEvictor);
+                new CommentServiceImpl(commentRepository, productRepository, mapStructMapper,
+                        new AfterCommitMetrics(registry), productCacheEvictor);
         UUID commentId = UUID.randomUUID();
         when(commentRepository.findById(commentId)).thenReturn(Optional.of(commentWithAuthor("joe")));
 
-        service.deleteComment(commentId, "joe", false);
+        service.deleteComment(commentId);
 
         assertThat(registry.get("catalog.comment.deleted").counter().count()).isEqualTo(1.0);
+    }
+
+    private static void authenticate(String username, String... authorities) {
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(username, "n/a",
+                        Arrays.stream(authorities).map(SimpleGrantedAuthority::new).toList()));
     }
 
     private static Comment commentWithAuthor(String author) {

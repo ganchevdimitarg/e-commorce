@@ -23,6 +23,12 @@ public interface CommentRepository extends JpaRepository<Comment, UUID> {
     Page<Comment> findAllByAuthorByPage(@Param("author") String author, Pageable pageable);
 
     /**
+     * {@code @SQLRestriction} hides soft-deleted comments, so a deleted review does not
+     * occupy the author's slot for the product and can be posted again.
+     */
+    boolean existsByProduct_IdAndAuthor(UUID productId, String author);
+
+    /**
      * Aggregate backing the denormalised rating on {@code products}. The entity's
      * {@code @SQLRestriction} excludes soft-deleted comments from both values.
      */

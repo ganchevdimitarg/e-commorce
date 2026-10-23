@@ -75,7 +75,7 @@ class ProductEventIT extends AbstractIntegrationTest {
     }
 
     @Test
-    @WithMockUser(authorities = "SCOPE_catalog.write")
+    @WithMockUser(authorities = "SCOPE_catalog.manage")
     void should_writeOutboxRow_when_productIsCreatedInTransaction() {
         // Given: a product command
         CreateProductCommand cmd = new CreateProductCommand(
@@ -138,7 +138,7 @@ class ProductEventIT extends AbstractIntegrationTest {
     }
 
     @Test
-    @WithMockUser(authorities = "SCOPE_catalog.write")
+    @WithMockUser(authorities = "SCOPE_catalog.manage")
     void should_writeNoOutboxRow_when_productCreationIsRolledBack() {
         CreateProductCommand cmd = new CreateProductCommand(
                 ROLLED_BACK_PRODUCT_NAME, "Rolled back creation fixture",

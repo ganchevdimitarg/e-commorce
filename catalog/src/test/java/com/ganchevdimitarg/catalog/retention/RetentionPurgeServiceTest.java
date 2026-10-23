@@ -30,6 +30,7 @@ import static org.mockito.Mockito.when;
 class RetentionPurgeServiceTest {
 
     private static final Instant CUTOFF = Instant.parse("2026-07-23T00:00:00Z");
+    private static final Instant OUTBOX_CUTOFF = Instant.parse("2026-10-16T00:00:00Z");
     private static final UUID FIRST_PRODUCT = UUID.fromString("11111111-1111-1111-1111-111111111111");
     private static final UUID SECOND_PRODUCT = UUID.fromString("22222222-2222-2222-2222-222222222222");
 
@@ -52,16 +53,33 @@ class RetentionPurgeServiceTest {
         when(repository.deleteCommentsForProducts(List.of(FIRST_PRODUCT, SECOND_PRODUCT))).thenReturn(4);
         when(repository.deleteProducts(List.of(FIRST_PRODUCT, SECOND_PRODUCT))).thenReturn(2);
         when(repository.deleteEmptyExpiredCategories(CUTOFF, 500)).thenReturn(1);
+        when(repository.deleteSentOutboxEvents(OUTBOX_CUTOFF, 500)).thenReturn(0);
 
-        RetentionPurgeService.PurgeResult result = newService(500).purgeBatch(CUTOFF);
+        RetentionPurgeService.PurgeResult result =
+                newService(500).purgeBatch(CUTOFF, OUTBOX_CUTOFF);
 
-        assertThat(result).isEqualTo(new RetentionPurgeService.PurgeResult(7, 2, 1));
+        assertThat(result).isEqualTo(new RetentionPurgeService.PurgeResult(7, 2, 1, 0));
         InOrder order = inOrder(repository);
         order.verify(repository).deleteExpiredComments(CUTOFF, 500);
         order.verify(repository).findExpiredProductIds(CUTOFF, 500);
         order.verify(repository).deleteCommentsForProducts(List.of(FIRST_PRODUCT, SECOND_PRODUCT));
         order.verify(repository).deleteProducts(List.of(FIRST_PRODUCT, SECOND_PRODUCT));
         order.verify(repository).deleteEmptyExpiredCategories(CUTOFF, 500);
+        order.verify(repository).deleteSentOutboxEvents(OUTBOX_CUTOFF, 500);
+    }
+
+    @Test
+    void should_deleteSentOutboxRowsBeforeOutboxCutoff_when_batchRuns() {
+        when(repository.deleteExpiredComments(CUTOFF, 500)).thenReturn(0);
+        when(repository.findExpiredProductIds(CUTOFF, 500)).thenReturn(List.of());
+        when(repository.deleteEmptyExpiredCategories(CUTOFF, 500)).thenReturn(0);
+        when(repository.deleteSentOutboxEvents(OUTBOX_CUTOFF, 500)).thenReturn(4);
+
+        RetentionPurgeService.PurgeResult result =
+                newService(500).purgeBatch(CUTOFF, OUTBOX_CUTOFF);
+
+        assertThat(result).isEqualTo(new RetentionPurgeService.PurgeResult(0, 0, 0, 4));
+        verify(repository).deleteSentOutboxEvents(OUTBOX_CUTOFF, 500);
     }
 
     @Test
@@ -69,13 +87,16 @@ class RetentionPurgeServiceTest {
         when(repository.deleteExpiredComments(CUTOFF, 25)).thenReturn(0);
         when(repository.findExpiredProductIds(CUTOFF, 25)).thenReturn(List.of());
         when(repository.deleteEmptyExpiredCategories(CUTOFF, 25)).thenReturn(0);
+        when(repository.deleteSentOutboxEvents(OUTBOX_CUTOFF, 25)).thenReturn(0);
 
-        RetentionPurgeService.PurgeResult result = newService(25).purgeBatch(CUTOFF);
+        RetentionPurgeService.PurgeResult result =
+                newService(25).purgeBatch(CUTOFF, OUTBOX_CUTOFF);
 
-        assertThat(result).isEqualTo(new RetentionPurgeService.PurgeResult(0, 0, 0));
+        assertThat(result).isEqualTo(new RetentionPurgeService.PurgeResult(0, 0, 0, 0));
         verify(repository).deleteExpiredComments(CUTOFF, 25);
         verify(repository).findExpiredProductIds(CUTOFF, 25);
         verify(repository).deleteEmptyExpiredCategories(CUTOFF, 25);
+        verify(repository).deleteSentOutboxEvents(OUTBOX_CUTOFF, 25);
         verify(repository, never()).deleteCommentsForProducts(anyList());
         verify(repository, never()).deleteProducts(anyList());
     }
@@ -87,8 +108,9 @@ class RetentionPurgeServiceTest {
         when(repository.deleteCommentsForProducts(List.of(FIRST_PRODUCT))).thenReturn(4);
         when(repository.deleteProducts(List.of(FIRST_PRODUCT))).thenReturn(1);
         when(repository.deleteEmptyExpiredCategories(CUTOFF, 500)).thenReturn(2);
+        when(repository.deleteSentOutboxEvents(OUTBOX_CUTOFF, 500)).thenReturn(4);
 
-        newService(500).purgeBatch(CUTOFF);
+        newService(500).purgeBatch(CUTOFF, OUTBOX_CUTOFF);
 
         assertThat(meterRegistry.counter("catalog.retention.purged", "entity", "comments").count())
                 .isEqualTo(7.0);
@@ -96,5 +118,7 @@ class RetentionPurgeServiceTest {
                 .isEqualTo(1.0);
         assertThat(meterRegistry.counter("catalog.retention.purged", "entity", "categories").count())
                 .isEqualTo(2.0);
+        assertThat(meterRegistry.counter("catalog.retention.purged", "entity", "outbox_events").count())
+                .isEqualTo(4.0);
     }
 }

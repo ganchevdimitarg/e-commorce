@@ -13,14 +13,18 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -29,6 +33,8 @@ import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -49,11 +55,16 @@ class OutboxRelayTest {
     @Mock
     KafkaTemplate<String, String> kafkaTemplate;
 
+    @Mock
+    PlatformTransactionManager transactionManager;
+
     private final SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
 
     private OutboxRelay newRelay() {
         return new OutboxRelay(repository, kafkaTemplate,
-                new OutboxProperties(true, 20, Duration.ofSeconds(5)), meterRegistry);
+                new OutboxProperties(true, 20, Duration.ofSeconds(5),
+                        Duration.ofMinutes(1), Duration.ofDays(7)),
+                meterRegistry, new TransactionTemplate(transactionManager));
     }
 
     private static OutboxEvent event() {
@@ -73,7 +84,9 @@ class OutboxRelayTest {
     @Test
     void should_markRowSent_when_sendSucceeds() {
         OutboxEvent event = event();
-        when(repository.lockUnsentBatch(20)).thenReturn(List.of(event));
+        when(repository.claimDueBatch(eq(20), any(OffsetDateTime.class)))
+                .thenReturn(List.of(event));
+        when(repository.findAllById(List.of(EVENT_ID))).thenReturn(List.of(event));
         when(kafkaTemplate.send(any(ProducerRecord.class)))
                 .thenReturn(CompletableFuture.completedFuture(null));
 
@@ -96,7 +109,7 @@ class OutboxRelayTest {
 
     @Test
     void should_returnZero_when_noUnsentRows() {
-        when(repository.lockUnsentBatch(20)).thenReturn(List.of());
+        when(repository.claimDueBatch(eq(20), any(OffsetDateTime.class))).thenReturn(List.of());
 
         assertThat(newRelay().relayOnce()).isZero();
         verifyNoInteractions(kafkaTemplate);
@@ -105,7 +118,9 @@ class OutboxRelayTest {
     @Test
     void should_leaveRowUnsent_when_sendFails() {
         OutboxEvent event = event();
-        when(repository.lockUnsentBatch(20)).thenReturn(List.of(event));
+        when(repository.claimDueBatch(eq(20), any(OffsetDateTime.class)))
+                .thenReturn(List.of(event));
+        when(repository.findAllById(List.of(EVENT_ID))).thenReturn(List.of(event));
         when(kafkaTemplate.send(any(ProducerRecord.class)))
                 .thenThrow(new KafkaException("broker down"));
 
@@ -114,23 +129,32 @@ class OutboxRelayTest {
     }
 
     @Test
-    void should_stopBatch_when_sendFails() {
+    void should_recordOutcomeForEveryClaimedRow_when_sendFails() {
         OutboxEvent first = event();
         OutboxEvent second = event();
-        when(repository.lockUnsentBatch(20)).thenReturn(List.of(first, second));
+        second.setId(UUID.fromString("55555555-5555-5555-5555-555555555555"));
+        when(repository.claimDueBatch(eq(20), any(OffsetDateTime.class)))
+                .thenReturn(List.of(first, second));
+        when(repository.findAllById(List.of(EVENT_ID, second.getId())))
+                .thenReturn(List.of(first, second));
         when(kafkaTemplate.send(any(ProducerRecord.class)))
                 .thenThrow(new KafkaException("broker down"));
 
         assertThat(newRelay().relayOnce()).isZero();
-        assertThat(first.getSentAt()).isNull();
-        assertThat(second.getSentAt()).isNull();
-        verify(kafkaTemplate, times(1)).send(any(ProducerRecord.class));
+
+        assertThat(first.getAttempts()).isEqualTo(1);
+        assertThat(second.getAttempts()).isEqualTo(1);
+        verify(kafkaTemplate, times(2)).send(any(ProducerRecord.class));
     }
 
     @Test
     void should_leaveRowDueWithoutAttempt_when_relayIsInterrupted() {
         OutboxEvent event = event();
-        when(repository.lockUnsentBatch(20)).thenReturn(List.of(event));
+        // The claim would have leased the row; an interrupt must release the lease too.
+        event.setClaimedUntil(Instant.now().plusSeconds(60));
+        when(repository.claimDueBatch(eq(20), any(OffsetDateTime.class)))
+                .thenReturn(List.of(event));
+        when(repository.findAllById(List.of(EVENT_ID))).thenReturn(List.of(event));
         when(kafkaTemplate.send(any(ProducerRecord.class))).thenReturn(new InterruptingFuture());
 
         try {
@@ -140,6 +164,7 @@ class OutboxRelayTest {
             Thread.interrupted(); // clear the flag so the test runner is unaffected
         }
 
+        assertThat(event.getClaimedUntil()).isNull();
         assertThat(event.getSentAt()).isNull();
         assertThat(event.getAttempts()).isZero();
         assertThat(event.getLastError()).isNull();
@@ -153,7 +178,9 @@ class OutboxRelayTest {
         OutboxEvent event = event();
         Instant due = Instant.now().minusSeconds(30);
         event.setNextAttemptAt(due);
-        when(repository.lockUnsentBatch(20)).thenReturn(List.of(event));
+        when(repository.claimDueBatch(eq(20), any(OffsetDateTime.class)))
+                .thenReturn(List.of(event));
+        when(repository.findAllById(List.of(EVENT_ID))).thenReturn(List.of(event));
         when(kafkaTemplate.send(any(ProducerRecord.class)))
                 .thenThrow(new SerializationException("payload cannot be serialised"));
 
@@ -173,7 +200,9 @@ class OutboxRelayTest {
     @Test
     void should_deadLetter_when_sendFutureFailsWithSerialization() {
         OutboxEvent event = event();
-        when(repository.lockUnsentBatch(20)).thenReturn(List.of(event));
+        when(repository.claimDueBatch(eq(20), any(OffsetDateTime.class)))
+                .thenReturn(List.of(event));
+        when(repository.findAllById(List.of(EVENT_ID))).thenReturn(List.of(event));
         when(kafkaTemplate.send(any(ProducerRecord.class)))
                 .thenReturn(CompletableFuture.failedFuture(
                         new SerializationException("payload cannot be serialised")));
@@ -191,7 +220,9 @@ class OutboxRelayTest {
     @Test
     void should_notDeadLetter_when_brokerTimesOut() {
         OutboxEvent event = event();
-        when(repository.lockUnsentBatch(20)).thenReturn(List.of(event));
+        when(repository.claimDueBatch(eq(20), any(OffsetDateTime.class)))
+                .thenReturn(List.of(event));
+        when(repository.findAllById(List.of(EVENT_ID))).thenReturn(List.of(event));
         when(kafkaTemplate.send(any(ProducerRecord.class)))
                 .thenThrow(new TimeoutException("broker timed out"));
         Instant before = Instant.now();
@@ -235,7 +266,7 @@ class OutboxRelayTest {
 
     @Test
     void should_countOnlyLiveRows_when_updatingPendingGauge() {
-        when(repository.lockUnsentBatch(20)).thenReturn(List.of());
+        when(repository.claimDueBatch(eq(20), any(OffsetDateTime.class))).thenReturn(List.of());
         when(repository.countBySentAtIsNullAndDeadLetteredAtIsNull()).thenReturn(3L);
 
         newRelay().relayOnce();
@@ -247,7 +278,9 @@ class OutboxRelayTest {
     void should_setBackoffAndLastError_when_sendFails() {
         OutboxEvent event = event();
         event.setAttempts(0);
-        when(repository.lockUnsentBatch(20)).thenReturn(List.of(event));
+        when(repository.claimDueBatch(eq(20), any(OffsetDateTime.class)))
+                .thenReturn(List.of(event));
+        when(repository.findAllById(List.of(EVENT_ID))).thenReturn(List.of(event));
         when(kafkaTemplate.send(any(ProducerRecord.class)))
                 .thenThrow(new KafkaException("broker down"));
         Instant before = Instant.now();
@@ -275,7 +308,9 @@ class OutboxRelayTest {
     @Test
     void should_fallBackToExceptionType_when_messageIsNull() {
         OutboxEvent event = event();
-        when(repository.lockUnsentBatch(20)).thenReturn(List.of(event));
+        when(repository.claimDueBatch(eq(20), any(OffsetDateTime.class)))
+                .thenReturn(List.of(event));
+        when(repository.findAllById(List.of(EVENT_ID))).thenReturn(List.of(event));
         when(kafkaTemplate.send(any(ProducerRecord.class)))
                 .thenThrow(new KafkaException((String) null));
 
@@ -287,13 +322,32 @@ class OutboxRelayTest {
     @Test
     void should_truncateLastError_when_messageExceedsLimit() {
         OutboxEvent event = event();
-        when(repository.lockUnsentBatch(20)).thenReturn(List.of(event));
+        when(repository.claimDueBatch(eq(20), any(OffsetDateTime.class)))
+                .thenReturn(List.of(event));
+        when(repository.findAllById(List.of(EVENT_ID))).thenReturn(List.of(event));
         when(kafkaTemplate.send(any(ProducerRecord.class)))
                 .thenThrow(new KafkaException("x".repeat(2000)));
 
         assertThat(newRelay().relayOnce()).isZero();
 
         assertThat(event.getLastError()).hasSize(1000);
+    }
+
+    @Test
+    void should_claimAndMarkInSeparateTransactions_when_relayRuns() {
+        OutboxEvent event = event();
+        when(repository.claimDueBatch(eq(20), any(OffsetDateTime.class)))
+                .thenReturn(List.of(event));
+        when(repository.findAllById(List.of(EVENT_ID))).thenReturn(List.of(event));
+        when(kafkaTemplate.send(any(ProducerRecord.class)))
+                .thenReturn(CompletableFuture.completedFuture(null));
+
+        newRelay().relayOnce();
+
+        InOrder order = inOrder(repository, kafkaTemplate);
+        order.verify(repository).claimDueBatch(eq(20), any(OffsetDateTime.class));
+        order.verify(kafkaTemplate).send(any(ProducerRecord.class));
+        order.verify(repository).findAllById(List.of(EVENT_ID));
     }
 
     /** A send future that reports an interrupt, as the relay's blocking get() would. */

@@ -22,7 +22,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Tag("integration")
-@WithMockUser(authorities = "SCOPE_catalog.read")
+@WithMockUser(username = "qc-author", authorities = "SCOPE_catalog.read")
 class ListQueryCountIT extends AbstractIntegrationTest {
 
     @Autowired
@@ -47,7 +47,9 @@ class ListQueryCountIT extends AbstractIntegrationTest {
     @BeforeEach
     void seedCatalogue() {
         String run = UUID.randomUUID().toString().substring(0, 8);
-        author = "qc-author-" + run;
+        // The service guard only lets the author (or an admin) list their comments, so the
+        // seeded author must match the @WithMockUser principal.
+        author = "qc-author";
         categoryName = null;
         productName = null;
         for (int c = 0; c < 5; c++) {
@@ -70,11 +72,14 @@ class ListQueryCountIT extends AbstractIntegrationTest {
                         """, productId, name, "Seeded product for query counts",
                         BigDecimal.TEN, true, categoryId);
                 for (int i = 0; i < 2; i++) {
+                    // At most one live comment per (product, author): the second seed uses
+                    // a different author so the unique index is not violated.
+                    String commentAuthor = i == 0 ? author : author + "-alt";
                     jdbcTemplate.update("""
                             insert into comments (id, title, text, star, author, product_id, version)
                             values (?, ?, ?, ?, ?, ?, 0)
                             """, UUID.randomUUID(), "qc title", "Seeded comment text", 5.0,
-                            author, productId);
+                            commentAuthor, productId);
                 }
             }
         }
@@ -97,7 +102,9 @@ class ListQueryCountIT extends AbstractIntegrationTest {
         productService.searchProducts(new ProductSearchCriteria(null, null, null, null, null),
                 PageRequest.of(0, 20));
 
-        assertThat(stats.getPrepareStatementCount()).isLessThanOrEqualTo(4);
+        assertThat(stats.getPrepareStatementCount())
+                .as("count + page select; the comments batch is gone")
+                .isLessThanOrEqualTo(2);
     }
 
     @Test
@@ -107,7 +114,10 @@ class ListQueryCountIT extends AbstractIntegrationTest {
         productService.searchProducts(new ProductSearchCriteria(null, null, null, null, categoryName),
                 PageRequest.of(0, 20));
 
-        assertThat(stats.getPrepareStatementCount()).isLessThanOrEqualTo(5);
+        assertThat(stats.getPrepareStatementCount())
+                .as("category lookup + page select; the page is not full, so no count query, "
+                        + "and the comments batch is gone")
+                .isLessThanOrEqualTo(2);
     }
 
     @Test

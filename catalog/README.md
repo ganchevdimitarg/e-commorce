@@ -67,13 +67,14 @@ docker compose -f compose-standalone.yaml up -d --build
 ```
 
 Prerequisites: Docker Desktop with Compose v2, and nothing else bound to host ports
-**8084** (catalog), **8090** (mock issuer) or **29092** (Kafka's external listener).
+**8084** (catalog), **8088** (management), **8090** (mock issuer) or **29092** (Kafka's
+external listener).
 
 Verify the stack:
 
 ```bash
 # Aggregate health, including the database
-curl -fsS http://localhost:8084/actuator/health
+curl -fsS http://localhost:8088/actuator/health
 
 # A JWT from the mock issuer; copy access_token from the response
 curl -s -X POST http://localhost:8090/default/token \
@@ -128,9 +129,13 @@ Configuration keys that matter locally:
 | `catalog.datasource.writer.url` | Primary datasource, `jdbc:postgresql://localhost:5432/catalog` |
 | `catalog.datasource.reader.url` | Read-replica datasource, `jdbc:postgresql://localhost:5433/catalog` |
 | `spring.security.oauth2.resourceserver.jwt.issuer-uri` | `http://localhost:8082` (auth service) |
+| `management.server.port` | Management endpoints (health, info, prometheus) port, `MANAGEMENT_PORT`, default `8088`; the app port serves none of them |
 | `catalog.outbox.relay-interval-ms` | Outbox relay cadence, default `1000` |
 | `catalog.outbox.batch-size` | Rows claimed per relay run, default `20` |
 | `catalog.outbox.send-timeout` | Broker acknowledgement timeout per row, default `5s` |
+| `catalog.outbox.claim-lease` | How long a claimed row is skipped by other relay instances, default `60s` |
+| `catalog.outbox.retention` | Delivered rows are purged by the retention job after this window, default `7d` |
+| `catalog.category.move-all-max` | Maximum products a category-wide move processes; above it the request is a 409, default `5000` |
 | `catalog.retention.purge-enabled` | Opt-in purge of expired soft-deleted rows, default `false` |
 | `catalog.retention.retention` | Age after which a soft-deleted row is purged, default `90d` |
 | `catalog.retention.cron` | Purge schedule, default `0 0 3 * * *` (nightly at 03:00) |
@@ -139,6 +144,8 @@ Configuration keys that matter locally:
 | `catalog.rate-limit.enabled` | Per-principal rate limiting on product reads, default `true` |
 | `catalog.rate-limit.search.permits` | Search requests per minute per principal, default `60` |
 | `catalog.rate-limit.batch-get.permits` | Batch-get requests per minute per principal, default `10` |
+| `spring.data.redis.password` | Prod Redis password, `REDIS_PASSWORD`, empty by default (unauthenticated Redis) |
+| `spring.data.redis.ssl.enabled` | Prod Redis TLS, `REDIS_SSL_ENABLED`, default `false` |
 | `spring.kafka.bootstrap-servers` | Spring Kafka bootstrap servers, `localhost:9092` |
 | `kafka.bootstrapAddress` | Bootstrap address of the outbox producer, `localhost:9092` |
 
@@ -148,46 +155,58 @@ Catalog is a stateless OAuth2 **resource server** that accepts only JWTs issued 
 service.
 
 - Issuer: `http://localhost:8082`; JWKS: `http://localhost:8082/oauth2/jwks`.
-- Authorities come from the token's `scope` claim: `catalog.read` becomes
-  `SCOPE_catalog.read` and `catalog.write` becomes `SCOPE_catalog.write`. `ROLE_*` values in
-  the same claim are preserved verbatim (for example `ROLE_ADMIN`).
+- Scopes come from the token's `scope` claim: `catalog.read` becomes
+  `SCOPE_catalog.read`, `catalog.review` becomes `SCOPE_catalog.review` and
+  `catalog.manage` becomes `SCOPE_catalog.manage`.
+- Roles come from a dedicated `roles` claim, supplied as a collection or a space-delimited
+  string; the `ROLE_` prefix is added when the issuer omits it (`ADMIN` → `ROLE_ADMIN`).
+  `ROLE_*` values in the `scope` claim are still accepted as a deprecated compatibility path
+  for tokens issued before the `roles` claim existed.
+- `catalog.read` allows reads; `catalog.review` allows comment creation and deletion;
+  `catalog.manage` allows product and category creation, updates, deletes and moves.
+  `catalog.write` no longer exists and is not aliased: a comment moderator must not be able
+  to reprice or delete products.
 - Identity — comment authorship and comment-owner checks — comes from the JWT subject
   (`Authentication.getName()`). The gateway's `X-User-Id` / `X-User-Roles` headers are not
   trusted, because catalog is reachable directly on port 8084.
 - Social opaque tokens are not accepted: they terminate at auth/gateway, and a social login
   must be exchanged for an auth-service JWT before catalog is called.
-- `/v3/api-docs/**`, `/swagger-ui/**`, `/swagger-ui.html`, `/actuator/health` and its group
-  subpaths `/actuator/health/liveness` and `/actuator/health/readiness` (matcher
-  `/actuator/health/**`), plus `/actuator/info` and `/actuator/prometheus`, are public;
-  every other request needs a bearer token. Health details still require authorisation
-  (`show-details: when-authorized`). Authentication and authorisation failures are rendered
-  as `application/problem+json` (401 `UNAUTHENTICATED`, 403 `ACCESS_DENIED`).
+- On the app port, `/v3/api-docs/**`, `/swagger-ui/**`, `/swagger-ui.html`, `/actuator/health`
+  and its group subpaths `/actuator/health/liveness` and `/actuator/health/readiness` (matcher
+  `/actuator/health/**`) are public; every other request needs a bearer token.
+  `/actuator/info` and `/actuator/prometheus` are served only on the separate management port
+  (`MANAGEMENT_PORT`, default **8088**), which is unauthenticated for monitoring scrapers and
+  must not be published outside the monitoring network; on the app port those paths return
+  401. Health details still require authorisation (`show-details: when-authorized`).
+  Authentication and authorisation failures are rendered as `application/problem+json`
+  (401 `UNAUTHENTICATED`, 403 `ACCESS_DENIED`).
 
 ## API
 
-Every endpoint is under `/api/v1/catalog`. Reads require `SCOPE_catalog.read` and writes
-require `SCOPE_catalog.write` unless the authority column says otherwise.
+Every endpoint is under `/api/v1/catalog`. Reads require `SCOPE_catalog.read`, comment
+creation and deletion require `SCOPE_catalog.review`, and product/category mutations require
+`SCOPE_catalog.manage`, unless the authority column says otherwise.
 
 | Method | Path | Authority | Request | Success |
 |---|---|---|---|---|
-| POST | `/api/v1/catalog/products?categoryName={name}` | `SCOPE_catalog.write` | `ProductRequestDto`: `name`, `description`, `price`, `inStock`, `characteristics` | 201, `Location: /api/v1/catalog/products/{id}`, `ProductResponseDto` |
+| POST | `/api/v1/catalog/products?categoryName={name}` | `SCOPE_catalog.manage` | `ProductRequestDto`: `name`, `description`, `price`, `inStock`, `characteristics` | 201, `Location: /api/v1/catalog/products/{id}`, `ProductResponseDto` |
 | GET | `/api/v1/catalog/products` | `SCOPE_catalog.read` | optional `q`, `minPrice`, `maxPrice`, `inStock`, `categoryName`; `page`, `size` ≤ 100, `sort` | 200, `PageResponse<ProductResponseDto>` |
 | GET | `/api/v1/catalog/products/:cursor` | `SCOPE_catalog.read` | optional `q`, `minPrice`, `maxPrice`, `inStock`, `categoryName`; `cursor`, `limit` 1–100 (default 20), `sort` `createdAt,asc` or `createdAt,desc` (default `createdAt,desc`) | 200, `CursorPageResponse<ProductResponseDto>` |
 | GET | `/api/v1/catalog/products/{id}` | `SCOPE_catalog.read` | UUID path | 200, `ProductResponseDto` (cached), `ETag` |
 | GET | `/api/v1/catalog/products/by-name/{name}` | `SCOPE_catalog.read` | name path | 200, `ProductResponseDto`, `ETag` |
 | POST | `/api/v1/catalog/products/:batch-get` | `SCOPE_catalog.read` | `ItemRequestDto`: 1–100 UUIDs | 200, `List<ProductResponseDto>`; 404 lists every missing id |
-| PUT | `/api/v1/catalog/products/{id}` | `SCOPE_catalog.write` | `UpdateProductRequestDto`: `description`, `price`, `inStock`, `characteristics`; optional `If-Match` header | 200, updated `ProductResponseDto`, `ETag` |
-| DELETE | `/api/v1/catalog/products/{id}` | `SCOPE_catalog.write` | — | 204 |
-| POST | `/api/v1/catalog/categories` | `SCOPE_catalog.write` | `CategoryRequestDto`: `name` | 201, `Location: /api/v1/catalog/categories/{name}`, `CategoryResponseDto` |
+| PUT | `/api/v1/catalog/products/{id}` | `SCOPE_catalog.manage` | `UpdateProductRequestDto`: `description`, `price`, `inStock`, `characteristics`; optional `If-Match` header | 200, updated `ProductResponseDto`, `ETag` |
+| DELETE | `/api/v1/catalog/products/{id}` | `SCOPE_catalog.manage` | — | 204 |
+| POST | `/api/v1/catalog/categories` | `SCOPE_catalog.manage` | `CategoryRequestDto`: `name` | 201, `Location: /api/v1/catalog/categories/{name}`, `CategoryResponseDto` |
 | GET | `/api/v1/catalog/categories` | `SCOPE_catalog.read` | pagination | 200, `PageResponse<CategoryResponseDto>` |
-| DELETE | `/api/v1/catalog/categories/{name}` | `SCOPE_catalog.write` | — | 204; 409 if products remain |
-| POST | `/api/v1/catalog/categories/{from}/products/{productName}:move?to={to}` | `SCOPE_catalog.write` | — | 200 |
-| POST | `/api/v1/catalog/categories/{from}/products:move-all?to={to}` | `SCOPE_catalog.write` | — | 200 |
-| POST | `/api/v1/catalog/products/{productName}/comments` | `SCOPE_catalog.write` | `CommentRequestDto`: `title`, `text`, `star` 1–5; author from the JWT | 201, `Location: /api/v1/catalog/comments/{id}`, `CommentResponseDto` |
+| DELETE | `/api/v1/catalog/categories/{name}` | `SCOPE_catalog.manage` | — | 204; 409 if products remain |
+| POST | `/api/v1/catalog/categories/{from}/products/{productName}:move?to={to}` | `SCOPE_catalog.manage` | — | 200 |
+| POST | `/api/v1/catalog/categories/{from}/products:move-all?to={to}` | `SCOPE_catalog.manage` | — | 200; 409 `CONFLICT` above the move cap |
+| POST | `/api/v1/catalog/products/{productName}/comments` | `SCOPE_catalog.review` | `CommentRequestDto`: `title`, `text`, `star` 1–5; author from the JWT | 201, `Location: /api/v1/catalog/comments/{id}`, `CommentResponseDto` |
 | GET | `/api/v1/catalog/products/{productName}/comments` | `SCOPE_catalog.read` | pagination | 200, `PageResponse<CommentResponseDto>` |
-| GET | `/api/v1/catalog/comments/by-author/{author}` | `SCOPE_catalog.read` | pagination | 200, `PageResponse<CommentResponseDto>` |
+| GET | `/api/v1/catalog/comments/by-author/{author}` | `SCOPE_catalog.read`; `{author}` must be the caller or the caller must hold `ROLE_ADMIN` | pagination | 200, `PageResponse<CommentResponseDto>`; 403 `ACCESS_DENIED` otherwise |
 | GET | `/api/v1/catalog/products/{productName}/comments/avg-stars` | `SCOPE_catalog.read` | — | 200, average `star` as a number |
-| DELETE | `/api/v1/catalog/comments/{id}` | `SCOPE_catalog.write` or `ROLE_ADMIN` | — | 204; 403 if the caller is neither the author nor an admin |
+| DELETE | `/api/v1/catalog/comments/{id}` | `SCOPE_catalog.review` or `ROLE_ADMIN` | — | 204; 403 if the caller is neither the author nor an admin |
 
 `GET` by id and by name return a strong `ETag` derived from the product's optimistic-lock
 `version`. `PUT` accepts an optional `If-Match`: absent, blank or `*` means no precondition,
@@ -195,11 +214,15 @@ a single strong tag (`"<version>"`) is enforced, and a weak, list-valued or non-
 is a 400 `VALIDATION_ERROR`. A stale tag is a 412 `PRECONDITION_FAILED`; a concurrent update
 that loses the optimistic-lock race is a 409 `CONFLICT`.
 
+A category-wide move is one atomic transaction bounded by `catalog.category.move-all-max`
+(default 5,000 products); above the cap it returns 409 `CONFLICT` and changes nothing.
+
 ### Response shapes
 
 - `ProductResponseDto`: `id`, `name`, `description`, `price`, `inStock`, `characteristics`,
-  `category` (`{id, name}`), `comments` (`CommentResponseDto[]`), `version` (optimistic-lock
-  version, also the `ETag`), `avgStars` and `ratingCount`.
+  `category` (`{id, name}`), `version` (optimistic-lock version, also the `ETag`), `avgStars`
+  and `ratingCount`. Reviews are not embedded; use `GET /products/{name}/comments` for the
+  paginated collection, and `avgStars` / `ratingCount` for the summary.
 - `CategoryResponseDto`: `id`, `name`, `productCount`.
 - `CommentResponseDto`: `id`, `title`, `text`, `star`, `author`, `productId`, `productName`.
 - `PageResponse<T>`: `content`, `page`, `size`, `totalElements`, `totalPages`.
@@ -214,7 +237,8 @@ that loses the optimistic-lock race is a 409 `CONFLICT`.
   `author`, `createdAt`, `updatedAt`. Any other sort property returns 400
   `VALIDATION_ERROR`.
 - On `GET /api/v1/catalog/products`, `q` is a case-insensitive contains match on the product
-  name; `categoryName` is resolved before the query, so an unknown category is a 404.
+  name; `categoryName` is resolved before the query, so an unknown category is a 404. The `q`
+  filter is backed by a `pg_trgm` GIN index on `lower(name)`.
 
 ### Cursor pagination
 
@@ -283,9 +307,13 @@ returns 429 `RATE_LIMIT_EXCEEDED` with a `Retry-After` header.
 ### Comments
 
 - Creation takes the author from the JWT subject and returns
-  `Location: /api/v1/catalog/comments/{id}`.
+  `Location: /api/v1/catalog/comments/{id}`. Creation and deletion require
+  `catalog.review`.
 - Deletion is allowed for the comment's author or a caller holding `ROLE_ADMIN`; everyone
   else receives 403.
+- `GET /api/v1/catalog/comments/by-author/{author}` is allowed only when `{author}` is the
+  caller's JWT subject or the caller holds `ROLE_ADMIN`; every other caller receives 403
+  `ACCESS_DENIED`, so a read scope alone cannot enumerate another user's comments.
 
 ## Error model
 
@@ -308,7 +336,7 @@ and `timestamp`:
 |---|---|---|
 | 400 | `VALIDATION_ERROR` | Request-parameter validation (`ConstraintViolationException`), page size above 100, sort property outside the whitelist, missing `Idempotency-Key`, malformed `If-Match` |
 | 401 | `UNAUTHENTICATED` | Missing, expired or invalid JWT |
-| 403 | `ACCESS_DENIED` | Missing scope, or deleting someone else's comment without `ROLE_ADMIN` |
+| 403 | `ACCESS_DENIED` | Missing scope, deleting someone else's comment without `ROLE_ADMIN`, or listing another user's comments without `ROLE_ADMIN` |
 | 404 | `NOT_FOUND` | Unknown product, category, comment or category name in a product search |
 | 409 | `CONFLICT` | Duplicate product/category name, category still holding products, in-progress idempotent request, optimistic-lock clash |
 | 412 | `PRECONDITION_FAILED` | `If-Match` does not match the product's current `version` |
@@ -329,13 +357,23 @@ validates the payload against the topic's versioned JSON Schema
 and only if the change committed. `OutboxRelay` then:
 
 - runs every 1000 ms (`catalog.outbox.relay-interval-ms`) from `OutboxScheduler`;
-- claims a batch (default 20, oldest first) where `sent_at IS NULL`,
-  `dead_lettered_at IS NULL` and `next_attempt_at <= now()`, using
-  `SELECT … FOR UPDATE SKIP LOCKED`;
+- in a short transaction, claims the oldest due rows (default 20) where `sent_at IS NULL`,
+  `dead_lettered_at IS NULL`, `next_attempt_at <= now()` and no active claim exists,
+  setting `claimed_until` in the same statement (`SELECT … FOR UPDATE SKIP LOCKED`);
 - sends the stored JSON bytes through the outbox `KafkaTemplate` (`acks=all`, idempotent
-  producer) and marks the row sent only after the broker acknowledges.
+  producer) outside any transaction, issuing every send before awaiting the futures;
+- in a second short transaction, marks each claimed row sent only after the broker
+  acknowledges it, records a retryable failure, or dead-letters a poison payload, and
+  clears the claim.
+
+An active lease is skipped by other relay instances, and an expired lease makes the row
+claimable again, so a crashed relay delays delivery but never loses an event. The claim
+admits at most one in-flight row per product, so a product's events reach Kafka in the order
+they were written even when several relay instances run.
 
 Delivery is **at-least-once**; consumers must deduplicate on the payload's `eventId`.
+The retention job removes delivered rows after `catalog.outbox.retention` (default 7 days);
+unsent and dead-lettered rows are never removed by it.
 
 | Topic | Event |
 |---|---|
@@ -355,19 +393,28 @@ Tuning and failure behaviour:
   delivers, so tests and operators can drive a run directly;
 - `catalog.outbox.batch-size` (default `20`) and `catalog.outbox.send-timeout` (default
   `5s`) bound each run;
+- `catalog.outbox.claim-lease` (default `60s`) bounds how long a claimed row is skipped by
+  another relay instance; a row left claimed by a crash is retried after the lease expires;
 - a retryable failed send (broker, network or timeout) increments `attempts`, stores
-  `last_error`, schedules the next attempt with exponential backoff (1, 2, 4, 8, 16, 32,
-  then 60 seconds) and stops the batch;
+  `last_error` and schedules the next attempt with exponential backoff (1, 2, 4, 8, 16, 32,
+  then 60 seconds); every claimed row records its own outcome, so a failed batch is no
+  longer probed with a single send;
 - a non-retryable ("poison") failure — a serialisation, oversized-record or invalid-record
   error — parks the row instead: it sets `dead_lettered_at` and `dead_letter_reason`,
   increments `catalog.outbox.dead_lettered` and excludes the row from future claims. There
   is no `.DLT` topic because a payload that cannot be serialised cannot be published. See
   ADR-009.
 
+See [`docs/context/outbox-runbook.md`](docs/context/outbox-runbook.md) for listing,
+diagnosing and replaying dead-lettered rows.
+
 ## Caching and read replica
 
-**Cache.** There is one Redis cache, `product`, with a 10-minute TTL, the `catalog:v3:` key
-prefix (`catalog:v3:product::<uuid>`) and Jackson JSON values.
+**Cache.** There is one Redis cache, `product`, with a 10-minute TTL, the `catalog:v5:` key
+prefix (`catalog:v5:product::<uuid>`) and Jackson JSON values serialized by the typed
+`JacksonJsonRedisSerializer<ProductResponseDto>`. Values carry no `@class` type metadata; the
+prefix bump means v3 entries (which contain `@class`) and v4 entries (which contain a
+`comments` property) are never read as the new record.
 
 - `getProductById` is `@Cacheable(cacheNames = "product", key = "#id")`.
 - `createProduct` and `updateProduct` build the response DTO inside the write transaction
@@ -399,21 +446,37 @@ nothing or `catalog.retention.max-batches-per-run` is reached:
 1. comments soft-deleted before the cutoff;
 2. products soft-deleted before the cutoff, together with **all** their comments (live or
    soft-deleted);
-3. categories soft-deleted before the cutoff that no longer hold any product row.
+3. categories soft-deleted before the cutoff that no longer hold any product row;
+4. delivered outbox rows sent before `now() - catalog.outbox.retention` (default 7 days).
+
+The outbox window is independent of the 90-day soft-delete window. Unsent and
+dead-lettered rows have no `sent_at`, so neither is ever selected; dead-lettered rows are
+kept for inspection and replay.
 
 The delete statements use native SQL (JPA's `@SQLRestriction` hides soft-deleted rows).
-Each selection — expired comments, expired products, empty expired categories — is limited
-to `catalog.retention.batch-size`, default `500`, so a large backlog is purged over several
-batches and committed batch by batch. A selected product's comments are all deleted with
-it, so the total number of deleted rows is not itself capped by `batch-size`. Each batch
-that deletes something adds its counts to the `catalog.retention.purged` counter (tagged
-`entity=comments|products|categories`) and emits one structured INFO line; a batch that
-deletes nothing logs at DEBUG, so a multi-batch run logs one line per batch. See the
-retention rows in the configuration table above.
+Each selection — expired comments, expired products, empty expired categories, delivered
+outbox rows — is limited to `catalog.retention.batch-size`, default `500`, so a large
+backlog is purged over several batches and committed batch by batch. A selected product's
+comments are all deleted with it, so the total number of deleted rows is not itself capped
+by `batch-size`. Each batch that deletes something adds its counts to the
+`catalog.retention.purged` counter (tagged `entity=comments|products|categories|outbox_events`)
+and emits one structured INFO line; a batch that deletes nothing logs at DEBUG, so a
+multi-batch run logs one line per batch. See the retention rows in the configuration table
+above.
+
+Catch-up is bounded by `catalog.retention.batch-size` ×
+`catalog.retention.max-batches-per-run` per run (50,000 rows by default), so enabling the
+job on a long-lived table drains a large backlog gradually. `V21`'s index on
+`outbox_events.sent_at` is built non-concurrently: the startup migration briefly holds a
+`SHARE` lock and blocks outbox inserts during a rolling deploy — the accepted trade-off
+recorded in `docs/decisions.md`.
 
 ## Observability
 
-| Endpoint | Contents |
+All endpoints below are served on the management port (`MANAGEMENT_PORT`, default **8088**),
+never on the app port.
+
+| Endpoint (management port 8088) | Contents |
 |---|---|
 | `/actuator/health` | Aggregate health, including the `replica` component |
 | `/actuator/health/liveness` | `livenessState`, `ping` |
@@ -436,7 +499,11 @@ probability. Business metrics follow `catalog.<entity>.<action>`:
 - `catalog.comment.created`, `catalog.comment.deleted`;
 - `catalog.outbox.published`, `catalog.outbox.failed` and
   `catalog.outbox.dead_lettered` counters, plus the `catalog.outbox.pending` gauge;
-- `catalog.retention.purged`, tagged `entity` (`comments`, `products`, `categories`).
+- `catalog.retention.purged`, tagged `entity` (`comments`, `products`, `categories`,
+  `outbox_events`).
+
+Business counters are registered for `afterCommit`, so a rolled-back request never
+increments them.
 
 ## Testing
 

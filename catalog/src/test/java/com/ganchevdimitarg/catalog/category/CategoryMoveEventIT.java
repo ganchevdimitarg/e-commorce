@@ -76,7 +76,7 @@ class CategoryMoveEventIT extends AbstractIntegrationTest {
     }
 
     @Test
-    @WithMockUser(authorities = "SCOPE_catalog.write")
+    @WithMockUser(authorities = "SCOPE_catalog.manage")
     void should_writeOneCategoryChangedEvent_when_oneProductMoves() {
         txTemplate.executeWithoutResult(status -> categoryService.moveOneProduct(
                 new MoveProductCommand(SOURCE_CATEGORY, TARGET_CATEGORY, MOUSE)));
@@ -98,7 +98,7 @@ class CategoryMoveEventIT extends AbstractIntegrationTest {
     }
 
     @Test
-    @WithMockUser(authorities = "SCOPE_catalog.write")
+    @WithMockUser(authorities = "SCOPE_catalog.manage")
     void should_writeOneCategoryChangedEventPerProduct_when_allProductsMove() {
         txTemplate.executeWithoutResult(
                 status -> categoryService.moveAllProducts(SOURCE_CATEGORY, TARGET_CATEGORY));
@@ -120,7 +120,53 @@ class CategoryMoveEventIT extends AbstractIntegrationTest {
     }
 
     @Test
-    @WithMockUser(authorities = "SCOPE_catalog.write")
+    @WithMockUser(authorities = "SCOPE_catalog.manage")
+    void should_writeOneEventPerProduct_when_largeCategoryMoves() {
+        String run = UUID.randomUUID().toString().substring(0, 8);
+        String sourceName = "move-large-source-" + run;
+        String targetName = "move-large-target-" + run;
+        UUID sourceId = UUID.randomUUID();
+        UUID targetId = UUID.randomUUID();
+        insertCategory(sourceId, sourceName);
+        insertCategory(targetId, targetName);
+        for (int i = 0; i < 30; i++) {
+            insertProduct(UUID.randomUUID(), "move-large-" + run + "-" + i, sourceId, "10.00");
+        }
+
+        try {
+            txTemplate.executeWithoutResult(
+                    status -> categoryService.moveAllProducts(sourceName, targetName));
+
+            Integer events = jdbc.queryForObject("""
+                    SELECT count(*) FROM outbox_events
+                    WHERE topic = ? AND payload ->> 'previousCategoryName' = ?
+                    """, Integer.class, ProductTopics.PRODUCT_CATEGORY_CHANGED, sourceName);
+            assertThat(events).isEqualTo(30);
+            assertThat(jdbc.queryForObject("""
+                    SELECT count(DISTINCT payload ->> 'productId') FROM outbox_events
+                    WHERE topic = ? AND payload ->> 'previousCategoryName' = ?
+                    """, Integer.class, ProductTopics.PRODUCT_CATEGORY_CHANGED, sourceName))
+                    .isEqualTo(30);
+            // One event per row, each carrying the pre-update version (0) plus one.
+            assertThat(jdbc.queryForObject("""
+                    SELECT count(*) FROM outbox_events
+                    WHERE topic = ? AND payload ->> 'previousCategoryName' = ?
+                      AND ((payload ->> 'version')::int <> 1 OR payload ->> 'categoryName' <> ?)
+                    """, Integer.class, ProductTopics.PRODUCT_CATEGORY_CHANGED, sourceName, targetName))
+                    .isZero();
+            assertThat(jdbc.queryForObject(
+                    "SELECT count(*) FROM products WHERE category_id = ?", Integer.class, targetId))
+                    .isEqualTo(30);
+        } finally {
+            jdbc.update("DELETE FROM outbox_events WHERE topic = ? AND payload ->> 'previousCategoryName' = ?",
+                    ProductTopics.PRODUCT_CATEGORY_CHANGED, sourceName);
+            jdbc.update("DELETE FROM products WHERE category_id = ?", targetId);
+            jdbc.update("DELETE FROM categories WHERE id IN (?, ?)", sourceId, targetId);
+        }
+    }
+
+    @Test
+    @WithMockUser(authorities = "SCOPE_catalog.manage")
     void should_writeNoEvents_when_sourceCategoryIsEmpty() {
         jdbc.update("DELETE FROM products WHERE id IN (?, ?)", mouseId, keyboardId);
 

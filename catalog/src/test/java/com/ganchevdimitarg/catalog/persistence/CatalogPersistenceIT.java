@@ -279,10 +279,15 @@ class CatalogPersistenceIT extends AbstractIntegrationTest {
         Product secondProduct = productRepository.saveAndFlush(
                 createProduct("jpql-a2-" + UUID.randomUUID().toString().substring(0, 8),
                         "Author page second product", category));
+        // The soft-deleted comment needs its own product: one live comment per
+        // (product, author) is enforced by the unique index.
+        Product thirdProduct = productRepository.saveAndFlush(
+                createProduct("jpql-a3-" + UUID.randomUUID().toString().substring(0, 8),
+                        "Author page third product", category));
         commentRepository.saveAndFlush(createComment(firstProduct, author, 5.0, "first comment"));
         commentRepository.saveAndFlush(createComment(secondProduct, author, 4.0, "second comment"));
         Comment deleted = commentRepository.saveAndFlush(
-                createComment(firstProduct, author, 3.0, "deleted comment"));
+                createComment(thirdProduct, author, 3.0, "deleted comment"));
         commentRepository.delete(deleted);
         entityManager.flush();
         entityManager.clear();

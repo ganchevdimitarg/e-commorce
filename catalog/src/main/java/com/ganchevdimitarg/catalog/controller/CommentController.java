@@ -47,10 +47,8 @@ public class CommentController {
 
     @Operation(summary = "Delete comment", security = @SecurityRequirement(name = "security_auth"))
     @DeleteMapping("/comments/{id}")
-    public ResponseEntity<Void> deleteComment(@PathVariable UUID id, Authentication authentication) {
-        boolean admin = authentication.getAuthorities().stream()
-                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
-        commentService.deleteComment(id, authentication.getName(), admin);
+    public ResponseEntity<Void> deleteComment(@PathVariable UUID id) {
+        commentService.deleteComment(id);
         return ResponseEntity.noContent().build();
     }
 

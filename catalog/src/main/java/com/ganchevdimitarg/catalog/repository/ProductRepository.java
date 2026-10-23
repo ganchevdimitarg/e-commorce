@@ -34,17 +34,14 @@ public interface ProductRepository extends JpaRepository<Product, UUID>, JpaSpec
     Optional<Product> findByIdForUpdate(@Param("id") UUID id);
     Optional<Product> findByNameAndCategoryId(String name, UUID categoryId);
     boolean existsByCategory_Id(UUID categoryId);
-    List<Product> findAllByCategory_Id(UUID categoryId);
 
-    // One query for the whole batch; category is joined, comments stay lazy
-    // (@BatchSize) so a collection fetch join cannot duplicate rows.
+    // One query for the whole batch; the category is joined so mapping issues no
+    // per-row select.
     @Override
     @EntityGraph(attributePaths = "category")
     List<Product> findAllById(Iterable<UUID> ids);
 
-    // category is join-fetched to avoid a select per row on page reads; comments stay
-    // lazy (@BatchSize on the entity) because a collection fetch join cannot paginate
-    // in SQL.
+    // category is join-fetched to avoid a select per row on page reads.
     @Override
     @EntityGraph(attributePaths = "category")
     Page<Product> findAll(Pageable pageable);
@@ -66,6 +63,30 @@ public interface ProductRepository extends JpaRepository<Product, UUID>, JpaSpec
 
         long getProductCount();
     }
+
+    /**
+     * The fields a {@code category-changed} event needs, without loading full products into
+     * the persistence context during a category-wide move.
+     */
+    interface CategoryMoveRow {
+        UUID getId();
+
+        String getName();
+
+        BigDecimal getPrice();
+
+        boolean isInStock();
+
+        long getVersion();
+    }
+
+    @Query("""
+            select p.id as id, p.name as name, p.price as price, p.inStock as inStock,
+                   p.version as version
+            from Product p
+            where p.category.id = :categoryId
+            """)
+    List<CategoryMoveRow> findCategoryMoveRowsByCategoryId(@Param("categoryId") UUID categoryId);
 
     @Query("""
             select p.category.id as categoryId, count(p) as productCount

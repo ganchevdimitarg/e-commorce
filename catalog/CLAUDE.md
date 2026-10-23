@@ -41,7 +41,7 @@ From the repo root, the aggregator form also works:
   for entity↔DTO; springdoc-openapi + Swagger UI (OAuth2 PKCE).
 - Security: resource server validating **JWTs** issued by the auth service (issuer `:8082`);
   social opaque tokens terminate at auth/gateway. Authorise on
-  `SCOPE_catalog.read` / `SCOPE_catalog.write`.
+  `SCOPE_catalog.read` / `SCOPE_catalog.review` / `SCOPE_catalog.manage`.
 - API: `/api/v1/catalog/...`. Secrets from Vault as `${ENV_VAR}` — never inline.
 - Pagination max-100 enforced by `PageableSupport.capped()` (oversized → 400).
 - **No MongoDB, no Avro / schema registry** in catalog — do not scaffold them here.
@@ -68,7 +68,7 @@ Session rules for the `catalog/TODO.md` hardening list — restated from the roo
 ## Catalog-specific infrastructure (load the doc on demand)
 - **Redis** — `Idempotency-Key` guard (`catalog:idempotency:<key>`, 24h TTL, duplicate → 409)
   and product read cache. NB catalog uses Spring `@Cacheable` on `getProductById` plus
-  after-commit `ProductCache.put`/`evict`/`evictAll` (10-min TTL, namespace `catalog:v3:`), a
+  after-commit `ProductCache.put`/`evict`/`evictAll` (10-min TTL, namespace `catalog:v5:`), a
   deliberate deviation from the root cache-aside rule; it declares no `@CacheEvict`.
   → `../docs/context/caching.md`
 - **Kafka** — product events on the four topics `catalog.product.created`, `.updated`,
@@ -82,7 +82,8 @@ Session rules for the `catalog/TODO.md` hardening list — restated from the roo
   `LazyConnectionDataSourceProxy`, 2s health probe, graceful fallback.
   → `../docs/context/read-replica-patterns.md`
 - **Observability** — Micrometer → Prometheus; metrics `catalog.<entity>.<action>`; OTLP
-  tracing + log export; actuator exposure narrowed to `health,info,prometheus`.
+  tracing + log export; actuator exposure narrowed to `health,info,prometheus` and served on
+  the management port (`MANAGEMENT_PORT`, default 8088), not the app port.
   → `../docs/context/otlp-patterns.md`
 - **CI/CD** — Jenkins declarative pipeline in `catalog/Jenkinsfile` (job Script Path,
   `changeset "catalog/**"` gates, wrapper build, `catalog/` Docker context); images
@@ -112,13 +113,16 @@ Vault, Docker Compose, devtools and Swagger, and must be selected with
 `SPRING_PROFILES_ACTIVE=prod`.
 
 Environment variables (dev defaults in brackets): `POSTGRES_USER` and `POSTGRES_PASSWORD`
-(required), `SERVER_PORT` [8084], `AUTH_ISSUER_URI` [http://localhost:8082],
+(required), `SERVER_PORT` [8084], `MANAGEMENT_PORT` [8088],
+`AUTH_ISSUER_URI` [http://localhost:8082],
 `AUTH_JWK_SET_URI` [http://localhost:8082/oauth2/jwks], `REDIS_HOST` [localhost],
-`REDIS_PORT` [6379], `KAFKA_BOOTSTRAP_SERVERS` [localhost:9092], `EUREKA_CLIENT_ENABLED`
+`REDIS_PORT` [6379], `REDIS_PASSWORD` (unset; prod only), `REDIS_SSL_ENABLED` [false],
+`KAFKA_BOOTSTRAP_SERVERS` [localhost:9092], `EUREKA_CLIENT_ENABLED`
 [true], `EUREKA_DEFAULT_ZONE` [http://localhost:8761/eureka], `SPRING_CLOUD_VAULT_ENABLED`
 [true], `VAULT_URI` [http://localhost:8200], `VAULT_BACKEND` [secret],
 `VAULT_DEFAULT_CONTEXT` [catalog/credentials], `OTLP_TRACES_ENDPOINT`
-[http://localhost:4318/v1/traces], `CATALOG_DB_WRITER_URL`
+[http://localhost:4318/v1/traces], `CATALOG_MOVE_ALL_MAX` [5000], `CATALOG_OUTBOX_CLAIM_LEASE`
+[60s], `CATALOG_OUTBOX_RETENTION` [7d], `CATALOG_DB_WRITER_URL`
 [jdbc:postgresql://localhost:5432/catalog] and `CATALOG_DB_READER_URL`
 [jdbc:postgresql://localhost:5433/catalog]`.
 

@@ -91,6 +91,16 @@ catalog:
   # How often the transactional-outbox relay sweeps unsettled events.
   outbox:
     relay-interval-ms: 1000
+    # A claimed row is skipped by other instances until this lease expires. The sends run
+    # concurrently, so the lease only needs to exceed one batch's send-timeout comfortably.
+    claim-lease: ${CATALOG_OUTBOX_CLAIM_LEASE:60s}
+    # Delivered rows are purged by the retention job after this window. Unsent and
+    # dead-lettered rows are never selected.
+    retention: ${CATALOG_OUTBOX_RETENTION:7d}
+  category:
+    # A category-wide move materialises one outbox row per product in one transaction;
+    # above this many products it is rejected rather than growing without bound.
+    move-all-max: ${CATALOG_MOVE_ALL_MAX:5000}
   # Opt-in hard-delete of soft-deleted rows older than the retention window. Off by default.
   retention:
     purge-enabled: ${CATALOG_RETENTION_PURGE_ENABLED:false}

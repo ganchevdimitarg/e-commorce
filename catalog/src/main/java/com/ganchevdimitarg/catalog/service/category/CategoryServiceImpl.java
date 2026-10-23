@@ -1,6 +1,7 @@
 package com.ganchevdimitarg.catalog.service.category;
 
 import com.ganchevdimitarg.catalog.cache.ProductCache;
+import com.ganchevdimitarg.catalog.config.CatalogAuthorities;
 import com.ganchevdimitarg.catalog.repository.CategoryRepository;
 import com.ganchevdimitarg.catalog.repository.ProductRepository;
 import com.ganchevdimitarg.catalog.domain.Category;
@@ -11,10 +12,10 @@ import com.ganchevdimitarg.catalog.dto.category.MoveProductCommand;
 import com.ganchevdimitarg.catalog.event.OutboxEventWriter;
 import com.ganchevdimitarg.catalog.exception.ConflictException;
 import com.ganchevdimitarg.catalog.exception.NotFoundException;
+import com.ganchevdimitarg.catalog.metrics.AfterCommitMetrics;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
-import io.micrometer.core.instrument.MeterRegistry;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.AuditorAware;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -29,20 +30,36 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class CategoryServiceImpl implements CategoryService {
 
     private final CategoryRepository categoryRepository;
     private final ProductRepository productRepository;
-    private final MeterRegistry meterRegistry;
+    private final AfterCommitMetrics metrics;
     private final ProductCache productCacheEvictor;
     private final OutboxEventWriter outboxEventWriter;
     private final AuditorAware<String> auditorAware;
+    private final int moveAllMax;
+
+    public CategoryServiceImpl(CategoryRepository categoryRepository,
+                               ProductRepository productRepository,
+                               AfterCommitMetrics metrics,
+                               ProductCache productCacheEvictor,
+                               OutboxEventWriter outboxEventWriter,
+                               AuditorAware<String> auditorAware,
+                               @Value("${catalog.category.move-all-max:5000}") int moveAllMax) {
+        this.categoryRepository = categoryRepository;
+        this.productRepository = productRepository;
+        this.metrics = metrics;
+        this.productCacheEvictor = productCacheEvictor;
+        this.outboxEventWriter = outboxEventWriter;
+        this.auditorAware = auditorAware;
+        this.moveAllMax = moveAllMax;
+    }
 
     @Override
     @Transactional
-    @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
+    @PreAuthorize("hasAuthority('" + CatalogAuthorities.SCOPE_MANAGE + "')")
     public CategoryResponseDto createCategory(CreateCategoryCommand command) {
         if (categoryRepository.findByName(command.name()).isPresent()) {
             log.warn("Category with the name: {} already exist.", command.name());
@@ -51,13 +68,13 @@ public class CategoryServiceImpl implements CategoryService {
         Category category = new Category();
         category.setName(command.name());
         category = categoryRepository.saveAndFlush(category);
-        meterRegistry.counter("catalog.category.created").increment();
+        metrics.increment("catalog.category.created");
         return convertCategory(category);
     }
 
     @Override
     @Transactional(readOnly = true)
-    @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
+    @PreAuthorize("hasAuthority('" + CatalogAuthorities.SCOPE_READ + "')")
     public CategoryResponseDto getCategory(String categoryName) {
         Category category = requireCategory(categoryName);
         return convertCategory(category);
@@ -65,7 +82,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     @Transactional
-    @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
+    @PreAuthorize("hasAuthority('" + CatalogAuthorities.SCOPE_MANAGE + "')")
     public void deleteCategory(String categoryName) {
         Category category = requireCategory(categoryName);
         if (productRepository.existsByCategory_Id(category.getId())) {
@@ -75,12 +92,12 @@ public class CategoryServiceImpl implements CategoryService {
         // A category with products cannot be deleted (guard above), so no product events are emitted
         categoryRepository.delete(category);
         productCacheEvictor.evictAll();
-        meterRegistry.counter("catalog.category.deleted").increment();
+        metrics.increment("catalog.category.deleted");
     }
 
     @Override
     @Transactional
-    @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
+    @PreAuthorize("hasAuthority('" + CatalogAuthorities.SCOPE_MANAGE + "')")
     public void moveOneProduct(MoveProductCommand command) {
         Category from = requireCategory(command.categoryNameFrom());
         Category to = requireCategory(command.categoryNameTo());
@@ -99,31 +116,44 @@ public class CategoryServiceImpl implements CategoryService {
         }
         productCacheEvictor.evict(product.getId());
         outboxEventWriter.writeCategoryChanged(product, from.getName(), to.getName());
-        meterRegistry.counter("catalog.category.moved").increment();
+        metrics.increment("catalog.category.moved");
     }
 
     @Override
     @Transactional
-    @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
+    @PreAuthorize("hasAuthority('" + CatalogAuthorities.SCOPE_MANAGE + "')")
     public void moveAllProducts(String categoryNameFrom, String categoryNameTo) {
         Category from = requireCategory(categoryNameFrom);
         Category to = requireCategory(categoryNameTo);
 
-        // Read the affected rows before the bulk update: it clears the persistence context,
-        // but one category-changed event is written per moved product afterwards.
-        List<Product> affected = productRepository.findAllByCategory_Id(from.getId());
+        long affectedCount = productRepository.countByCategory_Id(from.getId());
+        if (affectedCount > moveAllMax) {
+            throw new ConflictException("Category " + categoryNameFrom + " has " + affectedCount
+                    + " products; a category-wide move is limited to " + moveAllMax);
+        }
+
+        // Read only the fields the event needs before the bulk update: it clears the
+        // persistence context, but one category-changed event is written per moved product
+        // afterwards.
+        List<ProductRepository.CategoryMoveRow> affected =
+                productRepository.findCategoryMoveRowsByCategoryId(from.getId());
+        // Re-check against the rows about to be moved: a concurrent insert between the
+        // count and the projection must not push the move past the cap.
+        if (affected.size() > moveAllMax) {
+            throw new ConflictException("Category " + categoryNameFrom + " has " + affected.size()
+                    + " products; a category-wide move is limited to " + moveAllMax);
+        }
         int moved = productRepository.moveAllProductsToCategory(
                 from.getId(), to.getId(), currentAuditor());
         productCacheEvictor.evictAll();
-        affected.forEach(product ->
-                outboxEventWriter.writeCategoryChanged(product, from.getName(), to.getName()));
-        meterRegistry.counter("catalog.category.moved").increment(moved);
+        outboxEventWriter.writeCategoryChanged(affected, from.getName(), to.getName());
+        metrics.incrementBy("catalog.category.moved", moved);
         log.info("Moved {} products from {} to {}", moved, categoryNameFrom, categoryNameTo);
     }
 
     @Override
     @Transactional(readOnly = true)
-    @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
+    @PreAuthorize("hasAuthority('" + CatalogAuthorities.SCOPE_READ + "')")
     public Page<CategoryResponseDto> getCategoriesByPage(Pageable pageable) {
         Page<Category> categories = categoryRepository.findAll(pageable);
         if (categories.isEmpty()) {

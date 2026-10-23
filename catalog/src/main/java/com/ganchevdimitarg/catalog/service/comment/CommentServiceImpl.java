@@ -1,21 +1,25 @@
 package com.ganchevdimitarg.catalog.service.comment;
 
 import com.ganchevdimitarg.catalog.cache.ProductCache;
+import com.ganchevdimitarg.catalog.config.CatalogAuthorities;
 import com.ganchevdimitarg.catalog.repository.CommentRepository;
 import com.ganchevdimitarg.catalog.repository.ProductRepository;
 import com.ganchevdimitarg.catalog.domain.Comment;
 import com.ganchevdimitarg.catalog.domain.Product;
 import com.ganchevdimitarg.catalog.dto.comment.CommentResponseDto;
 import com.ganchevdimitarg.catalog.dto.comment.CreateCommentCommand;
+import com.ganchevdimitarg.catalog.exception.ConflictException;
 import com.ganchevdimitarg.catalog.exception.NotFoundException;
 import com.ganchevdimitarg.catalog.mapper.MapStructMapper;
-import io.micrometer.core.instrument.MeterRegistry;
+import com.ganchevdimitarg.catalog.metrics.AfterCommitMetrics;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,12 +33,12 @@ public class CommentServiceImpl implements CommentService {
     private final CommentRepository commentRepository;
     private final ProductRepository productRepository;
     private final MapStructMapper mapper;
-    private final MeterRegistry meterRegistry;
+    private final AfterCommitMetrics metrics;
     private final ProductCache productCacheEvictor;
 
     @Override
     @Transactional
-    @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
+    @PreAuthorize("hasAuthority('" + CatalogAuthorities.SCOPE_REVIEW + "')")
     public CommentResponseDto createComment(CreateCommentCommand command) {
         // The row lock serialises comment mutations for this product, so the aggregate
         // below sees every comment committed by a preceding writer.
@@ -43,6 +47,12 @@ public class CommentServiceImpl implements CommentService {
                     logMessage(command.productName());
                     return new NotFoundException("Product", command.productName());
                 });
+        // The product row lock serialises same-product comment creates, so two concurrent
+        // requests cannot both pass this pre-check; the partial unique index is the backstop.
+        if (commentRepository.existsByProduct_IdAndAuthor(product.getId(), command.author())) {
+            throw new ConflictException("A review by " + command.author()
+                    + " already exists for product " + command.productName());
+        }
         Comment comment = mapper.mapCreateCommentCommandToComment(command);
         comment.setProduct(product);
         commentRepository.saveAndFlush(comment);
@@ -50,14 +60,14 @@ public class CommentServiceImpl implements CommentService {
         // in this same transaction as the comment insert.
         refreshProductRating(product);
         productCacheEvictor.evict(product.getId());
-        meterRegistry.counter("catalog.comment.created").increment();
+        metrics.increment("catalog.comment.created");
         log.info("The comment {} is saved successfully", comment.getTitle());
         return mapper.mapCommentToCommentResponseDto(comment);
     }
 
     @Override
     @Transactional(readOnly = true)
-    @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
+    @PreAuthorize("hasAuthority('" + CatalogAuthorities.SCOPE_READ + "')")
     public Page<CommentResponseDto> findAllByProductNameByPage(String productName, Pageable pageable) {
         Product product = productRepository.findByName(productName).orElseThrow(() -> {
             logMessage(productName);
@@ -79,8 +89,15 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     @Transactional(readOnly = true)
-    @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
+    @PreAuthorize("hasAuthority('" + CatalogAuthorities.SCOPE_READ + "')")
     public Page<CommentResponseDto> findAllByAuthorByPage(String author, Pageable pageable) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        boolean admin = authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(authority -> CatalogAuthorities.ROLE_ADMIN.equals(authority.getAuthority()));
+        if (!admin && (authentication == null || !author.equals(authentication.getName()))) {
+            throw new AccessDeniedException(
+                    "Only the author or an administrator may list these comments");
+        }
         Page<CommentResponseDto> comments = commentRepository
                 .findAllByAuthorByPage(author, pageable)
                 .map(this::convertComment);
@@ -91,7 +108,7 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     @Transactional(readOnly = true)
-    @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
+    @PreAuthorize("hasAuthority('" + CatalogAuthorities.SCOPE_READ + "')")
     public double getAvgStars(String productName) {
         return productRepository.findByName(productName)
                 .map(Product::getAvgStars)
@@ -100,11 +117,16 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     @Transactional
-    @PreAuthorize("hasAnyAuthority('SCOPE_catalog.write','ROLE_ADMIN')")
-    public void deleteComment(UUID commentId, String requester, boolean admin) {
+    @PreAuthorize("hasAnyAuthority('" + CatalogAuthorities.SCOPE_REVIEW + "','"
+            + CatalogAuthorities.ROLE_ADMIN + "')")
+    public void deleteComment(UUID commentId) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String requester = authentication == null ? null : authentication.getName();
+        boolean admin = authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(authority -> CatalogAuthorities.ROLE_ADMIN.equals(authority.getAuthority()));
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new NotFoundException("Comment", commentId));
-        if (!admin && !requester.equals(comment.getAuthor())) {
+        if (!admin && (requester == null || !requester.equals(comment.getAuthor()))) {
             throw new AccessDeniedException(
                     "Only the author or an administrator may delete this comment");
         }
@@ -124,7 +146,7 @@ public class CommentServiceImpl implements CommentService {
                 productCacheEvictor.evict(lockedProduct.getId());
             });
         }
-        meterRegistry.counter("catalog.comment.deleted").increment();
+        metrics.increment("catalog.comment.deleted");
         log.info("The comment {} is deleted successfully", commentId);
     }
 

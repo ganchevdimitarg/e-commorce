@@ -21,6 +21,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.CacheManager;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -78,6 +79,9 @@ class ProductCacheIT extends RedisIntegrationBase {
     RedisConnectionFactory redisConnectionFactory;
 
     @Autowired
+    StringRedisTemplate stringRedisTemplate;
+
+    @Autowired
     JdbcTemplate jdbc;
 
     @BeforeEach
@@ -97,6 +101,10 @@ class ProductCacheIT extends RedisIntegrationBase {
                 VALUES (?, ?, now(), now(), 0)
                 ON CONFLICT (id) DO NOTHING
                 """, CATEGORY_2_ID, CATEGORY_2_NAME);
+
+        // Comments carry a live (product_id, author) unique index; clear any review left by
+        // an earlier ordered test so a rerun and Order 9 start from a clean slate.
+        jdbc.update("DELETE FROM comments WHERE product_id = ?", PRODUCT_ID);
 
         // Ensure the product exists (undo any soft-delete or move from a prior test)
         jdbc.update("""
@@ -138,7 +146,7 @@ class ProductCacheIT extends RedisIntegrationBase {
 
     @Test
     @Order(2)
-    @WithMockUser(authorities = {"SCOPE_catalog.read", "SCOPE_catalog.write"})
+    @WithMockUser(authorities = {"SCOPE_catalog.read", "SCOPE_catalog.manage"})
     void should_serveUpdatedProductFromCache_when_readAfterUpdate() {
         // Populate cache
         productService.getProductById(PRODUCT_ID);
@@ -163,7 +171,7 @@ class ProductCacheIT extends RedisIntegrationBase {
 
     @Test
     @Order(3)
-    @WithMockUser(authorities = {"SCOPE_catalog.read", "SCOPE_catalog.write"})
+    @WithMockUser(authorities = {"SCOPE_catalog.read", "SCOPE_catalog.manage"})
     void should_evictCache_when_productDeleted() {
         // Populate cache
         productService.getProductById(PRODUCT_ID);
@@ -178,7 +186,7 @@ class ProductCacheIT extends RedisIntegrationBase {
 
     @Test
     @Order(4)
-    @WithMockUser(authorities = {"SCOPE_catalog.read", "SCOPE_catalog.write"})
+    @WithMockUser(authorities = {"SCOPE_catalog.read", "SCOPE_catalog.review"})
     void should_evictProduct_when_commentCreated() {
         productService.getProductById(PRODUCT_ID);
         assertThat(cacheManager.getCache("product").get(PRODUCT_ID)).isNotNull();
@@ -191,7 +199,7 @@ class ProductCacheIT extends RedisIntegrationBase {
 
     @Test
     @Order(5)
-    @WithMockUser(authorities = {"SCOPE_catalog.read", "SCOPE_catalog.write"})
+    @WithMockUser(authorities = {"SCOPE_catalog.read", "SCOPE_catalog.manage"})
     void should_evictProduct_when_productMoved() {
         productService.getProductById(PRODUCT_ID);
         assertThat(cacheManager.getCache("product").get(PRODUCT_ID)).isNotNull();
@@ -204,7 +212,7 @@ class ProductCacheIT extends RedisIntegrationBase {
 
     @Test
     @Order(6)
-    @WithMockUser(authorities = {"SCOPE_catalog.read", "SCOPE_catalog.write"})
+    @WithMockUser(authorities = {"SCOPE_catalog.read", "SCOPE_catalog.manage"})
     void should_evictAllProducts_when_allProductsMoved() {
         productService.getProductById(PRODUCT_ID);
         assertThat(cacheManager.getCache("product").get(PRODUCT_ID)).isNotNull();
@@ -216,7 +224,7 @@ class ProductCacheIT extends RedisIntegrationBase {
 
     @Test
     @Order(7)
-    @WithMockUser(authorities = {"SCOPE_catalog.read", "SCOPE_catalog.write"})
+    @WithMockUser(authorities = {"SCOPE_catalog.read", "SCOPE_catalog.manage"})
     void should_serveCreatedProductFromCache_when_readImmediatelyAfterCreate() {
         ProductResponseDto created = null;
         try {
@@ -240,7 +248,7 @@ class ProductCacheIT extends RedisIntegrationBase {
 
     @Test
     @Order(8)
-    @WithMockUser(authorities = {"SCOPE_catalog.read", "SCOPE_catalog.write"})
+    @WithMockUser(authorities = {"SCOPE_catalog.read", "SCOPE_catalog.manage"})
     void should_serveUpdatedProductFromCache_when_readImmediatelyAfterUpdate() {
         productService.updateProduct(PRODUCT_ID, new UpdateProductCommand(
                 "Price update for cache", BigDecimal.valueOf(42), true, "test-chars"), null);
@@ -255,7 +263,7 @@ class ProductCacheIT extends RedisIntegrationBase {
 
     @Test
     @Order(9)
-    @WithMockUser(authorities = {"SCOPE_catalog.read", "SCOPE_catalog.write"})
+    @WithMockUser(username = "joe", authorities = {"SCOPE_catalog.read", "SCOPE_catalog.review"})
     void should_evictProduct_when_commentDeleted() {
         CommentResponseDto created = commentService.createComment(new CreateCommentCommand(
                 "great", "thorough review text", 5.0, "joe", PRODUCT_NAME));
@@ -263,8 +271,23 @@ class ProductCacheIT extends RedisIntegrationBase {
         productService.getProductById(PRODUCT_ID);
         assertThat(cacheManager.getCache("product").get(PRODUCT_ID)).isNotNull();
 
-        commentService.deleteComment(created.id(), "joe", false);
+        commentService.deleteComment(created.id());
 
         assertThat(cacheManager.getCache("product").get(PRODUCT_ID)).isNull();
+    }
+
+    @Test
+    @Order(10)
+    @WithMockUser(authorities = "SCOPE_catalog.read")
+    void should_storeCacheValueWithoutTypeMetadata_when_productRead() {
+        productService.getProductById(PRODUCT_ID);
+
+        String raw = stringRedisTemplate.opsForValue()
+                .get("catalog:v5:product::" + PRODUCT_ID);
+
+        assertThat(raw)
+                .isNotNull()
+                .contains("\"name\":\"" + PRODUCT_NAME + "\"")
+                .doesNotContain("@class");
     }
 }

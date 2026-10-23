@@ -26,7 +26,7 @@ import java.util.UUID;
  * <p>It deliberately does not use {@code findAll(Specification, Pageable)}: that would run a
  * count query, and a cursor page needs no total. The filters are the same
  * {@link ProductSpecifications} predicates as offset search; the category is join-fetched so
- * mapping a page does not issue a select per row, while comments stay lazy and batched.
+ * mapping a page does not issue a select per row.
  * {@code @SQLRestriction} on {@link Product} keeps soft-deleted rows out of the scan.
  */
 @Repository

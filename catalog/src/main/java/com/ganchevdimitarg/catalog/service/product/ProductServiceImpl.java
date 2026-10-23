@@ -1,6 +1,7 @@
 package com.ganchevdimitarg.catalog.service.product;
 
 import com.ganchevdimitarg.catalog.cache.ProductCache;
+import com.ganchevdimitarg.catalog.config.CatalogAuthorities;
 import com.ganchevdimitarg.catalog.cursor.ProductCursorCodec;
 import com.ganchevdimitarg.catalog.repository.CategoryRepository;
 import com.ganchevdimitarg.catalog.repository.ProductCursorRepository;
@@ -21,7 +22,7 @@ import com.ganchevdimitarg.catalog.exception.NotFoundException;
 import com.ganchevdimitarg.catalog.exception.PreconditionFailedException;
 import com.ganchevdimitarg.catalog.exception.ValidationException;
 import com.ganchevdimitarg.catalog.mapper.MapStructMapper;
-import io.micrometer.core.instrument.MeterRegistry;
+import com.ganchevdimitarg.catalog.metrics.AfterCommitMetrics;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -48,7 +49,7 @@ public class ProductServiceImpl implements ProductService {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private final MapStructMapper mapper;
-    private final MeterRegistry meterRegistry;
+    private final AfterCommitMetrics metrics;
     private final OutboxEventWriter outboxEventWriter;
     private final ProductCache productCache;
     private final AuditorAware<String> auditorAware;
@@ -57,7 +58,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional
-    @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
+    @PreAuthorize("hasAuthority('" + CatalogAuthorities.SCOPE_MANAGE + "')")
     public ProductResponseDto createProduct(CreateProductCommand command) {
         Category category = categoryRepository.findByName(command.categoryName())
                 .orElseThrow(() -> {
@@ -77,7 +78,7 @@ public class ProductServiceImpl implements ProductService {
         // Written in the same transaction as the product row: the outbox commits or rolls back with it
         outboxEventWriter.writeCreated(product);
         log.info("The product {} is save successful", product.getName());
-        meterRegistry.counter("catalog.product.created").increment();
+        metrics.increment("catalog.product.created");
 
         ProductResponseDto dto = mapper.mapProductToProductResponseDto(product);
         productCache.put(product.getId(), dto);
@@ -86,7 +87,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional(readOnly = true)
-    @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
+    @PreAuthorize("hasAuthority('" + CatalogAuthorities.SCOPE_READ + "')")
     public Page<ProductResponseDto> searchProducts(ProductSearchCriteria criteria, Pageable pageable) {
         UUID categoryId = resolveCategoryId(criteria);
         return productRepository.findAll(ProductSpecifications.matching(criteria, categoryId), pageable)
@@ -95,7 +96,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional(readOnly = true)
-    @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
+    @PreAuthorize("hasAuthority('" + CatalogAuthorities.SCOPE_READ + "')")
     public CursorPageResponse<ProductResponseDto> searchProductsByCursor(
             ProductSearchCriteria criteria, String cursor, int limit, String sortDirection) {
         String direction = normaliseDirection(sortDirection);
@@ -124,7 +125,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional(readOnly = true)
-    @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
+    @PreAuthorize("hasAuthority('" + CatalogAuthorities.SCOPE_READ + "')")
     public ProductResponseDto getProductByName(String name) {
         Product product = productRepository.findByName(name)
                 .orElseThrow(() -> new NotFoundException("Product", name));
@@ -133,7 +134,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional(readOnly = true)
-    @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
+    @PreAuthorize("hasAuthority('" + CatalogAuthorities.SCOPE_READ + "')")
     @Cacheable(cacheNames = "product", key = "#id")
     public ProductResponseDto getProductById(UUID id) {
         Product product = productRepository.findById(id)
@@ -144,7 +145,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional
-    @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
+    @PreAuthorize("hasAuthority('" + CatalogAuthorities.SCOPE_MANAGE + "')")
     public ProductResponseDto updateProduct(UUID id, UpdateProductCommand command, Long expectedVersion) {
         Product existing = findProductById(id);
         if (expectedVersion != null && expectedVersion != existing.getVersion()) {
@@ -157,7 +158,7 @@ public class ProductServiceImpl implements ProductService {
         if (updated == 0) {
             throw new ObjectOptimisticLockingFailureException(Product.class.getSimpleName(), id);
         }
-        meterRegistry.counter("catalog.product.updated").increment();
+        metrics.increment("catalog.product.updated");
 
         // Primary read inside the write transaction: the after-commit put caches the new state
         Product refreshed = productRepository.findById(id)
@@ -171,22 +172,22 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional
-    @PreAuthorize("hasAuthority('SCOPE_catalog.write')")
+    @PreAuthorize("hasAuthority('" + CatalogAuthorities.SCOPE_MANAGE + "')")
     public void deleteProduct(UUID id) {
         Product existing = findProductById(id);
         productRepository.delete(existing);   // honours @SQLDelete soft-delete
         outboxEventWriter.writeDeleted(existing);
         productCache.evict(id);
-        meterRegistry.counter("catalog.product.deleted").increment();
+        metrics.increment("catalog.product.deleted");
     }
 
     @Override
     @Transactional(readOnly = true)
-    @PreAuthorize("hasAuthority('SCOPE_catalog.read')")
+    @PreAuthorize("hasAuthority('" + CatalogAuthorities.SCOPE_READ + "')")
     public List<ProductResponseDto> getProductsById(ItemRequestDto product) {
-        // One query for the whole batch; the transaction keeps the lazy comments collection
-        // and the category association usable while mapping, and findAllById order is
-        // unspecified so the response is rebuilt in request order.
+        // One query for the whole batch; the transaction keeps the category association
+        // usable while mapping, and findAllById order is unspecified so the response is
+        // rebuilt in request order.
         List<UUID> requested = product.items();
         Map<UUID, Product> found = productRepository.findAllById(requested).stream()
                 .collect(Collectors.toMap(Product::getId, Function.identity()));
@@ -255,7 +256,6 @@ public class ProductServiceImpl implements ProductService {
                 product.isInStock(),
                 product.getCharacteristics(),
                 mapper.mapCategoryToCategorySummaryDto(product.getCategory()),
-                mapper.mapCommentsToCommentResponseDtos(product.getComments()),
                 product.getVersion(),
                 product.getAvgStars(),
                 product.getRatingCount());

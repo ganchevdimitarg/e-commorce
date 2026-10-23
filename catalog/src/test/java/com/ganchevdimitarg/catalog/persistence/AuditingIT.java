@@ -130,7 +130,7 @@ class AuditingIT extends AbstractIntegrationTest {
     private static void authenticateAs(String principal) {
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(principal, "n/a",
-                        List.of(new SimpleGrantedAuthority("SCOPE_catalog.write"))));
+                        List.of(new SimpleGrantedAuthority("SCOPE_catalog.manage"))));
     }
 
     private static Product newProduct(Category category) {

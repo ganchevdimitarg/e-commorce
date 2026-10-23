@@ -109,7 +109,7 @@ class CategoryControllerMvcTest {
 
         mockMvc.perform(post("/api/v1/catalog/categories")
                         .with(csrf())
-                        .with(jwt().authorities(() -> "SCOPE_catalog.write"))
+                        .with(jwt().authorities(() -> "SCOPE_catalog.manage"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("Idempotency-Key", "k-1")
                         .content("""
@@ -121,10 +121,10 @@ class CategoryControllerMvcTest {
     }
 
     @Test
-    void should_return204_when_deleteCategoryWithWriteScope() throws Exception {
+    void should_return204_when_deleteCategoryWithManageScope() throws Exception {
         mockMvc.perform(delete("/api/v1/catalog/categories/PC")
                         .with(csrf())
-                        .with(jwt().authorities(() -> "SCOPE_catalog.write"))
+                        .with(jwt().authorities(() -> "SCOPE_catalog.manage"))
                         .header("Idempotency-Key", "k-2"))
                 .andExpect(status().isNoContent());
 
@@ -132,11 +132,11 @@ class CategoryControllerMvcTest {
     }
 
     @Test
-    void should_return200_when_moveOneProductWithWriteScope() throws Exception {
+    void should_return200_when_moveOneProductWithManageScope() throws Exception {
         mockMvc.perform(post("/api/v1/catalog/categories/PC/products/mouse:move")
                         .param("to", "Accessories")
                         .with(csrf())
-                        .with(jwt().authorities(() -> "SCOPE_catalog.write"))
+                        .with(jwt().authorities(() -> "SCOPE_catalog.manage"))
                         .header("Idempotency-Key", "k-3"))
                 .andExpect(status().isOk());
 
@@ -144,11 +144,11 @@ class CategoryControllerMvcTest {
     }
 
     @Test
-    void should_return200_when_moveAllProductsWithWriteScope() throws Exception {
+    void should_return200_when_moveAllProductsWithManageScope() throws Exception {
         mockMvc.perform(post("/api/v1/catalog/categories/PC/products:move-all")
                         .param("to", "Accessories")
                         .with(csrf())
-                        .with(jwt().authorities(() -> "SCOPE_catalog.write"))
+                        .with(jwt().authorities(() -> "SCOPE_catalog.manage"))
                         .header("Idempotency-Key", "k-4"))
                 .andExpect(status().isOk());
 
@@ -159,7 +159,7 @@ class CategoryControllerMvcTest {
     void should_return400ProblemJson_when_createCategoryWithEmptyName() throws Exception {
         mockMvc.perform(post("/api/v1/catalog/categories")
                         .with(csrf())
-                        .with(jwt().authorities(() -> "SCOPE_catalog.write"))
+                        .with(jwt().authorities(() -> "SCOPE_catalog.manage"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("Idempotency-Key", "k-5")
                         .content("""
@@ -176,7 +176,7 @@ class CategoryControllerMvcTest {
     void should_return400ProblemJson_when_createCategoryWithoutIdempotencyKey() throws Exception {
         mockMvc.perform(post("/api/v1/catalog/categories")
                         .with(csrf())
-                        .with(jwt().authorities(() -> "SCOPE_catalog.write"))
+                        .with(jwt().authorities(() -> "SCOPE_catalog.manage"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"name": "Electronics"}
@@ -192,7 +192,7 @@ class CategoryControllerMvcTest {
 
         mockMvc.perform(delete("/api/v1/catalog/categories/nonexistent")
                         .with(csrf())
-                        .with(jwt().authorities(() -> "SCOPE_catalog.write"))
+                        .with(jwt().authorities(() -> "SCOPE_catalog.manage"))
                         .header("Idempotency-Key", "k-404"))
                 .andExpect(status().isNotFound())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))

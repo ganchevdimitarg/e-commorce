@@ -1,10 +1,8 @@
 package com.ganchevdimitarg.catalog.domain;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
@@ -14,7 +12,6 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
-import java.util.List;
 import java.util.UUID;
 
 @Entity(name = "Product")
@@ -54,14 +51,4 @@ public class Product extends Auditable {
     @ManyToOne
     @JoinColumn(name = "category_id", referencedColumnName = "id")
     private Category category;
-    // Batched to avoid one comments query per product on page reads; a collection
-    // fetch join is not an option because it would force in-memory pagination.
-    @OneToMany(mappedBy = "product", targetEntity = Comment.class, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
-    @BatchSize(size = 50)
-    @JsonIgnore
-    private List<Comment> comments;
-
-    public List<Comment> getComments() {
-        return comments == null ? List.of() : List.copyOf(comments);
-    }
 }

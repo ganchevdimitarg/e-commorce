@@ -20,6 +20,7 @@ import com.ganchevdimitarg.catalog.exception.NotFoundException;
 import com.ganchevdimitarg.catalog.exception.PreconditionFailedException;
 import com.ganchevdimitarg.catalog.exception.ValidationException;
 import com.ganchevdimitarg.catalog.mapper.MapStructMapper;
+import com.ganchevdimitarg.catalog.metrics.AfterCommitMetrics;
 import com.ganchevdimitarg.catalog.service.product.ProductService;
 import com.ganchevdimitarg.catalog.service.product.ProductServiceImpl;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -40,12 +41,12 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import com.ganchevdimitarg.catalog.dto.product.ItemRequestDto;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -93,7 +94,7 @@ class ProductServiceImplTest {
     @BeforeEach
     void setup() {
         productCursorCodec = new ProductCursorCodec(objectMapper);
-        testService = new ProductServiceImpl(productRepository, categoryRepository, mapStructMapper, new SimpleMeterRegistry(), outboxEventWriter, productCache, AUDITOR, productCursorRepository, productCursorCodec);
+        testService = new ProductServiceImpl(productRepository, categoryRepository, mapStructMapper, new AfterCommitMetrics(new SimpleMeterRegistry()), outboxEventWriter, productCache, AUDITOR, productCursorRepository, productCursorCodec);
     }
 
     @Test
@@ -110,7 +111,7 @@ class ProductServiceImplTest {
         product.setCategory(category);
         when(mapStructMapper.mapCreateCommandToProduct(cmd)).thenReturn(product);
         ProductResponseDto expectedDto = new ProductResponseDto(P1, "mouse", "WiFi mouse USB",
-                BigDecimal.ONE, true, "", null, List.of(), 0L, 0.0, 0);
+                BigDecimal.ONE, true, "", null, 0L, 0.0, 0);
         when(mapStructMapper.mapProductToProductResponseDto(product)).thenReturn(expectedDto);
 
         ProductResponseDto result = testService.createProduct(cmd);
@@ -225,7 +226,7 @@ class ProductServiceImplTest {
                 .thenReturn(Optional.of(existing), Optional.of(refreshed));
         when(productRepository.updateById(P1, "aaaaaaaaaaa", BigDecimal.ONE, "", false, 1L, "alice")).thenReturn(1);
         ProductResponseDto expectedDto = new ProductResponseDto(P1, "mouse", "aaaaaaaaaaa",
-                BigDecimal.ONE, false, "", null, List.of(), 2L, 0.0, 0);
+                BigDecimal.ONE, false, "", null, 2L, 0.0, 0);
         when(mapStructMapper.mapProductToProductResponseDto(refreshed)).thenReturn(expectedDto);
         UpdateProductCommand cmd = new UpdateProductCommand("aaaaaaaaaaa", BigDecimal.ONE, false, "");
 
@@ -255,7 +256,7 @@ class ProductServiceImplTest {
                 .thenReturn(Optional.of(existing), Optional.of(refreshed));
         when(productRepository.updateById(P1, "aaaaaaaaaaa", BigDecimal.ONE, "", false, 1L, "alice")).thenReturn(1);
         ProductResponseDto expectedDto = new ProductResponseDto(P1, "mouse", "aaaaaaaaaaa",
-                BigDecimal.ONE, false, "", null, List.of(), 2L, 0.0, 0);
+                BigDecimal.ONE, false, "", null, 2L, 0.0, 0);
         when(mapStructMapper.mapProductToProductResponseDto(refreshed)).thenReturn(expectedDto);
         UpdateProductCommand cmd = new UpdateProductCommand("aaaaaaaaaaa", BigDecimal.ONE, false, "");
 
@@ -366,7 +367,7 @@ class ProductServiceImplTest {
         Product product = new Product();
         product.setName("mouse");
         when(productRepository.findByName("mouse")).thenReturn(Optional.of(product));
-        ProductResponseDto expectedDto = new ProductResponseDto(P1, "mouse", "", BigDecimal.ZERO, true, "", null, new ArrayList<>(), 0L, 0.0, 0);
+        ProductResponseDto expectedDto = new ProductResponseDto(P1, "mouse", "", BigDecimal.ZERO, true, "", null, 0L, 0.0, 0);
         when(mapStructMapper.mapProductToProductResponseDto(product)).thenReturn(expectedDto);
 
         ProductResponseDto result = testService.getProductByName("mouse");
@@ -391,7 +392,7 @@ class ProductServiceImplTest {
         Product product = new Product();
         product.setId(PROD_123);
         when(productRepository.findById(PROD_123)).thenReturn(Optional.of(product));
-        ProductResponseDto expectedDto = new ProductResponseDto(PROD_123, "mouse", "", BigDecimal.ZERO, true, "", null, new ArrayList<>(), 0L, 0.0, 0);
+        ProductResponseDto expectedDto = new ProductResponseDto(PROD_123, "mouse", "", BigDecimal.ZERO, true, "", null, 0L, 0.0, 0);
         when(mapStructMapper.mapProductToProductResponseDto(product)).thenReturn(expectedDto);
 
         ProductResponseDto result = testService.getProductById(PROD_123);
@@ -598,7 +599,7 @@ class ProductServiceImplTest {
     private static ProductResponseDto productDto(Product product) {
         return new ProductResponseDto(
                 product.getId(), product.getName(), product.getDescription(), product.getPrice(),
-                product.isInStock(), product.getCharacteristics(), null, List.of(), product.getVersion(),
+                product.isInStock(), product.getCharacteristics(), null, product.getVersion(),
                 product.getAvgStars(), product.getRatingCount());
     }
 
@@ -606,7 +607,7 @@ class ProductServiceImplTest {
     void should_incrementCreatedCounter_when_productCreated() {
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
         ProductServiceImpl service =
-                new ProductServiceImpl(productRepository, categoryRepository, mapStructMapper, registry, outboxEventWriter, productCache, AUDITOR, productCursorRepository, productCursorCodec);
+                new ProductServiceImpl(productRepository, categoryRepository, mapStructMapper, new AfterCommitMetrics(registry), outboxEventWriter, productCache, AUDITOR, productCursorRepository, productCursorCodec);
 
         CreateProductCommand cmd = new CreateProductCommand("mouse", "WiFi mouse USB", BigDecimal.ONE, true, "", "PC");
         Category category = new Category();
@@ -616,10 +617,41 @@ class ProductServiceImplTest {
         product.setId(P1);
         when(mapStructMapper.mapCreateCommandToProduct(cmd)).thenReturn(product);
         when(mapStructMapper.mapProductToProductResponseDto(product)).thenReturn(
-                new ProductResponseDto(P1, "mouse", "WiFi mouse USB", BigDecimal.ONE, true, "", null, List.of(), 0L, 0.0, 0));
+                new ProductResponseDto(P1, "mouse", "WiFi mouse USB", BigDecimal.ONE, true, "", null, 0L, 0.0, 0));
 
         service.createProduct(cmd);
 
         assertThat(registry.get("catalog.product.created").counter().count()).isEqualTo(1.0);
+    }
+
+    @Test
+    void should_notIncrementCreatedCounter_when_transactionDoesNotCommit() {
+        SimpleMeterRegistry registry = new SimpleMeterRegistry();
+        ProductServiceImpl service = new ProductServiceImpl(productRepository, categoryRepository,
+                mapStructMapper, new AfterCommitMetrics(registry), outboxEventWriter, productCache,
+                AUDITOR, productCursorRepository, productCursorCodec);
+
+        CreateProductCommand cmd = new CreateProductCommand("mouse", "WiFi mouse USB",
+                BigDecimal.ONE, true, "", "PC");
+        Category category = new Category();
+        category.setName("PC");
+        when(categoryRepository.findByName("PC")).thenReturn(Optional.of(category));
+        Product product = new Product();
+        product.setId(P1);
+        when(mapStructMapper.mapCreateCommandToProduct(cmd)).thenReturn(product);
+        when(mapStructMapper.mapProductToProductResponseDto(product)).thenReturn(
+                new ProductResponseDto(P1, "mouse", "WiFi mouse USB", BigDecimal.ONE, true, "", null,
+                        0L, 0.0, 0));
+
+        TransactionSynchronizationManager.initSynchronization();
+        try {
+            service.createProduct(cmd);
+        } finally {
+            // A rollback discards the registered synchronisations without invoking
+            // afterCommit, so the deferred increment never runs.
+            TransactionSynchronizationManager.clearSynchronization();
+        }
+
+        assertThat(registry.find("catalog.product.created").counter()).isNull();
     }
 }

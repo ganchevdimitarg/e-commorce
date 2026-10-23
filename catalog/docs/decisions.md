@@ -45,3 +45,91 @@ Reference with `@docs/decisions.md` in prompts when Claude re-raises settled que
 - 2026-10-22 — Catalog mutation-tests `service.*` and `idempotency.*` through the opt-in `pitest` profile (PIT 1.30.1 + pitest-junit5-plugin 1.2.3, unit tests only, not bound to `verify` or any lifecycle phase; run manually from `catalog/` with `./mvnw -Ppitest test-compile org.pitest:pitest-maven:mutationCoverage`). Baseline score: 88 % (141/160 mutants killed, 12 survived, 7 no coverage); threshold: 85 %. Target tests are the unit-tagged `ProductServiceImplTest`, `CategoryServiceImplTest` and `CommentServiceImplTest` plus `idempotency.*Test`; no `*IT` class is selected, so PIT never starts Testcontainers. PIT 1.30.1 supersedes the plan's 1.16.1, which predates Java 25 and cannot read class-file major 69. The profile is manual until the score is stable in CI.
 - 2026-10-22 — Supersedes the locking clause of the 2026-10-21 rating decision: `createComment` and `deleteComment` take a `PESSIMISTIC_WRITE` row lock on the product before recalculating the rating. Overlapping comment mutations now queue and both commit instead of the loser rolling back with `409 CONFLICT`; the product is still dirty-checked, so its `@Version` and ETag advance on every rating change. The accepted trade-off is serialised comment writes per product, replacing retry-on-conflict. Product edits keep their optimistic predicate, so a product update racing a comment mutation can still return 409. The comment→product association is lazy so the delete path can read the foreign key from the proxy and take the lock before loading the product; loading it eagerly first produced a stale managed version and an optimistic-lock failure on the locked read. Rejected: an atomic native update (bypasses Hibernate auditing and lifecycle for marginal round-trip savings) and comment events with a self-consumer (see the superseded entry).
 - 2026-10-22 — Catalog's JSON Schema event contract is now version-dispatched and compatibility-checked in-repo. `EventSchemaCatalog` loads every `<topic>.v<N>.json`, rejects filename/`$id`/`schemaVersion.const` mismatches, duplicates, unknown topics and missing topics at startup; `EventSchemaValidator` selects the schema from the payload's `schemaVersion`; and `EventSchemaCompatibilityTest` enforces a BACKWARD policy between consecutive versions as part of `verify`. Subjects are registry-ready as `<topic>-value`. Rejected: adding Apicurio or Confluent now, because no in-repo module consumes catalog events and ADR-002 still defers the shared Avro infrastructure. See ADR-010.
+- 2026-10-22 — Catalog splits `catalog.write` into `catalog.review` (comment create/delete) and
+  `catalog.manage` (product/category create, update, delete and moves); `catalog.write` is removed,
+  not aliased. The auth service owns the scope seed and must add the two new scopes to the gateway
+  client and any API client; until it does, review-only and manage-only tokens are rejected as
+  designed. Rationale: comment moderation no longer confers repricing or deletion rights.
+- 2026-10-22 — Catalog reads roles from a dedicated `roles` claim (collection or
+  space-delimited string); a value without the `ROLE_` prefix is prefixed once. `ROLE_*`
+  values in the `scope` claim remain accepted through a deprecated compatibility path for
+  existing tokens.
+- 2026-10-22 — Catalog serves actuator `info` and `prometheus` only on the separate management
+  port 8088 (`MANAGEMENT_PORT`), not the app port 8084; `/actuator/health/**` stays public.
+  Boot applies the single application `SecurityFilterChain` to the separate management server,
+  so `ResourceServerConfig` permits requests arriving on the management port while the app port
+  still rejects info and prometheus. The management port is unauthenticated by design and must
+  be reachable only from the monitoring network. Rejected: 8085 (owned by notification) and
+  app-port token protection (every Prometheus scraper would need a JWT). If app-level
+  protection on 8088 is required, add a `ManagementContextConfiguration` with its own
+  `SecurityFilterChain`.
+- 2026-10-22 — Catalog's Redis `product` cache uses the typed
+  `JacksonJsonRedisSerializer<ProductResponseDto>` (Jackson 3), not the polymorphic
+  `GenericJackson2JsonRedisSerializer`; values carry no `@class` type metadata. The prefix is
+  `catalog:v4:` so v3 entries are never deserialized as the typed DTO. Prod Redis auth/TLS is
+  environment-backed (`REDIS_PASSWORD`, `REDIS_SSL_ENABLED`). Rejected: Jackson 2's typed
+  serializer, which is deprecated for removal in Spring Data Redis 4.1.
+- 2026-10-22 — Catalog product responses no longer embed the comment collection:
+  `ProductResponseDto.comments` and `Product.comments` are removed; `avgStars` and
+  `ratingCount` carry the summary and `GET /products/{name}/comments` serves the
+  paginated reviews. The cache prefix moves to `catalog:v5:` so v4 entries containing a
+  `comments` property are never bound to the new record. Rejected: a capped comments
+  array (still unbounded per product and duplicates the paginated endpoint).
+- 2026-10-22 — Catalog indexes product-name search with a `pg_trgm` GIN index on
+  `lower(name)` (`idx_products_name_trgm`, partial `WHERE deleted_at IS NULL`) so the
+  contains predicate can be index-scanned. `pg_trgm` is a deployment prerequisite;
+  PostgreSQL 13+ treats it as trusted, but a restricted database user may need a DBA to
+  create the extension once. Rejected: a B-tree index (cannot serve a leading-wildcard
+  LIKE), full-text search (changes match semantics from substring to lexeme), and an
+  in-memory filter (unbounded read). Two limits are accepted:
+  (a) `V20` uses a non-concurrent `CREATE INDEX`, so Flyway's startup migration holds a
+  `SHARE` lock on `products` for the GIN build and briefly blocks writes from older
+  instances during a rolling deploy; this is accepted for the current catalogue size, and
+  a future growth point should switch to a non-transactional `CREATE INDEX CONCURRENTLY`
+  migration plus a manual repair step for an invalid index, because `IF NOT EXISTS`
+  would skip the retry;
+  (b) `ProductNameTrigramIndexIT` inlines the pattern and so proves index usability, not
+  the runtime plan of the bound-parameter query; pgjdbc prepares statements after five
+  executions and PostgreSQL may then choose a generic plan that cannot use a trigram
+  index, so if measurements show search falling back to a scan, set
+  `plan_cache_mode=force_custom_plan` (or pgjdbc `prepareThreshold=0`) on the catalog
+  datasources.
+- 2026-10-22 — `moveAllProducts` is bounded by `catalog.category.move-all-max` (default
+  5,000). Above the cap it returns 409 `CONFLICT` and changes nothing; the move stays one
+  transaction, loads only the id, name, price, stock and version the `category-changed`
+  event needs, and writes the outbox rows with `saveAll`. Rejected: chunked processing
+  with a transaction per chunk, which loses all-or-nothing and leaves a partially moved
+  category after a failure.
+  The cap is re-checked against the projected rows, so a concurrent insert between the
+  count and the projection cannot push the move past it. A product inserted after the
+  projection is still moved by the bulk update without an event, and a concurrent update
+  in that window leaves the event's version one behind — both pre-existing races accepted
+  for the current catalogue size. `saveAll` is used per the task's prescription; without
+  `hibernate.jdbc.batch_size` it is not a JDBC batch, so a full-cap move issues one insert
+  per row inside the single transaction.
+- 2026-10-23 — The retention job purges delivered outbox rows after
+  `catalog.outbox.retention` (default 7 days) using a partial index on `sent_at`.
+  Unsent rows and dead-lettered rows are never selected; the latter stay for inspection
+  and replay. The outbox window is independent of the 90-day soft-delete window, and the
+  purge only runs when `catalog.retention.purge-enabled=true`. Rejected: an unbounded
+  `delete` (long lock and a huge transaction), and deleting all rows older than the
+  window regardless of state (would discard undelivered events). `V21` builds the index
+  non-concurrently, so the startup migration briefly holds a `SHARE` lock on
+  `outbox_events` and blocks inserts; this is the same trade-off accepted for `V20`, and
+  the same growth point should switch both to `CREATE INDEX CONCURRENTLY`.
+- 2026-10-23 — The outbox relay claims with a `claimed_until` lease in a short transaction,
+  sends outside any transaction and marks in a second short transaction, so no database
+  connection or row lock is held during Kafka I/O. The claim query admits at most one
+  in-flight row per `aggregate_id`, preserving per-product order across relay instances;
+  an expired lease makes a crashed claim retryable. Delivery stays at-least-once, so a
+  lease shorter than a stalled batch can duplicate a send and consumers still deduplicate
+  on `eventId`. Rejected: holding the transaction during sends (the current design),
+  keying rows to partition owners (adds a rebalancing protocol), and at-most-once
+  marking before the broker acknowledges (loses events).
+- 2026-10-23 — Business counters (`catalog.product.*`, `catalog.category.*`,
+  `catalog.comment.*`) are incremented in a `TransactionSynchronization.afterCommit`
+  callback through a single `AfterCommitMetrics` helper, so a rolled-back write is never
+  counted. Outside a transaction the increment runs immediately, which keeps unit tests
+  and non-transactional callers correct. Rejected: incrementing inside the service method
+  (counts rolled-back requests), and an `ApplicationEvent` listener with
+  `@TransactionalEventListener(AFTER_COMMIT)` (more moving parts for the same effect).

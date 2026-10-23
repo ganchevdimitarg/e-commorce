@@ -29,7 +29,8 @@ class ConfigurationProfilesTest {
             "catalog.datasource.reader.url",
             "spring.security.oauth2.resourceserver.jwt.issuer-uri",
             "spring.data.redis.host",
-            "spring.kafka.bootstrap-servers");
+            "spring.kafka.bootstrap-servers",
+            "management.server.port");
 
     @Test
     void should_not_contain_localhost_in_base_or_prod_config_when_config_files_are_read() {
@@ -80,6 +81,19 @@ class ConfigurationProfilesTest {
                 .as("%s must be environment-backed", key)
                 .contains("${")
                 .contains("}"));
+    }
+
+    @Test
+    void should_configure_redis_auth_and_tls_from_environment_when_prod_config_is_read() {
+        assertThat(load("application-prod.yml"))
+                .containsEntry("spring.data.redis.password", "${REDIS_PASSWORD:}")
+                .containsEntry("spring.data.redis.ssl.enabled", "${REDIS_SSL_ENABLED:false}");
+    }
+
+    @Test
+    void should_serve_actuator_on_the_management_port_when_dev_config_is_read() {
+        assertThat(load("application-dev.yml"))
+                .containsEntry("management.server.port", "${MANAGEMENT_PORT:8088}");
     }
 
     @Test

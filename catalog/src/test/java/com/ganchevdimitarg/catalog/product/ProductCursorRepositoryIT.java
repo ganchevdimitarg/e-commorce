@@ -173,8 +173,8 @@ class ProductCursorRepositoryIT extends AbstractIntegrationTest {
         productService.searchProductsByCursor(filtered, firstPage.nextCursor(), PAGE_SIZE, "desc");
 
         assertThat(statistics.getPrepareStatementCount())
-                .as("one page select plus one batched comments select; a count query would add a statement")
-                .isLessThanOrEqualTo(2);
+                .as("one page select; no count query and no comments batch query")
+                .isLessThanOrEqualTo(1);
         assertThat(statistics.getQueries())
                 .as("statistics must record the executed queries for this assertion to mean anything")
                 .isNotEmpty()

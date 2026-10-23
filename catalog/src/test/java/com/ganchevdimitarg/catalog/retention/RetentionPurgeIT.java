@@ -60,10 +60,11 @@ class RetentionPurgeIT extends AbstractIntegrationTest {
         UUID expiredProductInExpiredCategory =
                 insertProduct("cascade-product-" + suffix(), expiredCategoryWithExpiredProduct, 100);
 
-        RetentionPurgeService.PurgeResult result =
-                service.purgeBatch(Instant.now().minus(90, ChronoUnit.DAYS));
+        RetentionPurgeService.PurgeResult result = service.purgeBatch(
+                Instant.now().minus(90, ChronoUnit.DAYS),
+                Instant.now().minus(7, ChronoUnit.DAYS));
 
-        assertThat(result).isEqualTo(new RetentionPurgeService.PurgeResult(3, 2, 2));
+        assertThat(result).isEqualTo(new RetentionPurgeService.PurgeResult(3, 2, 2, 0));
 
         assertThat(countCategories(oldCategory)).isZero();
         assertThat(countProducts(oldProduct)).isZero();
@@ -86,9 +87,29 @@ class RetentionPurgeIT extends AbstractIntegrationTest {
     }
 
     @Test
+    void should_purgeOnlyOldSentOutboxRows_when_batchRuns() {
+        UUID purged = insertOutboxRow(OutboxState.SENT_DAYS_AGO, 8);
+        UUID recent = insertOutboxRow(OutboxState.SENT_DAYS_AGO, 1);
+        UUID unsent = insertOutboxRow(OutboxState.UNSENT, 8);
+        UUID deadLettered = insertOutboxRow(OutboxState.DEAD_LETTERED, 8);
+
+        RetentionPurgeService.PurgeResult result = service.purgeBatch(
+                Instant.now().minus(90, ChronoUnit.DAYS),
+                Instant.now().minus(7, ChronoUnit.DAYS));
+
+        assertThat(result.outboxEvents()).isEqualTo(1);
+        assertThat(countOutbox(purged)).isZero();
+        assertThat(countOutbox(recent)).isOne();
+        assertThat(countOutbox(unsent)).isOne();
+        assertThat(countOutbox(deadLettered)).isOne();
+    }
+
+    @Test
     void should_notCreateSchedulerBean_when_purgeIsDisabledByDefault() {
         assertThat(applicationContext.getBeanNamesForType(RetentionPurgeScheduler.class)).isEmpty();
     }
+
+    private enum OutboxState { SENT_DAYS_AGO, UNSENT, DEAD_LETTERED }
 
     private static String suffix() {
         return UUID.randomUUID().toString().substring(0, 8);
@@ -137,5 +158,33 @@ class RetentionPurgeIT extends AbstractIntegrationTest {
 
     private int countComments(UUID id) {
         return jdbcTemplate.queryForObject("select count(*) from comments where id = ?", Integer.class, id);
+    }
+
+    /**
+     * Seeds an outbox row. {@code ageInDays} moves {@code created_at}, {@code sent_at} and
+     * {@code dead_lettered_at} together so the row's state and its age agree.
+     */
+    private UUID insertOutboxRow(OutboxState state, int ageInDays) {
+        UUID id = UUID.randomUUID();
+        String aggregateId = UUID.randomUUID().toString();
+        String sentAt = state == OutboxState.SENT_DAYS_AGO
+                ? "now() - interval '" + ageInDays + " days'" : "null";
+        String deadLetteredAt = state == OutboxState.DEAD_LETTERED
+                ? "now() - interval '" + ageInDays + " days'" : "null";
+        jdbcTemplate.update("""
+                insert into outbox_events (id, aggregate_type, aggregate_id, event_type, topic,
+                    message_key, payload, headers, attempts, next_attempt_at, created_at,
+                    sent_at, dead_lettered_at)
+                values (?, 'Product', ?, 'created', 'catalog.product.created', ?,
+                    '{}'::jsonb, '{}'::jsonb, 0, now() - interval '%d days',
+                    now() - interval '%d days', %s, %s)
+                """.formatted(ageInDays, ageInDays, sentAt, deadLetteredAt),
+                id, aggregateId, aggregateId);
+        return id;
+    }
+
+    private int countOutbox(UUID id) {
+        return jdbcTemplate.queryForObject("select count(*) from outbox_events where id = ?",
+                Integer.class, id);
     }
 }
