@@ -117,3 +117,12 @@ Reference with `@docs/decisions.md` in prompts when Claude re-raises settled que
   non-concurrently, so the startup migration briefly holds a `SHARE` lock on
   `outbox_events` and blocks inserts; this is the same trade-off accepted for `V20`, and
   the same growth point should switch both to `CREATE INDEX CONCURRENTLY`.
+- 2026-10-23 — The outbox relay claims with a `claimed_until` lease in a short transaction,
+  sends outside any transaction and marks in a second short transaction, so no database
+  connection or row lock is held during Kafka I/O. The claim query admits at most one
+  in-flight row per `aggregate_id`, preserving per-product order across relay instances;
+  an expired lease makes a crashed claim retryable. Delivery stays at-least-once, so a
+  lease shorter than a stalled batch can duplicate a send and consumers still deduplicate
+  on `eventId`. Rejected: holding the transaction during sends (the current design),
+  keying rows to partition owners (adds a rebalancing protocol), and at-most-once
+  marking before the broker acknowledges (loses events).

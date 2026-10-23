@@ -11,6 +11,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -69,7 +71,8 @@ class OutboxEventRepositoryIT extends AbstractIntegrationTest {
                 now.minusSeconds(3600), now.minusSeconds(3600), now));
         entityManager.clear();
 
-        List<OutboxEvent> claimed = outboxEventRepository.lockUnsentBatch(10);
+        List<OutboxEvent> claimed = outboxEventRepository.claimDueBatch(
+                10, OffsetDateTime.now(ZoneOffset.UTC).plusMinutes(1));
 
         assertThat(claimed).extracting(OutboxEvent::getId).containsExactly(due.getId());
     }
@@ -102,15 +105,90 @@ class OutboxEventRepositoryIT extends AbstractIntegrationTest {
         outboxEventRepository.saveAndFlush(deadLettered);
         entityManager.clear();
 
-        assertThat(outboxEventRepository.lockUnsentBatch(10))
+        assertThat(outboxEventRepository.claimDueBatch(
+                10, OffsetDateTime.now(ZoneOffset.UTC).plusMinutes(1)))
                 .extracting(OutboxEvent::getId)
                 .containsExactly(live.getId());
         assertThat(outboxEventRepository.countBySentAtIsNullAndDeadLetteredAtIsNull()).isEqualTo(1);
     }
 
+    @Test
+    void should_claimOnlyOldestRow_when_laterRowSharesAggregate() {
+        Instant now = Instant.now();
+        String aggregateId = UUID.randomUUID().toString();
+        OutboxEvent first = outboxEventRepository.saveAndFlush(event(aggregateId,
+                "{\"seq\":1}", Map.of("eventType", "created"),
+                now.minusSeconds(60), now.minusSeconds(120), null));
+        outboxEventRepository.saveAndFlush(event(aggregateId,
+                "{\"seq\":2}", Map.of("eventType", "created"),
+                now.minusSeconds(60), now.minusSeconds(60), null));
+        entityManager.clear();
+
+        List<OutboxEvent> claimed = outboxEventRepository.claimDueBatch(
+                10, OffsetDateTime.now(ZoneOffset.UTC).plusMinutes(1));
+
+        assertThat(claimed).extracting(OutboxEvent::getId).containsExactly(first.getId());
+    }
+
+    @Test
+    void should_claimLaterRow_when_earlierRowIsDeadLettered() {
+        Instant now = Instant.now();
+        String aggregateId = UUID.randomUUID().toString();
+        OutboxEvent deadLettered = event(aggregateId, "{\"seq\":1}", Map.of("eventType", "created"),
+                now.minusSeconds(60), now.minusSeconds(120), null);
+        deadLettered.setDeadLetteredAt(now.minusSeconds(30));
+        deadLettered.setDeadLetterReason("poison");
+        outboxEventRepository.saveAndFlush(deadLettered);
+        OutboxEvent later = outboxEventRepository.saveAndFlush(event(aggregateId,
+                "{\"seq\":2}", Map.of("eventType", "created"),
+                now.minusSeconds(60), now.minusSeconds(60), null));
+        entityManager.clear();
+
+        assertThat(outboxEventRepository.claimDueBatch(
+                10, OffsetDateTime.now(ZoneOffset.UTC).plusMinutes(1)))
+                .extracting(OutboxEvent::getId)
+                .containsExactly(later.getId());
+    }
+
+    @Test
+    void should_skipRow_when_claimLeaseIsActive() {
+        Instant now = Instant.now();
+        OutboxEvent claimed = outboxEventRepository.saveAndFlush(event(
+                "{\"productName\":\"claimed\"}", Map.of("eventType", "created"),
+                now.minusSeconds(60), now.minusSeconds(60), null));
+        claimed.setClaimedUntil(now.plusSeconds(60));
+        outboxEventRepository.saveAndFlush(claimed);
+        entityManager.clear();
+
+        assertThat(outboxEventRepository.claimDueBatch(
+                10, OffsetDateTime.now(ZoneOffset.UTC).plusMinutes(1))).isEmpty();
+    }
+
+    @Test
+    void should_reclaimRow_when_claimLeaseExpired() {
+        Instant now = Instant.now();
+        OutboxEvent expired = outboxEventRepository.saveAndFlush(event(
+                "{\"productName\":\"expired\"}", Map.of("eventType", "created"),
+                now.minusSeconds(60), now.minusSeconds(60), null));
+        expired.setClaimedUntil(now.minusSeconds(1));
+        outboxEventRepository.saveAndFlush(expired);
+        entityManager.clear();
+
+        List<OutboxEvent> claimed = outboxEventRepository.claimDueBatch(
+                10, OffsetDateTime.now(ZoneOffset.UTC).plusMinutes(1));
+
+        assertThat(claimed).extracting(OutboxEvent::getId).containsExactly(expired.getId());
+        assertThat(claimed.getFirst().getClaimedUntil()).isAfter(Instant.now());
+    }
+
     private OutboxEvent event(String payload, Map<String, String> headers,
                               Instant nextAttemptAt, Instant createdAt, Instant sentAt) {
-        String aggregateId = UUID.randomUUID().toString();
+        return event(UUID.randomUUID().toString(), payload, headers,
+                nextAttemptAt, createdAt, sentAt);
+    }
+
+    private OutboxEvent event(String aggregateId, String payload, Map<String, String> headers,
+                              Instant nextAttemptAt, Instant createdAt, Instant sentAt) {
         OutboxEvent event = new OutboxEvent();
         event.setAggregateType("Product");
         event.setAggregateId(aggregateId);

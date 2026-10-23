@@ -70,6 +70,11 @@ public class OutboxEvent {
     @Column(name = "next_attempt_at", nullable = false)
     private Instant nextAttemptAt;
 
+    // The relay instance currently responsible for this row. NULL means unclaimed; an
+    // expired value makes the row claimable again.
+    @Column(name = "claimed_until")
+    private Instant claimedUntil;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 

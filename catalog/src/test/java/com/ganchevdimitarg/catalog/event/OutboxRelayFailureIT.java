@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -25,6 +26,7 @@ import java.util.concurrent.CompletableFuture;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -137,7 +139,62 @@ class OutboxRelayFailureIT extends AbstractIntegrationTest {
         verify(kafkaTemplate, times(1)).send(any(ProducerRecord.class));
     }
 
+    @Test
+    void should_sendOutsideTransaction_when_relayRuns() {
+        seedRow();
+        when(kafkaTemplate.send(any(ProducerRecord.class))).thenAnswer(invocation -> {
+            assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
+            // The claim committed before the send: a separate connection can see the lease.
+            assertThat(jdbc.queryForObject(
+                    "SELECT claimed_until FROM outbox_events WHERE aggregate_id = ?",
+                    Timestamp.class, aggregateId)).isNotNull();
+            return CompletableFuture.completedFuture(null);
+        });
+
+        assertThat(relay.relayOnce()).isEqualTo(1);
+        assertThat(jdbc.queryForObject(
+                "SELECT claimed_until FROM outbox_events WHERE aggregate_id = ?",
+                Timestamp.class, aggregateId)).isNull();
+    }
+
+    @Test
+    void should_attemptOnlyOldestRow_when_twoRowsShareAnAggregate() {
+        seedRow(aggregateId, Instant.now().minusSeconds(120));
+        seedRow(aggregateId, Instant.now().minusSeconds(60));
+        when(kafkaTemplate.send(any(ProducerRecord.class)))
+                .thenThrow(new KafkaException("broker down"));
+
+        assertThat(relay.relayOnce()).isZero();
+
+        verify(kafkaTemplate, times(1)).send(any(ProducerRecord.class));
+        assertThat(jdbc.queryForObject("""
+                SELECT attempts FROM outbox_events
+                WHERE aggregate_id = ? ORDER BY created_at LIMIT 1
+                """, Integer.class, aggregateId)).isEqualTo(1);
+    }
+
+    @Test
+    void should_reclaimRow_when_claimLeaseExpires() {
+        seedRow();
+        jdbc.update("UPDATE outbox_events SET claimed_until = now() + interval '1 minute' "
+                + "WHERE aggregate_id = ?", aggregateId);
+        when(kafkaTemplate.send(any(ProducerRecord.class)))
+                .thenReturn(CompletableFuture.completedFuture(null));
+
+        assertThat(relay.relayOnce()).isZero();
+        verify(kafkaTemplate, never()).send(any(ProducerRecord.class));
+
+        jdbc.update("UPDATE outbox_events SET claimed_until = now() - interval '1 second' "
+                + "WHERE aggregate_id = ?", aggregateId);
+        assertThat(relay.relayOnce()).isEqualTo(1);
+        assertThat(isUnsent()).isFalse();
+    }
+
     private void seedRow() {
+        seedRow(aggregateId, Instant.now());
+    }
+
+    private void seedRow(String aggregateId, Instant createdAt) {
         OutboxEvent event = new OutboxEvent();
         event.setAggregateType("Product");
         event.setAggregateId(aggregateId);
@@ -148,7 +205,7 @@ class OutboxRelayFailureIT extends AbstractIntegrationTest {
         event.setHeaders(Map.of("eventType", "created"));
         event.setAttempts(0);
         event.setNextAttemptAt(Instant.now().minusSeconds(1));
-        event.setCreatedAt(Instant.now());
+        event.setCreatedAt(createdAt);
         event.setSentAt(null);
         repository.saveAndFlush(event);
     }

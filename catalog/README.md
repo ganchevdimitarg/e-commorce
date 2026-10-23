@@ -133,6 +133,7 @@ Configuration keys that matter locally:
 | `catalog.outbox.relay-interval-ms` | Outbox relay cadence, default `1000` |
 | `catalog.outbox.batch-size` | Rows claimed per relay run, default `20` |
 | `catalog.outbox.send-timeout` | Broker acknowledgement timeout per row, default `5s` |
+| `catalog.outbox.claim-lease` | How long a claimed row is skipped by other relay instances, default `60s` |
 | `catalog.outbox.retention` | Delivered rows are purged by the retention job after this window, default `7d` |
 | `catalog.category.move-all-max` | Maximum products a category-wide move processes; above it the request is a 409, default `5000` |
 | `catalog.retention.purge-enabled` | Opt-in purge of expired soft-deleted rows, default `false` |
@@ -356,11 +357,19 @@ validates the payload against the topic's versioned JSON Schema
 and only if the change committed. `OutboxRelay` then:
 
 - runs every 1000 ms (`catalog.outbox.relay-interval-ms`) from `OutboxScheduler`;
-- claims a batch (default 20, oldest first) where `sent_at IS NULL`,
-  `dead_lettered_at IS NULL` and `next_attempt_at <= now()`, using
-  `SELECT … FOR UPDATE SKIP LOCKED`;
+- in a short transaction, claims the oldest due rows (default 20) where `sent_at IS NULL`,
+  `dead_lettered_at IS NULL`, `next_attempt_at <= now()` and no active claim exists,
+  setting `claimed_until` in the same statement (`SELECT … FOR UPDATE SKIP LOCKED`);
 - sends the stored JSON bytes through the outbox `KafkaTemplate` (`acks=all`, idempotent
-  producer) and marks the row sent only after the broker acknowledges.
+  producer) outside any transaction, issuing every send before awaiting the futures;
+- in a second short transaction, marks each claimed row sent only after the broker
+  acknowledges it, records a retryable failure, or dead-letters a poison payload, and
+  clears the claim.
+
+An active lease is skipped by other relay instances, and an expired lease makes the row
+claimable again, so a crashed relay delays delivery but never loses an event. The claim
+admits at most one in-flight row per product, so a product's events reach Kafka in the order
+they were written even when several relay instances run.
 
 Delivery is **at-least-once**; consumers must deduplicate on the payload's `eventId`.
 The retention job removes delivered rows after `catalog.outbox.retention` (default 7 days);
@@ -384,9 +393,12 @@ Tuning and failure behaviour:
   delivers, so tests and operators can drive a run directly;
 - `catalog.outbox.batch-size` (default `20`) and `catalog.outbox.send-timeout` (default
   `5s`) bound each run;
+- `catalog.outbox.claim-lease` (default `60s`) bounds how long a claimed row is skipped by
+  another relay instance; a row left claimed by a crash is retried after the lease expires;
 - a retryable failed send (broker, network or timeout) increments `attempts`, stores
-  `last_error`, schedules the next attempt with exponential backoff (1, 2, 4, 8, 16, 32,
-  then 60 seconds) and stops the batch;
+  `last_error` and schedules the next attempt with exponential backoff (1, 2, 4, 8, 16, 32,
+  then 60 seconds); every claimed row records its own outcome, so a failed batch is no
+  longer probed with a single send;
 - a non-retryable ("poison") failure — a serialisation, oversized-record or invalid-record
   error — parks the row instead: it sets `dead_lettered_at` and `dead_letter_reason`,
   increments `catalog.outbox.dead_lettered` and excludes the row from future claims. There

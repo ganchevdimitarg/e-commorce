@@ -36,7 +36,8 @@ class RetentionPurgeSchedulerTest {
     private RetentionPurgeScheduler newScheduler(int maxBatchesPerRun) {
         return new RetentionPurgeScheduler(service,
                 new RetentionProperties(true, Duration.ofDays(90), 500, maxBatchesPerRun, "0 0 3 * * *"),
-                new OutboxProperties(true, 20, Duration.ofSeconds(5), Duration.ofDays(7)),
+                new OutboxProperties(true, 20, Duration.ofSeconds(5),
+                        Duration.ofMinutes(1), Duration.ofDays(7)),
                 Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
@@ -58,7 +59,8 @@ class RetentionPurgeSchedulerTest {
 
         new RetentionPurgeScheduler(service,
                 new RetentionProperties(true, Duration.ofDays(90), 500, 100, "0 0 3 * * *"),
-                new OutboxProperties(true, 20, Duration.ofSeconds(5), Duration.ofDays(10)),
+                new OutboxProperties(true, 20, Duration.ofSeconds(5),
+                        Duration.ofMinutes(1), Duration.ofDays(10)),
                 Clock.fixed(NOW, ZoneOffset.UTC)).purge();
 
         verify(service).purgeBatch(CUTOFF, tenDayOutboxCutoff);
